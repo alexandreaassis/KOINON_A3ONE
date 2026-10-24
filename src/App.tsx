@@ -1,28 +1,169 @@
-/* Main App Component - Handles routing (using react-router-dom), query client and other providers - use this file to add all routes */
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+/* Main App Component - Sistema de Votação Eletrônica Residencial Lago Azul */
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import Index from './pages/Index'
-import NotFound from './pages/NotFound'
-import Layout from './components/Layout'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { AppLayout } from '@/components/layout/AppLayout'
 
-// ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
-// AVOID REMOVING ANY CONTEXT PROVIDERS FROM THIS FILE (e.g. TooltipProvider, Toaster, Sonner)
+// Páginas de Autenticação
+import LoginPage from '@/pages/auth/Login'
+import EsqueciSenhaPage from '@/pages/auth/EsqueciSenha'
+import RedefinirSenhaPage from '@/pages/auth/RedefinirSenha'
+import VerificarEmailPage from '@/pages/auth/VerificarEmail'
+
+// Páginas do Módulo do Morador
+import MinhaSituacaoPage from '@/pages/morador/MinhaSituacao'
+import CredenciamentoPage from '@/pages/morador/Credenciamento'
+import VotacaoPage from '@/pages/morador/Votacao'
+import ReciboPage from '@/pages/morador/Recibo'
+
+// Páginas do Módulo da Mesa Diretora
+import PainelMesaPage from '@/pages/mesa/PainelMesa'
+import CredenciaisPendentesPage from '@/pages/mesa/CredenciaisPendentes'
+import DeliberacoesPage from '@/pages/mesa/Deliberacoes'
+import AuditoriaPage from '@/pages/mesa/Auditoria'
+
+import NotFound from '@/pages/NotFound'
+
+// Rota raiz inteligente: redireciona para a home de acordo com o perfil
+const RootRoute = () => {
+  const { user, role, isLoading } = useAuth()
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-600 border-t-transparent" />
+          <p className="text-sm font-medium text-slate-600">Carregando sistema Lago Azul...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (role === 'mesa') {
+    return <Navigate to="/mesa" replace />
+  }
+
+  return (
+    <ProtectedRoute>
+      <AppLayout>
+        <MinhaSituacaoPage />
+      </AppLayout>
+    </ProtectedRoute>
+  )
+}
 
 const App = () => (
   <BrowserRouter>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES MUST BE ADDED HERE */}
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Routes>
+          {/* Rota Raiz Inteligente */}
+          <Route path="/" element={<RootRoute />} />
+
+          {/* Rotas Públicas de Autenticação */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/esqueci-senha" element={<EsqueciSenhaPage />} />
+          <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
+          <Route path="/verificar-email" element={<VerificarEmailPage />} />
+
+          {/* Rotas Protegidas - Módulo do Morador */}
+          <Route
+            path="/situacao"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <MinhaSituacaoPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/credenciamento"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <CredenciamentoPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/votacao"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <VotacaoPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/recibo"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ReciboPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Rotas Protegidas - Módulo da Mesa Diretora */}
+          <Route
+            path="/mesa"
+            element={
+              <ProtectedRoute requireMesa>
+                <AppLayout>
+                  <PainelMesaPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/mesa/credenciamentos"
+            element={
+              <ProtectedRoute requireMesa>
+                <AppLayout>
+                  <CredenciaisPendentesPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/mesa/deliberacoes"
+            element={
+              <ProtectedRoute requireMesa>
+                <AppLayout>
+                  <DeliberacoesPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/mesa/auditoria"
+            element={
+              <ProtectedRoute requireMesa>
+                <AppLayout>
+                  <AuditoriaPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* 404 Não Encontrado */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </TooltipProvider>
+    </AuthProvider>
   </BrowserRouter>
 )
 
