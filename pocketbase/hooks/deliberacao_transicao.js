@@ -13,8 +13,11 @@ routerAdd('POST', '/backend/v1/deliberacoes/transicao', (e) => {
     throw new ForbiddenError('Usuário não autenticado')
   }
 
-  if (authRecord.getString('role') !== 'mesa') {
-    throw new ForbiddenError('Apenas membros da Mesa podem alterar o status das deliberações.')
+  const role = authRecord.getString('role')
+  if (role !== 'mesa' && role !== 'admin') {
+    throw new ForbiddenError(
+      'Apenas membros da Mesa ou Administradores podem alterar o status das deliberações.',
+    )
   }
 
   const body = e.requestInfo().body || {}

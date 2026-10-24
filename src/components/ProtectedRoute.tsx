@@ -8,13 +8,15 @@ import { ShieldAlert, LogOut, Home } from 'lucide-react'
 interface ProtectedRouteProps {
   children: React.ReactNode
   requireMesa?: boolean
+  requireAdmin?: boolean
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requireMesa = false,
+  requireAdmin = false,
 }) => {
-  const { user, role, isLoading, logout } = useAuth()
+  const { user, role, isAdmin, isMesaOuAdmin, isLoading, logout } = useAuth()
   const location = useLocation()
 
   if (isLoading) {
@@ -32,7 +34,46 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  if (requireMesa && role !== 'mesa') {
+  if (requireAdmin && !isAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
+        <Card className="max-w-md border-purple-200 shadow-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-purple-100 text-purple-700">
+              <ShieldAlert className="h-7 w-7" />
+            </div>
+            <CardTitle className="text-xl font-bold text-slate-900">
+              Acesso Restrito à Administração
+            </CardTitle>
+            <CardDescription className="text-sm text-slate-600">
+              Esta seção é restrita aos administradores do condomínio. Seu perfil atual está
+              classificado como{' '}
+              <strong className="text-slate-800 capitalize">
+                {role || 'Morador'} ({user.name})
+              </strong>
+              .
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 pt-2">
+            <Button
+              variant="default"
+              className="bg-purple-700 hover:bg-purple-800"
+              onClick={() => {
+                window.location.href = '/'
+              }}
+            >
+              <Home className="mr-2 h-4 w-4" /> Voltar para o Painel
+            </Button>
+            <Button variant="outline" onClick={logout}>
+              <LogOut className="mr-2 h-4 w-4" /> Trocar de Conta
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (requireMesa && !isMesaOuAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
         <Card className="max-w-md border-amber-200 shadow-md">

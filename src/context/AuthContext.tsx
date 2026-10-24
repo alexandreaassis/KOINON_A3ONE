@@ -3,15 +3,19 @@ import pb from '@/lib/pocketbase/client'
 import type { UserRecord, UnidadeRecord } from '@/lib/api'
 import { api } from '@/lib/api'
 
+import type { UserRole } from '@/lib/api'
+
 interface AuthContextType {
   user: UserRecord | null
-  role: 'morador' | 'mesa' | null
+  role: UserRole | null
+  isAdmin: boolean
+  isMesaOuAdmin: boolean
   unidadeSelecionada: UnidadeRecord | null
   unidadesDisponiveis: UnidadeRecord[]
   sessaoAtivaId: string | null
   isLoading: boolean
   isOnline: boolean
-  login: (email: string, pass: string) => Promise<{ user: UserRecord; role: 'morador' | 'mesa' }>
+  login: (email: string, pass: string) => Promise<{ user: UserRecord; role: UserRole }>
   logout: () => void
   selecionarUnidade: (unidade: UnidadeRecord) => void
   solicitarRedefinicaoSenha: (email: string) => Promise<boolean>
@@ -201,16 +205,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true
   }
 
-  const role = useMemo<'morador' | 'mesa' | null>(() => {
+  const role = useMemo<UserRole | null>(() => {
     if (!user) return null
     return user.role || 'morador'
   }, [user])
+
+  const isAdmin = useMemo(() => {
+    return role === 'admin'
+  }, [role])
+
+  const isMesaOuAdmin = useMemo(() => {
+    return role === 'mesa' || role === 'admin'
+  }, [role])
 
   return (
     <AuthContext.Provider
       value={{
         user,
         role,
+        isAdmin,
+        isMesaOuAdmin,
         unidadeSelecionada,
         unidadesDisponiveis,
         sessaoAtivaId,

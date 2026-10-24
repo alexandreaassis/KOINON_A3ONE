@@ -104,15 +104,36 @@ export const DeliberacoesPage: React.FC = () => {
     setItensPauta(itens)
   }
 
-  const abrirNovaDeliberacao = () => {
+  const abrirNovaDeliberacao = async () => {
     setDelibEditId(null)
     setTitulo('')
     setDescricao('')
-    setTipoCedula('secreta')
-    setQuorumInstalacao(27)
-    setQuorumMateria('Maioria simples dos presentes')
-    setInadimplenteVota(true)
-    setLocatarioVota(false)
+
+    // Carrega defaults configurados da convenção se houver
+    try {
+      const cfg = await api.getConfiguracao()
+      if (cfg) {
+        setTipoCedula((cfg.default_tipo_cedula as 'secreta' | 'nominal') || 'secreta')
+        setQuorumMateria(cfg.default_quorum_materia || 'Maioria simples dos presentes')
+        setInadimplenteVota(cfg.default_inadimplente_vota ?? true)
+        setLocatarioVota(cfg.default_locatario_vota ?? false)
+        const total = cfg.total_unidades || 52
+        setQuorumInstalacao(Math.floor(total / 2) + 1)
+      } else {
+        setTipoCedula('secreta')
+        setQuorumInstalacao(27)
+        setQuorumMateria('Maioria simples dos presentes')
+        setInadimplenteVota(true)
+        setLocatarioVota(false)
+      }
+    } catch {
+      setTipoCedula('secreta')
+      setQuorumInstalacao(27)
+      setQuorumMateria('Maioria simples dos presentes')
+      setInadimplenteVota(true)
+      setLocatarioVota(false)
+    }
+
     setModalDeliberacaoAberto(true)
   }
 

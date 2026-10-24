@@ -1,11 +1,31 @@
 import pb from '@/lib/pocketbase/client'
 import type { RecordModel } from 'pocketbase'
 
+export type UserRole = 'morador' | 'mesa' | 'admin'
+
 export interface UserRecord extends RecordModel {
   email: string
   name: string
-  role: 'morador' | 'mesa'
+  role: UserRole
   avatar?: string
+  unidade?: string
+  ativo?: boolean
+  expand?: {
+    unidade?: UnidadeRecord
+  }
+}
+
+export interface CondoConfigRecord extends RecordModel {
+  nome_condominio: string
+  logo?: string
+  quantidade_blocos?: number
+  unidades_por_bloco?: number
+  total_unidades?: number
+  prefixo_bloco?: string
+  default_inadimplente_vota?: boolean
+  default_locatario_vota?: boolean
+  default_quorum_materia?: string
+  default_tipo_cedula?: string
 }
 
 export interface UnidadeRecord extends RecordModel {
@@ -418,5 +438,81 @@ export const api = {
       method: 'GET',
       query: { deliberacaoId },
     })
+  },
+
+  // 5. Configurações do Condomínio
+  async getConfiguracao(): Promise<CondoConfigRecord | null> {
+    try {
+      const list = await pb.collection('configuracoes').getList<CondoConfigRecord>(1, 1, {
+        sort: '-created',
+      })
+      return list.items[0] || null
+    } catch (err) {
+      console.warn('Erro ao carregar configurações:', err)
+      return null
+    }
+  },
+
+  async updateConfiguracao(id: string, data: Partial<CondoConfigRecord> | FormData) {
+    return pb.collection('configuracoes').update<CondoConfigRecord>(id, data)
+  },
+
+  // 6. Regeneração de unidades
+  async regenerarUnidades(dados: {
+    quantidadeBlocos: number
+    unidadesPorBloco: number
+    prefixoBloco?: string
+  }) {
+    return pb.send<{
+      success: boolean
+      criadas: number
+      preservadas: number
+      totalExistente: number
+      message: string
+    }>('/backend/v1/admin/unidades/regenerar', {
+      method: 'POST',
+      body: dados,
+    })
+  },
+
+  // 7. Gestão de Usuários (Módulo Admin)
+  async getUsuarios() {
+    return pb.collection('users').getFullList<UserRecord>({
+      sort: '-created',
+      expand: 'unidade',
+    })
+  },
+
+  async updateUsuario(id: string, data: Partial<UserRecord>) {
+    return pb.collection('users').update<UserRecord>(id, data)
+  },
+
+  async createUsuario(data: Record<string, any>) {
+    return pb.collection('users').create<UserRecord>(data)
+  },
+
+  async deleteUsuario(id: string) {
+    return pb.collection('users').delete(id)
+  },
+
+  // Auditoria genérica de ações administrativas
+  async registrarEventoAuditoria(dados: {
+    evento: AuditoriaEventRecord['evento']
+    fator: string
+    dispositivo?: string
+    unidade?: string
+  }) {
+    try {
+      return await pb.collection('auditoria_events').create({
+        evento: dados.evento,
+        data_hora: new Date().toISOString(),
+        fator: dados.fator,
+        dispositivo: dados.dispositivo || 'painel-admin',
+        unidade: dados.unidade || null,
+      })
+    } catch (err) {
+      console.warn('Erro ao registrar evento de auditoria:', err)
+      return null
+    }
   },
 }

@@ -37,7 +37,11 @@ import {
   WifiOff,
   UserCheck,
   ChevronRight,
+  Settings,
+  ShieldAlert,
+  SlidersHorizontal,
 } from 'lucide-react'
+import { useCondoConfig } from '@/context/CondoConfigContext'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -49,12 +53,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
   const {
     user,
     role,
+    isAdmin,
+    isMesaOuAdmin,
     unidadeSelecionada,
     unidadesDisponiveis,
     selecionarUnidade,
     logout,
     isOnline,
   } = useAuth()
+  const { nomeCondominio, logoUrl } = useCondoConfig()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -114,6 +121,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     { label: 'Auditoria e Urna', path: '/mesa/auditoria', icon: History },
   ]
 
+  const navAdmin = [
+    { label: 'Configurações do Condomínio', path: '/admin/configuracoes', icon: Settings },
+    { label: 'Gestão de Usuários', path: '/admin/usuarios', icon: Users },
+    { label: 'Parâmetros da Convenção', path: '/admin/parametros', icon: SlidersHorizontal },
+  ]
+
   // Breadcrumb simples derivado da rota
   const getBreadcrumbs = () => {
     const p = location.pathname
@@ -125,7 +138,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     if (p === '/mesa/credenciamentos') return ['Mesa Diretora', 'Credenciais']
     if (p === '/mesa/deliberacoes') return ['Mesa Diretora', 'Deliberações']
     if (p === '/mesa/auditoria') return ['Mesa Diretora', 'Auditoria & Boletim']
-    return ['Sistema', 'Lago Azul']
+    if (p === '/admin/configuracoes') return ['Administração', 'Configurações']
+    if (p === '/admin/usuarios') return ['Administração', 'Usuários']
+    if (p === '/admin/parametros') return ['Administração', 'Parâmetros Globais']
+    return ['Sistema', nomeCondominio]
   }
 
   const breadcrumbs = getBreadcrumbs()
@@ -133,14 +149,27 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
   const SidebarContent = () => (
     <div className="flex h-full flex-col justify-between bg-slate-900 text-slate-100">
       <div>
-        {/* Brand Header */}
+        {/* Brand Header com Logo Dinâmico */}
         <div className="flex items-center gap-3 px-5 py-5 border-b border-slate-800">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-900/40">
-            <Droplets className="h-6 w-6 text-cyan-200" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-900/40 overflow-hidden shrink-0">
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={nomeCondominio}
+                className="h-full w-full object-contain p-1"
+              />
+            ) : (
+              <Droplets className="h-6 w-6 text-cyan-200" />
+            )}
           </div>
-          <div className="leading-tight">
-            <span className="font-bold text-base text-white tracking-wide block">Lago Azul</span>
-            <span className="text-[11px] font-medium text-cyan-400 uppercase tracking-wider block">
+          <div className="leading-tight min-w-0 flex-1">
+            <span
+              className="font-bold text-sm text-white tracking-wide block truncate"
+              title={nomeCondominio}
+            >
+              {nomeCondominio}
+            </span>
+            <span className="text-[10px] font-medium text-cyan-400 uppercase tracking-wider block">
               Votação Condominial
             </span>
           </div>
@@ -169,7 +198,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                     value={u.id}
                     className="text-xs focus:bg-cyan-950 focus:text-cyan-200"
                   >
-                    Apto {u.identificador} ({u.bloco || 'Lago Azul'})
+                    Apto {u.identificador} ({u.bloco || nomeCondominio})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -242,6 +271,42 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
               })}
             </nav>
           </div>
+
+          {/* Módulo de Administração (visível para admin ou mesa administradora) */}
+          {(isAdmin || role === 'mesa') && (
+            <div>
+              <div className="px-3 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-purple-400 mb-2">
+                <span>Administração</span>
+                <Badge
+                  variant="outline"
+                  className="text-[9px] px-1 py-0 border-purple-500/50 text-purple-300"
+                >
+                  Admin
+                </Badge>
+              </div>
+              <nav className="space-y-1">
+                {navAdmin.map((item) => {
+                  const isActive = location.pathname === item.path
+                  const Icon = item.icon
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                        isActive
+                          ? 'bg-purple-700 text-white shadow-xs font-semibold'
+                          : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 shrink-0 text-purple-300" />
+                      <span>{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </nav>
+            </div>
+          )}
         </div>
       </div>
 
@@ -251,9 +316,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
           <div className="truncate">
             <p className="text-xs font-medium text-white truncate">{user?.name || user?.email}</p>
             <p className="text-[10px] text-slate-400 truncate">
-              {role === 'mesa'
-                ? 'Membro da Mesa'
-                : `Condômino Apto ${unidadeSelecionada?.identificador || '—'}`}
+              {role === 'admin'
+                ? 'Administrador Geral'
+                : role === 'mesa'
+                  ? 'Membro da Mesa'
+                  : `Condômino Apto ${unidadeSelecionada?.identificador || '—'}`}
             </p>
           </div>
           <Button
@@ -277,7 +344,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
         <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500 text-white text-xs font-medium py-1.5 px-4 text-center shadow-md flex items-center justify-center gap-2">
           <WifiOff className="h-4 w-4 animate-bounce" />
           <span>
-            Modo Offline: reconectando ao servidor Lago Azul... Voto temporariamente desabilitado.
+            Modo Offline: reconectando ao servidor {nomeCondominio}... Voto temporariamente
+            desabilitado.
           </span>
         </div>
       )}
@@ -301,7 +369,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-72 bg-slate-900 border-r-0">
                 <SheetHeader className="sr-only">
-                  <SheetTitle>Menu de Navegação Lago Azul</SheetTitle>
+                  <SheetTitle>Menu de Navegação {nomeCondominio}</SheetTitle>
                 </SheetHeader>
                 <SidebarContent />
               </SheetContent>
@@ -342,12 +410,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
             {/* Badge de Perfil */}
             <Badge
               className={`text-[11px] font-bold px-2 py-0.5 uppercase tracking-wider ${
-                role === 'mesa'
-                  ? 'bg-amber-600 text-white hover:bg-amber-700'
-                  : 'bg-cyan-700 text-white hover:bg-cyan-800'
+                role === 'admin'
+                  ? 'bg-purple-700 text-white hover:bg-purple-800'
+                  : role === 'mesa'
+                    ? 'bg-amber-600 text-white hover:bg-amber-700'
+                    : 'bg-cyan-700 text-white hover:bg-cyan-800'
               }`}
             >
-              {role === 'mesa' ? 'MESA' : 'MORADOR'}
+              {role === 'admin' ? 'ADMIN' : role === 'mesa' ? 'MESA' : 'MORADOR'}
             </Badge>
 
             {/* Menu do Usuário */}
@@ -418,7 +488,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
         <footer className="border-t border-slate-200 bg-white py-4 px-6 text-center text-xs text-slate-500">
           <div className="mx-auto max-w-[1200px] flex flex-col sm:flex-row items-center justify-between gap-2">
             <p>
-              Assembleia Eletrônica Lago Azul — apuração conferida e auditada pela mesa diretora.
+              Assembleia Eletrônica {nomeCondominio} — apuração conferida e auditada pela mesa
+              diretora.
             </p>
             <p className="text-slate-400 text-[11px]">
               Sigilo de cédula criptografado SHA-256 • Em conformidade com a LGPD (Lei nº

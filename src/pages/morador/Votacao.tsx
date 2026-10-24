@@ -39,7 +39,11 @@ import {
   ArrowRight,
   RotateCcw,
   ShieldAlert,
+  Volume2,
+  VolumeX,
 } from 'lucide-react'
+import { urnaAudio } from '@/lib/urnaAudio'
+import { Switch } from '@/components/ui/switch'
 
 type PassoVotacao = '2fa_cpf' | '2fa_otp' | 'cabine' | 'revisao' | 'concluido'
 type OpcaoVoto = 'favoravel' | 'contrario' | 'abstencao'
@@ -72,6 +76,7 @@ export const VotacaoPage: React.FC = () => {
   const [votosSelecionados, setVotosSelecionados] = useState<Record<string, OpcaoVoto>>({})
   const [dialogConfirmacaoAberto, setDialogConfirmacaoAberto] = useState(false)
   const [enviandoVoto, setEnviandoVoto] = useState(false)
+  const [somUrnaAtivo, setSomUrnaAtivo] = useState(() => urnaAudio.isSomAtivado())
   const [resultadoRecibo, setResultadoRecibo] = useState<{
     reciboCodigo: string
     hashAbreviado: string
@@ -275,12 +280,28 @@ export const VotacaoPage: React.FC = () => {
       setDialogConfirmacaoAberto(false)
       setJaVotou(true)
       setPasso('concluido')
+
+      // RECURSO 2: Tocar o som da urna estilo TSE APÓS confirmação real e bem-sucedida do backend
+      try {
+        urnaAudio.tocarSomConfirmacaoTSE()
+      } catch (audioErr) {
+        // silencioso
+      }
+
       toast({
         title: 'Voto Registrado na Urna!',
         description: `Código de conferência: ${resp.reciboCodigo}. Voto irretratável.`,
       })
     } catch (err: any) {
       console.error('Erro ao registrar cédulas:', err)
+
+      // RECURSO 2: Som de erro distinto (grave) quando a confirmação falhar
+      try {
+        urnaAudio.tocarSomErro()
+      } catch {
+        // silencioso
+      }
+
       toast({
         title: 'Falha no Registro',
         description: err?.message || 'Não foi possível gravar o voto na urna.',
@@ -605,7 +626,26 @@ export const VotacaoPage: React.FC = () => {
               <Badge className="bg-emerald-600 text-white text-xs uppercase font-bold tracking-wider">
                 Cabine de Voto Ativa
               </Badge>
-              <span className="text-xs text-slate-500">
+
+              {/* Toggle de Preferência de Som Urna TSE */}
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1 rounded-full text-xs">
+                {somUrnaAtivo ? (
+                  <Volume2 className="h-3.5 w-3.5 text-cyan-700" />
+                ) : (
+                  <VolumeX className="h-3.5 w-3.5 text-slate-400" />
+                )}
+                <span className="text-[11px] font-medium text-slate-700">Som de Urna TSE</span>
+                <Switch
+                  checked={somUrnaAtivo}
+                  onCheckedChange={(val) => {
+                    setSomUrnaAtivo(val)
+                    urnaAudio.setSomAtivado(val)
+                  }}
+                  className="scale-75"
+                />
+              </div>
+
+              <span className="text-xs text-slate-500 hidden sm:inline">
                 Tipo de Cédula: <strong>{deliberacao.tipo_cedula.toUpperCase()}</strong>
               </span>
             </div>

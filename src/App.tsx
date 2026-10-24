@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
+import { CondoConfigProvider } from '@/context/CondoConfigContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
 
@@ -24,6 +25,11 @@ import PainelMesaPage from '@/pages/mesa/PainelMesa'
 import CredenciaisPendentesPage from '@/pages/mesa/CredenciaisPendentes'
 import DeliberacoesPage from '@/pages/mesa/Deliberacoes'
 import AuditoriaPage from '@/pages/mesa/Auditoria'
+
+// Páginas do Módulo de Administração
+import ConfiguracoesPage from '@/pages/admin/Configuracoes'
+import GestaoUsuariosPage from '@/pages/admin/Usuarios'
+import ParametrosConvencaoPage from '@/pages/admin/ParametrosConvencao'
 
 import NotFound from '@/pages/NotFound'
 
@@ -46,6 +52,10 @@ const RootRoute = () => {
     return <Navigate to="/login" replace />
   }
 
+  if (role === 'admin') {
+    return <Navigate to="/admin/configuracoes" replace />
+  }
+
   if (role === 'mesa') {
     return <Navigate to="/mesa" replace />
   }
@@ -62,107 +72,141 @@ const RootRoute = () => {
 const App = () => (
   <BrowserRouter>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <Routes>
-          {/* Rota Raiz Inteligente */}
-          <Route path="/" element={<RootRoute />} />
+      <CondoConfigProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Routes>
+            {/* Rota Raiz Inteligente */}
+            <Route path="/" element={<RootRoute />} />
 
-          {/* Rotas Públicas de Autenticação */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/esqueci-senha" element={<EsqueciSenhaPage />} />
-          <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
-          <Route path="/verificar-email" element={<VerificarEmailPage />} />
+            {/* Rotas Públicas de Autenticação */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/esqueci-senha" element={<EsqueciSenhaPage />} />
+            <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
+            <Route path="/verificar-email" element={<VerificarEmailPage />} />
 
-          {/* Rotas Protegidas - Módulo do Morador */}
-          <Route
-            path="/situacao"
-            element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <MinhaSituacaoPage />
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/credenciamento"
-            element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <CredenciamentoPage />
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/votacao"
-            element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <VotacaoPage />
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/recibo"
-            element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <ReciboPage />
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
+            {/* Rotas Protegidas - Módulo do Morador */}
+            <Route
+              path="/situacao"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <MinhaSituacaoPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/credenciamento"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <CredenciamentoPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/votacao"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <VotacaoPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/recibo"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ReciboPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Rotas Protegidas - Módulo da Mesa Diretora */}
-          <Route
-            path="/mesa"
-            element={
-              <ProtectedRoute requireMesa>
-                <AppLayout>
-                  <PainelMesaPage />
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/mesa/credenciamentos"
-            element={
-              <ProtectedRoute requireMesa>
-                <AppLayout>
-                  <CredenciaisPendentesPage />
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/mesa/deliberacoes"
-            element={
-              <ProtectedRoute requireMesa>
-                <AppLayout>
-                  <DeliberacoesPage />
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/mesa/auditoria"
-            element={
-              <ProtectedRoute requireMesa>
-                <AppLayout>
-                  <AuditoriaPage />
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
+            {/* Rotas Protegidas - Módulo da Mesa Diretora */}
+            <Route
+              path="/mesa"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <PainelMesaPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/credenciamentos"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <CredenciaisPendentesPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/deliberacoes"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <DeliberacoesPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/auditoria"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <AuditoriaPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
 
-          {/* 404 Não Encontrado */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </TooltipProvider>
+            {/* Rotas Protegidas - Módulo de Administração */}
+            <Route
+              path="/admin/configuracoes"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <ConfiguracoesPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/usuarios"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <GestaoUsuariosPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/parametros"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <ParametrosConvencaoPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 404 Não Encontrado */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </TooltipProvider>
+      </CondoConfigProvider>
     </AuthProvider>
   </BrowserRouter>
 )

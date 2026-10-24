@@ -14,9 +14,11 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Droplets, Mail, Lock, AlertTriangle, ArrowRight, ShieldCheck, User } from 'lucide-react'
+import { useCondoConfig } from '@/context/CondoConfigContext'
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth()
+  const { nomeCondominio, logoUrl } = useCondoConfig()
   const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as any)?.from?.pathname || '/'
@@ -33,7 +35,9 @@ export const LoginPage: React.FC = () => {
 
     try {
       const { role } = await login(email, senha)
-      if (role === 'mesa') {
+      if (role === 'admin') {
+        navigate('/admin/configuracoes')
+      } else if (role === 'mesa') {
         navigate('/mesa')
       } else {
         navigate(from === '/login' ? '/' : from)
@@ -61,14 +65,22 @@ export const LoginPage: React.FC = () => {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cyan-950 via-slate-900 to-blue-950 p-4">
       <Card className="w-full max-w-md border-slate-800 bg-white shadow-2xl">
         <CardHeader className="text-center pb-2 pt-6">
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-cyan-600 to-blue-700 text-white shadow-lg shadow-cyan-900/30">
-            <Droplets className="h-9 w-9 text-cyan-200" />
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-cyan-600 to-blue-700 text-white shadow-lg shadow-cyan-900/30 overflow-hidden">
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={nomeCondominio}
+                className="h-full w-full object-contain p-2"
+              />
+            ) : (
+              <Droplets className="h-9 w-9 text-cyan-200" />
+            )}
           </div>
           <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-cyan-700 bg-cyan-50 px-2.5 py-1 rounded-full mb-1">
             Sistema de Votação Eletrônica
           </span>
           <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">
-            Condomínio Lago Azul
+            {nomeCondominio}
           </CardTitle>
           <CardDescription className="text-xs text-slate-500">
             Plataforma segura para assembleias e deliberações condominiais
