@@ -6,6 +6,7 @@ interface CondoConfigContextType {
   config: CondoConfigRecord | null
   nomeCondominio: string
   logoUrl: string | null
+  somVotoUrl: string | null
   isLoading: boolean
   recarregarConfig: () => Promise<void>
 }
@@ -55,6 +56,7 @@ export const CondoConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const nomeCondominio = config?.nome_condominio?.trim() || DEFAULT_NOME
 
   const logoUrl = config && config.logo ? pb.files.getURL(config, config.logo) : null
+  const somVotoUrl = config && config.som_voto ? pb.files.getURL(config, config.som_voto) : null
 
   return (
     <CondoConfigContext.Provider
@@ -62,6 +64,7 @@ export const CondoConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
         config,
         nomeCondominio,
         logoUrl,
+        somVotoUrl,
         isLoading,
         recarregarConfig: carregar,
       }}

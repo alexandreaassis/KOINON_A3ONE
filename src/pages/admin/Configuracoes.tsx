@@ -26,16 +26,24 @@ import {
   Home,
   Save,
   Image as ImageIcon,
+  Volume2,
+  Play,
+  Trash2,
+  Music,
 } from 'lucide-react'
+import { urnaAudio } from '@/lib/urnaAudio'
 
 export const ConfiguracoesPage: React.FC = () => {
-  const { config, recarregarConfig, logoUrl } = useCondoConfig()
+  const { config, recarregarConfig, logoUrl, somVotoUrl } = useCondoConfig()
   const { user } = useAuth()
 
   // Estados do formulário de dados gerais
   const [nomeCondominio, setNomeCondominio] = useState('')
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [somVotoFile, setSomVotoFile] = useState<File | null>(null)
+  const [somVotoPreviewUrl, setSomVotoPreviewUrl] = useState<string | null>(null)
+  const [removerSomVoto, setRemoverSomVoto] = useState(false)
   const [salvandoGeral, setSalvandoGeral] = useState(false)
 
   // Estados da estrutura de unidades
@@ -81,16 +89,51 @@ export const ConfiguracoesPage: React.FC = () => {
     }
   }
 
+  const handleSomVotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSomVotoFile(file)
+      setRemoverSomVoto(false)
+      const localUrl = URL.createObjectURL(file)
+      setSomVotoPreviewUrl(localUrl)
+    }
+  }
+
+  const handleTestarSomAtualOuNovo = () => {
+    if (somVotoPreviewUrl) {
+      urnaAudio.tocarAudioCustomizadoOuSintetizado(somVotoPreviewUrl)
+    } else if (somVotoUrl && !removerSomVoto) {
+      urnaAudio.tocarAudioCustomizadoOuSintetizado(somVotoUrl)
+    } else {
+      urnaAudio.tocarSomConfirmacaoTSE()
+    }
+  }
+
+  const handleRemoverSom = () => {
+    setSomVotoFile(null)
+    setSomVotoPreviewUrl(null)
+    setRemoverSomVoto(true)
+  }
+
   const handleSalvarDadosGerais = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!config) return
 
     setSalvandoGeral(true)
     try {
-      if (logoFile) {
+      const temUploadArquivo = logoFile || somVotoFile || removerSomVoto
+
+      if (temUploadArquivo) {
         const formData = new FormData()
         formData.append('nome_condominio', nomeCondominio.trim())
-        formData.append('logo', logoFile)
+        if (logoFile) {
+          formData.append('logo', logoFile)
+        }
+        if (somVotoFile) {
+          formData.append('som_voto', somVotoFile)
+        } else if (removerSomVoto) {
+          formData.append('som_voto', '')
+        }
         await api.updateConfiguracao(config.id, formData)
       } else {
         await api.updateConfiguracao(config.id, {
@@ -240,6 +283,86 @@ export const ConfiguracoesPage: React.FC = () => {
                       {logoFile && (
                         <span className="text-xs text-emerald-700 font-medium">
                           {logoFile.name} (pronto para salvar)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Upload de Som de Confirmação da Cabine */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-slate-700 block">
+                    Som de Confirmação do Voto na Cabine
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleTestarSomAtualOuNovo}
+                    className="h-7 text-xs text-purple-700 hover:text-purple-900 hover:bg-purple-50 px-2"
+                  >
+                    <Play className="h-3 w-3 mr-1" /> Testar Reprodução
+                  </Button>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-xl border border-slate-200 bg-slate-50/50">
+                  <div className="h-16 w-16 rounded-xl border border-slate-300 bg-white flex items-center justify-center overflow-hidden shadow-xs shrink-0">
+                    <Music className="h-7 w-7 text-purple-600" />
+                  </div>
+
+                  <div className="space-y-2 flex-1 text-center sm:text-left">
+                    <p className="text-xs text-slate-600">
+                      Envie um arquivo de áudio (MP3, WAV ou OGG de até 10MB) para tocar quando o
+                      voto for gravado. Se nenhum arquivo for enviado, o sistema tocará o bip-bip
+                      clássico da urna TSE sintetizado via Web Audio API.
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+                      <Label
+                        htmlFor="som-upload"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white border border-slate-300 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer shadow-xs"
+                      >
+                        <Upload className="h-3.5 w-3.5 text-slate-500" />
+                        {somVotoUrl && !removerSomVoto
+                          ? 'Alterar Arquivo de Áudio'
+                          : 'Enviar Áudio Customizado'}
+                      </Label>
+                      <input
+                        id="som-upload"
+                        type="file"
+                        accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/webm,audio/x-wav"
+                        className="sr-only"
+                        onChange={handleSomVotoChange}
+                      />
+
+                      {somVotoFile && (
+                        <span className="text-xs text-emerald-700 font-medium">
+                          {somVotoFile.name} (pronto para salvar)
+                        </span>
+                      )}
+
+                      {!somVotoFile && somVotoUrl && !removerSomVoto && (
+                        <div className="inline-flex items-center gap-2">
+                          <span className="text-xs text-purple-700 font-medium">
+                            Áudio personalizado ativo
+                          </span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleRemoverSom}
+                            className="h-7 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" /> Usar Bip Sintetizado TSE
+                          </Button>
+                        </div>
+                      )}
+
+                      {removerSomVoto && (
+                        <span className="text-xs text-amber-700 font-medium">
+                          Áudio será removido (voltará ao som clássico da urna TSE ao salvar)
                         </span>
                       )}
                     </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { useCondoConfig } from '@/context/CondoConfigContext'
 import {
   api,
   type DeliberacaoRecord,
@@ -51,6 +52,7 @@ type OpcaoVoto = 'favoravel' | 'contrario' | 'abstencao'
 
 export const VotacaoPage: React.FC = () => {
   const { user, unidadeSelecionada, isOnline } = useAuth()
+  const { somVotoUrl } = useCondoConfig()
   const navigate = useNavigate()
 
   // Estados principais
@@ -286,9 +288,9 @@ export const VotacaoPage: React.FC = () => {
       setJaVotou(true)
       setPasso('concluido')
 
-      // RECURSO 2: Tocar o som da urna estilo TSE APÓS confirmação real e bem-sucedida do backend
+      // RECURSO 2: Tocar o som da urna estilo TSE (ou áudio customizado configurado no condomínio) APÓS confirmação real e bem-sucedida do backend
       try {
-        urnaAudio.tocarSomConfirmacaoTSE()
+        await urnaAudio.tocarAudioCustomizadoOuSintetizado(somVotoUrl)
       } catch (audioErr) {
         // silencioso
       }

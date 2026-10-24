@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T22:58:41.597Z",
+  "generatedAt": "2026-10-24T23:15:50.607Z",
   "collections": [
     {
       "name": "users",
@@ -924,6 +924,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "som_voto",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []

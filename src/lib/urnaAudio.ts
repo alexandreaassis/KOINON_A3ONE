@@ -1,7 +1,11 @@
 /**
- * Sintetizador de Áudio da Urna Eletrônica (Estilo TSE) usando Web Audio API nativa.
- * NÃO utiliza arquivos mp3 externos nem CDNs de terceiros.
- * Totalmente autônomo e resiliente a autoplay policies.
+ * Sintetizador de Áudio da Urna Eletrônica (Estilo TSE) usando Web Audio API nativa
+ * e reprodutor resiliente para áudio customizado configurado no condomínio.
+ *
+ * Regra do som TSE:
+ * - Primeiro bip agudo curto (~1046 - 1100 Hz, ~120ms)
+ * - Imediatamente seguido, sem pausa perceptível, de um bip mais grave (~500 Hz, ~130ms)
+ * - Envelopes suaves de ataque/decaimento para evitar estalos (cliques).
  */
 
 const AUDIO_STORAGE_KEY = 'urna_som_confirmacao_ativo'
@@ -58,10 +62,11 @@ class UrnaAudioService {
   }
 
   /**
-   * Reproduz o clássico som de confirmação tipo Urna Eletrônica do TSE:
-   * Sequência característica de bips curtos agudos ascendentes ou repetidos
-   * seguidos do sinal longo de encerramento do voto ("pilili... pip!").
-   * TSE: ~880Hz -> 1318.5Hz (Lá5 / Mi6) com envelope suave e fade out.
+   * Reproduz o clássico efeito sonoro da urna eletrônica do TSE:
+   * Sequência característica "bip-bip":
+   * 1. Bip agudo curto (~1050 Hz, 120ms)
+   * 2. Imediatamente a seguir, bip mais grave (~500 Hz, 130ms)
+   * Sem estalos (envelopes suaves).
    */
   public tocarSomConfirmacaoTSE(): void {
     if (!this.isSomAtivado()) return
@@ -72,23 +77,46 @@ class UrnaAudioService {
 
       const now = ctx.currentTime
 
-      // Sequência de notas do clássico encerramento da urna
-      // Nota 1: curta (1000Hz)
-      this.tocarTom(ctx, 1046.5, now, 0.08, 'sine', 0.25)
+      // Tom 1: agudo (1050 Hz), duração ~120ms
+      const dur1 = 0.12
+      this.tocarTom(ctx, 1050, now, dur1, 'sine', 0.28)
 
-      // Nota 2: curta (1046.5Hz)
-      this.tocarTom(ctx, 1046.5, now + 0.1, 0.08, 'sine', 0.25)
-
-      // Nota 3: prolongada aguda clássica da urna (1318.51 Hz - E6)
-      this.tocarTom(ctx, 1318.5, now + 0.22, 0.55, 'sine', 0.35)
+      // Tom 2: grave (500 Hz), imediatamente subsequente sem pausa perceptível
+      const inicio2 = now + dur1
+      const dur2 = 0.13
+      this.tocarTom(ctx, 500, inicio2, dur2, 'sine', 0.28)
     } catch (err) {
-      // Ignora silenciosamente qualquer erro de reprodução de áudio
-      console.warn('Falha ao sintetizar som da urna:', err)
+      console.warn('Falha ao sintetizar som da urna TSE:', err)
     }
   }
 
   /**
-   * Reproduz o som de erro / recusa (tom grave duplo decrescente tipo "buzz").
+   * Reproduz um arquivo de áudio via URL (ex: som_voto enviado pelo admin).
+   * Se a reprodução falhar (erro de rede, codec, etc.), faz fallback silencioso para o bip TSE sintetizado.
+   */
+  public async tocarAudioCustomizadoOuSintetizado(audioUrl?: string | null): Promise<void> {
+    if (!this.isSomAtivado()) return
+
+    if (!audioUrl || !audioUrl.trim()) {
+      this.tocarSomConfirmacaoTSE()
+      return
+    }
+
+    try {
+      const audio = new Audio(audioUrl)
+      audio.volume = 0.8
+      await audio.play()
+    } catch (err) {
+      console.warn(
+        'Falha ao carregar/reproduzir áudio personalizado, caindo para sintetizado:',
+        err,
+      )
+      this.tocarSomConfirmacaoTSE()
+    }
+  }
+
+  /**
+   * Reproduz o som de erro / recusa (dois bips graves "buzz" distintos).
    */
   public tocarSomErro(): void {
     if (!this.isSomAtivado()) return
@@ -99,16 +127,16 @@ class UrnaAudioService {
 
       const now = ctx.currentTime
 
-      // Dois bips graves curtos
+      // Dois tons graves curtos
       this.tocarTom(ctx, 220, now, 0.12, 'sawtooth', 0.2)
-      this.tocarTom(ctx, 164.8, now + 0.16, 0.2, 'sawtooth', 0.2)
+      this.tocarTom(ctx, 164.8, now + 0.15, 0.2, 'sawtooth', 0.2)
     } catch (err) {
       console.warn('Falha ao sintetizar som de erro:', err)
     }
   }
 
   /**
-   * Sintetiza um tom individual com envelope Attack-Decay-Sustain-Release
+   * Sintetiza um tom individual com envelope suave de ataque e decaimento para não estalar.
    */
   private tocarTom(
     ctx: AudioContext,
@@ -116,7 +144,7 @@ class UrnaAudioService {
     startTime: number,
     duracao: number,
     tipo: OscillatorType = 'sine',
-    volumeMax = 0.3,
+    volumeMax = 0.28,
   ) {
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
@@ -124,18 +152,22 @@ class UrnaAudioService {
     osc.type = tipo
     osc.frequency.setValueAtTime(frequencia, startTime)
 
-    // Envelope suave para evitar estalo no início e fim
+    // Envelope suave para prevenir estalos/cliques
+    // Começa praticamente em zero
     gain.gain.setValueAtTime(0.0001, startTime)
-    // Ataque rápido
-    gain.gain.exponentialRampToValueAtTime(volumeMax, startTime + 0.02)
-    // Fade out ao final
+    // Ataque suave em 12ms
+    const attackTime = 0.012
+    gain.gain.exponentialRampToValueAtTime(volumeMax, startTime + attackTime)
+    // Mantém e realiza decaimento exponencial até quase zero
+    const releaseTime = Math.max(0.02, duracao - attackTime)
+    gain.gain.setValueAtTime(volumeMax, startTime + duracao - releaseTime)
     gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duracao)
 
     osc.connect(gain)
     gain.connect(ctx.destination)
 
     osc.start(startTime)
-    osc.stop(startTime + duracao + 0.05)
+    osc.stop(startTime + duracao + 0.02)
   }
 }
 

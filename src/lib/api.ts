@@ -18,6 +18,7 @@ export interface UserRecord extends RecordModel {
 export interface CondoConfigRecord extends RecordModel {
   nome_condominio: string
   logo?: string
+  som_voto?: string
   quantidade_blocos?: number
   unidades_por_bloco?: number
   total_unidades?: number
