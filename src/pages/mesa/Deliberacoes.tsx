@@ -181,11 +181,30 @@ export const DeliberacoesPage: React.FC = () => {
       setModalDeliberacaoAberto(false)
       carregar()
     } catch (err: any) {
-      toast({
-        title: 'Erro ao salvar',
-        description: err?.message || 'Falha ao persistir deliberação.',
-        variant: 'destructive',
-      })
+      const is404 =
+        err?.status === 404 ||
+        err?.statusCode === 404 ||
+        err?.message?.includes('404') ||
+        err?.message?.includes("wasn't found") ||
+        err?.response?.status === 404
+
+      if (is404) {
+        toast({
+          title: 'Registro não encontrado',
+          description:
+            'A deliberação selecionada não existe mais no banco ou você não tem permissão para editá-la. A lista foi atualizada.',
+          variant: 'destructive',
+        })
+        setModalDeliberacaoAberto(false)
+        setDeliberacaoSelecionada(null)
+        carregar()
+      } else {
+        toast({
+          title: 'Erro ao salvar',
+          description: err?.message || 'Falha ao persistir deliberação.',
+          variant: 'destructive',
+        })
+      }
     } finally {
       setSalvandoDelib(false)
     }

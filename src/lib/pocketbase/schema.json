@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T21:57:40.256Z",
+  "generatedAt": "2026-10-24T22:29:49.139Z",
   "collections": [
     {
       "name": "users",
@@ -70,9 +70,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != '' && @request.auth.role = 'mesa'",
-        "update": "@request.auth.id != '' && @request.auth.role = 'mesa'",
-        "delete": "@request.auth.id != '' && @request.auth.role = 'mesa'"
+        "create": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')"
       },
       "fields": [
         {
@@ -134,9 +134,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != '' && @request.auth.role = 'mesa'",
-        "update": "@request.auth.id != '' && @request.auth.role = 'mesa'",
-        "delete": "@request.auth.id != '' && @request.auth.role = 'mesa'"
+        "create": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')"
       },
       "fields": [
         {
@@ -238,8 +238,8 @@
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
         "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != '' && @request.auth.role = 'mesa'",
-        "delete": "@request.auth.id != '' && @request.auth.role = 'mesa'"
+        "update": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')"
       },
       "fields": [
         {
@@ -326,9 +326,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != '' && @request.auth.role = 'mesa'",
-        "update": "@request.auth.id != '' && @request.auth.role = 'mesa'",
-        "delete": "@request.auth.id != '' && @request.auth.role = 'mesa'"
+        "create": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')"
       },
       "fields": [
         {
@@ -385,9 +385,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != '' && @request.auth.role = 'mesa'",
-        "update": "@request.auth.id != '' && @request.auth.role = 'mesa'",
-        "delete": "@request.auth.id != '' && @request.auth.role = 'mesa'"
+        "create": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')"
       },
       "fields": [
         {
@@ -591,7 +591,7 @@
         "view": "@request.auth.id != ''",
         "create": "@request.auth.id != ''",
         "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != '' && @request.auth.role = 'mesa'"
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')"
       },
       "fields": [
         {
