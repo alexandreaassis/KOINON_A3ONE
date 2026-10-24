@@ -1,0 +1,831 @@
+{
+  "generatedAt": "2026-10-24T20:19:34.588Z",
+  "collections": [
+    {
+      "name": "users",
+      "type": "auth",
+      "apiRules": {
+        "list": "id = @request.auth.id",
+        "view": "id = @request.auth.id",
+        "create": "",
+        "update": "id = @request.auth.id",
+        "delete": "id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avatar",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["morador", "mesa"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
+        "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+      ]
+    },
+    {
+      "name": "unidades",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && @request.auth.role = 'mesa'",
+        "update": "@request.auth.id != '' && @request.auth.role = 'mesa'",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'mesa'"
+      },
+      "fields": [
+        {
+          "name": "identificador",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "bloco",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "responsavel_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "contato_celular",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "contato_email",
+          "type": "email",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_unidades_identificador ON unidades (identificador)"]
+    },
+    {
+      "name": "deliberacoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && @request.auth.role = 'mesa'",
+        "update": "@request.auth.id != '' && @request.auth.role = 'mesa'",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'mesa'"
+      },
+      "fields": [
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_inicio",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_fim",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "AGUARDANDO_ABERTURA",
+            "ABERTA",
+            "EM_VOTACAO",
+            "ENCERRADA",
+            "APURADA",
+            "PUBLICADA"
+          ]
+        },
+        {
+          "name": "quorum_instalacao",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quorum_materia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo_cedula",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["secreta", "nominal"]
+        },
+        {
+          "name": "inadimplente_pode_votar",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "locatario_pode_votar",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hash_raiz",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_deliberacoes_status ON deliberacoes (status)"]
+    },
+    {
+      "name": "credenciamentos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && @request.auth.role = 'mesa'",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'mesa'"
+      },
+      "fields": [
+        {
+          "name": "unidade",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "unidades"
+        },
+        {
+          "name": "cpf",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "titular_nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tipo_vinculo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["proprietario", "promitente", "usufrutuario", "locatario", "procurador"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pendente", "aprovado", "rejeitado"]
+        },
+        {
+          "name": "motivo_rejeicao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "documentos",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "aprovado_por",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "data_analise",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_credenciamentos_status ON credenciamentos (status)",
+        "CREATE INDEX idx_credenciamentos_cpf ON credenciamentos (cpf)"
+      ]
+    },
+    {
+      "name": "itens_pauta",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && @request.auth.role = 'mesa'",
+        "update": "@request.auth.id != '' && @request.auth.role = 'mesa'",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'mesa'"
+      },
+      "fields": [
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quorum_aplicavel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_itens_pauta_deliberacao ON itens_pauta (deliberacao, ordem)"]
+    },
+    {
+      "name": "presencas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && @request.auth.role = 'mesa'",
+        "update": "@request.auth.id != '' && @request.auth.role = 'mesa'",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'mesa'"
+      },
+      "fields": [
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "unidade",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "unidades"
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["remoto", "presencial"]
+        },
+        {
+          "name": "data_hora",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_presencas_delib_unidade ON presencas (deliberacao, unidade)"
+      ]
+    },
+    {
+      "name": "cedulas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "item",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "itens_pauta"
+        },
+        {
+          "name": "unidade_hash",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "opcao",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["favoravel", "contrario", "abstencao", "nulo", "branco"]
+        },
+        {
+          "name": "timestamp",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hash_anterior",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hash_cedula",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recibo_codigo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_cedulas_deliberacao ON cedulas (deliberacao)",
+        "CREATE INDEX idx_cedulas_item ON cedulas (item)",
+        "CREATE UNIQUE INDEX idx_cedulas_recibo_item ON cedulas (recibo_codigo, item)",
+        "CREATE INDEX `idx_cedulas_delib_recibo` ON `cedulas` (deliberacao, recibo_codigo)"
+      ]
+    },
+    {
+      "name": "comparecimentos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "unidade",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "unidades"
+        },
+        {
+          "name": "data_hora",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fator_usado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dispositivo_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_comparecimentos_delib_unidade ON comparecimentos (deliberacao, unidade)",
+        "CREATE INDEX `idx_comp_delib_hora` ON `comparecimentos` (deliberacao, data_hora)"
+      ]
+    },
+    {
+      "name": "sessoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'mesa'"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "unidade",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "unidades"
+        },
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "token_voto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "otp_codigo_hash",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "otp_expira_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tentativas_falhas",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ativa", "expirada", "revogada", "consumida"]
+        },
+        {
+          "name": "revogada_sessao_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "expira_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_sessoes_status ON sessoes (status)",
+        "CREATE INDEX idx_sessoes_deliberacao ON sessoes (deliberacao)",
+        "CREATE INDEX idx_sessoes_token ON sessoes (token_voto)",
+        "CREATE INDEX `idx_sessoes_token_status` ON `sessoes` (token_voto, status)"
+      ]
+    },
+    {
+      "name": "auditoria_events",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "evento",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "credenciamento_submetido",
+            "vinculo_aprovado",
+            "vinculo_rejeitado",
+            "otp_enviado",
+            "otp_validado",
+            "otp_falhou",
+            "autenticacao_concluida",
+            "token_emitido",
+            "cedula_registrada",
+            "assembleia_aberta",
+            "assembleia_encerrada",
+            "apuracao_concluida",
+            "resultado_publicado"
+          ]
+        },
+        {
+          "name": "data_hora",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "unidade",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "unidades"
+        },
+        {
+          "name": "fator",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dispositivo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sequencial",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hash_evento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hash_anterior",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_auditoria_evento ON auditoria_events (evento)",
+        "CREATE INDEX idx_auditoria_data_hora ON auditoria_events (data_hora)",
+        "CREATE INDEX idx_auditoria_sequencial ON auditoria_events (sequencial)"
+      ]
+    },
+    {
+      "name": "comprovantes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "unidade",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "unidades"
+        },
+        {
+          "name": "codigo_conferencia",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "hash_abreviado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_hora",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_comprovantes_codigo ON comprovantes (codigo_conferencia)",
+        "CREATE INDEX idx_comprovantes_delib_unidade ON comprovantes (deliberacao, unidade)",
+        "CREATE INDEX `idx_comprovantes_delib_hora` ON `comprovantes` (deliberacao, data_hora)"
+      ]
+    }
+  ]
+}
