@@ -64,3 +64,9 @@ function registrarAuditoria(app, dados) {
   app.save(rec)
   return rec
 }
+
+module.exports = {
+  calcularSha256: calcularSha256,
+  gerarCodigoConferencia: gerarCodigoConferencia,
+  registrarAuditoria: registrarAuditoria,
+}

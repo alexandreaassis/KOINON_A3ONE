@@ -8,6 +8,8 @@
  */
 
 routerAdd('POST', '/backend/v1/deliberacoes/transicao', (e) => {
+  const { registrarAuditoria } = require(`${__hooks}/hash_encadeado.js`)
+
   const authRecord = e.auth
   if (!authRecord) {
     throw new ForbiddenError('Usuário não autenticado')

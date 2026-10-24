@@ -29,6 +29,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import {
   Vote,
   ShieldCheck,
@@ -302,9 +303,12 @@ export const VotacaoPage: React.FC = () => {
         // silencioso
       }
 
+      const mensagemErro =
+        getErrorMessage(err) || err?.message || 'Não foi possível gravar o voto na urna.'
+
       toast({
         title: 'Falha no Registro',
-        description: err?.message || 'Não foi possível gravar o voto na urna.',
+        description: mensagemErro,
         variant: 'destructive',
       })
     } finally {
