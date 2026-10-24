@@ -6,11 +6,56 @@
  */
 
 routerAdd('POST', '/backend/v1/otp/verify', (e) => {
-  const { registrarAuditoria } = require(`${__hooks}/hash_encadeado.js`)
+  function registrarAuditoria(app, dados) {
+    try {
+      const audCol = app.findCollectionByNameOrId('auditoria_events')
+      let ultimoHash = '0000000000000000000000000000000000000000000000000000000000000000'
+      let proximoSeq = 1
+
+      try {
+        const ultimos = app.findRecordsByFilter('auditoria_events', '', '-sequencial', 1, 0)
+        if (ultimos && ultimos.length > 0) {
+          const u = ultimos[0]
+          ultimoHash = u.getString('hash_evento') || ultimoHash
+          proximoSeq = (u.getInt('sequencial') || 0) + 1
+        }
+      } catch (_) {}
+
+      const payload = JSON.stringify({
+        evento: dados.evento,
+        data_hora: dados.data_hora || new Date().toISOString(),
+        unidade: dados.unidade || '',
+        fator: dados.fator || '',
+        dispositivo: dados.dispositivo || '',
+        sequencial: proximoSeq,
+        hash_anterior: ultimoHash,
+      })
+
+      const hashEvento = $security.sha256(ultimoHash + ':' + payload)
+
+      const rec = new Record(audCol)
+      rec.set('evento', dados.evento)
+      rec.set(
+        'data_hora',
+        dados.data_hora || new Date().toISOString().replace('T', ' ').substring(0, 19),
+      )
+      if (dados.unidade) rec.set('unidade', dados.unidade)
+      rec.set('fator', dados.fator || 'sistema')
+      rec.set('dispositivo', dados.dispositivo || 'servidor')
+      rec.set('sequencial', proximoSeq)
+      rec.set('hash_evento', hashEvento)
+      rec.set('hash_anterior', ultimoHash)
+
+      app.save(rec)
+      return rec
+    } catch (err) {
+      console.log('Erro ao registrar auditoria interna:', err)
+    }
+  }
 
   const authRecord = e.auth
   if (!authRecord) {
-    throw new ForbiddenError('Usuário não autenticado')
+    return e.json(403, { success: false, message: 'Usuário não autenticado' })
   }
 
   const body = e.requestInfo().body || {}
@@ -18,18 +63,24 @@ routerAdd('POST', '/backend/v1/otp/verify', (e) => {
   const codigo = (body.codigo || '').trim()
 
   if (!sessaoId || !codigo) {
-    throw new BadRequestError('sessaoId e codigo de 6 dígitos são obrigatórios')
+    return e.json(400, {
+      success: false,
+      message: 'sessaoId e codigo de 6 dígitos são obrigatórios',
+    })
   }
 
   let sessao
   try {
     sessao = e.app.findRecordById('sessoes', sessaoId)
   } catch (_) {
-    throw new NotFoundError('Sessão não encontrada')
+    return e.json(404, { success: false, message: 'Sessão não encontrada' })
   }
 
   if (sessao.getString('status') !== 'ativa') {
-    throw new BadRequestError('Esta sessão não está ativa ou já foi finalizada.')
+    return e.json(400, {
+      success: false,
+      message: 'Esta sessão não está ativa ou já foi finalizada.',
+    })
   }
 
   const unidadeId = sessao.getString('unidade')
@@ -40,9 +91,10 @@ routerAdd('POST', '/backend/v1/otp/verify', (e) => {
   if (otpExpiraStr && new Date(otpExpiraStr.replace(' ', 'T') + 'Z') < agora) {
     sessao.set('status', 'expirada')
     e.app.save(sessao)
-    throw new BadRequestError(
-      'O código OTP expirou (validade de 5 minutos). Solicite um novo envio.',
-    )
+    return e.json(400, {
+      success: false,
+      message: 'O código OTP expirou (validade de 5 minutos). Solicite um novo envio.',
+    })
   }
 
   const tentativas = sessao.getInt('tentativas_falhas') || 0
@@ -59,9 +111,11 @@ routerAdd('POST', '/backend/v1/otp/verify', (e) => {
       })
     } catch (_) {}
 
-    throw new BadRequestError(
-      'Número máximo de 3 tentativas excedido. Acesso bloqueado por 10 minutos para proteção da unidade.',
-    )
+    return e.json(400, {
+      success: false,
+      message:
+        'Número máximo de 3 tentativas excedido. Acesso bloqueado por 10 minutos para proteção da unidade.',
+    })
   }
 
   const hashDigitado = $security.sha256(codigo)
@@ -85,11 +139,13 @@ routerAdd('POST', '/backend/v1/otp/verify', (e) => {
     } catch (_) {}
 
     const restantes = 3 - novasTentativas
-    throw new BadRequestError(
-      restantes > 0
-        ? 'Código de verificação incorreto. Você tem mais ' + restantes + ' tentativa(s).'
-        : 'Código incorreto. Limite de 3 tentativas atingido. Unidade bloqueada temporariamente.',
-    )
+    return e.json(400, {
+      success: false,
+      message:
+        restantes > 0
+          ? 'Código de verificação incorreto. Você tem mais ' + restantes + ' tentativa(s).'
+          : 'Código incorreto. Limite de 3 tentativas atingido. Unidade bloqueada temporariamente.',
+    })
   }
 
   // Código CORRETO!

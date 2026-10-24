@@ -18,6 +18,7 @@ function gerarCodigoConferencia() {
 }
 
 function registrarAuditoria(app, dados) {
+  if (!app) return null
   // append-only com hash encadeado
   const audCol = app.findCollectionByNameOrId('auditoria_events')
 

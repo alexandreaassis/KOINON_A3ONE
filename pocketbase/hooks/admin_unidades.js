@@ -9,16 +9,64 @@
  */
 
 routerAdd('POST', '/backend/v1/admin/unidades/regenerar', (e) => {
-  const { registrarAuditoria } = require(`${__hooks}/hash_encadeado.js`)
+  function registrarAuditoria(app, dados) {
+    try {
+      const audCol = app.findCollectionByNameOrId('auditoria_events')
+      let ultimoHash = '0000000000000000000000000000000000000000000000000000000000000000'
+      let proximoSeq = 1
+
+      try {
+        const ultimos = app.findRecordsByFilter('auditoria_events', '', '-sequencial', 1, 0)
+        if (ultimos && ultimos.length > 0) {
+          const u = ultimos[0]
+          ultimoHash = u.getString('hash_evento') || ultimoHash
+          proximoSeq = (u.getInt('sequencial') || 0) + 1
+        }
+      } catch (_) {}
+
+      const payload = JSON.stringify({
+        evento: dados.evento,
+        data_hora: dados.data_hora || new Date().toISOString(),
+        unidade: dados.unidade || '',
+        fator: dados.fator || '',
+        dispositivo: dados.dispositivo || '',
+        sequencial: proximoSeq,
+        hash_anterior: ultimoHash,
+      })
+
+      const hashEvento = $security.sha256(ultimoHash + ':' + payload)
+
+      const rec = new Record(audCol)
+      rec.set('evento', dados.evento)
+      rec.set(
+        'data_hora',
+        dados.data_hora || new Date().toISOString().replace('T', ' ').substring(0, 19),
+      )
+      if (dados.unidade) rec.set('unidade', dados.unidade)
+      rec.set('fator', dados.fator || 'sistema')
+      rec.set('dispositivo', dados.dispositivo || 'servidor')
+      rec.set('sequencial', proximoSeq)
+      rec.set('hash_evento', hashEvento)
+      rec.set('hash_anterior', ultimoHash)
+
+      app.save(rec)
+      return rec
+    } catch (err) {
+      console.log('Erro ao registrar auditoria interna:', err)
+    }
+  }
 
   const authRecord = e.auth
   if (!authRecord) {
-    throw new ForbiddenError('Usuário não autenticado')
+    return e.json(403, { success: false, message: 'Usuário não autenticado' })
   }
 
   const role = authRecord.getString('role')
   if (role !== 'admin' && role !== 'mesa') {
-    throw new ForbiddenError('Apenas administradores podem gerenciar a estrutura de unidades.')
+    return e.json(403, {
+      success: false,
+      message: 'Apenas administradores podem gerenciar a estrutura de unidades.',
+    })
   }
 
   const body = e.requestInfo().body || {}
@@ -27,10 +75,16 @@ routerAdd('POST', '/backend/v1/admin/unidades/regenerar', (e) => {
   const prefixoBloco = (body.prefixoBloco || 'Bloco').trim()
 
   if (qtdBlocos < 1 || qtdBlocos > 10) {
-    throw new BadRequestError('Quantidade de blocos deve ser entre 1 e 10.')
+    return e.json(400, {
+      success: false,
+      message: 'Quantidade de blocos deve ser entre 1 e 10.',
+    })
   }
   if (unidadesPorBloco < 1 || unidadesPorBloco > 100) {
-    throw new BadRequestError('Unidades por bloco deve ser entre 1 e 100.')
+    return e.json(400, {
+      success: false,
+      message: 'Unidades por bloco deve ser entre 1 e 100.',
+    })
   }
 
   const letras = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']

@@ -8,18 +8,64 @@
  */
 
 routerAdd('POST', '/backend/v1/deliberacoes/transicao', (e) => {
-  const { registrarAuditoria } = require(`${__hooks}/hash_encadeado.js`)
+  function registrarAuditoria(app, dados) {
+    try {
+      const audCol = app.findCollectionByNameOrId('auditoria_events')
+      let ultimoHash = '0000000000000000000000000000000000000000000000000000000000000000'
+      let proximoSeq = 1
+
+      try {
+        const ultimos = app.findRecordsByFilter('auditoria_events', '', '-sequencial', 1, 0)
+        if (ultimos && ultimos.length > 0) {
+          const u = ultimos[0]
+          ultimoHash = u.getString('hash_evento') || ultimoHash
+          proximoSeq = (u.getInt('sequencial') || 0) + 1
+        }
+      } catch (_) {}
+
+      const payload = JSON.stringify({
+        evento: dados.evento,
+        data_hora: dados.data_hora || new Date().toISOString(),
+        unidade: dados.unidade || '',
+        fator: dados.fator || '',
+        dispositivo: dados.dispositivo || '',
+        sequencial: proximoSeq,
+        hash_anterior: ultimoHash,
+      })
+
+      const hashEvento = $security.sha256(ultimoHash + ':' + payload)
+
+      const rec = new Record(audCol)
+      rec.set('evento', dados.evento)
+      rec.set(
+        'data_hora',
+        dados.data_hora || new Date().toISOString().replace('T', ' ').substring(0, 19),
+      )
+      if (dados.unidade) rec.set('unidade', dados.unidade)
+      rec.set('fator', dados.fator || 'sistema')
+      rec.set('dispositivo', dados.dispositivo || 'servidor')
+      rec.set('sequencial', proximoSeq)
+      rec.set('hash_evento', hashEvento)
+      rec.set('hash_anterior', ultimoHash)
+
+      app.save(rec)
+      return rec
+    } catch (err) {
+      console.log('Erro ao registrar auditoria interna:', err)
+    }
+  }
 
   const authRecord = e.auth
   if (!authRecord) {
-    throw new ForbiddenError('Usuário não autenticado')
+    return e.json(403, { success: false, message: 'Usuário não autenticado' })
   }
 
   const role = authRecord.getString('role')
   if (role !== 'mesa' && role !== 'admin') {
-    throw new ForbiddenError(
-      'Apenas membros da Mesa ou Administradores podem alterar o status das deliberações.',
-    )
+    return e.json(403, {
+      success: false,
+      message: 'Apenas membros da Mesa ou Administradores podem alterar o status das deliberações.',
+    })
   }
 
   const body = e.requestInfo().body || {}
@@ -36,14 +82,17 @@ routerAdd('POST', '/backend/v1/deliberacoes/transicao', (e) => {
   ]
 
   if (!deliberacaoId || !validStatuses.includes(novoStatus)) {
-    throw new BadRequestError('deliberacaoId e novoStatus válido são obrigatórios')
+    return e.json(400, {
+      success: false,
+      message: 'deliberacaoId e novoStatus válido são obrigatórios',
+    })
   }
 
   let delib
   try {
     delib = e.app.findRecordById('deliberacoes', deliberacaoId)
   } catch (_) {
-    throw new NotFoundError('Deliberação não encontrada')
+    return e.json(404, { success: false, message: 'Deliberação não encontrada' })
   }
 
   const statusAtual = delib.getString('status')

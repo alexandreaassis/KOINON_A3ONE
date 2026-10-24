@@ -188,9 +188,13 @@ export const VotacaoPage: React.FC = () => {
       })
     } catch (err: any) {
       console.error('Erro ao solicitar OTP:', err)
+      const mensagemErro =
+        getErrorMessage(err) ||
+        err?.message ||
+        'Verifique o CPF informado e a situação cadastral da unidade.'
       toast({
         title: 'Falha na validação',
-        description: err?.message || 'Verifique o CPF informado e a situação cadastral da unidade.',
+        description: mensagemErro,
         variant: 'destructive',
       })
     } finally {
@@ -218,7 +222,7 @@ export const VotacaoPage: React.FC = () => {
       })
     } catch (err: any) {
       console.error('Erro ao validar OTP:', err)
-      const msg = err?.message || ''
+      const msg = getErrorMessage(err) || err?.message || ''
       if (msg.includes('tentativa')) {
         setTentativasRestantes((prev) => Math.max(0, prev - 1))
       }

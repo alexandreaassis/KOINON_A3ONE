@@ -10,13 +10,70 @@
  */
 
 routerAdd('POST', '/backend/v1/votos/registrar', (e) => {
-  const { calcularSha256, gerarCodigoConferencia, registrarAuditoria } = require(
-    `${__hooks}/hash_encadeado.js`,
-  )
+  function calcularSha256(str) {
+    return $security.sha256(str || '')
+  }
+
+  function gerarCodigoConferencia() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    let code = ''
+    for (let i = 0; i < 8; i++) {
+      const idx = Math.floor(Math.random() * chars.length)
+      code += chars.charAt(idx)
+    }
+    return code
+  }
+
+  function registrarAuditoria(app, dados) {
+    try {
+      const audCol = app.findCollectionByNameOrId('auditoria_events')
+      let ultimoHash = '0000000000000000000000000000000000000000000000000000000000000000'
+      let proximoSeq = 1
+
+      try {
+        const ultimos = app.findRecordsByFilter('auditoria_events', '', '-sequencial', 1, 0)
+        if (ultimos && ultimos.length > 0) {
+          const u = ultimos[0]
+          ultimoHash = u.getString('hash_evento') || ultimoHash
+          proximoSeq = (u.getInt('sequencial') || 0) + 1
+        }
+      } catch (_) {}
+
+      const payload = JSON.stringify({
+        evento: dados.evento,
+        data_hora: dados.data_hora || new Date().toISOString(),
+        unidade: dados.unidade || '',
+        fator: dados.fator || '',
+        dispositivo: dados.dispositivo || '',
+        sequencial: proximoSeq,
+        hash_anterior: ultimoHash,
+      })
+
+      const hashEvento = $security.sha256(ultimoHash + ':' + payload)
+
+      const rec = new Record(audCol)
+      rec.set('evento', dados.evento)
+      rec.set(
+        'data_hora',
+        dados.data_hora || new Date().toISOString().replace('T', ' ').substring(0, 19),
+      )
+      if (dados.unidade) rec.set('unidade', dados.unidade)
+      rec.set('fator', dados.fator || 'sistema')
+      rec.set('dispositivo', dados.dispositivo || 'servidor')
+      rec.set('sequencial', proximoSeq)
+      rec.set('hash_evento', hashEvento)
+      rec.set('hash_anterior', ultimoHash)
+
+      app.save(rec)
+      return rec
+    } catch (err) {
+      console.log('Erro ao registrar auditoria interna:', err)
+    }
+  }
 
   const authRecord = e.auth
   if (!authRecord) {
-    throw new ForbiddenError('Usuário não autenticado')
+    return e.json(403, { success: false, message: 'Usuário não autenticado' })
   }
 
   const body = e.requestInfo().body || {}
@@ -26,7 +83,10 @@ routerAdd('POST', '/backend/v1/votos/registrar', (e) => {
   const dispositivoId = body.dispositivoId || e.requestInfo().headers['user-agent'] || 'web-browser'
 
   if (!tokenVoto || !deliberacaoId || !Array.isArray(votos) || votos.length === 0) {
-    throw new BadRequestError('tokenVoto, deliberacaoId e lista de votos são obrigatórios')
+    return e.json(400, {
+      success: false,
+      message: 'tokenVoto, deliberacaoId e lista de votos são obrigatórios',
+    })
   }
 
   // 1. Validar deliberação
@@ -34,11 +94,14 @@ routerAdd('POST', '/backend/v1/votos/registrar', (e) => {
   try {
     delib = e.app.findRecordById('deliberacoes', deliberacaoId)
   } catch (_) {
-    throw new NotFoundError('Deliberação não encontrada')
+    return e.json(404, { success: false, message: 'Deliberação não encontrada' })
   }
 
   if (delib.getString('status') !== 'EM_VOTACAO') {
-    throw new BadRequestError('Esta deliberação não está aberta para votação.')
+    return e.json(400, {
+      success: false,
+      message: 'Esta deliberação não está aberta para votação.',
+    })
   }
 
   // 2. Validar token de voto na sessão
@@ -53,11 +116,17 @@ routerAdd('POST', '/backend/v1/votos/registrar', (e) => {
       { token: tokenVoto, delib: deliberacaoId },
     )
     if (!sessoes || sessoes.length === 0) {
-      throw new BadRequestError('Token de voto inválido, expirado ou já consumido.')
+      return e.json(400, {
+        success: false,
+        message: 'Token de voto inválido, expirado ou já consumido.',
+      })
     }
     sessao = sessoes[0]
   } catch (err) {
-    throw new BadRequestError('Erro ao verificar token de voto: ' + err.message)
+    return e.json(400, {
+      success: false,
+      message: 'Erro ao verificar token de voto: ' + (err?.message || ''),
+    })
   }
 
   const unidadeId = sessao.getString('unidade')
@@ -73,12 +142,16 @@ routerAdd('POST', '/backend/v1/votos/registrar', (e) => {
       { delib: deliberacaoId, unidade: unidadeId },
     )
     if (presencasFisicas && presencasFisicas.length > 0) {
-      throw new BadRequestError(
-        'A unidade possui presença presencial registrada. O voto eletrônico está bloqueado.',
-      )
+      return e.json(400, {
+        success: false,
+        message:
+          'A unidade possui presença presencial registrada. O voto eletrônico está bloqueado.',
+      })
     }
   } catch (err) {
-    if (err.message && err.message.includes('presencial registrada')) throw err
+    if (err && err.message && err.message.includes('presencial registrada')) {
+      return e.json(400, { success: false, message: err.message })
+    }
   }
 
   // 4. Verificar se a unidade já compareceu nesta deliberação
@@ -92,10 +165,15 @@ routerAdd('POST', '/backend/v1/votos/registrar', (e) => {
       { delib: deliberacaoId, unidade: unidadeId },
     )
     if (compJaExiste && compJaExiste.length > 0) {
-      throw new BadRequestError('Voto já computado para esta unidade nesta deliberação.')
+      return e.json(400, {
+        success: false,
+        message: 'Voto já computado para esta unidade nesta deliberação.',
+      })
     }
   } catch (err) {
-    if (err.message && err.message.includes('já computado')) throw err
+    if (err && err.message && err.message.includes('já computado')) {
+      return e.json(400, { success: false, message: err.message })
+    }
   }
 
   // Obter hash anônimo da unidade (salteado com a deliberação para sigilo de voto em cédula secreta)

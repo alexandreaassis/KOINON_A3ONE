@@ -5,11 +5,56 @@
  */
 
 routerAdd('POST', '/backend/v1/otp/send', (e) => {
-  const { registrarAuditoria } = require(`${__hooks}/hash_encadeado.js`)
+  function registrarAuditoria(app, dados) {
+    try {
+      const audCol = app.findCollectionByNameOrId('auditoria_events')
+      let ultimoHash = '0000000000000000000000000000000000000000000000000000000000000000'
+      let proximoSeq = 1
+
+      try {
+        const ultimos = app.findRecordsByFilter('auditoria_events', '', '-sequencial', 1, 0)
+        if (ultimos && ultimos.length > 0) {
+          const u = ultimos[0]
+          ultimoHash = u.getString('hash_evento') || ultimoHash
+          proximoSeq = (u.getInt('sequencial') || 0) + 1
+        }
+      } catch (_) {}
+
+      const payload = JSON.stringify({
+        evento: dados.evento,
+        data_hora: dados.data_hora || new Date().toISOString(),
+        unidade: dados.unidade || '',
+        fator: dados.fator || '',
+        dispositivo: dados.dispositivo || '',
+        sequencial: proximoSeq,
+        hash_anterior: ultimoHash,
+      })
+
+      const hashEvento = $security.sha256(ultimoHash + ':' + payload)
+
+      const rec = new Record(audCol)
+      rec.set('evento', dados.evento)
+      rec.set(
+        'data_hora',
+        dados.data_hora || new Date().toISOString().replace('T', ' ').substring(0, 19),
+      )
+      if (dados.unidade) rec.set('unidade', dados.unidade)
+      rec.set('fator', dados.fator || 'sistema')
+      rec.set('dispositivo', dados.dispositivo || 'servidor')
+      rec.set('sequencial', proximoSeq)
+      rec.set('hash_evento', hashEvento)
+      rec.set('hash_anterior', ultimoHash)
+
+      app.save(rec)
+      return rec
+    } catch (err) {
+      console.log('Erro ao registrar auditoria interna:', err)
+    }
+  }
 
   const authRecord = e.auth
   if (!authRecord) {
-    throw new ForbiddenError('Usuário não autenticado')
+    return e.json(403, { success: false, message: 'Usuário não autenticado' })
   }
 
   const body = e.requestInfo().body || {}
@@ -18,7 +63,10 @@ routerAdd('POST', '/backend/v1/otp/send', (e) => {
   const deliberacaoId = body.deliberacaoId || body.deliberacao
 
   if (!unidadeId || !cpf || !deliberacaoId) {
-    throw new BadRequestError('unidadeId, cpf e deliberacaoId são obrigatórios')
+    return e.json(400, {
+      success: false,
+      message: 'unidadeId, cpf e deliberacaoId são obrigatórios',
+    })
   }
 
   // 1. Validar unidade
@@ -26,7 +74,7 @@ routerAdd('POST', '/backend/v1/otp/send', (e) => {
   try {
     unidadeRec = e.app.findRecordById('unidades', unidadeId)
   } catch (_) {
-    throw new NotFoundError('Unidade não encontrada')
+    return e.json(404, { success: false, message: 'Unidade não encontrada' })
   }
 
   // 2. Validar deliberação
@@ -34,11 +82,14 @@ routerAdd('POST', '/backend/v1/otp/send', (e) => {
   try {
     delibRec = e.app.findRecordById('deliberacoes', deliberacaoId)
   } catch (_) {
-    throw new NotFoundError('Deliberação não encontrada')
+    return e.json(404, { success: false, message: 'Deliberação não encontrada' })
   }
 
   if (delibRec.getString('status') !== 'EM_VOTACAO') {
-    throw new BadRequestError('Esta deliberação não está com votação em andamento.')
+    return e.json(400, {
+      success: false,
+      message: 'Esta deliberação não está com votação em andamento.',
+    })
   }
 
   // 3. Verificar se já votou (comparecimentos)
@@ -52,10 +103,15 @@ routerAdd('POST', '/backend/v1/otp/send', (e) => {
       { delib: deliberacaoId, unidade: unidadeId },
     )
     if (comps && comps.length > 0) {
-      throw new BadRequestError('O voto desta unidade já foi registrado nesta deliberação.')
+      return e.json(400, {
+        success: false,
+        message: 'O voto desta unidade já foi registrado nesta deliberação.',
+      })
     }
   } catch (err) {
-    if (err.message && err.message.includes('já foi registrado')) throw err
+    if (err && err.message && err.message.includes('já foi registrado')) {
+      return e.json(400, { success: false, message: err.message })
+    }
   }
 
   // 4. Verificar se possui presença física registrada (reconciliação presencial/remoto)
@@ -69,12 +125,16 @@ routerAdd('POST', '/backend/v1/otp/send', (e) => {
       { delib: deliberacaoId, unidade: unidadeId },
     )
     if (presencas && presencas.length > 0) {
-      throw new BadRequestError(
-        'Esta unidade foi registrada presencialmente na assembleia. O canal online está bloqueado.',
-      )
+      return e.json(400, {
+        success: false,
+        message:
+          'Esta unidade foi registrada presencialmente na assembleia. O canal online está bloqueado.',
+      })
     }
   } catch (err) {
-    if (err.message && err.message.includes('bloqueado')) throw err
+    if (err && err.message && err.message.includes('bloqueado')) {
+      return e.json(400, { success: false, message: err.message })
+    }
   }
 
   // 5. Validar credenciamento aprovado com o CPF
@@ -98,9 +158,10 @@ routerAdd('POST', '/backend/v1/otp/send', (e) => {
   }
 
   if (!credAprovado) {
-    throw new BadRequestError(
-      'Credenciamento não encontrado ou não aprovado para este CPF nesta unidade.',
-    )
+    return e.json(400, {
+      success: false,
+      message: 'Credenciamento não encontrado ou não aprovado para este CPF nesta unidade.',
+    })
   }
 
   // 6. Gerar OTP de 6 dígitos aleatório
