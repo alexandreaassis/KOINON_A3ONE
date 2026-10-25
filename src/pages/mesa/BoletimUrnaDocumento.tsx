@@ -629,75 +629,85 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
             {/* Linhas de Assinatura */}
             <div className="grid grid-cols-2 gap-8 text-center pt-8 pb-4 font-sans">
               {/* Presidente da Mesa */}
-              <div className="space-y-1">
-                <div className="border-t border-slate-900 mx-auto w-4/5 pt-1" />
-                {deliberacao?.mesa_presidente_nome || boletim?.deliberacao.mesa_presidente_nome ? (
-                  <>
-                    <p className="text-xs font-bold text-slate-950 uppercase">
-                      {deliberacao?.mesa_presidente_nome ||
-                        boletim?.deliberacao.mesa_presidente_nome}
-                    </p>
-                    {(deliberacao?.mesa_presidente_cpf ||
-                      boletim?.deliberacao.mesa_presidente_cpf) && (
-                      <p className="text-[10px] text-slate-700 font-mono">
-                        CPF:{' '}
-                        {formatarCpf(
-                          deliberacao?.mesa_presidente_cpf ||
-                            boletim?.deliberacao.mesa_presidente_cpf,
-                        )}
+              <div>
+                <div className="border-t border-slate-900 mx-auto w-4/5 mb-1" />
+                <div className="space-y-0 leading-tight">
+                  {deliberacao?.mesa_presidente_nome ||
+                  boletim?.deliberacao.mesa_presidente_nome ? (
+                    <>
+                      <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
+                        {deliberacao?.mesa_presidente_nome ||
+                          boletim?.deliberacao.mesa_presidente_nome}
                       </p>
-                    )}
-                    <p className="text-[10px] text-slate-600">Presidente da Mesa Diretora</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs font-bold text-slate-950 uppercase">
-                      ___________________________________
-                    </p>
-                    <p className="text-xs font-bold text-slate-950 uppercase">
-                      Presidente da Mesa Diretora
-                    </p>
-                    <p className="text-[10px] text-slate-600">
-                      Condutor(a) dos Trabalhos da Assembleia
-                    </p>
-                  </>
-                )}
+                      {(deliberacao?.mesa_presidente_cpf ||
+                        boletim?.deliberacao.mesa_presidente_cpf) && (
+                        <p className="text-[10px] text-slate-700 font-mono m-0 p-0 leading-tight">
+                          CPF:{' '}
+                          {formatarCpf(
+                            deliberacao?.mesa_presidente_cpf ||
+                              boletim?.deliberacao.mesa_presidente_cpf,
+                          )}
+                        </p>
+                      )}
+                      <p className="text-[10px] text-slate-600 m-0 p-0 leading-tight">
+                        Presidente da Mesa Diretora
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
+                        ___________________________________
+                      </p>
+                      <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
+                        Presidente da Mesa Diretora
+                      </p>
+                      <p className="text-[10px] text-slate-600 m-0 p-0 leading-tight">
+                        Condutor(a) dos Trabalhos da Assembleia
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Secretário(a) da Mesa */}
-              <div className="space-y-1">
-                <div className="border-t border-slate-900 mx-auto w-4/5 pt-1" />
-                {deliberacao?.mesa_secretario_nome || boletim?.deliberacao.mesa_secretario_nome ? (
-                  <>
-                    <p className="text-xs font-bold text-slate-950 uppercase">
-                      {deliberacao?.mesa_secretario_nome ||
-                        boletim?.deliberacao.mesa_secretario_nome}
-                    </p>
-                    {(deliberacao?.mesa_secretario_cpf ||
-                      boletim?.deliberacao.mesa_secretario_cpf) && (
-                      <p className="text-[10px] text-slate-700 font-mono">
-                        CPF:{' '}
-                        {formatarCpf(
-                          deliberacao?.mesa_secretario_cpf ||
-                            boletim?.deliberacao.mesa_secretario_cpf,
-                        )}
+              <div>
+                <div className="border-t border-slate-900 mx-auto w-4/5 mb-1" />
+                <div className="space-y-0 leading-tight">
+                  {deliberacao?.mesa_secretario_nome ||
+                  boletim?.deliberacao.mesa_secretario_nome ? (
+                    <>
+                      <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
+                        {deliberacao?.mesa_secretario_nome ||
+                          boletim?.deliberacao.mesa_secretario_nome}
                       </p>
-                    )}
-                    <p className="text-[10px] text-slate-600">Secretário(a) dos Trabalhos</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs font-bold text-slate-950 uppercase">
-                      ___________________________________
-                    </p>
-                    <p className="text-xs font-bold text-slate-950 uppercase">
-                      Secretário(a) dos Trabalhos
-                    </p>
-                    <p className="text-[10px] text-slate-600">
-                      Responsável pela Redação da Ata da Assembleia
-                    </p>
-                  </>
-                )}
+                      {(deliberacao?.mesa_secretario_cpf ||
+                        boletim?.deliberacao.mesa_secretario_cpf) && (
+                        <p className="text-[10px] text-slate-700 font-mono m-0 p-0 leading-tight">
+                          CPF:{' '}
+                          {formatarCpf(
+                            deliberacao?.mesa_secretario_cpf ||
+                              boletim?.deliberacao.mesa_secretario_cpf,
+                          )}
+                        </p>
+                      )}
+                      <p className="text-[10px] text-slate-600 m-0 p-0 leading-tight">
+                        Secretário(a) dos Trabalhos
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
+                        ___________________________________
+                      </p>
+                      <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
+                        Secretário(a) dos Trabalhos
+                      </p>
+                      <p className="text-[10px] text-slate-600 m-0 p-0 leading-tight">
+                        Responsável pela Redação da Ata da Assembleia
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 

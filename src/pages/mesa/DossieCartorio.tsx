@@ -316,27 +316,35 @@ export const DossieCartorioPage: React.FC = () => {
             )}
 
             {/* Assinatura do Convocante no Edital */}
-            <div className="pt-10 font-sans text-center space-y-2">
-              <div className="w-64 border-t border-slate-900 mx-auto pt-1" />
-              <p className="text-xs font-bold uppercase text-slate-900">
-                {editalPersonalizado?.sindico_nome ||
-                  editalAssinado?.assinante_nome ||
-                  deliberacao.mesa_presidente_nome ||
-                  'Síndico / Convocante'}
-              </p>
-              {(editalPersonalizado?.sindico_cpf ||
-                editalAssinado?.assinante_cpf ||
-                deliberacao.mesa_presidente_cpf) && (
-                <p className="text-[10px] text-slate-600 font-mono">
-                  CPF:{' '}
-                  {formatarCpf(
-                    editalPersonalizado?.sindico_cpf ||
-                      editalAssinado?.assinante_cpf ||
-                      deliberacao.mesa_presidente_cpf ||
-                      '',
+            <div className="pt-10 font-sans text-center">
+              <div className="inline-block text-center">
+                <div className="w-64 border-t border-slate-900 mx-auto mb-1" />
+                <div className="space-y-0 leading-tight">
+                  <p className="text-xs font-bold uppercase text-slate-900 m-0 p-0 leading-tight">
+                    {editalPersonalizado?.sindico_nome ||
+                      editalAssinado?.assinante_nome ||
+                      deliberacao.mesa_presidente_nome ||
+                      'Síndico / Convocante'}
+                  </p>
+                  {(editalPersonalizado?.sindico_cpf ||
+                    editalAssinado?.assinante_cpf ||
+                    deliberacao.mesa_presidente_cpf) && (
+                    <p className="text-[10px] text-slate-600 font-mono m-0 p-0 leading-tight">
+                      CPF:{' '}
+                      {formatarCpf(
+                        editalPersonalizado?.sindico_cpf ||
+                          editalAssinado?.assinante_cpf ||
+                          deliberacao.mesa_presidente_cpf ||
+                          '',
+                      )}
+                    </p>
                   )}
-                </p>
-              )}
+                  <p className="text-[10px] text-slate-500 m-0 p-0 leading-tight">
+                    {editalPersonalizado?.cargo_convocante ||
+                      `Representante Legal do ${nomeCondominio}`}
+                  </p>
+                </div>
+              </div>
 
               {editalAssinado ? (
                 <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 text-[10px] font-mono text-left space-y-0.5 rounded">
@@ -610,33 +618,39 @@ export const DossieCartorioPage: React.FC = () => {
           <div className="pt-16 pb-8 font-sans">
             <div className="grid grid-cols-2 gap-12 text-center">
               {/* Presidente */}
-              <div className="space-y-1">
-                <div className="border-t-2 border-slate-900 mx-auto w-5/6 pt-2" />
-                <p className="text-sm font-bold uppercase text-slate-950">
-                  {deliberacao.mesa_presidente_nome || 'Presidente da Mesa Diretora'}
-                </p>
-                {deliberacao.mesa_presidente_cpf && (
-                  <p className="text-xs text-slate-600 font-mono">
-                    CPF: {formatarCpf(deliberacao.mesa_presidente_cpf)}
+              <div>
+                <div className="border-t-2 border-slate-900 mx-auto w-5/6 mb-1" />
+                <div className="space-y-0 leading-tight">
+                  <p className="text-sm font-bold uppercase text-slate-950 m-0 p-0 leading-tight">
+                    {deliberacao.mesa_presidente_nome || 'Presidente da Mesa Diretora'}
                   </p>
-                )}
-                <p className="text-[11px] text-slate-500 font-medium">Presidente da Assembleia</p>
+                  {deliberacao.mesa_presidente_cpf && (
+                    <p className="text-xs text-slate-600 font-mono m-0 p-0 leading-tight">
+                      CPF: {formatarCpf(deliberacao.mesa_presidente_cpf)}
+                    </p>
+                  )}
+                  <p className="text-[11px] text-slate-500 font-medium m-0 p-0 leading-tight">
+                    Presidente da Assembleia
+                  </p>
+                </div>
               </div>
 
               {/* Secretário */}
-              <div className="space-y-1">
-                <div className="border-t-2 border-slate-900 mx-auto w-5/6 pt-2" />
-                <p className="text-sm font-bold uppercase text-slate-950">
-                  {deliberacao.mesa_secretario_nome || 'Secretário(a) da Mesa'}
-                </p>
-                {deliberacao.mesa_secretario_cpf && (
-                  <p className="text-xs text-slate-600 font-mono">
-                    CPF: {formatarCpf(deliberacao.mesa_secretario_cpf)}
+              <div>
+                <div className="border-t-2 border-slate-900 mx-auto w-5/6 mb-1" />
+                <div className="space-y-0 leading-tight">
+                  <p className="text-sm font-bold uppercase text-slate-950 m-0 p-0 leading-tight">
+                    {deliberacao.mesa_secretario_nome || 'Secretário(a) da Mesa'}
                   </p>
-                )}
-                <p className="text-[11px] text-slate-500 font-medium">
-                  Secretário(a) dos Trabalhos
-                </p>
+                  {deliberacao.mesa_secretario_cpf && (
+                    <p className="text-xs text-slate-600 font-mono m-0 p-0 leading-tight">
+                      CPF: {formatarCpf(deliberacao.mesa_secretario_cpf)}
+                    </p>
+                  )}
+                  <p className="text-[11px] text-slate-500 font-medium m-0 p-0 leading-tight">
+                    Secretário(a) dos Trabalhos
+                  </p>
+                </div>
               </div>
             </div>
           </div>

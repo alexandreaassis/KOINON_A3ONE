@@ -572,30 +572,38 @@ export const ListaPresencaPage: React.FC = () => {
         {/* Rodapé Institucional com Assinatura da Mesa e Resalva LGPD */}
         <footer className="mt-8 pt-4 border-t-2 border-slate-900 font-sans break-inside-avoid">
           <div className="grid grid-cols-2 gap-8 text-center pt-6 pb-2">
-            <div className="space-y-1">
-              <div className="border-t border-slate-900 mx-auto w-4/5 pt-1" />
-              <p className="text-xs font-bold text-slate-950 uppercase">
-                {deliberacaoAtiva?.mesa_presidente_nome || 'Presidente da Mesa Diretora'}
-              </p>
-              {deliberacaoAtiva?.mesa_presidente_cpf && (
-                <p className="text-[10px] text-slate-600 font-mono">
-                  CPF: {formatarCpf(deliberacaoAtiva.mesa_presidente_cpf)}
+            <div>
+              <div className="border-t border-slate-900 mx-auto w-4/5 mb-1" />
+              <div className="space-y-0 leading-tight">
+                <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
+                  {deliberacaoAtiva?.mesa_presidente_nome || 'Presidente da Mesa Diretora'}
                 </p>
-              )}
-              <p className="text-[10px] text-slate-500">Presidente da Assembleia</p>
+                {deliberacaoAtiva?.mesa_presidente_cpf && (
+                  <p className="text-[10px] text-slate-600 font-mono m-0 p-0 leading-tight">
+                    CPF: {formatarCpf(deliberacaoAtiva.mesa_presidente_cpf)}
+                  </p>
+                )}
+                <p className="text-[10px] text-slate-500 m-0 p-0 leading-tight">
+                  Presidente da Assembleia
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-1">
-              <div className="border-t border-slate-900 mx-auto w-4/5 pt-1" />
-              <p className="text-xs font-bold text-slate-950 uppercase">
-                {deliberacaoAtiva?.mesa_secretario_nome || 'Secretário(a) da Mesa'}
-              </p>
-              {deliberacaoAtiva?.mesa_secretario_cpf && (
-                <p className="text-[10px] text-slate-600 font-mono">
-                  CPF: {formatarCpf(deliberacaoAtiva.mesa_secretario_cpf)}
+            <div>
+              <div className="border-t border-slate-900 mx-auto w-4/5 mb-1" />
+              <div className="space-y-0 leading-tight">
+                <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
+                  {deliberacaoAtiva?.mesa_secretario_nome || 'Secretário(a) da Mesa'}
                 </p>
-              )}
-              <p className="text-[10px] text-slate-500">Secretário(a) dos Trabalhos</p>
+                {deliberacaoAtiva?.mesa_secretario_cpf && (
+                  <p className="text-[10px] text-slate-600 font-mono m-0 p-0 leading-tight">
+                    CPF: {formatarCpf(deliberacaoAtiva.mesa_secretario_cpf)}
+                  </p>
+                )}
+                <p className="text-[10px] text-slate-500 m-0 p-0 leading-tight">
+                  Secretário(a) dos Trabalhos
+                </p>
+              </div>
             </div>
           </div>
 

@@ -312,17 +312,23 @@ export const EditalDocumentoPage: React.FC = () => {
         </div>
 
         {/* Rodapé e Assinatura Eletrônica */}
-        <div className="mt-12 pt-8 border-t-2 border-slate-900 font-sans text-center space-y-2 break-inside-avoid">
-          <div className="w-64 border-t border-slate-800 mx-auto pt-1" />
-          <p className="text-xs font-bold uppercase text-slate-900">
-            {dadosConsolidados.sindicoNome}
-          </p>
-          {dadosConsolidados.sindicoCpf && (
-            <p className="text-[11px] text-slate-600 font-mono">
-              CPF: {dadosConsolidados.sindicoCpf}
-            </p>
-          )}
-          <p className="text-[10px] text-slate-500">{dadosConsolidados.cargoConvocante}</p>
+        <div className="mt-12 pt-8 border-t-2 border-slate-900 font-sans text-center break-inside-avoid">
+          <div className="inline-block text-center">
+            <div className="w-64 border-t border-slate-800 mx-auto mb-1" />
+            <div className="space-y-0 leading-tight">
+              <p className="text-xs font-bold uppercase text-slate-900 m-0 p-0 leading-tight">
+                {dadosConsolidados.sindicoNome}
+              </p>
+              {dadosConsolidados.sindicoCpf && (
+                <p className="text-[11px] text-slate-600 font-mono m-0 p-0 leading-tight">
+                  CPF: {dadosConsolidados.sindicoCpf}
+                </p>
+              )}
+              <p className="text-[10px] text-slate-500 m-0 p-0 leading-tight">
+                {dadosConsolidados.cargoConvocante}
+              </p>
+            </div>
+          </div>
 
           {/* Selo Criptográfico de Assinatura */}
           {dadosConsolidados.hashAssinatura ? (

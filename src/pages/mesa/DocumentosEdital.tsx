@@ -1493,17 +1493,23 @@ export const DocumentosEditalPage: React.FC = () => {
                     </div>
 
                     {/* Assinatura do Convocante */}
-                    <div className="pt-8 border-t-2 border-slate-900 font-sans text-center space-y-2">
-                      <div className="w-64 border-t border-slate-800 mx-auto pt-1" />
-                      <p className="text-xs font-bold uppercase text-slate-900">
-                        {editalForm.sindicoNome || 'Síndico / Mesa Diretora'}
-                      </p>
-                      {editalForm.sindicoCpf && (
-                        <p className="text-[11px] text-slate-600 font-mono">
-                          CPF: {editalForm.sindicoCpf}
-                        </p>
-                      )}
-                      <p className="text-[10px] text-slate-500">{editalForm.cargoConvocante}</p>
+                    <div className="pt-8 border-t-2 border-slate-900 font-sans text-center">
+                      <div className="inline-block text-center">
+                        <div className="w-64 border-t border-slate-800 mx-auto mb-1" />
+                        <div className="space-y-0 leading-tight">
+                          <p className="text-xs font-bold uppercase text-slate-900 m-0 p-0 leading-tight">
+                            {editalForm.sindicoNome || 'Síndico / Mesa Diretora'}
+                          </p>
+                          {editalForm.sindicoCpf && (
+                            <p className="text-[11px] text-slate-600 font-mono m-0 p-0 leading-tight">
+                              CPF: {editalForm.sindicoCpf}
+                            </p>
+                          )}
+                          <p className="text-[10px] text-slate-500 m-0 p-0 leading-tight">
+                            {editalForm.cargoConvocante}
+                          </p>
+                        </div>
+                      </div>
 
                       {/* Carimbo da Assinatura Eletrônica */}
                       {editalAssinadoHash && !hashDesatualizado ? (

@@ -286,10 +286,15 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       page-break-inside: avoid;
     }
+    .signature-box {
+      display: inline-block;
+      text-align: center;
+      line-height: 1.15;
+    }
     .signature-line {
       width: 260px;
       border-top: 1.5px solid #0f172a;
-      margin: 0 auto 6px auto;
+      margin: 0 auto 4px auto;
     }
     .signature-name {
       font-size: 10.5pt;
@@ -297,17 +302,23 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
       text-transform: uppercase;
       color: #0f172a;
       margin: 0;
+      padding: 0;
+      line-height: 1.15;
     }
     .signature-cpf {
       font-size: 9pt;
       color: #475569;
       font-family: monospace;
-      margin: 2px 0;
+      margin: 0;
+      padding: 0;
+      line-height: 1.15;
     }
     .signature-role {
       font-size: 8.5pt;
       color: #64748b;
       margin: 0;
+      padding: 0;
+      line-height: 1.15;
     }
     .footer-note {
       margin-top: 24px;
@@ -390,10 +401,12 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
     }
 
     <div class="signature-area">
-      <div class="signature-line"></div>
-      <div class="signature-name">${dados.sindicoNome || 'Síndico(a) / Mesa Diretora'}</div>
-      ${dados.sindicoCpf ? `<div class="signature-cpf">CPF: ${dados.sindicoCpf}</div>` : ''}
-      <div class="signature-role">${dados.cargoConvocante || `Representante Legal do ${dados.nomeCondominio}`}</div>
+      <div class="signature-box">
+        <div class="signature-line"></div>
+        <div class="signature-name">${dados.sindicoNome || 'Síndico(a) / Mesa Diretora'}</div>
+        ${dados.sindicoCpf ? `<div class="signature-cpf">CPF: ${dados.sindicoCpf}</div>` : ''}
+        <div class="signature-role">${dados.cargoConvocante || `Representante Legal do ${dados.nomeCondominio}`}</div>
+      </div>
 
       ${seloAssinatura}
     </div>
