@@ -236,6 +236,30 @@ export interface DocumentoPautaRecord extends RecordModel {
   }
 }
 
+export interface EditalDeliberacaoRecord extends RecordModel {
+  deliberacao: string
+  titulo?: string
+  subtitulo?: string
+  texto_abertura?: string
+  data_assembleia?: string
+  primeira_convocacao?: string
+  segunda_convocacao?: string
+  local_texto?: string
+  ordem_dia_custom?: string
+  disposicoes_gerais?: string
+  regras_participacao?: string
+  sindico_nome?: string
+  sindico_cpf?: string
+  cargo_convocante?: string
+  status?: 'rascunho' | 'assinado' | 'publicado'
+  hash_assinado?: string
+  data_assinatura?: string
+  conteudo_assinado_snapshot?: string
+  expand?: {
+    deliberacao?: DeliberacaoRecord
+  }
+}
+
 export interface AssinaturaDocumentoRecord extends RecordModel {
   documento_id: string
   documento_tipo: string
@@ -889,6 +913,46 @@ export const api = {
     }>('/backend/v1/notificacoes/reenviar', {
       method: 'POST',
       body: { notificacaoId },
+    })
+  },
+
+  // 12. Edital Editável e Persistente
+  async getEditalPorDeliberacao(deliberacaoId: string) {
+    const list = await pb.collection('editais_deliberacao').getList<EditalDeliberacaoRecord>(1, 1, {
+      filter: pb.filter('deliberacao = {:delib}', { delib: deliberacaoId }),
+      sort: '-created',
+    })
+    return list.items[0] || null
+  },
+
+  async salvarEditalDeliberacao(
+    deliberacaoId: string,
+    dados: Partial<EditalDeliberacaoRecord>,
+    idExistente?: string,
+  ) {
+    if (idExistente) {
+      return pb.collection('editais_deliberacao').update<EditalDeliberacaoRecord>(idExistente, {
+        ...dados,
+        deliberacao: deliberacaoId,
+      })
+    }
+
+    // Tentar localizar se já existe para atualizar ao invés de duplicar
+    try {
+      const existente = await this.getEditalPorDeliberacao(deliberacaoId)
+      if (existente) {
+        return pb.collection('editais_deliberacao').update<EditalDeliberacaoRecord>(existente.id, {
+          ...dados,
+          deliberacao: deliberacaoId,
+        })
+      }
+    } catch {
+      /* intentionally ignored */
+    }
+
+    return pb.collection('editais_deliberacao').create<EditalDeliberacaoRecord>({
+      ...dados,
+      deliberacao: deliberacaoId,
     })
   },
 }

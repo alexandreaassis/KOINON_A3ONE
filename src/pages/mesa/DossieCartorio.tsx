@@ -36,6 +36,7 @@ export const DossieCartorioPage: React.FC = () => {
   const [presencas, setPresencas] = useState<PresencaAssinaturaRecord[]>([])
   const [apuracao, setApuracao] = useState<ApuracaoResponse['apuracao'] | null>(null)
   const [assinaturas, setAssinaturas] = useState<AssinaturaDocumentoRecord[]>([])
+  const [editalPersonalizado, setEditalPersonalizado] = useState<any | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
 
@@ -55,13 +56,14 @@ export const DossieCartorioPage: React.FC = () => {
           return
         }
 
-        const [delib, itens, unids, presList, apResp, assList] = await Promise.all([
+        const [delib, itens, unids, presList, apResp, assList, edital] = await Promise.all([
           api.getDeliberacao(dId),
           api.getItensPauta(dId),
           api.getUnidades(),
           api.getPresencasAssinatura(dId),
           api.getApuracao(dId),
           api.getAssinaturasPorDeliberacao(dId),
+          api.getEditalPorDeliberacao(dId).catch(() => null),
         ])
 
         setDeliberacao(delib)
@@ -70,6 +72,7 @@ export const DossieCartorioPage: React.FC = () => {
         setPresencas(presList)
         setApuracao(apResp.apuracao)
         setAssinaturas(assList)
+        setEditalPersonalizado(edital)
 
         // Registrar auditoria da geração do dossiê
         await api.registrarEventoAuditoria({
@@ -286,15 +289,21 @@ export const DossieCartorioPage: React.FC = () => {
             <div className="pt-10 font-sans text-center space-y-2">
               <div className="w-64 border-t border-slate-900 mx-auto pt-1" />
               <p className="text-xs font-bold uppercase text-slate-900">
-                {editalAssinado?.assinante_nome ||
+                {editalPersonalizado?.sindico_nome ||
+                  editalAssinado?.assinante_nome ||
                   deliberacao.mesa_presidente_nome ||
                   'Síndico / Convocante'}
               </p>
-              {(editalAssinado?.assinante_cpf || deliberacao.mesa_presidente_cpf) && (
+              {(editalPersonalizado?.sindico_cpf ||
+                editalAssinado?.assinante_cpf ||
+                deliberacao.mesa_presidente_cpf) && (
                 <p className="text-[10px] text-slate-600 font-mono">
                   CPF:{' '}
                   {formatarCpf(
-                    editalAssinado?.assinante_cpf || deliberacao.mesa_presidente_cpf || '',
+                    editalPersonalizado?.sindico_cpf ||
+                      editalAssinado?.assinante_cpf ||
+                      deliberacao.mesa_presidente_cpf ||
+                      '',
                   )}
                 </p>
               )}

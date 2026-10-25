@@ -12,6 +12,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import BoletimUrnaDocumentoPage from '@/pages/mesa/BoletimUrnaDocumento'
 import InformativoDeliberacoesPage from '@/pages/mesa/InformativoDeliberacoes'
 import DossieCartorioPage from '@/pages/mesa/DossieCartorio'
+import EditalDocumentoPage from '@/pages/mesa/EditalDocumento'
 
 // Páginas de Autenticação
 import LoginPage from '@/pages/auth/Login'
@@ -224,7 +225,23 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            {/* Visões de Impressão Dedicadas: Informativo de Deliberações e Dossiê Completo Cartório */}
+            {/* Visões de Impressão Dedicadas: Edital Oficial A4, Informativo de Deliberações e Dossiê Completo Cartório */}
+            <Route
+              path="/mesa/documentos/edital/:deliberacaoId"
+              element={
+                <ProtectedRoute requireMesa>
+                  <EditalDocumentoPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/documentos/edital"
+              element={
+                <ProtectedRoute requireMesa>
+                  <EditalDocumentoPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/mesa/documentos/informativo/:deliberacaoId"
               element={

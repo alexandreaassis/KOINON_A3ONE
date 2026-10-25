@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-25T20:01:58.234Z",
+  "generatedAt": "2026-10-25T20:29:29.699Z",
   "collections": [
     {
       "name": "users",
@@ -1431,6 +1431,146 @@
       "indexes": [
         "CREATE UNIQUE INDEX idx_pres_ass_delib_unidade ON presencas_assinatura (deliberacao, unidade)",
         "CREATE INDEX idx_pres_ass_delib ON presencas_assinatura (deliberacao)"
+      ]
+    },
+    {
+      "name": "editais_deliberacao",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')"
+      },
+      "fields": [
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "subtitulo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "texto_abertura",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_assembleia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "primeira_convocacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "segunda_convocacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "local_texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ordem_dia_custom",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "disposicoes_gerais",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "regras_participacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sindico_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sindico_cpf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cargo_convocante",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["rascunho", "assinado", "publicado"]
+        },
+        {
+          "name": "hash_assinado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_assinatura",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conteudo_assinado_snapshot",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_editais_deliberacao ON editais_deliberacao (deliberacao)"
       ]
     }
   ]
