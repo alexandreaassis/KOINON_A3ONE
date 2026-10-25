@@ -102,15 +102,15 @@ export const VotingStatusBar: React.FC<VotingStatusBarProps> = ({
     <div
       className={`w-full rounded-lg border p-3.5 mb-6 shadow-sm transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${config.bg}`}
     >
-      <div className="flex items-start sm:items-center gap-3">
-        <div className="rounded-full bg-white/80 p-2 shadow-xs border border-black/5">
+      <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+        <div className="rounded-full bg-white/80 p-2 shadow-xs border border-black/5 shrink-0">
           <IconComponent className="h-5 w-5 text-current" />
         </div>
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-sm leading-none">{deliberacao.titulo}</span>
+            <span className="font-semibold text-sm leading-snug">{deliberacao.titulo}</span>
             <Badge
-              className={`text-xs uppercase font-bold tracking-wider px-2 py-0.5 ${config.badgeBg}`}
+              className={`text-xs uppercase font-bold tracking-wider px-2.5 py-0.5 shrink-0 text-center leading-normal ${config.badgeBg}`}
             >
               {config.label}
             </Badge>

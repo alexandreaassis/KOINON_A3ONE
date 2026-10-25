@@ -194,13 +194,13 @@ export const CredenciamentoPage: React.FC = () => {
                 </CardTitle>
               </div>
               <Badge
-                className={
+                className={`shrink-0 text-center leading-normal ${
                   credExistente.status === 'aprovado'
                     ? 'bg-emerald-600 text-white'
                     : credExistente.status === 'rejeitado'
                       ? 'bg-red-600 text-white'
                       : 'bg-blue-600 text-white'
-                }
+                }`}
               >
                 {credExistente.status}
               </Badge>

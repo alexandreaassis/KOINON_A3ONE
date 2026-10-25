@@ -121,21 +121,26 @@ export const MinhaSituacaoPage: React.FC = () => {
 
     if (credenciamento.status === 'aprovado') {
       return (
-        <div className="flex items-center justify-between p-4 rounded-lg border border-emerald-200 bg-emerald-50">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="h-6 w-6 text-emerald-600" />
-            <div>
-              <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border border-emerald-200 bg-emerald-50">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <CheckCircle2 className="h-6 w-6 text-emerald-600 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
                 <p className="text-sm font-bold text-emerald-950">Vínculo Aprovado pela Mesa</p>
-                <Badge className="bg-emerald-600 text-white text-[10px]">APTO A VOTAR</Badge>
+                <Badge className="bg-emerald-600 text-white text-[10px] shrink-0 text-center leading-normal">
+                  APTO A VOTAR
+                </Badge>
               </div>
-              <p className="text-xs text-emerald-800">
+              <p className="text-xs text-emerald-800 mt-0.5">
                 Titular: <strong>{credenciamento.titular_nome}</strong> (
                 {credenciamento.tipo_vinculo}) • CPF: {credenciamento.cpf}
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="border-emerald-500 text-emerald-800 font-semibold">
+          <Badge
+            variant="outline"
+            className="border-emerald-500 text-emerald-800 font-semibold shrink-0 text-center leading-normal self-start sm:self-center"
+          >
             Vínculo Verificado
           </Badge>
         </div>
@@ -170,18 +175,20 @@ export const MinhaSituacaoPage: React.FC = () => {
 
     // Pendente de análise pela mesa
     return (
-      <div className="flex items-center justify-between p-4 rounded-lg border border-blue-200 bg-blue-50">
-        <div className="flex items-center gap-3">
-          <Clock className="h-6 w-6 text-blue-600" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border border-blue-200 bg-blue-50">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <Clock className="h-6 w-6 text-blue-600 shrink-0" />
           <div>
             <p className="text-sm font-bold text-blue-950">Aguardando Validação da Mesa</p>
-            <p className="text-xs text-blue-800">
+            <p className="text-xs text-blue-800 mt-0.5">
               Seus documentos foram enviados e estão na fila de análise da administração (prazo até
               abertura da votação).
             </p>
           </div>
         </div>
-        <Badge className="bg-blue-600 text-white text-xs">Em Análise</Badge>
+        <Badge className="bg-blue-600 text-white text-xs shrink-0 text-center leading-normal self-start sm:self-center">
+          Em Análise
+        </Badge>
       </div>
     )
   }
@@ -288,8 +295,8 @@ export const MinhaSituacaoPage: React.FC = () => {
         {/* Card: Status da Deliberação & Ação de Voto (2 colunas) */}
         <Card className="lg:col-span-2 border-slate-200 shadow-xs flex flex-col justify-between">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
                 <CardTitle className="text-base font-bold text-slate-800">
                   Status da Assembleia e Voto
                 </CardTitle>
@@ -298,7 +305,9 @@ export const MinhaSituacaoPage: React.FC = () => {
                 </CardDescription>
               </div>
               {deliberacaoAtiva && (
-                <Badge className="bg-slate-800 text-white text-xs">{deliberacaoAtiva.status}</Badge>
+                <Badge className="bg-slate-800 text-white text-xs shrink-0 text-center leading-normal">
+                  {deliberacaoAtiva.status}
+                </Badge>
               )}
             </div>
           </CardHeader>

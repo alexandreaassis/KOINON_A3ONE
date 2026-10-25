@@ -28,6 +28,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   ShieldCheck,
   Users,
@@ -39,6 +41,8 @@ import {
   UserCheck,
   Building,
   CheckCircle,
+  UserCog,
+  Save,
 } from 'lucide-react'
 
 export const PainelMesaPage: React.FC = () => {
@@ -52,6 +56,14 @@ export const PainelMesaPage: React.FC = () => {
   // Registro de presença presencial
   const [unidadePresencialId, setUnidadePresencialId] = useState<string>('')
   const [salvandoPresenca, setSalvandoPresenca] = useState(false)
+
+  // Edição da Mesa Diretora (Presidente e Secretário)
+  const [modalMesaAberto, setModalMesaAberto] = useState(false)
+  const [mesaPresNome, setMesaPresNome] = useState('')
+  const [mesaPresCpf, setMesaPresCpf] = useState('')
+  const [mesaSecNome, setMesaSecNome] = useState('')
+  const [mesaSecCpf, setMesaSecCpf] = useState('')
+  const [salvandoMesa, setSalvandoMesa] = useState(false)
 
   // Transição de estado
   const [novoStatusSelecionado, setNovoStatusSelecionado] = useState<DeliberacaoStatus | null>(null)
@@ -70,6 +82,11 @@ export const PainelMesaPage: React.FC = () => {
       setDeliberacaoAtiva(ativa)
 
       if (ativa) {
+        setMesaPresNome(ativa.mesa_presidente_nome || '')
+        setMesaPresCpf(ativa.mesa_presidente_cpf || '')
+        setMesaSecNome(ativa.mesa_secretario_nome || '')
+        setMesaSecCpf(ativa.mesa_secretario_cpf || '')
+
         const [pres, comps] = await Promise.all([
           api.getPresencas(ativa.id),
           api.getComparecimentos(ativa.id),
@@ -94,6 +111,11 @@ export const PainelMesaPage: React.FC = () => {
     const d = deliberacoes.find((item) => item.id === id) || null
     setDeliberacaoAtiva(d)
     if (d) {
+      setMesaPresNome(d.mesa_presidente_nome || '')
+      setMesaPresCpf(d.mesa_presidente_cpf || '')
+      setMesaSecNome(d.mesa_secretario_nome || '')
+      setMesaSecCpf(d.mesa_secretario_cpf || '')
+
       const [pres, comps] = await Promise.all([
         api.getPresencas(d.id),
         api.getComparecimentos(d.id),
@@ -111,6 +133,38 @@ export const PainelMesaPage: React.FC = () => {
   const quorumExigido = deliberacaoAtiva?.quorum_instalacao || 27 // 50% + 1
   const percentualQuorum = Math.min(100, Math.round((totalPresentes / quorumExigido) * 100))
   const quorumAtingido = totalPresentes >= quorumExigido
+
+  // Salvar Mesa Diretora
+  const handleSalvarMesaDiretora = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!deliberacaoAtiva) return
+
+    setSalvandoMesa(true)
+    try {
+      const atualizada = await api.updateDeliberacao(deliberacaoAtiva.id, {
+        mesa_presidente_nome: mesaPresNome.trim(),
+        mesa_presidente_cpf: mesaPresCpf.trim(),
+        mesa_secretario_nome: mesaSecNome.trim(),
+        mesa_secretario_cpf: mesaSecCpf.trim(),
+      })
+      setDeliberacaoAtiva(atualizada)
+      setDeliberacoes((prev) => prev.map((d) => (d.id === atualizada.id ? atualizada : d)))
+      toast({
+        title: 'Mesa Diretora Atualizada',
+        description:
+          'Os nomes do Presidente e Secretário(a) foram gravados e constarão no boletim de urna.',
+      })
+      setModalMesaAberto(false)
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao salvar Mesa Diretora',
+        description: err?.message || 'Falha ao salvar dados da mesa.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSalvandoMesa(false)
+    }
+  }
 
   // Registrar Presença Presencial (bloqueia canal online da unidade)
   const handleRegistrarPresencial = async (e: React.FormEvent) => {
@@ -205,7 +259,7 @@ export const PainelMesaPage: React.FC = () => {
         <Card className="border-amber-200 bg-amber-50/30 shadow-xs">
           <CardHeader className="pb-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
+              <div className="min-w-0 flex-1">
                 <span className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">
                   Controle de Ciclo Eleitoral
                 </span>
@@ -213,7 +267,7 @@ export const PainelMesaPage: React.FC = () => {
                   {deliberacaoAtiva.titulo}
                 </CardTitle>
               </div>
-              <Badge className="bg-amber-600 text-white text-xs uppercase px-2.5 py-1 self-start sm:self-center">
+              <Badge className="bg-amber-600 text-white text-xs uppercase px-2.5 py-1 self-start sm:self-center shrink-0 text-center leading-normal">
                 Status Atual: {deliberacaoAtiva.status}
               </Badge>
             </div>
@@ -224,6 +278,72 @@ export const PainelMesaPage: React.FC = () => {
               Conduza as etapas regimentais da assembleia em conformidade com a convenção do
               condomínio Lago Azul:
             </p>
+
+            {/* Bloco: Mesa Diretora (Presidente e Secretário da Assembleia) */}
+            <div className="p-3.5 rounded-lg bg-white border border-amber-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <UserCog className="h-4 w-4 text-amber-700" />
+                  <span className="text-xs font-bold text-slate-900 uppercase tracking-wide">
+                    Mesa Diretora Designada
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-700">
+                  <span>
+                    <strong className="text-slate-900">Presidente:</strong>{' '}
+                    {deliberacaoAtiva.mesa_presidente_nome ? (
+                      <span className="text-slate-800 font-semibold">
+                        {deliberacaoAtiva.mesa_presidente_nome}
+                        {deliberacaoAtiva.mesa_presidente_cpf && (
+                          <span className="text-slate-500 font-normal ml-1">
+                            (CPF: {deliberacaoAtiva.mesa_presidente_cpf})
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-amber-800 italic">
+                        Não configurado (clique em Configurar)
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-slate-300 hidden sm:inline">•</span>
+                  <span>
+                    <strong className="text-slate-900">Secretário(a):</strong>{' '}
+                    {deliberacaoAtiva.mesa_secretario_nome ? (
+                      <span className="text-slate-800 font-semibold">
+                        {deliberacaoAtiva.mesa_secretario_nome}
+                        {deliberacaoAtiva.mesa_secretario_cpf && (
+                          <span className="text-slate-500 font-normal ml-1">
+                            (CPF: {deliberacaoAtiva.mesa_secretario_cpf})
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-amber-800 italic">Não configurado</span>
+                    )}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Estes nomes e CPFs assinam o boletim de urna oficial (sem vinculação obrigatória
+                  ao síndico).
+                </p>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setMesaPresNome(deliberacaoAtiva.mesa_presidente_nome || '')
+                  setMesaPresCpf(deliberacaoAtiva.mesa_presidente_cpf || '')
+                  setMesaSecNome(deliberacaoAtiva.mesa_secretario_nome || '')
+                  setMesaSecCpf(deliberacaoAtiva.mesa_secretario_cpf || '')
+                  setModalMesaAberto(true)
+                }}
+                className="text-xs border-amber-300 text-amber-900 hover:bg-amber-100 h-8 shrink-0 self-start md:self-center"
+              >
+                <UserCog className="mr-1.5 h-3.5 w-3.5 text-amber-700" /> Configurar Mesa Diretora
+              </Button>
+            </div>
 
             {/* Botoeira de Transições */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
@@ -302,21 +422,20 @@ export const PainelMesaPage: React.FC = () => {
         {/* Painel de Quórum */}
         <Card className="border-slate-200 shadow-xs lg:col-span-2">
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
                 <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
-                  <Users className="h-4 w-4 text-cyan-700" /> Quórum de Instalação e Comparecimento
+                  <Users className="h-4 w-4 shrink-0 text-cyan-700" /> Quórum de Instalação e
+                  Comparecimento
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-500">
                   Total de 52 unidades • Exigência de quórum: {quorumExigido} unidades
                 </CardDescription>
               </div>
               <Badge
-                className={
-                  quorumAtingido
-                    ? 'bg-emerald-600 text-white text-xs'
-                    : 'bg-amber-600 text-white text-xs'
-                }
+                className={`self-start sm:self-center shrink-0 text-center leading-normal px-2.5 py-1 text-xs font-semibold ${
+                  quorumAtingido ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'
+                }`}
               >
                 {quorumAtingido ? 'Quórum Atingido' : 'Aguardando Quórum'}
               </Badge>
@@ -397,11 +516,11 @@ export const PainelMesaPage: React.FC = () => {
                         </div>
                         <Badge
                           variant="outline"
-                          className={
+                          className={`shrink-0 text-center leading-normal ${
                             p.tipo === 'presencial'
                               ? 'border-amber-400 text-amber-800 bg-amber-50 text-[10px]'
                               : 'border-cyan-400 text-cyan-800 bg-cyan-50 text-[10px]'
-                          }
+                          }`}
                         >
                           {p.tipo === 'presencial' ? 'Física' : 'Remota'}
                         </Badge>
@@ -469,6 +588,94 @@ export const PainelMesaPage: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* Modal de Configuração da Mesa Diretora */}
+      <Dialog open={modalMesaAberto} onOpenChange={setModalMesaAberto}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <UserCog className="h-5 w-5 text-amber-600" /> Configurar Mesa Diretora da Assembleia
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600">
+              Informe os dados do Presidente e do Secretário(a). Estes nomes substituirão
+              referências fixas no boletim de urna e no encerramento da assembleia.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSalvarMesaDiretora} className="space-y-4 py-2 text-xs">
+            {/* Presidente */}
+            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
+              <span className="text-[11px] uppercase font-bold text-slate-700 block">
+                Presidente da Mesa
+              </span>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-slate-700">Nome Completo</Label>
+                <Input
+                  value={mesaPresNome}
+                  onChange={(e) => setMesaPresNome(e.target.value)}
+                  placeholder="Ex: Carlos Eduardo Silveira"
+                  className="text-xs h-8 bg-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-slate-700">CPF</Label>
+                <Input
+                  value={mesaPresCpf}
+                  onChange={(e) => setMesaPresCpf(e.target.value)}
+                  placeholder="000.000.000-00"
+                  className="text-xs h-8 bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Secretário(a) */}
+            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
+              <span className="text-[11px] uppercase font-bold text-slate-700 block">
+                Secretário(a) da Mesa
+              </span>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-slate-700">Nome Completo</Label>
+                <Input
+                  value={mesaSecNome}
+                  onChange={(e) => setMesaSecNome(e.target.value)}
+                  placeholder="Ex: Maria Fernandes de Souza"
+                  className="text-xs h-8 bg-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-slate-700">CPF</Label>
+                <Input
+                  value={mesaSecCpf}
+                  onChange={(e) => setMesaSecCpf(e.target.value)}
+                  placeholder="000.000.000-00"
+                  className="text-xs h-8 bg-white"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setModalMesaAberto(false)}
+                disabled={salvandoMesa}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={salvandoMesa}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+              >
+                <Save className="mr-1.5 h-3.5 w-3.5" />
+                {salvandoMesa ? 'Gravando...' : 'Salvar Mesa Diretora'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Confirmação de Transição */}
       <Dialog open={dialogTransicaoAberto} onOpenChange={setDialogTransicaoAberto}>

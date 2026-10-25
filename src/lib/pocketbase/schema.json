@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-25T01:29:40.825Z",
+  "generatedAt": "2026-10-25T01:55:00.919Z",
   "collections": [
     {
       "name": "users",
@@ -257,6 +257,30 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "mesa_presidente_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "mesa_presidente_cpf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "mesa_secretario_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "mesa_secretario_cpf",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_deliberacoes_status ON deliberacoes (status)"]

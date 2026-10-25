@@ -410,7 +410,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
 
             {/* Badge de Perfil */}
             <Badge
-              className={`text-[11px] font-bold px-2 py-0.5 uppercase tracking-wider ${
+              className={`text-[11px] font-bold px-2 py-0.5 uppercase tracking-wider shrink-0 text-center leading-normal ${
                 role === 'admin'
                   ? 'bg-purple-700 text-white hover:bg-purple-800'
                   : role === 'mesa'

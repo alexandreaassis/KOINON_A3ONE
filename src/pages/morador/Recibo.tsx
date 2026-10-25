@@ -168,7 +168,9 @@ export const ReciboPage: React.FC = () => {
               <span className="text-xs font-bold text-cyan-800 uppercase">
                 Resultado da Consulta
               </span>
-              <Badge className="bg-emerald-600 text-white">Voto Autêntico</Badge>
+              <Badge className="bg-emerald-600 text-white shrink-0 text-center leading-normal">
+                Voto Autêntico
+              </Badge>
             </div>
             <CardTitle className="text-base font-bold text-slate-900">
               Código de Conferência: {comprovanteBuscado.codigo_conferencia}
@@ -218,7 +220,7 @@ export const ReciboPage: React.FC = () => {
                     </span>
                     <Badge
                       variant="outline"
-                      className="border-emerald-500 text-emerald-800 text-[10px]"
+                      className="border-emerald-500 text-emerald-800 text-[10px] shrink-0 text-center leading-normal"
                     >
                       Encadeada SHA-256
                     </Badge>

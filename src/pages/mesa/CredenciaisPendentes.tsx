@@ -218,13 +218,13 @@ export const CredenciaisPendentesPage: React.FC = () => {
                         — {cred.titular_nome}
                       </span>
                       <Badge
-                        className={
+                        className={`shrink-0 text-center leading-normal ${
                           cred.status === 'aprovado'
                             ? 'bg-emerald-600 text-white text-[10px]'
                             : cred.status === 'rejeitado'
                               ? 'bg-red-600 text-white text-[10px]'
                               : 'bg-amber-600 text-white text-[10px]'
-                        }
+                        }`}
                       >
                         {cred.status}
                       </Badge>

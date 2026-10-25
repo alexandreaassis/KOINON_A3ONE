@@ -102,40 +102,39 @@ export const AuditoriaPage: React.FC = () => {
   }
 
   const getBadgeEvento = (evento: string) => {
+    const base = 'shrink-0 text-center leading-normal text-[10px] px-2 py-0.5'
     switch (evento) {
       case 'cedula_registrada':
-        return <Badge className="bg-emerald-600 text-white text-[10px]">Cédula Registrada</Badge>
+        return <Badge className={`bg-emerald-600 text-white ${base}`}>Cédula Registrada</Badge>
       case 'otp_validado':
-        return <Badge className="bg-cyan-600 text-white text-[10px]">OTP Validado</Badge>
+        return <Badge className={`bg-cyan-600 text-white ${base}`}>OTP Validado</Badge>
       case 'otp_enviado':
-        return <Badge className="bg-blue-600 text-white text-[10px]">OTP Enviado</Badge>
+        return <Badge className={`bg-blue-600 text-white ${base}`}>OTP Enviado</Badge>
       case 'otp_falhou':
-        return <Badge className="bg-red-600 text-white text-[10px]">OTP Falhou</Badge>
+        return <Badge className={`bg-red-600 text-white ${base}`}>OTP Falhou</Badge>
       case 'autenticacao_concluida':
-        return <Badge className="bg-teal-600 text-white text-[10px]">2FA Concluído</Badge>
+        return <Badge className={`bg-teal-600 text-white ${base}`}>2FA Concluído</Badge>
       case 'token_emitido':
-        return <Badge className="bg-indigo-600 text-white text-[10px]">Token Emitido</Badge>
+        return <Badge className={`bg-indigo-600 text-white ${base}`}>Token Emitido</Badge>
       case 'assembleia_aberta':
-        return <Badge className="bg-purple-600 text-white text-[10px]">Assembleia Aberta</Badge>
+        return <Badge className={`bg-purple-600 text-white ${base}`}>Assembleia Aberta</Badge>
       case 'assembleia_encerrada':
-        return <Badge className="bg-amber-600 text-white text-[10px]">Votação Encerrada</Badge>
+        return <Badge className={`bg-amber-600 text-white ${base}`}>Votação Encerrada</Badge>
       case 'apuracao_concluida':
-        return <Badge className="bg-emerald-700 text-white text-[10px]">Apuração Concluída</Badge>
+        return <Badge className={`bg-emerald-700 text-white ${base}`}>Apuração Concluída</Badge>
       case 'resultado_publicado':
-        return <Badge className="bg-slate-900 text-white text-[10px]">Resultado Publicado</Badge>
+        return <Badge className={`bg-slate-900 text-white ${base}`}>Resultado Publicado</Badge>
       case 'malha_unidades_gerada':
-        return <Badge className="bg-purple-700 text-white text-[10px]">Malha Gerada</Badge>
+        return <Badge className={`bg-purple-700 text-white ${base}`}>Malha Gerada</Badge>
       case 'unidade_avulsa_criada':
-        return (
-          <Badge className="bg-fuchsia-700 text-white text-[10px]">Unidade Avulsa Criada</Badge>
-        )
+        return <Badge className={`bg-fuchsia-700 text-white ${base}`}>Unidade Avulsa Criada</Badge>
       case 'configuracao_atualizada':
-        return <Badge className="bg-blue-700 text-white text-[10px]">Configuração Atualizada</Badge>
+        return <Badge className={`bg-blue-700 text-white ${base}`}>Configuração Atualizada</Badge>
       case 'usuario_gerenciado':
-        return <Badge className="bg-violet-700 text-white text-[10px]">Usuário Gerenciado</Badge>
+        return <Badge className={`bg-violet-700 text-white ${base}`}>Usuário Gerenciado</Badge>
       default:
         return (
-          <Badge variant="outline" className="text-[10px]">
+          <Badge variant="outline" className={base}>
             {evento}
           </Badge>
         )
@@ -194,11 +193,11 @@ export const AuditoriaPage: React.FC = () => {
               <Card className="border-slate-200 shadow-xs">
                 <CardHeader className="pb-3 flex flex-row items-center justify-between">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-slate-900 text-white text-[10px]">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge className="bg-slate-900 text-white text-[10px] shrink-0 text-center leading-normal">
                         BOLETIM DE URNA ELETRÔNICA
                       </Badge>
-                      <Badge className="bg-emerald-600 text-white text-[10px]">
+                      <Badge className="bg-emerald-600 text-white text-[10px] shrink-0 text-center leading-normal">
                         {boletim.apuracao.integridadeMatematica
                           ? 'Urna 100% Íntegra'
                           : 'Divergência'}

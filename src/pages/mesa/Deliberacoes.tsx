@@ -64,6 +64,10 @@ export const DeliberacoesPage: React.FC = () => {
   const [quorumMateria, setQuorumMateria] = useState('Maioria simples dos presentes')
   const [inadimplenteVota, setInadimplenteVota] = useState(true)
   const [locatarioVota, setLocatarioVota] = useState(false)
+  const [mesaPresidenteNome, setMesaPresidenteNome] = useState('')
+  const [mesaPresidenteCpf, setMesaPresidenteCpf] = useState('')
+  const [mesaSecretarioNome, setMesaSecretarioNome] = useState('')
+  const [mesaSecretarioCpf, setMesaSecretarioCpf] = useState('')
   const [salvandoDelib, setSalvandoDelib] = useState(false)
 
   // Modal Item de Pauta
@@ -108,6 +112,10 @@ export const DeliberacoesPage: React.FC = () => {
     setDelibEditId(null)
     setTitulo('')
     setDescricao('')
+    setMesaPresidenteNome('')
+    setMesaPresidenteCpf('')
+    setMesaSecretarioNome('')
+    setMesaSecretarioCpf('')
 
     // Carrega defaults configurados da convenção se houver
     try {
@@ -146,6 +154,10 @@ export const DeliberacoesPage: React.FC = () => {
     setQuorumMateria(d.quorum_materia || 'Maioria simples dos presentes')
     setInadimplenteVota(d.inadimplente_pode_votar ?? true)
     setLocatarioVota(d.locatario_pode_votar ?? false)
+    setMesaPresidenteNome(d.mesa_presidente_nome || '')
+    setMesaPresidenteCpf(d.mesa_presidente_cpf || '')
+    setMesaSecretarioNome(d.mesa_secretario_nome || '')
+    setMesaSecretarioCpf(d.mesa_secretario_cpf || '')
     setModalDeliberacaoAberto(true)
   }
 
@@ -162,6 +174,10 @@ export const DeliberacoesPage: React.FC = () => {
           quorum_materia: quorumMateria,
           inadimplente_pode_votar: inadimplenteVota,
           locatario_pode_votar: locatarioVota,
+          mesa_presidente_nome: mesaPresidenteNome.trim(),
+          mesa_presidente_cpf: mesaPresidenteCpf.trim(),
+          mesa_secretario_nome: mesaSecretarioNome.trim(),
+          mesa_secretario_cpf: mesaSecretarioCpf.trim(),
         })
         toast({ title: 'Deliberação Atualizada' })
       } else {
@@ -173,6 +189,10 @@ export const DeliberacoesPage: React.FC = () => {
           quorum_materia: quorumMateria,
           inadimplente_pode_votar: inadimplenteVota,
           locatario_pode_votar: locatarioVota,
+          mesa_presidente_nome: mesaPresidenteNome.trim(),
+          mesa_presidente_cpf: mesaPresidenteCpf.trim(),
+          mesa_secretario_nome: mesaSecretarioNome.trim(),
+          mesa_secretario_cpf: mesaSecretarioCpf.trim(),
           status: 'AGUARDANDO_ABERTURA',
         })
         setDeliberacaoSelecionada(nova)
@@ -307,18 +327,21 @@ export const DeliberacoesPage: React.FC = () => {
                       : 'border-slate-200 bg-white hover:border-slate-300'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <Badge variant="outline" className="text-[10px] uppercase">
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] uppercase shrink-0 text-center leading-normal"
+                    >
                       {d.tipo_cedula === 'secreta' ? 'Voto Secreto' : 'Voto Nominal'}
                     </Badge>
                     <Badge
-                      className={
+                      className={`shrink-0 text-center leading-normal ${
                         d.status === 'EM_VOTACAO'
                           ? 'bg-emerald-600 text-white text-[10px]'
                           : d.status === 'ENCERRADA' || d.status === 'APURADA'
                             ? 'bg-amber-600 text-white text-[10px]'
                             : 'bg-slate-700 text-white text-[10px]'
-                      }
+                      }`}
                     >
                       {d.status}
                     </Badge>
@@ -345,7 +368,7 @@ export const DeliberacoesPage: React.FC = () => {
                       <span className="text-[10px] uppercase font-bold text-slate-400">
                         Parâmetros da Assembleia
                       </span>
-                      <Badge className="bg-slate-800 text-white text-[10px]">
+                      <Badge className="bg-slate-800 text-white text-[10px] shrink-0 text-center leading-normal">
                         {deliberacaoSelecionada.status}
                       </Badge>
                     </div>
@@ -413,12 +436,43 @@ export const DeliberacoesPage: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Bloco Mesa Diretora Registrada */}
+                  <div className="mt-3 p-3 rounded-lg bg-amber-50/50 border border-amber-200 text-xs">
+                    <span className="text-[10px] text-amber-900 uppercase font-bold tracking-wider block mb-1">
+                      Mesa Diretora Designada
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                      <div>
+                        <span className="text-slate-500 font-medium">Presidente:</span>{' '}
+                        <strong className="text-slate-800">
+                          {deliberacaoSelecionada.mesa_presidente_nome || 'Não definido'}
+                        </strong>
+                        {deliberacaoSelecionada.mesa_presidente_cpf && (
+                          <span className="text-slate-500 ml-1">
+                            (CPF: {deliberacaoSelecionada.mesa_presidente_cpf})
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-slate-500 font-medium">Secretário(a):</span>{' '}
+                        <strong className="text-slate-800">
+                          {deliberacaoSelecionada.mesa_secretario_nome || 'Não definido'}
+                        </strong>
+                        {deliberacaoSelecionada.mesa_secretario_cpf && (
+                          <span className="text-slate-500 ml-1">
+                            (CPF: {deliberacaoSelecionada.mesa_secretario_cpf})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="mt-2 text-[11px] text-amber-800 bg-amber-50 p-2 rounded border border-amber-200 flex items-center gap-1.5">
                     <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
                     <span>
-                      <strong>Nota da Convenção Lago Azul:</strong> Estes parâmetros são
-                      configuráveis por deliberação para permitir flexibilidade conforme a natureza
-                      ordinária ou extraordinária da pauta.
+                      <strong>Nota da Convenção Lago Azul:</strong> Estes parâmetros e a composição
+                      da mesa diretora são configuráveis por deliberação para permitir flexibilidade
+                      regimental.
                     </span>
                   </div>
                 </CardContent>
@@ -567,6 +621,69 @@ export const DeliberacoesPage: React.FC = () => {
                 placeholder="Ex: Maioria simples dos presentes / 2/3 dos condôminos"
                 className="text-xs h-9"
               />
+            </div>
+
+            {/* Bloco: Mesa Diretora (Presidente e Secretário) */}
+            <div className="p-3 rounded-lg bg-amber-50/60 border border-amber-200 space-y-2.5">
+              <div>
+                <span className="font-bold text-amber-950 text-[11px] block uppercase tracking-wider">
+                  Mesa Diretora da Assembleia (Presidente e Secretário)
+                </span>
+                <p className="text-[10px] text-amber-800">
+                  Nem sempre a mesa é conduzida pelo síndico. Os nomes e CPFs informados abaixo
+                  serão impressos no boletim de urna oficial e relatórios.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-slate-800">
+                    Presidente da Mesa (Nome Completo)
+                  </Label>
+                  <Input
+                    value={mesaPresidenteNome}
+                    onChange={(e) => setMesaPresidenteNome(e.target.value)}
+                    placeholder="Ex: Carlos Eduardo Silveira"
+                    className="text-xs h-8 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-slate-800">
+                    CPF do Presidente
+                  </Label>
+                  <Input
+                    value={mesaPresidenteCpf}
+                    onChange={(e) => setMesaPresidenteCpf(e.target.value)}
+                    placeholder="000.000.000-00"
+                    className="text-xs h-8 bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-slate-800">
+                    Secretário(a) da Mesa (Nome Completo)
+                  </Label>
+                  <Input
+                    value={mesaSecretarioNome}
+                    onChange={(e) => setMesaSecretarioNome(e.target.value)}
+                    placeholder="Ex: Maria Fernandes de Souza"
+                    className="text-xs h-8 bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-slate-800">
+                    CPF do Secretário(a)
+                  </Label>
+                  <Input
+                    value={mesaSecretarioCpf}
+                    onChange={(e) => setMesaSecretarioCpf(e.target.value)}
+                    placeholder="000.000.000-00"
+                    className="text-xs h-8 bg-white"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Parâmetros da Convenção */}

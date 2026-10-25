@@ -292,7 +292,7 @@ export const GestaoUsuariosPage: React.FC = () => {
 
                       <td className="py-3 px-4">
                         <Badge
-                          className={`text-[10px] uppercase font-bold tracking-wider ${
+                          className={`text-[10px] uppercase font-bold tracking-wider shrink-0 text-center leading-normal ${
                             u.role === 'admin'
                               ? 'bg-purple-700 text-white'
                               : u.role === 'mesa'

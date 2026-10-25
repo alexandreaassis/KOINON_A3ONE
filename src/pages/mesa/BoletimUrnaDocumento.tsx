@@ -627,24 +627,72 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
           <footer className="mt-8 pt-6 border-t-2 border-slate-900 break-inside-avoid">
             {/* Linhas de Assinatura */}
             <div className="grid grid-cols-2 gap-8 text-center pt-8 pb-4 font-sans">
+              {/* Presidente da Mesa */}
               <div className="space-y-1">
                 <div className="border-t border-slate-900 mx-auto w-4/5 pt-1" />
-                <p className="text-xs font-bold text-slate-950 uppercase">
-                  Presidente da Mesa Diretora / Síndico
-                </p>
-                <p className="text-[10px] text-slate-600">
-                  Representante Legal do {nomeCondominio}
-                </p>
+                {deliberacao?.mesa_presidente_nome || boletim?.deliberacao.mesa_presidente_nome ? (
+                  <>
+                    <p className="text-xs font-bold text-slate-950 uppercase">
+                      {deliberacao?.mesa_presidente_nome ||
+                        boletim?.deliberacao.mesa_presidente_nome}
+                    </p>
+                    {(deliberacao?.mesa_presidente_cpf ||
+                      boletim?.deliberacao.mesa_presidente_cpf) && (
+                      <p className="text-[10px] text-slate-700 font-mono">
+                        CPF:{' '}
+                        {deliberacao?.mesa_presidente_cpf ||
+                          boletim?.deliberacao.mesa_presidente_cpf}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-slate-600">Presidente da Mesa Diretora</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs font-bold text-slate-950 uppercase">
+                      ___________________________________
+                    </p>
+                    <p className="text-xs font-bold text-slate-950 uppercase">
+                      Presidente da Mesa Diretora
+                    </p>
+                    <p className="text-[10px] text-slate-600">
+                      Condutor(a) dos Trabalhos da Assembleia
+                    </p>
+                  </>
+                )}
               </div>
 
+              {/* Secretário(a) da Mesa */}
               <div className="space-y-1">
                 <div className="border-t border-slate-900 mx-auto w-4/5 pt-1" />
-                <p className="text-xs font-bold text-slate-950 uppercase">
-                  Secretário(a) dos Trabalhos
-                </p>
-                <p className="text-[10px] text-slate-600">
-                  Responsável pela Redação da Ata da Assembleia
-                </p>
+                {deliberacao?.mesa_secretario_nome || boletim?.deliberacao.mesa_secretario_nome ? (
+                  <>
+                    <p className="text-xs font-bold text-slate-950 uppercase">
+                      {deliberacao?.mesa_secretario_nome ||
+                        boletim?.deliberacao.mesa_secretario_nome}
+                    </p>
+                    {(deliberacao?.mesa_secretario_cpf ||
+                      boletim?.deliberacao.mesa_secretario_cpf) && (
+                      <p className="text-[10px] text-slate-700 font-mono">
+                        CPF:{' '}
+                        {deliberacao?.mesa_secretario_cpf ||
+                          boletim?.deliberacao.mesa_secretario_cpf}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-slate-600">Secretário(a) dos Trabalhos</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs font-bold text-slate-950 uppercase">
+                      ___________________________________
+                    </p>
+                    <p className="text-xs font-bold text-slate-950 uppercase">
+                      Secretário(a) dos Trabalhos
+                    </p>
+                    <p className="text-[10px] text-slate-600">
+                      Responsável pela Redação da Ata da Assembleia
+                    </p>
+                  </>
+                )}
               </div>
             </div>
 

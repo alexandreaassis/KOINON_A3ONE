@@ -1243,24 +1243,24 @@ export const ConfiguracoesPage: React.FC = () => {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">
+                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs shrink-0 text-center leading-normal">
                       {previewDados.preservadas} na malha
                     </Badge>
-                    <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs">
+                    <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs shrink-0 text-center leading-normal">
                       +{previewDados.novasASeremCriadas} novas
                     </Badge>
                     {(previewDados.desativadasProjetadas || 0) > 0 && (
-                      <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs">
+                      <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs shrink-0 text-center leading-normal">
                         {previewDados.desativadasProjetadas} a desativar (sem vínculo)
                       </Badge>
                     )}
                     {(previewDados.preservadasForaDaMalha || 0) > 0 && (
-                      <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
+                      <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs shrink-0 text-center leading-normal">
                         {previewDados.preservadasForaDaMalha} fora da malha com vínculo
                         (preservadas)
                       </Badge>
                     )}
-                    <Badge className="bg-slate-900 text-white font-bold text-xs">
+                    <Badge className="bg-slate-900 text-white font-bold text-xs shrink-0 text-center leading-normal">
                       Total Final: {previewDados.totalFinalAtivas ?? previewDados.totalProjetado}{' '}
                       ativas
                     </Badge>

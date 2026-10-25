@@ -155,6 +155,10 @@ routerAdd('GET', '/backend/v1/deliberacoes/apuracao', (e) => {
       inadimplente_pode_votar: delib.getBool('inadimplente_pode_votar'),
       locatario_pode_votar: delib.getBool('locatario_pode_votar'),
       hash_raiz: delib.getString('hash_raiz') || ultimoHash,
+      mesa_presidente_nome: delib.getString('mesa_presidente_nome'),
+      mesa_presidente_cpf: delib.getString('mesa_presidente_cpf'),
+      mesa_secretario_nome: delib.getString('mesa_secretario_nome'),
+      mesa_secretario_cpf: delib.getString('mesa_secretario_cpf'),
     },
     apuracao: {
       totalComparecimentos: totalComparecimentos,

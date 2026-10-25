@@ -89,6 +89,10 @@ export interface DeliberacaoRecord extends RecordModel {
   inadimplente_pode_votar?: boolean
   locatario_pode_votar?: boolean
   hash_raiz?: string
+  mesa_presidente_nome?: string
+  mesa_presidente_cpf?: string
+  mesa_secretario_nome?: string
+  mesa_secretario_cpf?: string
 }
 
 export interface ItemPautaRecord extends RecordModel {
@@ -289,6 +293,10 @@ export interface ApuracaoResponse {
     inadimplente_pode_votar?: boolean
     locatario_pode_votar?: boolean
     hash_raiz?: string
+    mesa_presidente_nome?: string
+    mesa_presidente_cpf?: string
+    mesa_secretario_nome?: string
+    mesa_secretario_cpf?: string
   }
   apuracao: {
     totalComparecimentos: number

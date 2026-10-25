@@ -636,7 +636,7 @@ export const VotacaoPage: React.FC = () => {
           {/* Cabeçalho da Deliberação */}
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
             <div className="flex items-center justify-between gap-2 mb-2">
-              <Badge className="bg-emerald-600 text-white text-xs uppercase font-bold tracking-wider">
+              <Badge className="bg-emerald-600 text-white text-xs uppercase font-bold tracking-wider shrink-0 text-center leading-normal">
                 Cabine de Voto Ativa
               </Badge>
 
@@ -842,13 +842,13 @@ export const VotacaoPage: React.FC = () => {
                     <span className="text-[10px] text-slate-500">Item {item.ordem}</span>
                   </div>
                   <Badge
-                    className={
+                    className={`shrink-0 text-center leading-normal uppercase ${
                       opcao === 'favoravel'
-                        ? 'bg-emerald-600 text-white uppercase'
+                        ? 'bg-emerald-600 text-white'
                         : opcao === 'contrario'
-                          ? 'bg-red-600 text-white uppercase'
-                          : 'bg-amber-600 text-white uppercase'
-                    }
+                          ? 'bg-red-600 text-white'
+                          : 'bg-amber-600 text-white'
+                    }`}
                   >
                     {opcao}
                   </Badge>
