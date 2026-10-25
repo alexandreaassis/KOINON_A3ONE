@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T23:15:50.607Z",
+  "generatedAt": "2026-10-25T00:17:53.810Z",
   "collections": [
     {
       "name": "users",
@@ -124,6 +124,36 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "grupo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "peso_voto",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "andar",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo_unidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "posicao_numero",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_unidades_identificador ON unidades (identificador)"]
@@ -928,6 +958,25 @@
         {
           "name": "som_voto",
           "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo_condominio",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["vertical", "horizontal", "misto"]
+        },
+        {
+          "name": "rotulo_unidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "grupos_config",
+          "type": "json",
           "required": false,
           "system": false
         }

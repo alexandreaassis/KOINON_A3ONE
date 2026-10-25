@@ -15,10 +15,36 @@ export interface UserRecord extends RecordModel {
   }
 }
 
+export type TipoCondominio = 'vertical' | 'horizontal' | 'misto'
+
+export interface GrupoCondoConfig {
+  id?: string
+  nome: string
+  tipo: 'vertical' | 'horizontal'
+  rotulo?: string
+  peso_voto?: number
+  // Vertical
+  quantidade_blocos?: number
+  prefixo_bloco?: string
+  andares_por_bloco?: number
+  unidades_por_andar?: number
+  andar_inicial?: string
+  modelo_numeracao?: 'sequencial' | 'andar_posicao' | 'andar_posicao_prefixo' | 'custom'
+  template_custom?: string
+  digitos_unid?: number
+  // Horizontal
+  quantidade_unidades?: number
+  prefixo_rua?: string
+  numero_inicial?: number
+}
+
 export interface CondoConfigRecord extends RecordModel {
   nome_condominio: string
   logo?: string
   som_voto?: string
+  tipo_condominio?: TipoCondominio
+  rotulo_unidade?: string
+  grupos_config?: GrupoCondoConfig[] | string
   quantidade_blocos?: number
   unidades_por_bloco?: number
   total_unidades?: number
@@ -36,6 +62,11 @@ export interface UnidadeRecord extends RecordModel {
   contato_celular?: string
   contato_email?: string
   ativo?: boolean
+  grupo?: string
+  peso_voto?: number
+  andar?: string
+  tipo_unidade?: string
+  posicao_numero?: number
 }
 
 export type DeliberacaoStatus =
@@ -458,10 +489,42 @@ export const api = {
     return pb.collection('configuracoes').update<CondoConfigRecord>(id, data)
   },
 
-  // 6. Regeneração de unidades
+  // 6. Gerenciamento e Regeneração de unidades com Trava de Segurança
+  async previewUnidades(dados: {
+    tipo_condominio: TipoCondominio
+    rotulo_unidade?: string
+    grupos?: GrupoCondoConfig[]
+    quantidadeBlocos?: number
+    unidadesPorBloco?: number
+    prefixoBloco?: string
+  }) {
+    return pb.send<{
+      success: boolean
+      totalProjetado: number
+      totalExistentesNoBanco: number
+      novasASeremCriadas: number
+      preservadas: number
+      amostra: Array<{
+        identificador: string
+        bloco?: string
+        grupo?: string
+        andar?: string
+        peso_voto?: number
+        tipo_unidade?: string
+        status: 'existente' | 'nova'
+      }>
+    }>('/backend/v1/admin/unidades/preview', {
+      method: 'POST',
+      body: dados,
+    })
+  },
+
   async regenerarUnidades(dados: {
-    quantidadeBlocos: number
-    unidadesPorBloco: number
+    tipo_condominio?: TipoCondominio
+    rotulo_unidade?: string
+    grupos?: GrupoCondoConfig[]
+    quantidadeBlocos?: number
+    unidadesPorBloco?: number
     prefixoBloco?: string
   }) {
     return pb.send<{
@@ -471,6 +534,26 @@ export const api = {
       totalExistente: number
       message: string
     }>('/backend/v1/admin/unidades/regenerar', {
+      method: 'POST',
+      body: dados,
+    })
+  },
+
+  async cadastrarUnidadeAvulsa(dados: {
+    identificador: string
+    bloco?: string
+    tipo_unidade?: string
+    peso_voto?: number
+    responsavel_nome?: string
+    contato_email?: string
+    contato_celular?: string
+    andar?: string
+  }) {
+    return pb.send<{
+      success: boolean
+      unidade: Partial<UnidadeRecord>
+      message: string
+    }>('/backend/v1/admin/unidades/avulsa', {
       method: 'POST',
       body: dados,
     })

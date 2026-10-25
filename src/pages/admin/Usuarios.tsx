@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { api, type UserRecord, type UserRole, type UnidadeRecord } from '@/lib/api'
 import { useAuth } from '@/context/AuthContext'
+import { useCondoConfig } from '@/context/CondoConfigContext'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,6 +37,7 @@ import {
 
 export const GestaoUsuariosPage: React.FC = () => {
   const { user: currentUser } = useAuth()
+  const { rotuloUnidade } = useCondoConfig()
   const [usuarios, setUsuarios] = useState<UserRecord[]>([])
   const [unidades, setUnidades] = useState<UnidadeRecord[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -308,7 +310,8 @@ export const GestaoUsuariosPage: React.FC = () => {
                       <td className="py-3 px-4 text-slate-700">
                         {unidadeVinc ? (
                           <span className="font-mono text-xs">
-                            Apto {unidadeVinc.identificador} ({unidadeVinc.bloco})
+                            {unidadeVinc.tipo_unidade || rotuloUnidade} {unidadeVinc.identificador}{' '}
+                            ({unidadeVinc.bloco})
                           </span>
                         ) : (
                           <span className="text-slate-400 italic">Nenhum vínculo</span>
@@ -448,7 +451,8 @@ export const GestaoUsuariosPage: React.FC = () => {
                     <SelectItem value="none">Nenhuma unidade</SelectItem>
                     {unidades.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
-                        Apto {u.identificador} ({u.bloco || 'Lago Azul'})
+                        {u.tipo_unidade || rotuloUnidade} {u.identificador} (
+                        {u.bloco || 'Lago Azul'})
                       </SelectItem>
                     ))}
                   </SelectContent>

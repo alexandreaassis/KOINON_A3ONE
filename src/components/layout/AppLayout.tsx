@@ -61,7 +61,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     logout,
     isOnline,
   } = useAuth()
-  const { nomeCondominio, logoUrl } = useCondoConfig()
+  const { nomeCondominio, logoUrl, rotuloUnidade } = useCondoConfig()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -198,7 +198,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                     value={u.id}
                     className="text-xs focus:bg-cyan-950 focus:text-cyan-200"
                   >
-                    Apto {u.identificador} ({u.bloco || nomeCondominio})
+                    {u.tipo_unidade || rotuloUnidade} {u.identificador} ({u.bloco || nomeCondominio}
+                    )
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -320,7 +321,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                 ? 'Administrador Geral'
                 : role === 'mesa'
                   ? 'Membro da Mesa'
-                  : `Condômino Apto ${unidadeSelecionada?.identificador || '—'}`}
+                  : `Condômino ${unidadeSelecionada?.tipo_unidade || rotuloUnidade} ${unidadeSelecionada?.identificador || '—'}`}
             </p>
           </div>
           <Button
@@ -439,7 +440,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                     <p className="text-xs font-medium leading-none text-slate-900">{user?.name}</p>
                     <p className="text-[11px] leading-none text-slate-500">{user?.email}</p>
                     <p className="text-[11px] font-semibold text-cyan-700">
-                      Unidade: Apto {unidadeSelecionada?.identificador || 'Não selecionada'}
+                      Unidade: {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
+                      {unidadeSelecionada?.identificador || 'Não selecionada'}
                     </p>
                   </div>
                 </DropdownMenuLabel>

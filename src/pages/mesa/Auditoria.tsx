@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useCondoConfig } from '@/context/CondoConfigContext'
 import { toast } from '@/hooks/use-toast'
 import {
   History,
@@ -34,6 +35,7 @@ import {
 } from 'lucide-react'
 
 export const AuditoriaPage: React.FC = () => {
+  const { rotuloUnidade } = useCondoConfig()
   const [deliberacoes, setDeliberacoes] = useState<DeliberacaoRecord[]>([])
   const [deliberacaoAtiva, setDeliberacaoAtiva] = useState<DeliberacaoRecord | null>(null)
   const [eventos, setEventos] = useState<AuditoriaEventRecord[]>([])
@@ -397,7 +399,7 @@ export const AuditoriaPage: React.FC = () => {
                           {getBadgeEvento(ev.evento)}
                           {unid && (
                             <span className="font-semibold text-slate-800">
-                              Apto {unid.identificador}
+                              {unid.tipo_unidade || rotuloUnidade} {unid.identificador}
                             </span>
                           )}
                         </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { useCondoConfig } from '@/context/CondoConfigContext'
 import {
   api,
   type CredenciamentoRecord,
@@ -37,6 +38,7 @@ import {
 
 export const MinhaSituacaoPage: React.FC = () => {
   const { user, unidadeSelecionada } = useAuth()
+  const { rotuloUnidade } = useCondoConfig()
   const navigate = useNavigate()
 
   const [credenciamento, setCredenciamento] = useState<CredenciamentoRecord | null>(null)
@@ -213,7 +215,8 @@ export const MinhaSituacaoPage: React.FC = () => {
               Sua Unidade Ativa
             </span>
             <span className="text-xl font-extrabold text-white">
-              Apto {unidadeSelecionada?.identificador || '—'}
+              {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
+              {unidadeSelecionada?.identificador || '—'}
             </span>
             <span className="text-[11px] text-cyan-300 block">
               {unidadeSelecionada?.bloco || 'Lago Azul'}
@@ -240,7 +243,8 @@ export const MinhaSituacaoPage: React.FC = () => {
                 <Home className="h-3.5 w-3.5" /> Identificador:
               </span>
               <span className="font-semibold text-slate-900">
-                Apto {unidadeSelecionada?.identificador} ({unidadeSelecionada?.bloco})
+                {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
+                {unidadeSelecionada?.identificador} ({unidadeSelecionada?.bloco})
               </span>
             </div>
             <div className="flex items-center justify-between py-1.5 border-b border-slate-100">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { api, type CredenciamentoRecord, type UnidadeRecord } from '@/lib/api'
+import { useCondoConfig } from '@/context/CondoConfigContext'
 import pb from '@/lib/pocketbase/client'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,7 @@ import {
 
 export const CredenciaisPendentesPage: React.FC = () => {
   const { user } = useAuth()
+  const { rotuloUnidade } = useCondoConfig()
 
   const [credenciamentos, setCredenciamentos] = useState<CredenciamentoRecord[]>([])
   const [unidades, setUnidades] = useState<UnidadeRecord[]>([])
@@ -212,7 +214,8 @@ export const CredenciaisPendentesPage: React.FC = () => {
                         {unid?.identificador || '—'}
                       </div>
                       <span className="font-bold text-sm text-slate-900">
-                        Apto {unid?.identificador} ({unid?.bloco}) — {cred.titular_nome}
+                        {unid?.tipo_unidade || rotuloUnidade} {unid?.identificador} ({unid?.bloco})
+                        — {cred.titular_nome}
                       </span>
                       <Badge
                         className={

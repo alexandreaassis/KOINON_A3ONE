@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { useCondoConfig } from '@/context/CondoConfigContext'
 import { api, type CredenciamentoRecord } from '@/lib/api'
 import {
   Card,
@@ -36,6 +37,7 @@ import {
 
 export const CredenciamentoPage: React.FC = () => {
   const { user, unidadeSelecionada } = useAuth()
+  const { rotuloUnidade } = useCondoConfig()
 
   const [credExistente, setCredExistente] = useState<CredenciamentoRecord | null>(null)
   const [cpf, setCpf] = useState('')
@@ -211,7 +213,8 @@ export const CredenciamentoPage: React.FC = () => {
             </p>
             <p>
               <strong>Tipo de Vínculo:</strong> {credExistente.tipo_vinculo.toUpperCase()} •{' '}
-              <strong>Unidade:</strong> Apto {unidadeSelecionada?.identificador}
+              <strong>Unidade:</strong> {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
+              {unidadeSelecionada?.identificador}
             </p>
             {credExistente.motivo_rejeicao && (
               <p className="text-red-700 font-semibold pt-1">
@@ -248,8 +251,8 @@ export const CredenciamentoPage: React.FC = () => {
                 <div className="flex items-center gap-2 h-10 px-3 rounded-md bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-800">
                   <Building className="h-4 w-4 text-cyan-700" />
                   <span>
-                    Apto {unidadeSelecionada?.identificador} (
-                    {unidadeSelecionada?.bloco || 'Lago Azul'})
+                    {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
+                    {unidadeSelecionada?.identificador} ({unidadeSelecionada?.bloco || 'Lago Azul'})
                   </span>
                 </div>
               </div>

@@ -52,7 +52,7 @@ type OpcaoVoto = 'favoravel' | 'contrario' | 'abstencao'
 
 export const VotacaoPage: React.FC = () => {
   const { user, unidadeSelecionada, isOnline } = useAuth()
-  const { somVotoUrl } = useCondoConfig()
+  const { somVotoUrl, rotuloUnidade } = useCondoConfig()
   const navigate = useNavigate()
 
   // Estados principais
@@ -332,9 +332,10 @@ export const VotacaoPage: React.FC = () => {
           </div>
           <CardTitle className="text-xl font-bold text-slate-900">Voto Já Computado</CardTitle>
           <CardDescription className="text-sm text-slate-600 mt-2 max-w-md mx-auto">
-            A unidade Apto <strong>{unidadeSelecionada?.identificador}</strong> já registrou seu
-            voto nesta deliberação. Por segurança e integridade eleitoral (1 Unidade = 1 Voto), o
-            voto é irretratável.
+            A unidade {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
+            <strong>{unidadeSelecionada?.identificador}</strong> já registrou seu voto nesta
+            deliberação. Por segurança e integridade eleitoral (1 Unidade = 1 Voto), o voto é
+            irretratável.
           </CardDescription>
           <div className="mt-6 flex justify-center gap-3">
             <Button
@@ -361,7 +362,8 @@ export const VotacaoPage: React.FC = () => {
           </div>
           <CardTitle className="text-xl font-bold text-slate-900">Canal Online Bloqueado</CardTitle>
           <CardDescription className="text-sm text-slate-600 mt-2 max-w-md mx-auto">
-            Foi registrada a presença física do representante do Apto{' '}
+            Foi registrada a presença física do representante do{' '}
+            {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
             <strong>{unidadeSelecionada?.identificador}</strong> no plenário da assembleia. O voto
             presencial tem prevalência e impede a emissão de cédula eletrônica remota.
           </CardDescription>
@@ -482,7 +484,8 @@ export const VotacaoPage: React.FC = () => {
               Passo 1: Autenticação de Titularidade (Fator Conhecimento)
             </CardTitle>
             <CardDescription className="text-xs text-slate-500">
-              Confirme seu CPF vinculado à unidade Apto{' '}
+              Confirme seu CPF vinculado à unidade{' '}
+              {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
               <strong>{unidadeSelecionada?.identificador}</strong> para solicitar o código
               temporário de votação.
             </CardDescription>
@@ -505,8 +508,8 @@ export const VotacaoPage: React.FC = () => {
 
               <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600 border border-slate-200 space-y-1">
                 <p>
-                  <strong>Unidade:</strong> Apto {unidadeSelecionada?.identificador} (
-                  {unidadeSelecionada?.bloco})
+                  <strong>Unidade:</strong> {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
+                  {unidadeSelecionada?.identificador} ({unidadeSelecionada?.bloco})
                 </p>
                 <p>
                   <strong>Deliberação:</strong> {deliberacao?.titulo}
@@ -673,7 +676,9 @@ export const VotacaoPage: React.FC = () => {
                 {deliberacao.quorum_materia || 'Maioria Simples'}
               </span>
               <span>
-                <strong>Unidade Votante:</strong> Apto {unidadeSelecionada?.identificador}
+                <strong>Unidade Votante:</strong>{' '}
+                {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
+                {unidadeSelecionada?.identificador}
               </span>
             </div>
           </div>
@@ -904,7 +909,10 @@ export const VotacaoPage: React.FC = () => {
             <div className="text-xs space-y-1 text-slate-600 pt-1">
               <p className="flex justify-between">
                 <span>Unidade:</span>
-                <strong className="text-slate-900">Apto {unidadeSelecionada?.identificador}</strong>
+                <strong className="text-slate-900">
+                  {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
+                  {unidadeSelecionada?.identificador}
+                </strong>
               </p>
               <p className="flex justify-between">
                 <span>Data/Hora:</span>

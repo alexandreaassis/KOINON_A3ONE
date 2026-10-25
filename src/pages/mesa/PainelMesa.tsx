@@ -7,6 +7,7 @@ import {
   type ComparecimentoRecord,
   type UnidadeRecord,
 } from '@/lib/api'
+import { useCondoConfig } from '@/context/CondoConfigContext'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -41,6 +42,7 @@ import {
 } from 'lucide-react'
 
 export const PainelMesaPage: React.FC = () => {
+  const { rotuloUnidade } = useCondoConfig()
   const [deliberacoes, setDeliberacoes] = useState<DeliberacaoRecord[]>([])
   const [deliberacaoAtiva, setDeliberacaoAtiva] = useState<DeliberacaoRecord | null>(null)
   const [presencas, setPresencas] = useState<PresencaRecord[]>([])
@@ -387,7 +389,7 @@ export const PainelMesaPage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <Building className="h-3.5 w-3.5 text-slate-400" />
                           <span className="font-semibold text-slate-800">
-                            Apto {unid?.identificador || p.unidade}
+                            {unid?.tipo_unidade || rotuloUnidade} {unid?.identificador || p.unidade}
                           </span>
                           <span className="text-slate-500 text-[11px]">
                             ({unid?.responsavel_nome || 'Condômino'})
@@ -436,7 +438,7 @@ export const PainelMesaPage: React.FC = () => {
                       const jaPresente = presencas.some((p) => p.unidade === u.id)
                       return (
                         <SelectItem key={u.id} value={u.id} className="text-xs">
-                          Apto {u.identificador} — {u.responsavel_nome}{' '}
+                          {u.tipo_unidade || rotuloUnidade} {u.identificador} — {u.responsavel_nome}{' '}
                           {jaPresente ? '(Já presente)' : ''}
                         </SelectItem>
                       )
