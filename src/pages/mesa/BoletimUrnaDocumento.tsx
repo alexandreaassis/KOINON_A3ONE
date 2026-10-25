@@ -1,9 +1,20 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { api, type ApuracaoResponse, type DeliberacaoRecord, type UnidadeRecord } from '@/lib/api'
+import {
+  api,
+  type ApuracaoResponse,
+  type DeliberacaoRecord,
+  type UnidadeRecord,
+  type AssinaturaDocumentoRecord,
+  type FormatoAssinatura,
+} from '@/lib/api'
 import { useCondoConfig } from '@/context/CondoConfigContext'
+import { useAuth } from '@/context/AuthContext'
 import { formatarCpf } from '@/lib/cpf'
 import { Button } from '@/components/ui/button'
+import { toast } from '@/hooks/use-toast'
+import { BlocoAssinaturaCompacto } from '@/components/assinatura/BlocoAssinaturaCompacto'
+import { ModalAssinaturaEletronica } from '@/components/assinatura/ModalAssinaturaEletronica'
 import {
   Printer,
   ArrowLeft,
@@ -28,7 +39,18 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
   const [unidades, setUnidades] = useState<UnidadeRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const { user } = useAuth()
   const [dataEmissao] = useState<Date>(new Date())
+
+  // Assinaturas da Mesa Diretora (Presidente e Secretário)
+  const [assinaturaPresidente, setAssinaturaPresidente] =
+    useState<AssinaturaDocumentoRecord | null>(null)
+  const [assinaturaSecretario, setAssinaturaSecretario] =
+    useState<AssinaturaDocumentoRecord | null>(null)
+  const [modalAssinaturaMesa, setModalAssinaturaMesa] = useState<
+    'mesa_presidente' | 'mesa_secretario' | null
+  >(null)
+  const [salvandoMesa, setSalvandoMesa] = useState(false)
 
   useEffect(() => {
     let cancel = false
@@ -59,10 +81,11 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
           return
         }
 
-        const [boletimData, delibData, unidadesData] = await Promise.all([
+        const [boletimData, delibData, unidadesData, assinaturasDoc] = await Promise.all([
           api.getApuracao(idAlvo),
           api.getDeliberacao(idAlvo).catch(() => null),
           api.getUnidades().catch(() => [] as UnidadeRecord[]),
+          api.getAssinaturasPorDeliberacao(idAlvo).catch(() => [] as AssinaturaDocumentoRecord[]),
         ])
 
         if (cancel) return
@@ -70,6 +93,22 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
         setBoletim(boletimData)
         setDeliberacao(delibData)
         setUnidades(unidadesData)
+
+        const docIdBoletim = `boletim_${idAlvo}`
+        const presMesa = assinaturasDoc.find(
+          (a) =>
+            (a.documento_id === docIdBoletim || a.documento_tipo === 'boletim_urna') &&
+            a.tipo === 'mesa_presidente' &&
+            a.status === 'valida',
+        )
+        const secMesa = assinaturasDoc.find(
+          (a) =>
+            (a.documento_id === docIdBoletim || a.documento_tipo === 'boletim_urna') &&
+            a.tipo === 'mesa_secretario' &&
+            a.status === 'valida',
+        )
+        setAssinaturaPresidente(presMesa || null)
+        setAssinaturaSecretario(secMesa || null)
       } catch (err) {
         console.error('Erro ao carregar dados do boletim:', err)
         if (!cancel) {
@@ -113,6 +152,90 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
 
   const handlePrint = () => {
     window.print()
+  }
+
+  // Hash SHA-256 no browser
+  const calcularSha256 = async (texto: string): Promise<string> => {
+    const encoder = new TextEncoder()
+    const data = encoder.encode(texto)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+  }
+
+  // Assinar como Mesa Diretora (Presidente ou Secretário)
+  const handleConfirmarAssinaturaMesa = async (dados: {
+    nome: string
+    cpf: string
+    cargo?: string
+    formato: FormatoAssinatura
+    assinaturaVisual?: string
+    assinaturaTexto?: string
+  }) => {
+    const targetDelibId = deliberacao?.id || boletim?.deliberacao.id
+    if (!targetDelibId || !modalAssinaturaMesa) return
+
+    setSalvandoMesa(true)
+    try {
+      const dataHoraIso = new Date().toISOString()
+      const docId = `boletim_${targetDelibId}`
+
+      const payloadHash = JSON.stringify({
+        deliberacaoId: targetDelibId,
+        tipoDocumento: 'boletim_urna',
+        cargoMesa: modalAssinaturaMesa,
+        nome: dados.nome,
+        cpf: dados.cpf,
+        hashRaizUrna: boletim?.apuracao.hashRaizUrna || deliberacao?.hash_raiz || '',
+        totalCedulas: boletim?.apuracao.totalCedulas || 0,
+        momentoAssinatura: dataHoraIso,
+      })
+
+      const hash = await calcularSha256(payloadHash)
+
+      const reg = await api.registrarAssinaturaDocumento({
+        documento_id: docId,
+        documento_tipo: 'boletim_urna',
+        deliberacao: targetDelibId,
+        assinante_nome: dados.nome,
+        assinante_cpf: dados.cpf,
+        tipo: modalAssinaturaMesa,
+        hash_documento: hash,
+        data_hora: dataHoraIso,
+        usuario: user?.id,
+        ip_dispositivo: navigator.userAgent,
+        formato_assinatura: dados.formato,
+        assinatura_visual: dados.assinaturaVisual,
+        assinatura_texto: dados.assinaturaTexto,
+      })
+
+      if (modalAssinaturaMesa === 'mesa_presidente') {
+        setAssinaturaPresidente(reg)
+      } else {
+        setAssinaturaSecretario(reg)
+      }
+
+      await api.registrarEventoAuditoria({
+        evento: 'assinatura_registrada',
+        fator: `Mesa Diretora: ${dados.nome} assinou o Boletim de Urna (${modalAssinaturaMesa}) com modo ${dados.formato}`,
+        dispositivo: navigator.userAgent,
+      })
+
+      setModalAssinaturaMesa(null)
+      toast({
+        title: 'Assinatura do Boletim Registrada!',
+        description: `Carimbo SHA-256 gerado: ${hash.substring(0, 16)}...`,
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao registrar assinatura no boletim',
+        description: err?.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setSalvandoMesa(false)
+    }
   }
 
   const formatarDataHora = (isoDate?: string) => {
@@ -629,84 +752,58 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
             {/* Linhas de Assinatura */}
             <div className="grid grid-cols-2 gap-8 text-center pt-8 pb-4 font-sans">
               {/* Presidente da Mesa */}
-              <div>
-                <div className="border-t border-slate-900 mx-auto w-4/5 mb-1" />
-                <div className="space-y-0 leading-tight">
-                  {deliberacao?.mesa_presidente_nome ||
-                  boletim?.deliberacao.mesa_presidente_nome ? (
-                    <>
-                      <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
-                        {deliberacao?.mesa_presidente_nome ||
-                          boletim?.deliberacao.mesa_presidente_nome}
-                      </p>
-                      {(deliberacao?.mesa_presidente_cpf ||
-                        boletim?.deliberacao.mesa_presidente_cpf) && (
-                        <p className="text-[10px] text-slate-700 font-mono m-0 p-0 leading-tight">
-                          CPF:{' '}
-                          {formatarCpf(
-                            deliberacao?.mesa_presidente_cpf ||
-                              boletim?.deliberacao.mesa_presidente_cpf,
-                          )}
-                        </p>
-                      )}
-                      <p className="text-[10px] text-slate-600 m-0 p-0 leading-tight">
-                        Presidente da Mesa Diretora
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
-                        ___________________________________
-                      </p>
-                      <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
-                        Presidente da Mesa Diretora
-                      </p>
-                      <p className="text-[10px] text-slate-600 m-0 p-0 leading-tight">
-                        Condutor(a) dos Trabalhos da Assembleia
-                      </p>
-                    </>
-                  )}
+              <div className="flex flex-col items-center">
+                <BlocoAssinaturaCompacto
+                  nome={
+                    deliberacao?.mesa_presidente_nome ||
+                    boletim?.deliberacao.mesa_presidente_nome ||
+                    'Presidente da Mesa Diretora'
+                  }
+                  cpf={deliberacao?.mesa_presidente_cpf || boletim?.deliberacao.mesa_presidente_cpf}
+                  cargo="Presidente da Mesa Diretora"
+                  formato={assinaturaPresidente?.formato_assinatura || 'em_branco'}
+                  assinaturaVisual={assinaturaPresidente?.assinatura_visual}
+                  assinaturaTexto={assinaturaPresidente?.assinatura_texto}
+                  larguraLinha="w-60"
+                />
+                <div className="mt-1 print:hidden">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setModalAssinaturaMesa('mesa_presidente')}
+                    className="h-6 text-[10px] px-2 text-slate-700 border-slate-300 gap-1"
+                  >
+                    <ShieldCheck className="h-3 w-3 text-cyan-700" />
+                    {assinaturaPresidente ? 'Reassinar como Presidente' : 'Assinar como Presidente'}
+                  </Button>
                 </div>
               </div>
 
               {/* Secretário(a) da Mesa */}
-              <div>
-                <div className="border-t border-slate-900 mx-auto w-4/5 mb-1" />
-                <div className="space-y-0 leading-tight">
-                  {deliberacao?.mesa_secretario_nome ||
-                  boletim?.deliberacao.mesa_secretario_nome ? (
-                    <>
-                      <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
-                        {deliberacao?.mesa_secretario_nome ||
-                          boletim?.deliberacao.mesa_secretario_nome}
-                      </p>
-                      {(deliberacao?.mesa_secretario_cpf ||
-                        boletim?.deliberacao.mesa_secretario_cpf) && (
-                        <p className="text-[10px] text-slate-700 font-mono m-0 p-0 leading-tight">
-                          CPF:{' '}
-                          {formatarCpf(
-                            deliberacao?.mesa_secretario_cpf ||
-                              boletim?.deliberacao.mesa_secretario_cpf,
-                          )}
-                        </p>
-                      )}
-                      <p className="text-[10px] text-slate-600 m-0 p-0 leading-tight">
-                        Secretário(a) dos Trabalhos
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
-                        ___________________________________
-                      </p>
-                      <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
-                        Secretário(a) dos Trabalhos
-                      </p>
-                      <p className="text-[10px] text-slate-600 m-0 p-0 leading-tight">
-                        Responsável pela Redação da Ata da Assembleia
-                      </p>
-                    </>
-                  )}
+              <div className="flex flex-col items-center">
+                <BlocoAssinaturaCompacto
+                  nome={
+                    deliberacao?.mesa_secretario_nome ||
+                    boletim?.deliberacao.mesa_secretario_nome ||
+                    'Secretário(a) dos Trabalhos'
+                  }
+                  cpf={deliberacao?.mesa_secretario_cpf || boletim?.deliberacao.mesa_secretario_cpf}
+                  cargo="Secretário(a) dos Trabalhos"
+                  formato={assinaturaSecretario?.formato_assinatura || 'em_branco'}
+                  assinaturaVisual={assinaturaSecretario?.assinatura_visual}
+                  assinaturaTexto={assinaturaSecretario?.assinatura_texto}
+                  larguraLinha="w-60"
+                />
+                <div className="mt-1 print:hidden">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setModalAssinaturaMesa('mesa_secretario')}
+                    className="h-6 text-[10px] px-2 text-slate-700 border-slate-300 gap-1"
+                  >
+                    <ShieldCheck className="h-3 w-3 text-cyan-700" />
+                    {assinaturaSecretario ? 'Reassinar como Secretário' : 'Assinar como Secretário'}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -729,6 +826,50 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
           </footer>
         </article>
       </main>
+
+      {/* Modal Reutilizável de Assinatura Eletrônica da Mesa */}
+      {modalAssinaturaMesa && (
+        <ModalAssinaturaEletronica
+          aberto={!!modalAssinaturaMesa}
+          onOpenChange={(ab) => !ab && setModalAssinaturaMesa(null)}
+          tituloDocumento="Boletim de Urna Eletrônica"
+          subtitulo={`Assinatura da Mesa Diretora como ${
+            modalAssinaturaMesa === 'mesa_presidente' ? 'Presidente' : 'Secretário(a)'
+          } dos trabalhos`}
+          nomeInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? deliberacao?.mesa_presidente_nome || boletim?.deliberacao.mesa_presidente_nome || ''
+              : deliberacao?.mesa_secretario_nome || boletim?.deliberacao.mesa_secretario_nome || ''
+          }
+          cpfInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? deliberacao?.mesa_presidente_cpf || boletim?.deliberacao.mesa_presidente_cpf || ''
+              : deliberacao?.mesa_secretario_cpf || boletim?.deliberacao.mesa_secretario_cpf || ''
+          }
+          cargoInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? 'Presidente da Mesa Diretora'
+              : 'Secretário(a) dos Trabalhos'
+          }
+          formatoInicial={
+            (modalAssinaturaMesa === 'mesa_presidente'
+              ? assinaturaPresidente?.formato_assinatura
+              : assinaturaSecretario?.formato_assinatura) || 'desenho'
+          }
+          assinaturaVisualInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? assinaturaPresidente?.assinatura_visual
+              : assinaturaSecretario?.assinatura_visual
+          }
+          assinaturaTextoInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? assinaturaPresidente?.assinatura_texto
+              : assinaturaSecretario?.assinatura_texto
+          }
+          salvando={salvandoMesa}
+          onConfirmar={handleConfirmarAssinaturaMesa}
+        />
+      )}
     </div>
   )
 }

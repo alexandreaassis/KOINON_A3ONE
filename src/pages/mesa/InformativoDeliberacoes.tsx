@@ -5,22 +5,39 @@ import {
   type DeliberacaoRecord,
   type ApuracaoResponse,
   type ApuracaoItemResult,
+  type AssinaturaDocumentoRecord,
+  type FormatoAssinatura,
 } from '@/lib/api'
 import { useCondoConfig } from '@/context/CondoConfigContext'
+import { useAuth } from '@/context/AuthContext'
 import { formatarCpf } from '@/lib/cpf'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Printer, ArrowLeft, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react'
+import { toast } from '@/hooks/use-toast'
+import { BlocoAssinaturaCompacto } from '@/components/assinatura/BlocoAssinaturaCompacto'
+import { ModalAssinaturaEletronica } from '@/components/assinatura/ModalAssinaturaEletronica'
+import { Printer, ArrowLeft, CheckCircle2, XCircle, AlertTriangle, ShieldCheck } from 'lucide-react'
 
 export const InformativoDeliberacoesPage: React.FC = () => {
   const { deliberacaoId } = useParams<{ deliberacaoId: string }>()
   const navigate = useNavigate()
   const { nomeCondominio, logoUrl } = useCondoConfig()
+  const { user } = useAuth()
 
   const [deliberacao, setDeliberacao] = useState<DeliberacaoRecord | null>(null)
   const [apuracao, setApuracao] = useState<ApuracaoResponse['apuracao'] | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+
+  // Assinaturas da Mesa Diretora
+  const [assinaturaPresidente, setAssinaturaPresidente] =
+    useState<AssinaturaDocumentoRecord | null>(null)
+  const [assinaturaSecretario, setAssinaturaSecretario] =
+    useState<AssinaturaDocumentoRecord | null>(null)
+  const [modalAssinaturaMesa, setModalAssinaturaMesa] = useState<
+    'mesa_presidente' | 'mesa_secretario' | null
+  >(null)
+  const [salvandoMesa, setSalvandoMesa] = useState(false)
 
   useEffect(() => {
     const carregar = async () => {
@@ -38,10 +55,30 @@ export const InformativoDeliberacoesPage: React.FC = () => {
           return
         }
 
-        const [delib, apResp] = await Promise.all([api.getDeliberacao(dId), api.getApuracao(dId)])
+        const [delib, apResp, assinaturasDoc] = await Promise.all([
+          api.getDeliberacao(dId),
+          api.getApuracao(dId),
+          api.getAssinaturasPorDeliberacao(dId).catch(() => [] as AssinaturaDocumentoRecord[]),
+        ])
 
         setDeliberacao(delib)
         setApuracao(apResp.apuracao)
+
+        const docIdInformativo = `informativo_${dId}`
+        const presMesa = assinaturasDoc.find(
+          (a) =>
+            (a.documento_id === docIdInformativo || a.documento_tipo === 'informativo') &&
+            a.tipo === 'mesa_presidente' &&
+            a.status === 'valida',
+        )
+        const secMesa = assinaturasDoc.find(
+          (a) =>
+            (a.documento_id === docIdInformativo || a.documento_tipo === 'informativo') &&
+            a.tipo === 'mesa_secretario' &&
+            a.status === 'valida',
+        )
+        setAssinaturaPresidente(presMesa || null)
+        setAssinaturaSecretario(secMesa || null)
       } catch (err: any) {
         console.error('Erro ao carregar informativo:', err)
         setErro(err?.message || 'Falha ao processar apuração para o informativo.')
@@ -51,6 +88,88 @@ export const InformativoDeliberacoesPage: React.FC = () => {
     }
     carregar()
   }, [deliberacaoId])
+
+  // Hash SHA-256 no browser
+  const calcularSha256 = async (texto: string): Promise<string> => {
+    const encoder = new TextEncoder()
+    const data = encoder.encode(texto)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+  }
+
+  // Assinar como Mesa Diretora (Presidente ou Secretário)
+  const handleConfirmarAssinaturaMesa = async (dados: {
+    nome: string
+    cpf: string
+    cargo?: string
+    formato: FormatoAssinatura
+    assinaturaVisual?: string
+    assinaturaTexto?: string
+  }) => {
+    if (!deliberacao || !modalAssinaturaMesa) return
+
+    setSalvandoMesa(true)
+    try {
+      const dataHoraIso = new Date().toISOString()
+      const docId = `informativo_${deliberacao.id}`
+
+      const payloadHash = JSON.stringify({
+        deliberacaoId: deliberacao.id,
+        tipoDocumento: 'informativo',
+        cargoMesa: modalAssinaturaMesa,
+        nome: dados.nome,
+        cpf: dados.cpf,
+        totalMatérias: apuracao?.itens.length || 0,
+        momentoAssinatura: dataHoraIso,
+      })
+
+      const hash = await calcularSha256(payloadHash)
+
+      const reg = await api.registrarAssinaturaDocumento({
+        documento_id: docId,
+        documento_tipo: 'informativo',
+        deliberacao: deliberacao.id,
+        assinante_nome: dados.nome,
+        assinante_cpf: dados.cpf,
+        tipo: modalAssinaturaMesa,
+        hash_documento: hash,
+        data_hora: dataHoraIso,
+        usuario: user?.id,
+        ip_dispositivo: navigator.userAgent,
+        formato_assinatura: dados.formato,
+        assinatura_visual: dados.assinaturaVisual,
+        assinatura_texto: dados.assinaturaTexto,
+      })
+
+      if (modalAssinaturaMesa === 'mesa_presidente') {
+        setAssinaturaPresidente(reg)
+      } else {
+        setAssinaturaSecretario(reg)
+      }
+
+      await api.registrarEventoAuditoria({
+        evento: 'assinatura_registrada',
+        fator: `Mesa Diretora: ${dados.nome} assinou o Informativo de Deliberações (${modalAssinaturaMesa}) com modo ${dados.formato}`,
+        dispositivo: navigator.userAgent,
+      })
+
+      setModalAssinaturaMesa(null)
+      toast({
+        title: 'Assinatura do Informativo Registrada!',
+        description: `Carimbo SHA-256 gerado: ${hash.substring(0, 16)}...`,
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao registrar assinatura',
+        description: err?.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setSalvandoMesa(false)
+    }
+  }
 
   const julgarResultado = (item: ApuracaoItemResult) => {
     const fav = item.votos.favoravel || 0
@@ -268,37 +387,51 @@ export const InformativoDeliberacoesPage: React.FC = () => {
         {/* Rodapé com Assinaturas da Mesa Diretora e Declaração LGPD */}
         <footer className="mt-8 pt-4 border-t-2 border-slate-900 font-sans break-inside-avoid">
           <div className="grid grid-cols-2 gap-8 text-center pt-6 pb-2">
-            <div>
-              <div className="border-t border-slate-900 mx-auto w-4/5 mb-1" />
-              <div className="space-y-0 leading-tight">
-                <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
-                  {deliberacao.mesa_presidente_nome || 'Presidente da Mesa Diretora'}
-                </p>
-                {deliberacao.mesa_presidente_cpf && (
-                  <p className="text-[10px] text-slate-600 font-mono m-0 p-0 leading-tight">
-                    CPF: {formatarCpf(deliberacao.mesa_presidente_cpf)}
-                  </p>
-                )}
-                <p className="text-[10px] text-slate-500 m-0 p-0 leading-tight">
-                  Presidente da Assembleia
-                </p>
+            {/* Presidente */}
+            <div className="flex flex-col items-center">
+              <BlocoAssinaturaCompacto
+                nome={deliberacao.mesa_presidente_nome || 'Presidente da Mesa Diretora'}
+                cpf={deliberacao.mesa_presidente_cpf}
+                cargo="Presidente da Assembleia"
+                formato={assinaturaPresidente?.formato_assinatura || 'em_branco'}
+                assinaturaVisual={assinaturaPresidente?.assinatura_visual}
+                assinaturaTexto={assinaturaPresidente?.assinatura_texto}
+                larguraLinha="w-60"
+              />
+              <div className="mt-1 print:hidden">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setModalAssinaturaMesa('mesa_presidente')}
+                  className="h-6 text-[10px] px-2 text-slate-700 border-slate-300 gap-1"
+                >
+                  <ShieldCheck className="h-3 w-3 text-cyan-700" />
+                  {assinaturaPresidente ? 'Reassinar como Presidente' : 'Assinar como Presidente'}
+                </Button>
               </div>
             </div>
 
-            <div>
-              <div className="border-t border-slate-900 mx-auto w-4/5 mb-1" />
-              <div className="space-y-0 leading-tight">
-                <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
-                  {deliberacao.mesa_secretario_nome || 'Secretário(a) da Mesa'}
-                </p>
-                {deliberacao.mesa_secretario_cpf && (
-                  <p className="text-[10px] text-slate-600 font-mono m-0 p-0 leading-tight">
-                    CPF: {formatarCpf(deliberacao.mesa_secretario_cpf)}
-                  </p>
-                )}
-                <p className="text-[10px] text-slate-500 m-0 p-0 leading-tight">
-                  Secretário(a) dos Trabalhos
-                </p>
+            {/* Secretário */}
+            <div className="flex flex-col items-center">
+              <BlocoAssinaturaCompacto
+                nome={deliberacao.mesa_secretario_nome || 'Secretário(a) da Mesa'}
+                cpf={deliberacao.mesa_secretario_cpf}
+                cargo="Secretário(a) dos Trabalhos"
+                formato={assinaturaSecretario?.formato_assinatura || 'em_branco'}
+                assinaturaVisual={assinaturaSecretario?.assinatura_visual}
+                assinaturaTexto={assinaturaSecretario?.assinatura_texto}
+                larguraLinha="w-60"
+              />
+              <div className="mt-1 print:hidden">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setModalAssinaturaMesa('mesa_secretario')}
+                  className="h-6 text-[10px] px-2 text-slate-700 border-slate-300 gap-1"
+                >
+                  <ShieldCheck className="h-3 w-3 text-cyan-700" />
+                  {assinaturaSecretario ? 'Reassinar como Secretário' : 'Assinar como Secretário'}
+                </Button>
               </div>
             </div>
           </div>
@@ -312,6 +445,50 @@ export const InformativoDeliberacoesPage: React.FC = () => {
           </div>
         </footer>
       </article>
+
+      {/* Modal Reutilizável de Assinatura Eletrônica da Mesa */}
+      {modalAssinaturaMesa && (
+        <ModalAssinaturaEletronica
+          aberto={!!modalAssinaturaMesa}
+          onOpenChange={(ab) => !ab && setModalAssinaturaMesa(null)}
+          tituloDocumento="Informativo de Deliberações"
+          subtitulo={`Assinatura da Mesa Diretora como ${
+            modalAssinaturaMesa === 'mesa_presidente' ? 'Presidente' : 'Secretário(a)'
+          } dos trabalhos`}
+          nomeInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? deliberacao.mesa_presidente_nome || ''
+              : deliberacao.mesa_secretario_nome || ''
+          }
+          cpfInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? deliberacao.mesa_presidente_cpf || ''
+              : deliberacao.mesa_secretario_cpf || ''
+          }
+          cargoInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? 'Presidente da Mesa Diretora'
+              : 'Secretário(a) dos Trabalhos'
+          }
+          formatoInicial={
+            (modalAssinaturaMesa === 'mesa_presidente'
+              ? assinaturaPresidente?.formato_assinatura
+              : assinaturaSecretario?.formato_assinatura) || 'desenho'
+          }
+          assinaturaVisualInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? assinaturaPresidente?.assinatura_visual
+              : assinaturaSecretario?.assinatura_visual
+          }
+          assinaturaTextoInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? assinaturaPresidente?.assinatura_texto
+              : assinaturaSecretario?.assinatura_texto
+          }
+          salvando={salvandoMesa}
+          onConfirmar={handleConfirmarAssinaturaMesa}
+        />
+      )}
     </div>
   )
 }

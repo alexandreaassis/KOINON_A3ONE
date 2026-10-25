@@ -9,6 +9,7 @@ import {
   type TipoDocumentoPauta,
   type CargoCandidato,
   type EditalDeliberacaoRecord,
+  type FormatoAssinatura,
 } from '@/lib/api'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { useAuth } from '@/context/AuthContext'

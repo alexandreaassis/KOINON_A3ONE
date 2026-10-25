@@ -10,12 +10,17 @@ import {
   type ApuracaoItemResult,
   type DocumentoPautaRecord,
   type AssinaturaDocumentoRecord,
+  type FormatoAssinatura,
 } from '@/lib/api'
 import { useCondoConfig } from '@/context/CondoConfigContext'
+import { useAuth } from '@/context/AuthContext'
 import { formatarCpf } from '@/lib/cpf'
 import { SafeHtml } from '@/components/editor/SafeHtml'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { toast } from '@/hooks/use-toast'
+import { BlocoAssinaturaCompacto } from '@/components/assinatura/BlocoAssinaturaCompacto'
+import { ModalAssinaturaEletronica } from '@/components/assinatura/ModalAssinaturaEletronica'
 import {
   Printer,
   ArrowLeft,
@@ -30,6 +35,7 @@ export const DossieCartorioPage: React.FC = () => {
   const { deliberacaoId } = useParams<{ deliberacaoId: string }>()
   const navigate = useNavigate()
   const { nomeCondominio, logoUrl, rotuloUnidade } = useCondoConfig()
+  const { user } = useAuth()
 
   const [deliberacao, setDeliberacao] = useState<DeliberacaoRecord | null>(null)
   const [itensPauta, setItensPauta] = useState<ItemPautaRecord[]>([])
@@ -40,6 +46,12 @@ export const DossieCartorioPage: React.FC = () => {
   const [editalPersonalizado, setEditalPersonalizado] = useState<any | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+
+  // Assinaturas de Encerramento da Mesa Diretora no Dossiê
+  const [modalAssinaturaMesa, setModalAssinaturaMesa] = useState<
+    'mesa_presidente' | 'mesa_secretario' | null
+  >(null)
+  const [salvandoMesa, setSalvandoMesa] = useState(false)
 
   useEffect(() => {
     const carregar = async () => {
@@ -128,6 +140,99 @@ export const DossieCartorioPage: React.FC = () => {
     (a) => a.documento_tipo === 'edital' && a.status === 'valida',
   )
   const totalPresentes = presencas.length
+
+  const docIdDossie = deliberacao ? `dossie_${deliberacao.id}` : ''
+  const assinaturaPresidenteDossie = assinaturas.find(
+    (a) =>
+      (a.documento_id === docIdDossie || a.documento_tipo === 'dossie_encerramento') &&
+      a.tipo === 'mesa_presidente' &&
+      a.status === 'valida',
+  )
+  const assinaturaSecretarioDossie = assinaturas.find(
+    (a) =>
+      (a.documento_id === docIdDossie || a.documento_tipo === 'dossie_encerramento') &&
+      a.tipo === 'mesa_secretario' &&
+      a.status === 'valida',
+  )
+
+  // Hash SHA-256 no browser
+  const calcularSha256 = async (texto: string): Promise<string> => {
+    const encoder = new TextEncoder()
+    const data = encoder.encode(texto)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+  }
+
+  // Assinar termo de encerramento do dossiê
+  const handleConfirmarAssinaturaMesa = async (dados: {
+    nome: string
+    cpf: string
+    cargo?: string
+    formato: FormatoAssinatura
+    assinaturaVisual?: string
+    assinaturaTexto?: string
+  }) => {
+    if (!deliberacao || !modalAssinaturaMesa) return
+
+    setSalvandoMesa(true)
+    try {
+      const dataHoraIso = new Date().toISOString()
+      const docId = `dossie_${deliberacao.id}`
+
+      const payloadHash = JSON.stringify({
+        deliberacaoId: deliberacao.id,
+        tipoDocumento: 'dossie_encerramento',
+        cargoMesa: modalAssinaturaMesa,
+        nome: dados.nome,
+        cpf: dados.cpf,
+        totalPresentes,
+        hashRaiz: deliberacao.hash_raiz || '',
+        momentoAssinatura: dataHoraIso,
+      })
+
+      const hash = await calcularSha256(payloadHash)
+
+      const reg = await api.registrarAssinaturaDocumento({
+        documento_id: docId,
+        documento_tipo: 'dossie_encerramento',
+        deliberacao: deliberacao.id,
+        assinante_nome: dados.nome,
+        assinante_cpf: dados.cpf,
+        tipo: modalAssinaturaMesa,
+        hash_documento: hash,
+        data_hora: dataHoraIso,
+        usuario: user?.id,
+        ip_dispositivo: navigator.userAgent,
+        formato_assinatura: dados.formato,
+        assinatura_visual: dados.assinaturaVisual,
+        assinatura_texto: dados.assinaturaTexto,
+      })
+
+      setAssinaturas((antigas) => [reg, ...antigas])
+
+      await api.registrarEventoAuditoria({
+        evento: 'assinatura_registrada',
+        fator: `Mesa Diretora: ${dados.nome} assinou o Termo de Encerramento do Dossiê (${modalAssinaturaMesa}) com modo ${dados.formato}`,
+        dispositivo: navigator.userAgent,
+      })
+
+      setModalAssinaturaMesa(null)
+      toast({
+        title: 'Assinatura do Dossiê Registrada!',
+        description: `Carimbo SHA-256 gerado: ${hash.substring(0, 16)}...`,
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao registrar assinatura no dossiê',
+        description: err?.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setSalvandoMesa(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-8 print:p-0 print:bg-white text-slate-900 font-serif leading-relaxed">
@@ -317,37 +422,41 @@ export const DossieCartorioPage: React.FC = () => {
 
             {/* Assinatura do Convocante no Edital */}
             <div className="pt-10 font-sans text-center">
-              <div className="inline-block text-center">
-                <div className="w-64 border-t border-slate-900 mx-auto mb-1" />
-                <div className="space-y-0 leading-tight">
-                  <p className="text-xs font-bold uppercase text-slate-900 m-0 p-0 leading-tight">
-                    {editalPersonalizado?.sindico_nome ||
-                      editalAssinado?.assinante_nome ||
-                      deliberacao.mesa_presidente_nome ||
-                      'Síndico / Convocante'}
-                  </p>
-                  {(editalPersonalizado?.sindico_cpf ||
+              <div className="flex flex-col items-center">
+                <BlocoAssinaturaCompacto
+                  nome={
+                    editalPersonalizado?.sindico_nome ||
+                    editalAssinado?.assinante_nome ||
+                    deliberacao.mesa_presidente_nome ||
+                    'Síndico / Convocante'
+                  }
+                  cpf={
+                    editalPersonalizado?.sindico_cpf ||
                     editalAssinado?.assinante_cpf ||
-                    deliberacao.mesa_presidente_cpf) && (
-                    <p className="text-[10px] text-slate-600 font-mono m-0 p-0 leading-tight">
-                      CPF:{' '}
-                      {formatarCpf(
-                        editalPersonalizado?.sindico_cpf ||
-                          editalAssinado?.assinante_cpf ||
-                          deliberacao.mesa_presidente_cpf ||
-                          '',
-                      )}
-                    </p>
-                  )}
-                  <p className="text-[10px] text-slate-500 m-0 p-0 leading-tight">
-                    {editalPersonalizado?.cargo_convocante ||
-                      `Representante Legal do ${nomeCondominio}`}
-                  </p>
-                </div>
+                    deliberacao.mesa_presidente_cpf ||
+                    ''
+                  }
+                  cargo={
+                    editalPersonalizado?.cargo_convocante ||
+                    `Representante Legal do ${nomeCondominio}`
+                  }
+                  formato={
+                    editalPersonalizado?.formato_assinatura ||
+                    editalAssinado?.formato_assinatura ||
+                    'em_branco'
+                  }
+                  assinaturaVisual={
+                    editalPersonalizado?.assinatura_visual || editalAssinado?.assinatura_visual
+                  }
+                  assinaturaTexto={
+                    editalPersonalizado?.assinatura_texto || editalAssinado?.assinatura_texto
+                  }
+                  larguraLinha="w-64"
+                />
               </div>
 
               {editalAssinado ? (
-                <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 text-[10px] font-mono text-left space-y-0.5 rounded">
+                <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 text-[10px] font-mono text-left space-y-0.5 rounded max-w-lg mx-auto">
                   <span className="font-bold text-emerald-800 block">
                     ✓ EDITAL HOMOLOGADO E ASSINADO ELETRONICAMENTE (SHA-256)
                   </span>
@@ -618,38 +727,54 @@ export const DossieCartorioPage: React.FC = () => {
           <div className="pt-16 pb-8 font-sans">
             <div className="grid grid-cols-2 gap-12 text-center">
               {/* Presidente */}
-              <div>
-                <div className="border-t-2 border-slate-900 mx-auto w-5/6 mb-1" />
-                <div className="space-y-0 leading-tight">
-                  <p className="text-sm font-bold uppercase text-slate-950 m-0 p-0 leading-tight">
-                    {deliberacao.mesa_presidente_nome || 'Presidente da Mesa Diretora'}
-                  </p>
-                  {deliberacao.mesa_presidente_cpf && (
-                    <p className="text-xs text-slate-600 font-mono m-0 p-0 leading-tight">
-                      CPF: {formatarCpf(deliberacao.mesa_presidente_cpf)}
-                    </p>
-                  )}
-                  <p className="text-[11px] text-slate-500 font-medium m-0 p-0 leading-tight">
-                    Presidente da Assembleia
-                  </p>
+              <div className="flex flex-col items-center">
+                <BlocoAssinaturaCompacto
+                  nome={deliberacao.mesa_presidente_nome || 'Presidente da Mesa Diretora'}
+                  cpf={deliberacao.mesa_presidente_cpf}
+                  cargo="Presidente da Assembleia"
+                  formato={assinaturaPresidenteDossie?.formato_assinatura || 'em_branco'}
+                  assinaturaVisual={assinaturaPresidenteDossie?.assinatura_visual}
+                  assinaturaTexto={assinaturaPresidenteDossie?.assinatura_texto}
+                  larguraLinha="w-60"
+                />
+                <div className="mt-1 print:hidden">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setModalAssinaturaMesa('mesa_presidente')}
+                    className="h-6 text-[10px] px-2 text-slate-700 border-slate-300 gap-1"
+                  >
+                    <ShieldCheck className="h-3 w-3 text-cyan-700" />
+                    {assinaturaPresidenteDossie
+                      ? 'Reassinar como Presidente'
+                      : 'Assinar como Presidente'}
+                  </Button>
                 </div>
               </div>
 
               {/* Secretário */}
-              <div>
-                <div className="border-t-2 border-slate-900 mx-auto w-5/6 mb-1" />
-                <div className="space-y-0 leading-tight">
-                  <p className="text-sm font-bold uppercase text-slate-950 m-0 p-0 leading-tight">
-                    {deliberacao.mesa_secretario_nome || 'Secretário(a) da Mesa'}
-                  </p>
-                  {deliberacao.mesa_secretario_cpf && (
-                    <p className="text-xs text-slate-600 font-mono m-0 p-0 leading-tight">
-                      CPF: {formatarCpf(deliberacao.mesa_secretario_cpf)}
-                    </p>
-                  )}
-                  <p className="text-[11px] text-slate-500 font-medium m-0 p-0 leading-tight">
-                    Secretário(a) dos Trabalhos
-                  </p>
+              <div className="flex flex-col items-center">
+                <BlocoAssinaturaCompacto
+                  nome={deliberacao.mesa_secretario_nome || 'Secretário(a) da Mesa'}
+                  cpf={deliberacao.mesa_secretario_cpf}
+                  cargo="Secretário(a) dos Trabalhos"
+                  formato={assinaturaSecretarioDossie?.formato_assinatura || 'em_branco'}
+                  assinaturaVisual={assinaturaSecretarioDossie?.assinatura_visual}
+                  assinaturaTexto={assinaturaSecretarioDossie?.assinatura_texto}
+                  larguraLinha="w-60"
+                />
+                <div className="mt-1 print:hidden">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setModalAssinaturaMesa('mesa_secretario')}
+                    className="h-6 text-[10px] px-2 text-slate-700 border-slate-300 gap-1"
+                  >
+                    <ShieldCheck className="h-3 w-3 text-cyan-700" />
+                    {assinaturaSecretarioDossie
+                      ? 'Reassinar como Secretário'
+                      : 'Assinar como Secretário'}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -661,6 +786,50 @@ export const DossieCartorioPage: React.FC = () => {
           </footer>
         </section>
       </div>
+
+      {/* Modal Reutilizável de Assinatura Eletrônica da Mesa para o Dossiê */}
+      {modalAssinaturaMesa && (
+        <ModalAssinaturaEletronica
+          aberto={!!modalAssinaturaMesa}
+          onOpenChange={(ab) => !ab && setModalAssinaturaMesa(null)}
+          tituloDocumento="Termo de Encerramento do Dossiê Notarial"
+          subtitulo={`Assinatura da Mesa Diretora como ${
+            modalAssinaturaMesa === 'mesa_presidente' ? 'Presidente' : 'Secretário(a)'
+          } dos trabalhos`}
+          nomeInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? deliberacao.mesa_presidente_nome || ''
+              : deliberacao.mesa_secretario_nome || ''
+          }
+          cpfInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? deliberacao.mesa_presidente_cpf || ''
+              : deliberacao.mesa_secretario_cpf || ''
+          }
+          cargoInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? 'Presidente da Mesa Diretora'
+              : 'Secretário(a) dos Trabalhos'
+          }
+          formatoInicial={
+            (modalAssinaturaMesa === 'mesa_presidente'
+              ? assinaturaPresidenteDossie?.formato_assinatura
+              : assinaturaSecretarioDossie?.formato_assinatura) || 'desenho'
+          }
+          assinaturaVisualInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? assinaturaPresidenteDossie?.assinatura_visual
+              : assinaturaSecretarioDossie?.assinatura_visual
+          }
+          assinaturaTextoInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? assinaturaPresidenteDossie?.assinatura_texto
+              : assinaturaSecretarioDossie?.assinatura_texto
+          }
+          salvando={salvandoMesa}
+          onConfirmar={handleConfirmarAssinaturaMesa}
+        />
+      )}
     </div>
   )
 }

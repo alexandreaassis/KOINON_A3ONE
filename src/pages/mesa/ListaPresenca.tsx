@@ -6,6 +6,7 @@ import {
   type PresencaAssinaturaRecord,
   type PresencaRecord,
   type CredenciamentoRecord,
+  type AssinaturaDocumentoRecord,
 } from '@/lib/api'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { useAuth } from '@/context/AuthContext'
