@@ -7,7 +7,7 @@ import {
   type ComparecimentoRecord,
   type UnidadeRecord,
 } from '@/lib/api'
-import { formatarCpf } from '@/lib/cpf'
+import { formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -68,8 +68,10 @@ export const PainelMesaPage: React.FC = () => {
 
   const [mesaPresNome, setMesaPresNome] = useState('')
   const [mesaPresCpf, setMesaPresCpf] = useState('')
+  const [mesaPresCpfErro, setMesaPresCpfErro] = useState<string | null>(null)
   const [mesaSecNome, setMesaSecNome] = useState('')
   const [mesaSecCpf, setMesaSecCpf] = useState('')
+  const [mesaSecCpfErro, setMesaSecCpfErro] = useState<string | null>(null)
   const [salvandoMesa, setSalvandoMesa] = useState(false)
 
   // Transição de estado
@@ -100,8 +102,10 @@ export const PainelMesaPage: React.FC = () => {
         if (!modalMesaAbertoRef.current && !isBackgroundPoll) {
           setMesaPresNome(ativa.mesa_presidente_nome || '')
           setMesaPresCpf(formatarCpf(ativa.mesa_presidente_cpf || ''))
+          setMesaPresCpfErro(null)
           setMesaSecNome(ativa.mesa_secretario_nome || '')
           setMesaSecCpf(formatarCpf(ativa.mesa_secretario_cpf || ''))
+          setMesaSecCpfErro(null)
         }
 
         const [pres, comps] = await Promise.all([
@@ -133,8 +137,10 @@ export const PainelMesaPage: React.FC = () => {
       if (!modalMesaAbertoRef.current) {
         setMesaPresNome(d.mesa_presidente_nome || '')
         setMesaPresCpf(formatarCpf(d.mesa_presidente_cpf || ''))
+        setMesaPresCpfErro(null)
         setMesaSecNome(d.mesa_secretario_nome || '')
         setMesaSecCpf(formatarCpf(d.mesa_secretario_cpf || ''))
+        setMesaSecCpfErro(null)
       }
 
       const [pres, comps] = await Promise.all([
@@ -159,6 +165,33 @@ export const PainelMesaPage: React.FC = () => {
   const handleSalvarMesaDiretora = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!deliberacaoAtiva) return
+
+    // Validação de CPF (se preenchido, deve ser válido de acordo com o cálculo da Receita Federal)
+    let temErro = false
+    const rawPresCpf = mesaPresCpf.replace(/\D/g, '')
+    if (rawPresCpf.length > 0 && !validarCpf(mesaPresCpf)) {
+      setMesaPresCpfErro(MSG_CPF_INVALIDO)
+      temErro = true
+    } else {
+      setMesaPresCpfErro(null)
+    }
+
+    const rawSecCpf = mesaSecCpf.replace(/\D/g, '')
+    if (rawSecCpf.length > 0 && !validarCpf(mesaSecCpf)) {
+      setMesaSecCpfErro(MSG_CPF_INVALIDO)
+      temErro = true
+    } else {
+      setMesaSecCpfErro(null)
+    }
+
+    if (temErro) {
+      toast({
+        title: 'CPF inválido',
+        description: 'Corrija os campos de CPF destacados antes de salvar a Mesa Diretora.',
+        variant: 'destructive',
+      })
+      return
+    }
 
     setSalvandoMesa(true)
     try {
@@ -356,8 +389,10 @@ export const PainelMesaPage: React.FC = () => {
                 onClick={() => {
                   setMesaPresNome(deliberacaoAtiva.mesa_presidente_nome || '')
                   setMesaPresCpf(formatarCpf(deliberacaoAtiva.mesa_presidente_cpf || ''))
+                  setMesaPresCpfErro(null)
                   setMesaSecNome(deliberacaoAtiva.mesa_secretario_nome || '')
                   setMesaSecCpf(formatarCpf(deliberacaoAtiva.mesa_secretario_cpf || ''))
+                  setMesaSecCpfErro(null)
                   setModalMesaAberto(true)
                 }}
                 className="text-xs border-amber-300 text-amber-900 hover:bg-amber-100 h-8 shrink-0 self-start md:self-center"
@@ -639,14 +674,39 @@ export const PainelMesaPage: React.FC = () => {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] font-semibold text-slate-700">CPF</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px] font-semibold text-slate-700">CPF</Label>
+                  <span className="text-[10px] text-slate-400">Opcional</span>
+                </div>
                 <Input
                   value={mesaPresCpf}
-                  onChange={(e) => setMesaPresCpf(formatarCpf(e.target.value))}
+                  onChange={(e) => {
+                    const formatado = formatarCpf(e.target.value)
+                    setMesaPresCpf(formatado)
+                    if (mesaPresCpfErro) {
+                      const raw = formatado.replace(/\D/g, '')
+                      if (raw.length === 0 || validarCpf(formatado)) {
+                        setMesaPresCpfErro(null)
+                      }
+                    }
+                  }}
+                  onBlur={() => {
+                    const raw = mesaPresCpf.replace(/\D/g, '')
+                    if (raw.length > 0 && !validarCpf(mesaPresCpf)) {
+                      setMesaPresCpfErro(MSG_CPF_INVALIDO)
+                    } else {
+                      setMesaPresCpfErro(null)
+                    }
+                  }}
                   placeholder="000.000.000-00"
                   maxLength={14}
-                  className="text-xs h-8 bg-white font-mono"
+                  className={`text-xs h-8 bg-white font-mono ${
+                    mesaPresCpfErro ? 'border-red-500 focus-visible:ring-red-500' : ''
+                  }`}
                 />
+                {mesaPresCpfErro && (
+                  <p className="text-[11px] font-medium text-red-600">{mesaPresCpfErro}</p>
+                )}
               </div>
             </div>
 
@@ -665,14 +725,39 @@ export const PainelMesaPage: React.FC = () => {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] font-semibold text-slate-700">CPF</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px] font-semibold text-slate-700">CPF</Label>
+                  <span className="text-[10px] text-slate-400">Opcional</span>
+                </div>
                 <Input
                   value={mesaSecCpf}
-                  onChange={(e) => setMesaSecCpf(formatarCpf(e.target.value))}
+                  onChange={(e) => {
+                    const formatado = formatarCpf(e.target.value)
+                    setMesaSecCpf(formatado)
+                    if (mesaSecCpfErro) {
+                      const raw = formatado.replace(/\D/g, '')
+                      if (raw.length === 0 || validarCpf(formatado)) {
+                        setMesaSecCpfErro(null)
+                      }
+                    }
+                  }}
+                  onBlur={() => {
+                    const raw = mesaSecCpf.replace(/\D/g, '')
+                    if (raw.length > 0 && !validarCpf(mesaSecCpf)) {
+                      setMesaSecCpfErro(MSG_CPF_INVALIDO)
+                    } else {
+                      setMesaSecCpfErro(null)
+                    }
+                  }}
                   placeholder="000.000.000-00"
                   maxLength={14}
-                  className="text-xs h-8 bg-white font-mono"
+                  className={`text-xs h-8 bg-white font-mono ${
+                    mesaSecCpfErro ? 'border-red-500 focus-visible:ring-red-500' : ''
+                  }`}
                 />
+                {mesaSecCpfErro && (
+                  <p className="text-[11px] font-medium text-red-600">{mesaSecCpfErro}</p>
+                )}
               </div>
             </div>
 

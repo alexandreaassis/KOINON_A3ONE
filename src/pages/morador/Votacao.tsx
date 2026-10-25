@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
 import {
   Vote,
   ShieldCheck,
@@ -66,6 +67,7 @@ export const VotacaoPage: React.FC = () => {
 
   // Estados 2FA / OTP
   const [cpf, setCpf] = useState('')
+  const [cpfErro, setCpfErro] = useState<string | null>(null)
   const [sessaoId, setSessaoId] = useState<string | null>(null)
   const [tokenVoto, setTokenVoto] = useState<string | null>(null)
   const [celularMascara, setCelularMascara] = useState('')
@@ -107,6 +109,7 @@ export const VotacaoPage: React.FC = () => {
 
         if (cred) {
           setCpf(cred.cpf)
+          setCpfErro(null)
         }
 
         if (delib) {
@@ -160,6 +163,29 @@ export const VotacaoPage: React.FC = () => {
   const handleSolicitarOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!deliberacao || !unidadeSelecionada) return
+
+    const rawCpf = cpf.replace(/\D/g, '')
+    if (!rawCpf) {
+      setCpfErro('CPF é obrigatório para confirmar titularidade.')
+      toast({
+        title: 'CPF obrigatório',
+        description: 'Informe o CPF do titular para solicitar o código de votação.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (rawCpf.length !== 11 || !validarCpf(cpf)) {
+      setCpfErro(MSG_CPF_INVALIDO)
+      toast({
+        title: 'CPF inválido',
+        description: MSG_CPF_INVALIDO,
+        variant: 'destructive',
+      })
+      return
+    }
+    setCpfErro(null)
+
     if (!isOnline) {
       toast({
         title: 'Sem conexão com a internet',
@@ -499,11 +525,34 @@ export const VotacaoPage: React.FC = () => {
                 <Input
                   id="cpf"
                   required
+                  maxLength={14}
                   placeholder="000.000.000-00"
                   value={cpf}
-                  onChange={(e) => setCpf(e.target.value)}
-                  className="h-11 font-mono text-sm"
+                  onChange={(e) => {
+                    const formatado = formatarCpf(e.target.value)
+                    setCpf(formatado)
+                    if (cpfErro) {
+                      const raw = formatado.replace(/\D/g, '')
+                      if (raw.length === 11 && validarCpf(formatado)) {
+                        setCpfErro(null)
+                      }
+                    }
+                  }}
+                  onBlur={() => {
+                    const raw = cpf.replace(/\D/g, '')
+                    if (!raw) {
+                      setCpfErro('CPF é obrigatório para confirmar titularidade.')
+                    } else if (raw.length !== 11 || !validarCpf(cpf)) {
+                      setCpfErro(MSG_CPF_INVALIDO)
+                    } else {
+                      setCpfErro(null)
+                    }
+                  }}
+                  className={`h-11 font-mono text-sm ${
+                    cpfErro ? 'border-red-500 focus-visible:ring-red-500' : ''
+                  }`}
                 />
+                {cpfErro && <p className="text-[11px] font-medium text-red-600">{cpfErro}</p>}
               </div>
 
               <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600 border border-slate-200 space-y-1">

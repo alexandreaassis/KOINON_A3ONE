@@ -23,7 +23,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
-import { formatarCpf } from '@/lib/cpf'
+import { formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
 import {
   UserCheck,
   UploadCloud,
@@ -42,6 +42,7 @@ export const CredenciamentoPage: React.FC = () => {
 
   const [credExistente, setCredExistente] = useState<CredenciamentoRecord | null>(null)
   const [cpf, setCpf] = useState('')
+  const [cpfErro, setCpfErro] = useState<string | null>(null)
   const [titularNome, setTitularNome] = useState('')
   const [tipoVinculo, setTipoVinculo] = useState<string>('proprietario')
   const [arquivos, setArquivos] = useState<FileList | null>(null)
@@ -63,6 +64,7 @@ export const CredenciamentoPage: React.FC = () => {
         setCredExistente(cred)
         if (cred) {
           setCpf(cred.cpf)
+          setCpfErro(null)
           setTitularNome(cred.titular_nome)
           setTipoVinculo(cred.tipo_vinculo)
         } else {
@@ -84,7 +86,25 @@ export const CredenciamentoPage: React.FC = () => {
 
   // Formatar CPF ao digitar
   const handleCpfChange = (val: string) => {
-    setCpf(formatarCpf(val))
+    const formatado = formatarCpf(val)
+    setCpf(formatado)
+    if (cpfErro) {
+      const raw = formatado.replace(/\D/g, '')
+      if (raw.length === 11 && validarCpf(formatado)) {
+        setCpfErro(null)
+      }
+    }
+  }
+
+  const handleCpfBlur = () => {
+    const raw = cpf.replace(/\D/g, '')
+    if (!raw) {
+      setCpfErro('CPF é obrigatório para o credenciamento.')
+    } else if (raw.length !== 11 || !validarCpf(cpf)) {
+      setCpfErro(MSG_CPF_INVALIDO)
+    } else {
+      setCpfErro(null)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,14 +118,27 @@ export const CredenciamentoPage: React.FC = () => {
       return
     }
 
-    if (cpf.replace(/\D/g, '').length !== 11) {
+    const rawCpf = cpf.replace(/\D/g, '')
+    if (!rawCpf) {
+      setCpfErro('CPF é obrigatório para o credenciamento.')
       toast({
-        title: 'CPF Inválido',
-        description: 'Informe um CPF válido com 11 dígitos.',
+        title: 'CPF obrigatório',
+        description: 'Informe o CPF do titular para realizar o credenciamento.',
         variant: 'destructive',
       })
       return
     }
+
+    if (rawCpf.length !== 11 || !validarCpf(cpf)) {
+      setCpfErro(MSG_CPF_INVALIDO)
+      toast({
+        title: 'CPF inválido',
+        description: MSG_CPF_INVALIDO,
+        variant: 'destructive',
+      })
+      return
+    }
+    setCpfErro(null)
 
     setEnviando(true)
     try {
@@ -286,19 +319,27 @@ export const CredenciamentoPage: React.FC = () => {
               {/* CPF do Titular */}
               <div className="space-y-1.5">
                 <Label htmlFor="cpf" className="text-xs font-semibold text-slate-700">
-                  CPF do Titular (utilizado no 2FA)
+                  CPF do Titular (utilizado no 2FA) *
                 </Label>
                 <Input
                   id="cpf"
                   required
                   placeholder="000.000.000-00"
+                  maxLength={14}
                   value={cpf}
                   onChange={(e) => handleCpfChange(e.target.value)}
-                  className="h-10 text-xs font-mono"
+                  onBlur={handleCpfBlur}
+                  className={`h-10 text-xs font-mono ${
+                    cpfErro ? 'border-red-500 focus-visible:ring-red-500' : ''
+                  }`}
                 />
-                <span className="text-[10px] text-slate-400">
-                  O CPF informado será exigido no momento do login e envio do OTP.
-                </span>
+                {cpfErro ? (
+                  <p className="text-[11px] font-medium text-red-600">{cpfErro}</p>
+                ) : (
+                  <span className="text-[10px] text-slate-400 block">
+                    O CPF informado será exigido no momento do login e envio do OTP.
+                  </span>
+                )}
               </div>
             </div>
 

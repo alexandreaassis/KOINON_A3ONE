@@ -5,7 +5,7 @@ import {
   type ItemPautaRecord,
   type DeliberacaoStatus,
 } from '@/lib/api'
-import { formatarCpf } from '@/lib/cpf'
+import { formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
 import {
   Card,
   CardHeader,
@@ -67,8 +67,10 @@ export const DeliberacoesPage: React.FC = () => {
   const [locatarioVota, setLocatarioVota] = useState(false)
   const [mesaPresidenteNome, setMesaPresidenteNome] = useState('')
   const [mesaPresidenteCpf, setMesaPresidenteCpf] = useState('')
+  const [mesaPresidenteCpfErro, setMesaPresidenteCpfErro] = useState<string | null>(null)
   const [mesaSecretarioNome, setMesaSecretarioNome] = useState('')
   const [mesaSecretarioCpf, setMesaSecretarioCpf] = useState('')
+  const [mesaSecretarioCpfErro, setMesaSecretarioCpfErro] = useState<string | null>(null)
   const [salvandoDelib, setSalvandoDelib] = useState(false)
 
   // Modal Item de Pauta
@@ -115,8 +117,10 @@ export const DeliberacoesPage: React.FC = () => {
     setDescricao('')
     setMesaPresidenteNome('')
     setMesaPresidenteCpf('')
+    setMesaPresidenteCpfErro(null)
     setMesaSecretarioNome('')
     setMesaSecretarioCpf('')
+    setMesaSecretarioCpfErro(null)
 
     // Carrega defaults configurados da convenção se houver
     try {
@@ -157,13 +161,43 @@ export const DeliberacoesPage: React.FC = () => {
     setLocatarioVota(d.locatario_pode_votar ?? false)
     setMesaPresidenteNome(d.mesa_presidente_nome || '')
     setMesaPresidenteCpf(formatarCpf(d.mesa_presidente_cpf || ''))
+    setMesaPresidenteCpfErro(null)
     setMesaSecretarioNome(d.mesa_secretario_nome || '')
     setMesaSecretarioCpf(formatarCpf(d.mesa_secretario_cpf || ''))
+    setMesaSecretarioCpfErro(null)
     setModalDeliberacaoAberto(true)
   }
 
   const handleSalvarDeliberacao = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validação de CPF da Mesa Diretora (se preenchido, deve ser válido)
+    let temErro = false
+    const rawPresCpf = mesaPresidenteCpf.replace(/\D/g, '')
+    if (rawPresCpf.length > 0 && !validarCpf(mesaPresidenteCpf)) {
+      setMesaPresidenteCpfErro(MSG_CPF_INVALIDO)
+      temErro = true
+    } else {
+      setMesaPresidenteCpfErro(null)
+    }
+
+    const rawSecCpf = mesaSecretarioCpf.replace(/\D/g, '')
+    if (rawSecCpf.length > 0 && !validarCpf(mesaSecretarioCpf)) {
+      setMesaSecretarioCpfErro(MSG_CPF_INVALIDO)
+      temErro = true
+    } else {
+      setMesaSecretarioCpfErro(null)
+    }
+
+    if (temErro) {
+      toast({
+        title: 'CPF inválido',
+        description: 'Corrija os campos de CPF destacados da Mesa Diretora antes de prosseguir.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setSalvandoDelib(true)
     try {
       if (delibEditId) {
@@ -649,16 +683,41 @@ export const DeliberacoesPage: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[11px] font-semibold text-slate-800">
-                    CPF do Presidente
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[11px] font-semibold text-slate-800">
+                      CPF do Presidente
+                    </Label>
+                    <span className="text-[10px] text-slate-400">Opcional</span>
+                  </div>
                   <Input
                     value={mesaPresidenteCpf}
-                    onChange={(e) => setMesaPresidenteCpf(formatarCpf(e.target.value))}
+                    onChange={(e) => {
+                      const formatado = formatarCpf(e.target.value)
+                      setMesaPresidenteCpf(formatado)
+                      if (mesaPresidenteCpfErro) {
+                        const raw = formatado.replace(/\D/g, '')
+                        if (raw.length === 0 || validarCpf(formatado)) {
+                          setMesaPresidenteCpfErro(null)
+                        }
+                      }
+                    }}
+                    onBlur={() => {
+                      const raw = mesaPresidenteCpf.replace(/\D/g, '')
+                      if (raw.length > 0 && !validarCpf(mesaPresidenteCpf)) {
+                        setMesaPresidenteCpfErro(MSG_CPF_INVALIDO)
+                      } else {
+                        setMesaPresidenteCpfErro(null)
+                      }
+                    }}
                     placeholder="000.000.000-00"
                     maxLength={14}
-                    className="text-xs h-8 bg-white font-mono"
+                    className={`text-xs h-8 bg-white font-mono ${
+                      mesaPresidenteCpfErro ? 'border-red-500 focus-visible:ring-red-500' : ''
+                    }`}
                   />
+                  {mesaPresidenteCpfErro && (
+                    <p className="text-[11px] font-medium text-red-600">{mesaPresidenteCpfErro}</p>
+                  )}
                 </div>
               </div>
 
@@ -675,16 +734,41 @@ export const DeliberacoesPage: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[11px] font-semibold text-slate-800">
-                    CPF do Secretário(a)
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[11px] font-semibold text-slate-800">
+                      CPF do Secretário(a)
+                    </Label>
+                    <span className="text-[10px] text-slate-400">Opcional</span>
+                  </div>
                   <Input
                     value={mesaSecretarioCpf}
-                    onChange={(e) => setMesaSecretarioCpf(formatarCpf(e.target.value))}
+                    onChange={(e) => {
+                      const formatado = formatarCpf(e.target.value)
+                      setMesaSecretarioCpf(formatado)
+                      if (mesaSecretarioCpfErro) {
+                        const raw = formatado.replace(/\D/g, '')
+                        if (raw.length === 0 || validarCpf(formatado)) {
+                          setMesaSecretarioCpfErro(null)
+                        }
+                      }
+                    }}
+                    onBlur={() => {
+                      const raw = mesaSecretarioCpf.replace(/\D/g, '')
+                      if (raw.length > 0 && !validarCpf(mesaSecretarioCpf)) {
+                        setMesaSecretarioCpfErro(MSG_CPF_INVALIDO)
+                      } else {
+                        setMesaSecretarioCpfErro(null)
+                      }
+                    }}
                     placeholder="000.000.000-00"
                     maxLength={14}
-                    className="text-xs h-8 bg-white font-mono"
+                    className={`text-xs h-8 bg-white font-mono ${
+                      mesaSecretarioCpfErro ? 'border-red-500 focus-visible:ring-red-500' : ''
+                    }`}
                   />
+                  {mesaSecretarioCpfErro && (
+                    <p className="text-[11px] font-medium text-red-600">{mesaSecretarioCpfErro}</p>
+                  )}
                 </div>
               </div>
             </div>
