@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   api,
@@ -31,6 +31,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { RichTextEditor } from '@/components/editor/RichTextEditor'
 import { SafeHtml } from '@/components/editor/SafeHtml'
+import { sanitizeHtml } from '@/lib/sanitizeHtml'
 import {
   Select,
   SelectContent,
@@ -63,6 +64,7 @@ import {
   Save,
   Clock,
   Sparkles,
+  Loader2,
 } from 'lucide-react'
 
 export const DocumentosEditalPage: React.FC = () => {
@@ -103,6 +105,12 @@ export const DocumentosEditalPage: React.FC = () => {
   const [assinandoEdital, setAssinandoEdital] = useState(false)
   const [disparandoEmails, setDisparandoEmails] = useState(false)
 
+  // Estado do Autosave
+  const [autosaveStatus, setAutosaveStatus] = useState<
+    'idle' | 'pending' | 'saving' | 'saved' | 'error'
+  >('idle')
+  const [ultimoSalvoHora, setUltimoSalvoHora] = useState<string | null>(null)
+
   // Assinatura e Snapshot Criptográfico
   const [editalAssinadoHash, setEditalAssinadoHash] = useState<string | null>(null)
   const [editalAssinadoData, setEditalAssinadoData] = useState<string | null>(null)
@@ -118,27 +126,58 @@ export const DocumentosEditalPage: React.FC = () => {
   const [arquivoFile, setArquivoFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
 
-  // Calcular Snapshot Atual do Conteúdo para Comparação
-  const snapshotAtual = useMemo(() => {
+  // Refs de controle para isolar debounce, corrida e bloqueio de transição/modal
+  const editalFormRef = useRef(editalForm)
+  editalFormRef.current = editalForm
+
+  const deliberacaoAtivaRef = useRef(deliberacaoAtiva)
+  deliberacaoAtivaRef.current = deliberacaoAtiva
+
+  const editalDbIdRef = useRef(editalDbId)
+  editalDbIdRef.current = editalDbId
+
+  const editalAssinadoHashRef = useRef(editalAssinadoHash)
+  editalAssinadoHashRef.current = editalAssinadoHash
+
+  const editalAssinadoDataRef = useRef(editalAssinadoData)
+  editalAssinadoDataRef.current = editalAssinadoData
+
+  const snapshotAssinadoRef = useRef(snapshotAssinado)
+  snapshotAssinadoRef.current = snapshotAssinado
+
+  const isCarregandoRef = useRef(true)
+
+  const modalUploadAbertoRef = useRef(modalUploadAberto)
+  modalUploadAbertoRef.current = modalUploadAberto
+
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isSavingRef = useRef(false)
+  const needsResaveRef = useRef(false)
+
+  // Snapshot normalizado para detecção precisa de alteração
+  const gerarSnapshotDeEstado = useCallback((form: typeof editalForm, itens: ItemPautaRecord[]) => {
     return JSON.stringify({
-      titulo: editalForm.titulo,
-      subtitulo: editalForm.subtitulo,
-      textoAbertura: editalForm.textoAbertura,
-      dataAssembleia: editalForm.dataAssembleia,
-      primeiraConvocacao: editalForm.primeiraConvocacao,
-      segundaConvocacao: editalForm.segundaConvocacao,
-      localTexto: editalForm.localTexto,
-      ordemDiaCustom: editalForm.ordemDiaCustom,
-      disposicoesGerais: editalForm.disposicoesGerais,
-      regrasParticipacao: editalForm.regrasParticipacao,
-      sindicoNome: editalForm.sindicoNome.trim(),
-      sindicoCpf: editalForm.sindicoCpf.replace(/\D/g, ''),
-      cargoConvocante: editalForm.cargoConvocante,
-      pautaPadrao: itensPauta
-        .map((it) => `${it.ordem}. ${it.titulo}: ${it.texto || ''}`)
-        .join('; '),
+      titulo: form.titulo,
+      subtitulo: form.subtitulo,
+      textoAbertura: form.textoAbertura,
+      dataAssembleia: form.dataAssembleia,
+      primeiraConvocacao: form.primeiraConvocacao,
+      segundaConvocacao: form.segundaConvocacao,
+      localTexto: form.localTexto,
+      ordemDiaCustom: form.ordemDiaCustom,
+      disposicoesGerais: form.disposicoesGerais,
+      regrasParticipacao: form.regrasParticipacao,
+      sindicoNome: form.sindicoNome.trim(),
+      sindicoCpf: form.sindicoCpf.replace(/\D/g, ''),
+      cargoConvocante: form.cargoConvocante,
+      pautaPadrao: itens.map((it) => `${it.ordem}. ${it.titulo}: ${it.texto || ''}`).join('; '),
     })
-  }, [editalForm, itensPauta])
+  }, [])
+
+  // Snapshot Atual do Conteúdo para Comparação
+  const snapshotAtual = useMemo(() => {
+    return gerarSnapshotDeEstado(editalForm, itensPauta)
+  }, [editalForm, itensPauta, gerarSnapshotDeEstado])
 
   // Checar se o edital foi modificado após ter sido assinado
   const hashDesatualizado = useMemo(() => {
@@ -147,9 +186,19 @@ export const DocumentosEditalPage: React.FC = () => {
     return snapshotAtual !== snapshotAssinado
   }, [editalAssinadoHash, snapshotAssinado, snapshotAtual])
 
+  const hashDesatualizadoRef = useRef(hashDesatualizado)
+  hashDesatualizadoRef.current = hashDesatualizado
+
   // Carregar dados
   const carregarDados = async (delibId?: string) => {
+    isCarregandoRef.current = true
     setCarregando(true)
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = null
+    }
+    setAutosaveStatus('idle')
+
     try {
       const delibs = await api.getDeliberacoes()
       setDeliberacoes(delibs)
@@ -261,6 +310,10 @@ export const DocumentosEditalPage: React.FC = () => {
       })
     } finally {
       setCarregando(false)
+      // Pequeno atraso para liberar flag de carregando pós-render inicial
+      setTimeout(() => {
+        isCarregandoRef.current = false
+      }, 100)
     }
   }
 
@@ -277,48 +330,121 @@ export const DocumentosEditalPage: React.FC = () => {
     return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
   }
 
-  // Ação: Salvar Rascunho do Edital no Banco
-  const handleSalvarRascunho = async (silencioso = false) => {
-    if (!deliberacaoAtiva) return
-    setSalvandoEdital(true)
+  // Execução unificada de persistência do rascunho com sanitização completa
+  const persistirRascunhoNoBanco = useCallback(
+    async (isAutosave = false) => {
+      const delib = deliberacaoAtivaRef.current
+      if (!delib) return null
 
-    const rawCpf = editalForm.sindicoCpf.replace(/\D/g, '')
-
-    try {
-      const payload: Partial<EditalDeliberacaoRecord> = {
-        titulo: editalForm.titulo.trim() || deliberacaoAtiva.titulo,
-        subtitulo: editalForm.subtitulo.trim(),
-        texto_abertura: editalForm.textoAbertura.trim(),
-        data_assembleia: editalForm.dataAssembleia.trim(),
-        primeira_convocacao: editalForm.primeiraConvocacao.trim(),
-        segunda_convocacao: editalForm.segundaConvocacao.trim(),
-        local_texto: editalForm.localTexto.trim(),
-        ordem_dia_custom: editalForm.ordemDiaCustom.trim(),
-        disposicoes_gerais: editalForm.disposicoesGerais.trim(),
-        regras_participacao: editalForm.regrasParticipacao.trim(),
-        sindico_nome: editalForm.sindicoNome.trim(),
-        sindico_cpf: rawCpf,
-        cargo_convocante: editalForm.cargoConvocante.trim(),
-        status: editalAssinadoHash && !hashDesatualizado ? 'assinado' : 'rascunho',
-        hash_assinado: editalAssinadoHash && !hashDesatualizado ? editalAssinadoHash : '',
-        data_assinatura: editalAssinadoData || undefined,
-        conteudo_assinado_snapshot: snapshotAssinado || undefined,
+      // Bloquear se outro salvamento estiver em voo; sinalizar remarcação para evitar perder mudanças
+      if (isSavingRef.current) {
+        needsResaveRef.current = true
+        return null
       }
 
-      const salvo = await api.salvarEditalDeliberacao(
-        deliberacaoAtiva.id,
-        payload,
-        editalDbId || undefined,
-      )
-      setEditalDbId(salvo.id)
+      isSavingRef.current = true
+      if (!isAutosave) {
+        setSalvandoEdital(true)
+      } else {
+        setAutosaveStatus('saving')
+      }
 
-      // Registrar auditoria
-      await api.registrarEventoAuditoria({
-        evento: 'configuracao_atualizada',
-        fator: `Mesa: salvamento do Edital (Rascunho) da deliberação ${deliberacaoAtiva.id} por ${user?.name || 'Mesa'}`,
-        dispositivo: navigator.userAgent,
-      })
+      try {
+        const currentForm = editalFormRef.current
+        const rawCpf = currentForm.sindicoCpf.replace(/\D/g, '')
 
+        // Sanitização idêntica para campos ricos e formatação de texto simples
+        const textoAberturaSanitizado = sanitizeHtml(currentForm.textoAbertura).trim()
+        const ordemDiaSanitizado = sanitizeHtml(currentForm.ordemDiaCustom).trim()
+        const disposicoesSanitizado = sanitizeHtml(currentForm.disposicoesGerais).trim()
+        const regrasSanitizado = sanitizeHtml(currentForm.regrasParticipacao).trim()
+
+        const assinadoValido = editalAssinadoHashRef.current && !hashDesatualizadoRef.current
+
+        const payload: Partial<EditalDeliberacaoRecord> = {
+          titulo: currentForm.titulo.trim() || delib.titulo,
+          subtitulo: currentForm.subtitulo.trim(),
+          texto_abertura: textoAberturaSanitizado,
+          data_assembleia: currentForm.dataAssembleia.trim(),
+          primeira_convocacao: currentForm.primeiraConvocacao.trim(),
+          segunda_convocacao: currentForm.segundaConvocacao.trim(),
+          local_texto: currentForm.localTexto.trim(),
+          ordem_dia_custom: ordemDiaSanitizado,
+          disposicoes_gerais: disposicoesSanitizado,
+          regras_participacao: regrasSanitizado,
+          sindico_nome: currentForm.sindicoNome.trim(),
+          sindico_cpf: rawCpf,
+          cargo_convocante: currentForm.cargoConvocante.trim(),
+          status: assinadoValido ? 'assinado' : 'rascunho',
+          hash_assinado: assinadoValido ? editalAssinadoHashRef.current || '' : '',
+          data_assinatura: editalAssinadoDataRef.current || undefined,
+          conteudo_assinado_snapshot: snapshotAssinadoRef.current || undefined,
+        }
+
+        const salvo = await api.salvarEditalDeliberacao(
+          delib.id,
+          payload,
+          editalDbIdRef.current || undefined,
+        )
+        setEditalDbId(salvo.id)
+        editalDbIdRef.current = salvo.id
+
+        // Registrar auditoria apenas em salvamentos manuais explícitos para não poluir a trilha a cada tecla
+        if (!isAutosave) {
+          await api.registrarEventoAuditoria({
+            evento: 'configuracao_atualizada',
+            fator: `Mesa: salvamento do Edital (Rascunho) da deliberação ${delib.id} por ${user?.name || 'Mesa'}`,
+            dispositivo: navigator.userAgent,
+          })
+        }
+
+        const agora = new Date()
+        const hh = String(agora.getHours()).padStart(2, '0')
+        const mm = String(agora.getMinutes()).padStart(2, '0')
+        const horaFormatada = `${hh}:${mm}`
+        setUltimoSalvoHora(horaFormatada)
+        setAutosaveStatus('saved')
+
+        return salvo
+      } catch (err: any) {
+        console.error('Erro ao salvar rascunho do edital:', err)
+        setAutosaveStatus('error')
+        toast({
+          title: isAutosave ? 'Falha no salvamento automático' : 'Erro ao salvar edital',
+          description:
+            err?.message ||
+            'Não foi possível salvar as alterações no servidor. Verifique a conexão.',
+          variant: 'destructive',
+        })
+        throw err
+      } finally {
+        isSavingRef.current = false
+        if (!isAutosave) {
+          setSalvandoEdital(false)
+        }
+
+        // Se houve edição enquanto o salvamento estava em voo, reagendar imediatamente
+        if (needsResaveRef.current) {
+          needsResaveRef.current = false
+          if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+          debounceTimerRef.current = setTimeout(() => {
+            persistirRascunhoNoBanco(true).catch(() => {})
+          }, 1500)
+        }
+      }
+    },
+    [user],
+  )
+
+  // Ação: Salvar Rascunho Manual Imediato (cancela debounce pendente)
+  const handleSalvarRascunho = async (silencioso = false) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = null
+    }
+
+    try {
+      const salvo = await persistirRascunhoNoBanco(false)
       if (!silencioso) {
         toast({
           title: 'Edital Salvo com Sucesso!',
@@ -326,16 +452,68 @@ export const DocumentosEditalPage: React.FC = () => {
         })
       }
       return salvo
-    } catch (err: any) {
-      console.error('Erro ao salvar rascunho do edital:', err)
-      toast({
-        title: 'Erro ao salvar edital',
-        description: err?.message,
-        variant: 'destructive',
-      })
-      throw err
-    } finally {
-      setSalvandoEdital(false)
+    } catch {
+      /* Erro já exibido pelo persistirRascunhoNoBanco */
+    }
+  }
+
+  // Notificador de alteração com debounce de 2.2 segundos para autosave
+  const notificarAlteracaoEdital = useCallback(
+    (novoForm: typeof editalForm) => {
+      setEditalForm(novoForm)
+
+      // Não disparar autosave durante carregamento inicial ou quando modal de upload/mesa estiver aberto
+      if (isCarregandoRef.current || modalUploadAbertoRef.current) {
+        return
+      }
+
+      // Reiniciar timer a cada digitação contínua
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+
+      setAutosaveStatus('pending')
+
+      debounceTimerRef.current = setTimeout(() => {
+        // Se modal abriu durante a espera do debounce, suspender
+        if (modalUploadAbertoRef.current) {
+          return
+        }
+        persistirRascunhoNoBanco(true).catch(() => {})
+      }, 2200)
+    },
+    [persistirRascunhoNoBanco],
+  )
+
+  // Limpeza do timer ao desmontar
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [])
+
+  // Troca de deliberação no seletor: salvar imediatamente antes de carregar nova
+  const handleTrocarDeliberacao = async (novaDelibId: string) => {
+    if (novaDelibId === deliberacaoAtiva?.id) return
+
+    // Se houver debounce pendente ou status pending, salvar antes de transicionar
+    if (debounceTimerRef.current || autosaveStatus === 'pending') {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+        debounceTimerRef.current = null
+      }
+      try {
+        await persistirRascunhoNoBanco(true)
+      } catch {
+        /* falha mantida na tela via toast */
+      }
+    }
+
+    const encontrada = deliberacoes.find((d) => d.id === novaDelibId)
+    if (encontrada) {
+      carregarDados(encontrada.id)
     }
   }
 
@@ -742,13 +920,7 @@ export const DocumentosEditalPage: React.FC = () => {
 
         <div className="flex items-center gap-2">
           {deliberacoes.length > 0 && (
-            <Select
-              value={deliberacaoAtiva?.id || ''}
-              onValueChange={(val) => {
-                const encontrada = deliberacoes.find((d) => d.id === val)
-                if (encontrada) carregarDados(encontrada.id)
-              }}
-            >
+            <Select value={deliberacaoAtiva?.id || ''} onValueChange={handleTrocarDeliberacao}>
               <SelectTrigger className="w-60 text-xs h-9 bg-white border-slate-300">
                 <SelectValue placeholder="Selecione a deliberação" />
               </SelectTrigger>
@@ -855,7 +1027,9 @@ export const DocumentosEditalPage: React.FC = () => {
                       <Input
                         type="text"
                         value={editalForm.titulo}
-                        onChange={(e) => setEditalForm({ ...editalForm, titulo: e.target.value })}
+                        onChange={(e) =>
+                          notificarAlteracaoEdital({ ...editalForm, titulo: e.target.value })
+                        }
                         placeholder="Ex: Assembleia Geral Extraordinária"
                         className="text-xs h-8"
                       />
@@ -867,7 +1041,7 @@ export const DocumentosEditalPage: React.FC = () => {
                         type="text"
                         value={editalForm.subtitulo}
                         onChange={(e) =>
-                          setEditalForm({ ...editalForm, subtitulo: e.target.value })
+                          notificarAlteracaoEdital({ ...editalForm, subtitulo: e.target.value })
                         }
                         className="text-xs h-8"
                       />
@@ -885,7 +1059,9 @@ export const DocumentosEditalPage: React.FC = () => {
                       </div>
                       <RichTextEditor
                         value={editalForm.textoAbertura}
-                        onChange={(html) => setEditalForm({ ...editalForm, textoAbertura: html })}
+                        onChange={(html) =>
+                          notificarAlteracaoEdital({ ...editalForm, textoAbertura: html })
+                        }
                         placeholder="O Síndico e a Mesa Diretora vêm por meio deste convocar..."
                         minHeight="110px"
                       />
@@ -901,7 +1077,10 @@ export const DocumentosEditalPage: React.FC = () => {
                         placeholder="Ex: 28 de Outubro de 2026, das 19h00 às 22h00"
                         value={editalForm.dataAssembleia}
                         onChange={(e) =>
-                          setEditalForm({ ...editalForm, dataAssembleia: e.target.value })
+                          notificarAlteracaoEdital({
+                            ...editalForm,
+                            dataAssembleia: e.target.value,
+                          })
                         }
                         className="text-xs h-8"
                       />
@@ -914,7 +1093,10 @@ export const DocumentosEditalPage: React.FC = () => {
                           type="text"
                           value={editalForm.primeiraConvocacao}
                           onChange={(e) =>
-                            setEditalForm({ ...editalForm, primeiraConvocacao: e.target.value })
+                            notificarAlteracaoEdital({
+                              ...editalForm,
+                              primeiraConvocacao: e.target.value,
+                            })
                           }
                           className="text-xs h-8"
                         />
@@ -925,7 +1107,10 @@ export const DocumentosEditalPage: React.FC = () => {
                           type="text"
                           value={editalForm.segundaConvocacao}
                           onChange={(e) =>
-                            setEditalForm({ ...editalForm, segundaConvocacao: e.target.value })
+                            notificarAlteracaoEdital({
+                              ...editalForm,
+                              segundaConvocacao: e.target.value,
+                            })
                           }
                           className="text-xs h-8"
                         />
@@ -940,7 +1125,7 @@ export const DocumentosEditalPage: React.FC = () => {
                         type="text"
                         value={editalForm.localTexto}
                         onChange={(e) =>
-                          setEditalForm({ ...editalForm, localTexto: e.target.value })
+                          notificarAlteracaoEdital({ ...editalForm, localTexto: e.target.value })
                         }
                         className="text-xs h-8"
                       />
@@ -958,7 +1143,9 @@ export const DocumentosEditalPage: React.FC = () => {
                       </div>
                       <RichTextEditor
                         value={editalForm.ordemDiaCustom}
-                        onChange={(html) => setEditalForm({ ...editalForm, ordemDiaCustom: html })}
+                        onChange={(html) =>
+                          notificarAlteracaoEdital({ ...editalForm, ordemDiaCustom: html })
+                        }
                         placeholder="Se desejar substituir a lista de itens por texto livre formatado com marcadores e numeração..."
                         minHeight="90px"
                       />
@@ -972,7 +1159,7 @@ export const DocumentosEditalPage: React.FC = () => {
                       <RichTextEditor
                         value={editalForm.disposicoesGerais}
                         onChange={(html) =>
-                          setEditalForm({ ...editalForm, disposicoesGerais: html })
+                          notificarAlteracaoEdital({ ...editalForm, disposicoesGerais: html })
                         }
                         placeholder="Regras de representação, procuração, instrução aos condôminos..."
                         minHeight="100px"
@@ -986,7 +1173,7 @@ export const DocumentosEditalPage: React.FC = () => {
                       <RichTextEditor
                         value={editalForm.regrasParticipacao}
                         onChange={(html) =>
-                          setEditalForm({ ...editalForm, regrasParticipacao: html })
+                          notificarAlteracaoEdital({ ...editalForm, regrasParticipacao: html })
                         }
                         placeholder="Quóruns legais, regras de adimplência e disposições regimentais..."
                         minHeight="100px"
@@ -1005,7 +1192,10 @@ export const DocumentosEditalPage: React.FC = () => {
                             placeholder="Nome completo do Síndico"
                             value={editalForm.sindicoNome}
                             onChange={(e) =>
-                              setEditalForm({ ...editalForm, sindicoNome: e.target.value })
+                              notificarAlteracaoEdital({
+                                ...editalForm,
+                                sindicoNome: e.target.value,
+                              })
                             }
                             className="text-xs h-8"
                           />
@@ -1020,7 +1210,7 @@ export const DocumentosEditalPage: React.FC = () => {
                             placeholder="000.000.000-00"
                             value={editalForm.sindicoCpf}
                             onChange={(e) => {
-                              setEditalForm({
+                              notificarAlteracaoEdital({
                                 ...editalForm,
                                 sindicoCpf: formatarCpf(e.target.value),
                               })
@@ -1040,7 +1230,10 @@ export const DocumentosEditalPage: React.FC = () => {
                           type="text"
                           value={editalForm.cargoConvocante}
                           onChange={(e) =>
-                            setEditalForm({ ...editalForm, cargoConvocante: e.target.value })
+                            notificarAlteracaoEdital({
+                              ...editalForm,
+                              cargoConvocante: e.target.value,
+                            })
                           }
                           className="text-xs h-8"
                         />
@@ -1056,6 +1249,47 @@ export const DocumentosEditalPage: React.FC = () => {
                   </CardContent>
 
                   <CardFooter className="flex flex-col gap-2 pt-0">
+                    {/* Indicador Sutil de Status do Salvamento Automático */}
+                    <div className="w-full flex items-center justify-between text-[11px] px-0.5 text-slate-500 min-h-[18px]">
+                      <div className="flex items-center gap-1.5">
+                        {autosaveStatus === 'saving' || salvandoEdital ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin text-cyan-600" />
+                            <span className="text-cyan-700 font-medium">Salvando alterações…</span>
+                          </>
+                        ) : autosaveStatus === 'pending' ? (
+                          <>
+                            <Clock className="h-3 w-3 text-amber-500" />
+                            <span className="text-slate-500">
+                              Alterações não salvas (aguardando pausa…)
+                            </span>
+                          </>
+                        ) : autosaveStatus === 'saved' && ultimoSalvoHora ? (
+                          <>
+                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                            <span className="text-emerald-700">
+                              Salvo automaticamente às {ultimoSalvoHora}
+                            </span>
+                          </>
+                        ) : autosaveStatus === 'error' ? (
+                          <>
+                            <AlertTriangle className="h-3 w-3 text-red-600" />
+                            <span className="text-red-600 font-medium">
+                              Erro ao salvar rascunho
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-slate-400">Todas as alterações salvas</span>
+                        )}
+                      </div>
+
+                      {ultimoSalvoHora &&
+                        autosaveStatus !== 'saving' &&
+                        autosaveStatus !== 'pending' && (
+                          <span className="text-[10px] text-slate-400">Backup em nuvem</span>
+                        )}
+                    </div>
+
                     <div className="grid grid-cols-2 gap-2 w-full">
                       <Button
                         variant="outline"
@@ -1063,8 +1297,17 @@ export const DocumentosEditalPage: React.FC = () => {
                         onClick={() => handleSalvarRascunho(false)}
                         disabled={salvandoEdital}
                       >
-                        <Save className="h-3.5 w-3.5 mr-1" />
-                        {salvandoEdital ? 'Salvando...' : 'Salvar Rascunho'}
+                        {salvandoEdital ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                            Salvando...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-3.5 w-3.5 mr-1" />
+                            Salvar Rascunho
+                          </>
+                        )}
                       </Button>
 
                       <Button
