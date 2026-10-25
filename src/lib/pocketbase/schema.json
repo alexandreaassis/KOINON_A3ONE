@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-25T02:10:55.829Z",
+  "generatedAt": "2026-10-25T20:01:58.234Z",
   "collections": [
     {
       "name": "users",
@@ -767,7 +767,14 @@
             "malha_unidades_gerada",
             "unidade_avulsa_criada",
             "configuracao_atualizada",
-            "usuario_gerenciado"
+            "usuario_gerenciado",
+            "edital_publicado",
+            "documento_upload",
+            "assinatura_registrada",
+            "presenca_assinada",
+            "dossie_gerado",
+            "notificacao_criada",
+            "notificacao_enviada"
           ]
         },
         {
@@ -1010,6 +1017,421 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "notificacoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin' || destinatario = @request.auth.email)",
+        "view": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin' || destinatario = @request.auth.email)",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && @request.auth.role = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "destinatario",
+          "type": "email",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "canal",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["email"]
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "edital_convocado",
+            "credenciamento_aprovado",
+            "credenciamento_rejeitado",
+            "credenciamento_pendente_mesa",
+            "otp_enviado",
+            "ata_disponivel_assinatura",
+            "deliberacao_publicada",
+            "convite_assembleia"
+          ]
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "corpo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pendente", "enviada", "falha"]
+        },
+        {
+          "name": "mensagem_erro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tentativas",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "enviada_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_notificacoes_status ON notificacoes (status)",
+        "CREATE INDEX idx_notificacoes_deliberacao ON notificacoes (deliberacao)",
+        "CREATE INDEX idx_notificacoes_destinatario ON notificacoes (destinatario)"
+      ]
+    },
+    {
+      "name": "documentos_pauta",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')"
+      },
+      "fields": [
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "convencao_proposta",
+            "regimento_interno",
+            "prestacao_contas",
+            "curriculo_candidato",
+            "edital",
+            "procuracao",
+            "outro"
+          ]
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "arquivo",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cargo_candidato",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "sindico",
+            "vice_sindico",
+            "conselheiro_fiscal",
+            "conselheiro_consultivo"
+          ]
+        },
+        {
+          "name": "nome_candidato",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "criado_por",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "hash_conteudo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_docs_deliberacao ON documentos_pauta (deliberacao)",
+        "CREATE INDEX idx_docs_tipo ON documentos_pauta (tipo)"
+      ]
+    },
+    {
+      "name": "assinaturas_documento",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "documento_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "documento_tipo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "assinante_nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "assinante_cpf",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["sindico", "mesa_presidente", "mesa_secretario", "participante"]
+        },
+        {
+          "name": "hash_documento",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_hora",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ip_dispositivo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["valida", "revogada"]
+        },
+        {
+          "name": "usuario",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_assinaturas_doc ON assinaturas_documento (documento_id)",
+        "CREATE INDEX idx_assinaturas_delib ON assinaturas_documento (deliberacao)",
+        "CREATE INDEX idx_assinaturas_cpf ON assinaturas_documento (assinante_cpf)"
+      ]
+    },
+    {
+      "name": "presencas_assinatura",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')"
+      },
+      "fields": [
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "unidade",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "unidades"
+        },
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cpf",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "forma",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["presencial", "remoto", "procuracao"]
+        },
+        {
+          "name": "procuracao_arquivo",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "nome_procurador",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cpf_procurador",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "assinatura_hash",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_hora_assinatura",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ip_dispositivo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_pres_ass_delib_unidade ON presencas_assinatura (deliberacao, unidade)",
+        "CREATE INDEX idx_pres_ass_delib ON presencas_assinatura (deliberacao)"
+      ]
     }
   ]
 }

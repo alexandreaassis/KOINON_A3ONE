@@ -184,6 +184,13 @@ export interface AuditoriaEventRecord extends RecordModel {
     | 'unidade_avulsa_criada'
     | 'configuracao_atualizada'
     | 'usuario_gerenciado'
+    | 'edital_publicado'
+    | 'documento_upload'
+    | 'assinatura_registrada'
+    | 'presenca_assinada'
+    | 'dossie_gerado'
+    | 'notificacao_criada'
+    | 'notificacao_enviada'
   data_hora?: string
   unidade?: string
   fator?: string
@@ -193,6 +200,97 @@ export interface AuditoriaEventRecord extends RecordModel {
   hash_anterior?: string
   expand?: {
     unidade?: UnidadeRecord
+  }
+}
+
+// Novos tipos da Fase 1 - Módulo de Documentos e Notificações
+export type TipoDocumentoPauta =
+  | 'convencao_proposta'
+  | 'regimento_interno'
+  | 'prestacao_contas'
+  | 'curriculo_candidato'
+  | 'edital'
+  | 'procuracao'
+  | 'outro'
+
+export type CargoCandidato =
+  | 'sindico'
+  | 'vice_sindico'
+  | 'conselheiro_fiscal'
+  | 'conselheiro_consultivo'
+
+export interface DocumentoPautaRecord extends RecordModel {
+  deliberacao: string
+  tipo: TipoDocumentoPauta
+  titulo: string
+  descricao?: string
+  arquivo?: string
+  cargo_candidato?: CargoCandidato
+  nome_candidato?: string
+  ordem?: number
+  criado_por?: string
+  hash_conteudo?: string
+  expand?: {
+    deliberacao?: DeliberacaoRecord
+    criado_por?: UserRecord
+  }
+}
+
+export interface AssinaturaDocumentoRecord extends RecordModel {
+  documento_id: string
+  documento_tipo: string
+  deliberacao?: string
+  assinante_nome: string
+  assinante_cpf: string
+  tipo: 'sindico' | 'mesa_presidente' | 'mesa_secretario' | 'participante'
+  hash_documento: string
+  data_hora?: string
+  ip_dispositivo?: string
+  status: 'valida' | 'revogada'
+  usuario?: string
+}
+
+export interface PresencaAssinaturaRecord extends RecordModel {
+  deliberacao: string
+  unidade: string
+  nome: string
+  cpf: string
+  forma: 'presencial' | 'remoto' | 'procuracao'
+  procuracao_arquivo?: string
+  nome_procurador?: string
+  cpf_procurador?: string
+  assinatura_hash?: string
+  data_hora_assinatura?: string
+  ip_dispositivo?: string
+  expand?: {
+    unidade?: UnidadeRecord
+    deliberacao?: DeliberacaoRecord
+  }
+}
+
+export type TipoNotificacao =
+  | 'edital_convocado'
+  | 'credenciamento_aprovado'
+  | 'credenciamento_rejeitado'
+  | 'credenciamento_pendente_mesa'
+  | 'otp_enviado'
+  | 'ata_disponivel_assinatura'
+  | 'deliberacao_publicada'
+  | 'convite_assembleia'
+
+export interface NotificacaoRecord extends RecordModel {
+  destinatario: string
+  canal: 'email'
+  tipo: TipoNotificacao
+  titulo?: string
+  corpo?: string
+  deliberacao?: string
+  status: 'pendente' | 'enviada' | 'falha'
+  mensagem_erro?: string
+  tentativas?: number
+  enviada_em?: string
+  expand?: {
+    deliberacao?: DeliberacaoRecord
   }
 }
 
@@ -691,5 +789,106 @@ export const api = {
       console.warn('Erro ao registrar evento de auditoria:', err)
       return null
     }
+  },
+
+  // 8. Módulo de Documentos da Pauta
+  async getDocumentosPauta(deliberacaoId: string) {
+    return pb.collection('documentos_pauta').getFullList<DocumentoPautaRecord>({
+      filter: pb.filter('deliberacao = {:delib}', { delib: deliberacaoId }),
+      sort: 'ordem,created',
+      expand: 'criado_por',
+    })
+  },
+
+  async uploadDocumentoPauta(formData: FormData) {
+    return pb.collection('documentos_pauta').create<DocumentoPautaRecord>(formData)
+  },
+
+  async deleteDocumentoPauta(id: string) {
+    return pb.collection('documentos_pauta').delete(id)
+  },
+
+  // 9. Assinaturas de Documentos
+  async getAssinaturasDocumento(documentoId: string) {
+    return pb.collection('assinaturas_documento').getFullList<AssinaturaDocumentoRecord>({
+      filter: pb.filter('documento_id = {:docId}', { docId: documentoId }),
+      sort: '-created',
+    })
+  },
+
+  async getAssinaturasPorDeliberacao(deliberacaoId: string) {
+    return pb.collection('assinaturas_documento').getFullList<AssinaturaDocumentoRecord>({
+      filter: pb.filter('deliberacao = {:delib}', { delib: deliberacaoId }),
+      sort: '-created',
+    })
+  },
+
+  async registrarAssinaturaDocumento(dados: Partial<AssinaturaDocumentoRecord>) {
+    return pb.collection('assinaturas_documento').create<AssinaturaDocumentoRecord>({
+      ...dados,
+      data_hora: dados.data_hora || new Date().toISOString(),
+      status: 'valida',
+    })
+  },
+
+  // 10. Presenças com Assinatura Eletrônica e Procurações
+  async getPresencasAssinatura(deliberacaoId: string) {
+    return pb.collection('presencas_assinatura').getFullList<PresencaAssinaturaRecord>({
+      filter: pb.filter('deliberacao = {:delib}', { delib: deliberacaoId }),
+      sort: 'unidade.identificador',
+      expand: 'unidade',
+    })
+  },
+
+  async salvarPresencaAssinatura(
+    formData: FormData | Partial<PresencaAssinaturaRecord>,
+    id?: string,
+  ) {
+    if (id) {
+      return pb.collection('presencas_assinatura').update<PresencaAssinaturaRecord>(id, formData)
+    }
+    return pb.collection('presencas_assinatura').create<PresencaAssinaturaRecord>(formData)
+  },
+
+  // 11. Notificações por E-mail
+  async getNotificacoes(deliberacaoId?: string) {
+    const filter = deliberacaoId
+      ? pb.filter('deliberacao = {:delib}', { delib: deliberacaoId })
+      : undefined
+    return pb.collection('notificacoes').getFullList<NotificacaoRecord>({
+      filter,
+      sort: '-created',
+      expand: 'deliberacao',
+    })
+  },
+
+  async dispararEditalConvocacao(dados: {
+    deliberacaoId: string
+    tituloEdital?: string
+    resumoPauta?: string
+    dataAssembleia?: string
+    linkApp?: string
+  }) {
+    return pb.send<{
+      success: boolean
+      totalDestinatarios: number
+      totalCriados: number
+      message: string
+    }>('/backend/v1/notificacoes/disparar-edital', {
+      method: 'POST',
+      body: dados,
+    })
+  },
+
+  async reenviarNotificacao(notificacaoId: string) {
+    return pb.send<{
+      success: boolean
+      message: string
+      status?: string
+      mensagemErro?: string
+    }>('/backend/v1/notificacoes/reenviar', {
+      method: 'POST',
+      body: { notificacaoId },
+    })
   },
 }

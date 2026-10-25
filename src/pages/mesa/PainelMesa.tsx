@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   api,
   type DeliberacaoRecord,
@@ -44,9 +45,11 @@ import {
   CheckCircle,
   UserCog,
   Save,
+  FileText,
 } from 'lucide-react'
 
 export const PainelMesaPage: React.FC = () => {
+  const navigate = useNavigate()
   const { rotuloUnidade } = useCondoConfig()
   const [deliberacoes, setDeliberacoes] = useState<DeliberacaoRecord[]>([])
   const [deliberacaoAtiva, setDeliberacaoAtiva] = useState<DeliberacaoRecord | null>(null)
@@ -321,9 +324,27 @@ export const PainelMesaPage: React.FC = () => {
                   {deliberacaoAtiva.titulo}
                 </CardTitle>
               </div>
-              <Badge className="bg-amber-600 text-white text-xs uppercase px-2.5 py-1 self-start sm:self-center shrink-0 text-center leading-normal">
-                Status Atual: {deliberacaoAtiva.status}
-              </Badge>
+              <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/mesa/documentos')}
+                  className="text-xs h-7 bg-white text-slate-700 border-slate-300"
+                >
+                  <FileText className="h-3.5 w-3.5 mr-1 text-amber-600" /> Documentos & Edital
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/mesa/presenca')}
+                  className="text-xs h-7 bg-white text-slate-700 border-slate-300"
+                >
+                  <UserCheck className="h-3.5 w-3.5 mr-1 text-amber-600" /> Lista de Presença
+                </Button>
+                <Badge className="bg-amber-600 text-white text-xs uppercase px-2.5 py-1 shrink-0 text-center leading-normal">
+                  Status Atual: {deliberacaoAtiva.status}
+                </Badge>
+              </div>
             </div>
           </CardHeader>
 

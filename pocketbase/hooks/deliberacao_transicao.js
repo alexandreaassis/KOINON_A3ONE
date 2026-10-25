@@ -128,6 +128,57 @@ routerAdd('POST', '/backend/v1/deliberacoes/transicao', (e) => {
     }
   } else if (novoStatus === 'PUBLICADA') {
     eventoAuditoria = 'resultado_publicado'
+
+    // Notificar credenciados aprovados sobre a publicação dos resultados
+    try {
+      const credAprovados = e.app.findRecordsByFilter(
+        'credenciamentos',
+        "status = 'aprovado'",
+        '',
+        1000,
+        0,
+      )
+
+      const notifCol = e.app.findCollectionByNameOrId('notificacoes')
+      const emailsNotificados = new Set()
+
+      for (let c of credAprovados) {
+        const uId = c.getString('unidade')
+        let emailDest = ''
+        try {
+          const uRec = e.app.findRecordById('unidades', uId)
+          emailDest = uRec.getString('contato_email')
+        } catch (_) {}
+
+        if (!emailDest) {
+          try {
+            const users = e.app.findRecordsByFilter('users', 'unidade = {:u}', '', 1, 0, { u: uId })
+            if (users && users.length > 0) emailDest = users[0].getString('email')
+          } catch (_) {}
+        }
+
+        if (emailDest && emailDest.includes('@') && !emailsNotificados.has(emailDest)) {
+          emailsNotificados.add(emailDest)
+          const notif = new Record(notifCol)
+          notif.set('destinatario', emailDest)
+          notif.set('canal', 'email')
+          notif.set('tipo', 'deliberacao_publicada')
+          notif.set('titulo', `Resultado Publicado: ${delib.getString('titulo')}`)
+          notif.set(
+            'corpo',
+            `Prezado(a) Condômino(a),\n\n` +
+              `Informamos que a apuração e o resultado da assembleia "${delib.getString('titulo')}" foram homologados e PUBLICADOS pela mesa diretora.\n\n` +
+              `Você já pode consultar o Informativo de Deliberações e o Boletim de Urna com a assinatura digital no aplicativo do condomínio.\n\n` +
+              `Agradecemos sua participação cívica na governança do nosso condomínio.`,
+          )
+          notif.set('deliberacao', deliberacaoId)
+          notif.set('status', 'pendente')
+          e.app.save(notif)
+        }
+      }
+    } catch (err) {
+      console.log('Erro ao notificar publicação das deliberações:', err)
+    }
   }
 
   e.app.save(delib)

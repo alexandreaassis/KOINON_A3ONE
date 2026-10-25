@@ -212,20 +212,54 @@ export const AuditoriaPage: React.FC = () => {
                     </CardDescription>
                   </div>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (deliberacaoAtiva?.id) {
-                        navigate(`/mesa/auditoria/boletim/${deliberacaoAtiva.id}`)
-                      } else {
-                        navigate('/mesa/auditoria/boletim')
-                      }
-                    }}
-                    className="text-xs gap-1.5 bg-slate-900 text-white hover:bg-slate-800 hover:text-white border-slate-900"
-                  >
-                    <Printer className="h-3.5 w-3.5" /> Imprimir Boletim Oficial
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const targetId = deliberacaoAtiva?.id || ''
+                        navigate(
+                          targetId
+                            ? `/mesa/documentos/informativo/${targetId}`
+                            : '/mesa/documentos/informativo',
+                        )
+                      }}
+                      className="text-xs gap-1.5 border-slate-300 text-slate-700 hover:bg-slate-100"
+                    >
+                      <FileCheck2 className="h-3.5 w-3.5" /> Informativo de Deliberações
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const targetId = deliberacaoAtiva?.id || ''
+                        navigate(
+                          targetId
+                            ? `/mesa/auditoria/dossie/${targetId}`
+                            : '/mesa/auditoria/dossie',
+                        )
+                      }}
+                      className="text-xs gap-1.5 bg-amber-600 hover:bg-amber-700 text-white border-amber-600"
+                    >
+                      <Printer className="h-3.5 w-3.5" /> Gerar Dossiê Completo Cartório (PDF)
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (deliberacaoAtiva?.id) {
+                          navigate(`/mesa/auditoria/boletim/${deliberacaoAtiva.id}`)
+                        } else {
+                          navigate('/mesa/auditoria/boletim')
+                        }
+                      }}
+                      className="text-xs gap-1.5 bg-slate-900 text-white hover:bg-slate-800 hover:text-white border-slate-900"
+                    >
+                      <Printer className="h-3.5 w-3.5" /> Imprimir Boletim Oficial
+                    </Button>
+                  </div>
                 </CardHeader>
 
                 <CardContent className="space-y-4 pt-1">

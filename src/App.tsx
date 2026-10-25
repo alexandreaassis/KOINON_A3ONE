@@ -8,8 +8,10 @@ import { CondoConfigProvider } from '@/context/CondoConfigContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
 
-// Documento Oficial de Impressão do Boletim de Urna (Sem sidebar/layout geral)
+// Documentos Oficiais de Impressão (Sem sidebar/layout geral)
 import BoletimUrnaDocumentoPage from '@/pages/mesa/BoletimUrnaDocumento'
+import InformativoDeliberacoesPage from '@/pages/mesa/InformativoDeliberacoes'
+import DossieCartorioPage from '@/pages/mesa/DossieCartorio'
 
 // Páginas de Autenticação
 import LoginPage from '@/pages/auth/Login'
@@ -22,9 +24,12 @@ import MinhaSituacaoPage from '@/pages/morador/MinhaSituacao'
 import CredenciamentoPage from '@/pages/morador/Credenciamento'
 import VotacaoPage from '@/pages/morador/Votacao'
 import ReciboPage from '@/pages/morador/Recibo'
+import DocumentosAssembleiaMoradorPage from '@/pages/morador/DocumentosAssembleia'
 
 // Páginas do Módulo da Mesa Diretora
 import PainelMesaPage from '@/pages/mesa/PainelMesa'
+import DocumentosEditalPage from '@/pages/mesa/DocumentosEdital'
+import ListaPresencaPage from '@/pages/mesa/ListaPresenca'
 import CredenciaisPendentesPage from '@/pages/mesa/CredenciaisPendentes'
 import DeliberacoesPage from '@/pages/mesa/Deliberacoes'
 import AuditoriaPage from '@/pages/mesa/Auditoria'
@@ -130,6 +135,16 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/documentos-assembleia"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <DocumentosAssembleiaMoradorPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
 
             {/* Rotas Protegidas - Módulo da Mesa Diretora */}
             <Route
@@ -138,6 +153,26 @@ const App = () => (
                 <ProtectedRoute requireMesa>
                   <AppLayout>
                     <PainelMesaPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/documentos"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <DocumentosEditalPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/presenca"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <ListaPresencaPage />
                   </AppLayout>
                 </ProtectedRoute>
               }
@@ -186,6 +221,39 @@ const App = () => (
               element={
                 <ProtectedRoute requireMesa>
                   <BoletimUrnaDocumentoPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Visões de Impressão Dedicadas: Informativo de Deliberações e Dossiê Completo Cartório */}
+            <Route
+              path="/mesa/documentos/informativo/:deliberacaoId"
+              element={
+                <ProtectedRoute requireMesa>
+                  <InformativoDeliberacoesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/documentos/informativo"
+              element={
+                <ProtectedRoute requireMesa>
+                  <InformativoDeliberacoesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/auditoria/dossie/:deliberacaoId"
+              element={
+                <ProtectedRoute requireMesa>
+                  <DossieCartorioPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/auditoria/dossie"
+              element={
+                <ProtectedRoute requireMesa>
+                  <DossieCartorioPage />
                 </ProtectedRoute>
               }
             />
