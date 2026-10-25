@@ -13,6 +13,7 @@ import {
 } from '@/lib/api'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { formatarCpf } from '@/lib/cpf'
+import { SafeHtml } from '@/components/editor/SafeHtml'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -247,12 +248,16 @@ export const DossieCartorioPage: React.FC = () => {
           </header>
 
           <div className="space-y-4 text-xs font-sans text-justify leading-relaxed">
-            <p>
-              O Síndico e a Mesa Diretora do <strong>{nomeCondominio}</strong>, no cumprimento dos
-              deveres dispostos no art. 1.350 da Lei Federal 10.406/2002 e nas disposições da
-              Convenção Condominial, <strong>CONVOCARAM</strong> os senhores condôminos titulares de
-              unidades autônomas para se reunirem em Assembleia Geral:
-            </p>
+            {editalPersonalizado?.texto_abertura ? (
+              <SafeHtml content={editalPersonalizado.texto_abertura} />
+            ) : (
+              <p>
+                O Síndico e a Mesa Diretora do <strong>{nomeCondominio}</strong>, no cumprimento dos
+                deveres dispostos no art. 1.350 da Lei Federal 10.406/2002 e nas disposições da
+                Convenção Condominial, <strong>CONVOCARAM</strong> os senhores condôminos titulares
+                de unidades autônomas para se reunirem em Assembleia Geral:
+              </p>
+            )}
 
             <div className="p-4 bg-slate-50 border border-slate-200 rounded text-xs space-y-1">
               <p>
@@ -273,17 +278,42 @@ export const DossieCartorioPage: React.FC = () => {
 
             <div className="space-y-2 pt-2">
               <h5 className="font-bold text-xs uppercase text-slate-900">Pauta da Assembleia:</h5>
-              <ol className="list-decimal list-inside space-y-1 pl-2">
-                {itensPauta.map((it) => (
-                  <li key={it.id}>
-                    <strong>{it.titulo}</strong>
-                    {it.texto && (
-                      <span className="text-slate-600 block pl-4 font-normal">{it.texto}</span>
-                    )}
-                  </li>
-                ))}
-              </ol>
+              {editalPersonalizado?.ordem_dia_custom &&
+              editalPersonalizado.ordem_dia_custom.trim().length > 0 ? (
+                <div className="pl-2">
+                  <SafeHtml content={editalPersonalizado.ordem_dia_custom} />
+                </div>
+              ) : (
+                <ol className="list-decimal list-inside space-y-1 pl-2">
+                  {itensPauta.map((it) => (
+                    <li key={it.id}>
+                      <strong>{it.titulo}</strong>
+                      {it.texto && (
+                        <span className="text-slate-600 block pl-4 font-normal">{it.texto}</span>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              )}
             </div>
+
+            {/* Disposições Gerais no Dossiê se houver */}
+            {editalPersonalizado?.disposicoes_gerais && (
+              <div className="space-y-1 pt-2 border-t border-slate-100">
+                <h5 className="font-bold text-xs uppercase text-slate-900">Disposições Gerais:</h5>
+                <SafeHtml content={editalPersonalizado.disposicoes_gerais} />
+              </div>
+            )}
+
+            {/* Regras Regimentais se houver */}
+            {editalPersonalizado?.regras_participacao && (
+              <div className="space-y-1 pt-2 border-t border-slate-100">
+                <h5 className="font-bold text-xs uppercase text-slate-900">
+                  Regras de Participação:
+                </h5>
+                <SafeHtml content={editalPersonalizado.regras_participacao} />
+              </div>
+            )}
 
             {/* Assinatura do Convocante no Edital */}
             <div className="pt-10 font-sans text-center space-y-2">

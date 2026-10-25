@@ -29,6 +29,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { RichTextEditor } from '@/components/editor/RichTextEditor'
+import { SafeHtml } from '@/components/editor/SafeHtml'
 import {
   Select,
   SelectContent,
@@ -873,17 +875,19 @@ export const DocumentosEditalPage: React.FC = () => {
 
                     {/* Bloco 2: Texto de Abertura / Fundamentação Legal */}
                     <div className="space-y-1">
-                      <Label className="text-xs text-slate-700 font-semibold">
-                        Texto de Abertura / Convocação Formal
-                      </Label>
-                      <Textarea
-                        rows={3}
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-slate-700 font-semibold">
+                          Texto de Abertura / Convocação Formal
+                        </Label>
+                        <span className="text-[10px] text-cyan-700 font-medium">
+                          Editor Rico (formatação completa)
+                        </span>
+                      </div>
+                      <RichTextEditor
                         value={editalForm.textoAbertura}
-                        onChange={(e) =>
-                          setEditalForm({ ...editalForm, textoAbertura: e.target.value })
-                        }
-                        placeholder="O Síndico e a Mesa Diretora..."
-                        className="text-xs resize-y"
+                        onChange={(html) => setEditalForm({ ...editalForm, textoAbertura: html })}
+                        placeholder="O Síndico e a Mesa Diretora vêm por meio deste convocar..."
+                        minHeight="110px"
                       />
                     </div>
 
@@ -949,17 +953,14 @@ export const DocumentosEditalPage: React.FC = () => {
                           Texto Customizado da Ordem do Dia (Opcional)
                         </Label>
                         <span className="text-[10px] text-slate-400">
-                          Deixe em branco para usar a pauta padrão
+                          Deixe em branco para usar os itens da pauta
                         </span>
                       </div>
-                      <Textarea
-                        rows={2}
+                      <RichTextEditor
                         value={editalForm.ordemDiaCustom}
-                        onChange={(e) =>
-                          setEditalForm({ ...editalForm, ordemDiaCustom: e.target.value })
-                        }
-                        placeholder="Se desejar substituir a lista padrão de itens por texto livre formatado..."
-                        className="text-xs resize-y"
+                        onChange={(html) => setEditalForm({ ...editalForm, ordemDiaCustom: html })}
+                        placeholder="Se desejar substituir a lista de itens por texto livre formatado com marcadores e numeração..."
+                        minHeight="90px"
                       />
                     </div>
 
@@ -968,13 +969,13 @@ export const DocumentosEditalPage: React.FC = () => {
                       <Label className="text-xs text-slate-700 font-semibold">
                         Disposições Gerais / Procurações
                       </Label>
-                      <Textarea
-                        rows={2}
+                      <RichTextEditor
                         value={editalForm.disposicoesGerais}
-                        onChange={(e) =>
-                          setEditalForm({ ...editalForm, disposicoesGerais: e.target.value })
+                        onChange={(html) =>
+                          setEditalForm({ ...editalForm, disposicoesGerais: html })
                         }
-                        className="text-xs resize-y"
+                        placeholder="Regras de representação, procuração, instrução aos condôminos..."
+                        minHeight="100px"
                       />
                     </div>
 
@@ -982,13 +983,13 @@ export const DocumentosEditalPage: React.FC = () => {
                       <Label className="text-xs text-slate-700 font-semibold">
                         Regras de Participação / Convenção
                       </Label>
-                      <Textarea
-                        rows={2}
+                      <RichTextEditor
                         value={editalForm.regrasParticipacao}
-                        onChange={(e) =>
-                          setEditalForm({ ...editalForm, regrasParticipacao: e.target.value })
+                        onChange={(html) =>
+                          setEditalForm({ ...editalForm, regrasParticipacao: html })
                         }
-                        className="text-xs resize-y"
+                        placeholder="Quóruns legais, regras de adimplência e disposições regimentais..."
+                        minHeight="100px"
                       />
                     </div>
 
@@ -1167,9 +1168,12 @@ export const DocumentosEditalPage: React.FC = () => {
 
                     {/* Texto Abertura */}
                     <div className="space-y-3 text-xs font-sans">
-                      <p className="text-justify leading-relaxed whitespace-pre-line text-slate-800">
-                        {editalForm.textoAbertura}
-                      </p>
+                      <div className="text-justify leading-relaxed text-slate-800">
+                        <SafeHtml
+                          content={editalForm.textoAbertura}
+                          fallbackText="Texto de abertura da convocação..."
+                        />
+                      </div>
 
                       {/* Quadro de Convocação */}
                       <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-md space-y-1.5">
@@ -1197,8 +1201,8 @@ export const DocumentosEditalPage: React.FC = () => {
                         </h5>
                         {editalForm.ordemDiaCustom &&
                         editalForm.ordemDiaCustom.trim().length > 0 ? (
-                          <div className="whitespace-pre-line text-slate-800 pl-2 text-xs">
-                            {editalForm.ordemDiaCustom}
+                          <div className="text-slate-800 pl-2 text-xs">
+                            <SafeHtml content={editalForm.ordemDiaCustom} />
                           </div>
                         ) : (
                           <ol className="list-decimal list-inside space-y-1.5 pl-2">
@@ -1227,9 +1231,9 @@ export const DocumentosEditalPage: React.FC = () => {
                         <h5 className="font-bold text-xs uppercase tracking-wider text-slate-900 font-sans border-b border-slate-100 pb-1">
                           Disposições Gerais e Instruções:
                         </h5>
-                        <p className="text-justify leading-relaxed text-slate-700 whitespace-pre-line">
-                          {editalForm.disposicoesGerais}
-                        </p>
+                        <div className="text-justify leading-relaxed text-slate-700">
+                          <SafeHtml content={editalForm.disposicoesGerais} />
+                        </div>
                       </div>
 
                       {/* Regras Regimentais */}
@@ -1238,9 +1242,9 @@ export const DocumentosEditalPage: React.FC = () => {
                           <h5 className="font-bold text-xs uppercase tracking-wider text-slate-900 font-sans border-b border-slate-100 pb-1">
                             Regras Regimentais de Participação:
                           </h5>
-                          <p className="text-justify leading-relaxed text-slate-600 whitespace-pre-line">
-                            {editalForm.regrasParticipacao}
-                          </p>
+                          <div className="text-justify leading-relaxed text-slate-600">
+                            <SafeHtml content={editalForm.regrasParticipacao} />
+                          </div>
                         </div>
                       )}
                     </div>

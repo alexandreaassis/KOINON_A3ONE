@@ -12,6 +12,7 @@ import { formatarCpf } from '@/lib/cpf'
 import { imprimirOuBaixarPdfEdital, type DadosEditalPdf } from '@/lib/pdfEdital'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { SafeHtml } from '@/components/editor/SafeHtml'
 import {
   Printer,
   Download,
@@ -239,8 +240,8 @@ export const EditalDocumentoPage: React.FC = () => {
 
         {/* Corpo do Edital */}
         <div className="space-y-4 text-xs font-sans">
-          <div className="text-justify leading-relaxed whitespace-pre-line text-slate-800">
-            {dadosConsolidados.textoAbertura}
+          <div className="text-justify leading-relaxed text-slate-800">
+            <SafeHtml content={dadosConsolidados.textoAbertura} />
           </div>
 
           <div className="bg-slate-50 border border-slate-300 p-4 rounded-md space-y-2">
@@ -266,8 +267,8 @@ export const EditalDocumentoPage: React.FC = () => {
             </h3>
             {dadosConsolidados.ordemDiaCustom &&
             dadosConsolidados.ordemDiaCustom.trim().length > 0 ? (
-              <div className="whitespace-pre-line text-slate-800 pl-2">
-                {dadosConsolidados.ordemDiaCustom}
+              <div className="text-slate-800 pl-2">
+                <SafeHtml content={dadosConsolidados.ordemDiaCustom} />
               </div>
             ) : (
               <ol className="list-decimal list-inside space-y-1.5 pl-2">
@@ -293,8 +294,8 @@ export const EditalDocumentoPage: React.FC = () => {
             <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
               Disposições Gerais e Instruções:
             </h3>
-            <div className="text-justify leading-relaxed text-slate-700 whitespace-pre-line">
-              {dadosConsolidados.disposicoesGerais}
+            <div className="text-justify leading-relaxed text-slate-700">
+              <SafeHtml content={dadosConsolidados.disposicoesGerais} />
             </div>
           </div>
 
@@ -303,8 +304,8 @@ export const EditalDocumentoPage: React.FC = () => {
               <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1">
                 Regras de Participação e Convenção:
               </h3>
-              <div className="text-justify leading-relaxed text-slate-700 whitespace-pre-line">
-                {dadosConsolidados.regrasParticipacao}
+              <div className="text-justify leading-relaxed text-slate-700">
+                <SafeHtml content={dadosConsolidados.regrasParticipacao} />
               </div>
             </div>
           )}

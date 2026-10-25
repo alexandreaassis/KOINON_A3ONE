@@ -27,6 +27,26 @@ export interface DadosEditalPdf {
   dataEmissao?: string
 }
 
+function converterTextoParaHtmlSeguro(conteudo?: string | null): string {
+  if (!conteudo || !conteudo.trim()) return ''
+  const trimmed = conteudo.trim()
+  const temHtml = /<\/?[a-z][\s\S]*>/i.test(trimmed)
+  if (temHtml) {
+    return trimmed
+  }
+  // Converter quebras em parágrafos para compatibilidade com texto puro
+  const paragrafos = trimmed
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+  if (paragrafos.length === 0) {
+    return `<p>${trimmed.replace(/\n/g, '<br />')}</p>`
+  }
+  return paragrafos
+    .map((p) => `<p style="margin-bottom: 8px;">${p.replace(/\n/g, '<br />')}</p>`)
+    .join('')
+}
+
 export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
   const dataHoje =
     dados.dataEmissao ||
@@ -43,7 +63,7 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
 
   const pautaRender =
     dados.ordemDiaCustom && dados.ordemDiaCustom.trim().length > 0
-      ? `<div style="white-space: pre-line; margin-left: 8px;">${dados.ordemDiaCustom}</div>`
+      ? `<div class="rendered-document-html" style="margin-left: 8px;">${converterTextoParaHtmlSeguro(dados.ordemDiaCustom)}</div>`
       : `<ol style="margin: 4px 0 0 20px; padding: 0;">
           ${
             dados.itensPauta.length > 0
@@ -189,7 +209,50 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
     .text-body {
       text-align: justify;
       margin-bottom: 14px;
-      line-height: 1.6;
+      line-height: 1.5;
+    }
+    .rendered-document-html p {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+    .rendered-document-html p:last-child {
+      margin-bottom: 0;
+    }
+    .rendered-document-html ul {
+      list-style-type: disc !important;
+      margin: 4px 0 8px 22px !important;
+      padding-left: 2px !important;
+    }
+    .rendered-document-html ol {
+      list-style-type: decimal !important;
+      margin: 4px 0 8px 22px !important;
+      padding-left: 2px !important;
+    }
+    .rendered-document-html li {
+      margin-bottom: 4px;
+    }
+    .rendered-document-html mark {
+      background-color: #fef08a;
+      padding: 1px 3px;
+      border-radius: 2px;
+    }
+    .rendered-document-html sub {
+      vertical-align: sub;
+      font-size: 75%;
+    }
+    .rendered-document-html sup {
+      vertical-align: super;
+      font-size: 75%;
+    }
+    .rendered-document-html u {
+      text-decoration: underline;
+    }
+    .rendered-document-html blockquote {
+      border-left: 3px solid #cbd5e1;
+      padding-left: 10px;
+      margin: 4px 0;
+      color: #475569;
+      font-style: italic;
     }
     .box-condicoes {
       background: #f8fafc;
@@ -294,8 +357,8 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
       ${dados.subtitulo ? `<p>${dados.subtitulo}</p>` : ''}
     </div>
 
-    <div class="text-body" style="white-space: pre-line;">
-      ${dados.textoAbertura}
+    <div class="text-body rendered-document-html">
+      ${converterTextoParaHtmlSeguro(dados.textoAbertura)}
     </div>
 
     <div class="box-condicoes">
@@ -311,16 +374,16 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
     </div>
 
     <div class="section-title">Disposições Gerais e Instruções aos Condôminos</div>
-    <div class="text-body" style="font-size: 10pt; white-space: pre-line; color: #334155; margin-bottom: 8px;">
-      ${dados.disposicoesGerais}
+    <div class="text-body rendered-document-html" style="font-size: 10pt; color: #334155; margin-bottom: 8px;">
+      ${converterTextoParaHtmlSeguro(dados.disposicoesGerais)}
     </div>
 
     ${
-      dados.regrasParticipacao
+      dados.regrasParticipacao && dados.regrasParticipacao.trim().length > 0
         ? `
       <div class="section-title">Regras Regimentais e Legais de Participação</div>
-      <div class="text-body" style="font-size: 9.5pt; white-space: pre-line; color: #475569; margin-bottom: 10px;">
-        ${dados.regrasParticipacao}
+      <div class="text-body rendered-document-html" style="font-size: 9.5pt; color: #475569; margin-bottom: 10px;">
+        ${converterTextoParaHtmlSeguro(dados.regrasParticipacao)}
       </div>
     `
         : ''
