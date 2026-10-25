@@ -236,6 +236,8 @@ export interface DocumentoPautaRecord extends RecordModel {
   }
 }
 
+export type FormatoAssinatura = 'desenho' | 'texto' | 'em_branco'
+
 export interface EditalDeliberacaoRecord extends RecordModel {
   deliberacao: string
   titulo?: string
@@ -255,6 +257,9 @@ export interface EditalDeliberacaoRecord extends RecordModel {
   hash_assinado?: string
   data_assinatura?: string
   conteudo_assinado_snapshot?: string
+  formato_assinatura?: FormatoAssinatura
+  assinatura_visual?: string
+  assinatura_texto?: string
   expand?: {
     deliberacao?: DeliberacaoRecord
   }
@@ -272,6 +277,9 @@ export interface AssinaturaDocumentoRecord extends RecordModel {
   ip_dispositivo?: string
   status: 'valida' | 'revogada'
   usuario?: string
+  formato_assinatura?: FormatoAssinatura
+  assinatura_visual?: string
+  assinatura_texto?: string
 }
 
 export interface PresencaAssinaturaRecord extends RecordModel {
@@ -286,6 +294,9 @@ export interface PresencaAssinaturaRecord extends RecordModel {
   assinatura_hash?: string
   data_hora_assinatura?: string
   ip_dispositivo?: string
+  formato_assinatura?: FormatoAssinatura
+  assinatura_visual?: string
+  assinatura_texto?: string
   expand?: {
     unidade?: UnidadeRecord
     deliberacao?: DeliberacaoRecord

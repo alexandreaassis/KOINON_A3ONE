@@ -25,6 +25,9 @@ export interface DadosEditalPdf {
   hashAssinatura?: string | null
   dataAssinatura?: string | null
   dataEmissao?: string
+  formatoAssinatura?: 'desenho' | 'texto' | 'em_branco'
+  assinaturaVisual?: string
+  assinaturaTexto?: string
 }
 
 function converterTextoParaHtmlSeguro(conteudo?: string | null): string {
@@ -102,11 +105,27 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
       </div>
     `
 
+  const temDesenho = dados.formatoAssinatura === 'desenho' && !!dados.assinaturaVisual
+  const temTexto = dados.formatoAssinatura === 'texto' && !!dados.assinaturaTexto
+
+  const areaGraficaAssinatura = temDesenho
+    ? `<div style="height: 44px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 2px;">
+         <img src="${dados.assinaturaVisual}" alt="Assinatura" style="max-height: 42px; max-width: 220px; object-fit: contain;" />
+       </div>`
+    : temTexto
+      ? `<div style="height: 44px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 2px;">
+           <span style="font-family: 'Dancing Script', 'Great Vibes', cursive; font-size: 24pt; color: #020617; font-weight: bold; line-height: 1;">${dados.assinaturaTexto}</span>
+         </div>`
+      : `<div style="height: 18px;"></div>`
+
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
   <title>Edital de Convocação - ${dados.nomeCondominio}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Great+Vibes&display=swap" rel="stylesheet" />
   <style>
     @page {
       size: A4 portrait;
@@ -402,6 +421,7 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
 
     <div class="signature-area">
       <div class="signature-box">
+        ${areaGraficaAssinatura}
         <div class="signature-line"></div>
         <div class="signature-name">${dados.sindicoNome || 'Síndico(a) / Mesa Diretora'}</div>
         ${dados.sindicoCpf ? `<div class="signature-cpf">CPF: ${dados.sindicoCpf}</div>` : ''}

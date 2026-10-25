@@ -49,7 +49,15 @@ import {
   RefreshCw,
   Search,
   ExternalLink,
+  ShieldCheck,
 } from 'lucide-react'
+import { BlocoAssinaturaCompacto } from '@/components/assinatura/BlocoAssinaturaCompacto'
+import {
+  SeletorAssinatura,
+  DadosCapturaAssinatura,
+} from '@/components/assinatura/SeletorAssinatura'
+import { ModalAssinaturaEletronica } from '@/components/assinatura/ModalAssinaturaEletronica'
+import { FormatoAssinatura } from '@/lib/api'
 
 export const ListaPresencaPage: React.FC = () => {
   const { nomeCondominio, logoUrl, rotuloUnidade } = useCondoConfig()
@@ -80,6 +88,19 @@ export const ListaPresencaPage: React.FC = () => {
   const [procuradorCpfErro, setProcuradorCpfErro] = useState<string | null>(null)
   const [arquivoProcuracao, setArquivoProcuracao] = useState<File | null>(null)
   const [salvando, setSalvando] = useState(false)
+  const [capturaPresenca, setCapturaPresenca] = useState<DadosCapturaAssinatura>({
+    formato: 'desenho',
+  })
+
+  // Assinaturas da Mesa Diretora (Presidente e Secretário)
+  const [modalAssinaturaMesa, setModalAssinaturaMesa] = useState<
+    'mesa_presidente' | 'mesa_secretario' | null
+  >(null)
+  const [salvandoMesa, setSalvandoMesa] = useState(false)
+  const [assinaturaPresidente, setAssinaturaPresidente] =
+    useState<AssinaturaDocumentoRecord | null>(null)
+  const [assinaturaSecretario, setAssinaturaSecretario] =
+    useState<AssinaturaDocumentoRecord | null>(null)
 
   // Carregar dados
   const carregarDados = async (delibId?: string) => {
@@ -102,12 +123,29 @@ export const ListaPresencaPage: React.FC = () => {
       setDeliberacaoAtiva(delib || null)
 
       if (delib) {
-        const [assList, presList] = await Promise.all([
+        const [assList, presList, assinaturasDoc] = await Promise.all([
           api.getPresencasAssinatura(delib.id),
           api.getPresencas(delib.id),
+          api.getAssinaturasPorDeliberacao(delib.id),
         ])
         setPresencasAssinadas(assList)
         setPresencasAntigas(presList)
+
+        const docIdLista = `lista_presenca_${delib.id}`
+        const presMesa = assinaturasDoc.find(
+          (a) =>
+            (a.documento_id === docIdLista || a.documento_tipo === 'lista_presenca') &&
+            a.tipo === 'mesa_presidente' &&
+            a.status === 'valida',
+        )
+        const secMesa = assinaturasDoc.find(
+          (a) =>
+            (a.documento_id === docIdLista || a.documento_tipo === 'lista_presenca') &&
+            a.tipo === 'mesa_secretario' &&
+            a.status === 'valida',
+        )
+        setAssinaturaPresidente(presMesa || null)
+        setAssinaturaSecretario(secMesa || null)
       }
     } catch (err: any) {
       console.error('Erro ao carregar lista de presença:', err)
@@ -198,6 +236,7 @@ export const ListaPresencaPage: React.FC = () => {
         nomeProcurador: nomeProcurador.trim(),
         cpfProcurador: cpfProcurador.replace(/\D/g, ''),
         momento: dataHora,
+        formatoAssinatura: capturaPresenca.formato,
       })
 
       const hashAssinatura = await calcularSha256(payloadHash)
@@ -214,6 +253,13 @@ export const ListaPresencaPage: React.FC = () => {
       formData.append('assinatura_hash', hashAssinatura)
       formData.append('data_hora_assinatura', dataHora)
       formData.append('ip_dispositivo', navigator.userAgent)
+      formData.append('formato_assinatura', capturaPresenca.formato)
+      if (capturaPresenca.formato === 'desenho' && capturaPresenca.assinaturaVisual) {
+        formData.append('assinatura_visual', capturaPresenca.assinaturaVisual)
+      }
+      if (capturaPresenca.formato === 'texto' && capturaPresenca.assinaturaTexto) {
+        formData.append('assinatura_texto', capturaPresenca.assinaturaTexto)
+      }
 
       if (formaPresenca === 'procuracao') {
         formData.append('nome_procurador', nomeProcurador.trim())
@@ -252,6 +298,7 @@ export const ListaPresencaPage: React.FC = () => {
       setNomeProcurador('')
       setCpfProcurador('')
       setArquivoProcuracao(null)
+      setCapturaPresenca({ formato: 'desenho' })
 
       if (deliberacaoAtiva) {
         const assList = await api.getPresencasAssinatura(deliberacaoAtiva.id)
@@ -265,6 +312,78 @@ export const ListaPresencaPage: React.FC = () => {
       })
     } finally {
       setSalvando(false)
+    }
+  }
+
+  // Assinar como Mesa Diretora (Presidente ou Secretário)
+  const handleConfirmarAssinaturaMesa = async (dados: {
+    nome: string
+    cpf: string
+    cargo?: string
+    formato: FormatoAssinatura
+    assinaturaVisual?: string
+    assinaturaTexto?: string
+  }) => {
+    if (!deliberacaoAtiva || !modalAssinaturaMesa) return
+
+    setSalvandoMesa(true)
+    try {
+      const dataHoraIso = new Date().toISOString()
+      const docId = `lista_presenca_${deliberacaoAtiva.id}`
+
+      const payloadHash = JSON.stringify({
+        deliberacaoId: deliberacaoAtiva.id,
+        tipoDocumento: 'lista_presenca',
+        cargoMesa: modalAssinaturaMesa,
+        nome: dados.nome,
+        cpf: dados.cpf,
+        totalPresentes,
+        momentoAssinatura: dataHoraIso,
+      })
+
+      const hash = await calcularSha256(payloadHash)
+
+      const reg = await api.registrarAssinaturaDocumento({
+        documento_id: docId,
+        documento_tipo: 'lista_presenca',
+        deliberacao: deliberacaoAtiva.id,
+        assinante_nome: dados.nome,
+        assinante_cpf: dados.cpf,
+        tipo: modalAssinaturaMesa,
+        hash_documento: hash,
+        data_hora: dataHoraIso,
+        usuario: user?.id,
+        ip_dispositivo: navigator.userAgent,
+        formato_assinatura: dados.formato,
+        assinatura_visual: dados.assinaturaVisual,
+        assinatura_texto: dados.assinaturaTexto,
+      })
+
+      if (modalAssinaturaMesa === 'mesa_presidente') {
+        setAssinaturaPresidente(reg)
+      } else {
+        setAssinaturaSecretario(reg)
+      }
+
+      await api.registrarEventoAuditoria({
+        evento: 'assinatura_registrada',
+        fator: `Mesa Diretora: ${dados.nome} assinou a Lista de Presença (${modalAssinaturaMesa}) com modo ${dados.formato}`,
+        dispositivo: navigator.userAgent,
+      })
+
+      setModalAssinaturaMesa(null)
+      toast({
+        title: 'Assinatura da Mesa Registrada!',
+        description: `Carimbo SHA-256 gerado: ${hash.substring(0, 16)}...`,
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao registrar assinatura da mesa',
+        description: err?.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setSalvandoMesa(false)
     }
   }
 
@@ -544,18 +663,36 @@ export const ListaPresencaPage: React.FC = () => {
                       {/* Assinatura Eletrônica / Hash */}
                       <td className="p-2 text-center">
                         {pres?.assinatura_hash ? (
-                          <div className="font-mono text-[9px] leading-tight text-slate-700">
-                            <span className="font-bold text-emerald-700 block">
-                              ✓ ASSINADO DIGITALMENTE
-                            </span>
-                            <span className="break-all text-[8px] text-slate-500 block">
-                              {pres.assinatura_hash.substring(0, 20)}...
-                            </span>
-                            <span className="text-[8px] text-slate-400 block">
-                              {pres.data_hora_assinatura
-                                ? new Date(pres.data_hora_assinatura).toLocaleString('pt-BR')
-                                : ''}
-                            </span>
+                          <div className="flex flex-col items-center">
+                            {/* Renderização gráfica se houver (desenho ou cursiva) */}
+                            {pres.formato_assinatura === 'desenho' && pres.assinatura_visual ? (
+                              <img
+                                src={pres.assinatura_visual}
+                                alt="Assinatura"
+                                className="max-h-7 max-w-[140px] object-contain mb-0.5"
+                              />
+                            ) : pres.formato_assinatura === 'texto' && pres.assinatura_texto ? (
+                              <span
+                                style={{ fontFamily: '"Dancing Script", "Great Vibes", cursive' }}
+                                className="text-base text-slate-900 font-bold leading-none mb-0.5 block truncate max-w-[150px]"
+                              >
+                                {pres.assinatura_texto}
+                              </span>
+                            ) : null}
+
+                            <div className="font-mono text-[9px] leading-tight text-slate-700">
+                              <span className="font-bold text-emerald-700 block">
+                                ✓ ASSINADO DIGITALMENTE
+                              </span>
+                              <span className="break-all text-[8px] text-slate-500 block">
+                                {pres.assinatura_hash.substring(0, 18)}...
+                              </span>
+                              <span className="text-[8px] text-slate-400 block">
+                                {pres.data_hora_assinatura
+                                  ? new Date(pres.data_hora_assinatura).toLocaleString('pt-BR')
+                                  : ''}
+                              </span>
+                            </div>
                           </div>
                         ) : (
                           <div className="border-b border-dashed border-slate-300 h-6" />
@@ -572,37 +709,51 @@ export const ListaPresencaPage: React.FC = () => {
         {/* Rodapé Institucional com Assinatura da Mesa e Resalva LGPD */}
         <footer className="mt-8 pt-4 border-t-2 border-slate-900 font-sans break-inside-avoid">
           <div className="grid grid-cols-2 gap-8 text-center pt-6 pb-2">
-            <div>
-              <div className="border-t border-slate-900 mx-auto w-4/5 mb-1" />
-              <div className="space-y-0 leading-tight">
-                <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
-                  {deliberacaoAtiva?.mesa_presidente_nome || 'Presidente da Mesa Diretora'}
-                </p>
-                {deliberacaoAtiva?.mesa_presidente_cpf && (
-                  <p className="text-[10px] text-slate-600 font-mono m-0 p-0 leading-tight">
-                    CPF: {formatarCpf(deliberacaoAtiva.mesa_presidente_cpf)}
-                  </p>
-                )}
-                <p className="text-[10px] text-slate-500 m-0 p-0 leading-tight">
-                  Presidente da Assembleia
-                </p>
+            {/* Presidente */}
+            <div className="flex flex-col items-center">
+              <BlocoAssinaturaCompacto
+                nome={deliberacaoAtiva?.mesa_presidente_nome || 'Presidente da Mesa Diretora'}
+                cpf={deliberacaoAtiva?.mesa_presidente_cpf}
+                cargo="Presidente da Assembleia"
+                formato={assinaturaPresidente?.formato_assinatura || 'em_branco'}
+                assinaturaVisual={assinaturaPresidente?.assinatura_visual}
+                assinaturaTexto={assinaturaPresidente?.assinatura_texto}
+                larguraLinha="w-60"
+              />
+              <div className="mt-1 print:hidden">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setModalAssinaturaMesa('mesa_presidente')}
+                  className="h-6 text-[10px] px-2 text-slate-700 border-slate-300 gap-1"
+                >
+                  <ShieldCheck className="h-3 w-3 text-cyan-700" />
+                  {assinaturaPresidente ? 'Reassinar como Presidente' : 'Assinar como Presidente'}
+                </Button>
               </div>
             </div>
 
-            <div>
-              <div className="border-t border-slate-900 mx-auto w-4/5 mb-1" />
-              <div className="space-y-0 leading-tight">
-                <p className="text-xs font-bold text-slate-950 uppercase m-0 p-0 leading-tight">
-                  {deliberacaoAtiva?.mesa_secretario_nome || 'Secretário(a) da Mesa'}
-                </p>
-                {deliberacaoAtiva?.mesa_secretario_cpf && (
-                  <p className="text-[10px] text-slate-600 font-mono m-0 p-0 leading-tight">
-                    CPF: {formatarCpf(deliberacaoAtiva.mesa_secretario_cpf)}
-                  </p>
-                )}
-                <p className="text-[10px] text-slate-500 m-0 p-0 leading-tight">
-                  Secretário(a) dos Trabalhos
-                </p>
+            {/* Secretário */}
+            <div className="flex flex-col items-center">
+              <BlocoAssinaturaCompacto
+                nome={deliberacaoAtiva?.mesa_secretario_nome || 'Secretário(a) da Mesa'}
+                cpf={deliberacaoAtiva?.mesa_secretario_cpf}
+                cargo="Secretário(a) dos Trabalhos"
+                formato={assinaturaSecretario?.formato_assinatura || 'em_branco'}
+                assinaturaVisual={assinaturaSecretario?.assinatura_visual}
+                assinaturaTexto={assinaturaSecretario?.assinatura_texto}
+                larguraLinha="w-60"
+              />
+              <div className="mt-1 print:hidden">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setModalAssinaturaMesa('mesa_secretario')}
+                  className="h-6 text-[10px] px-2 text-slate-700 border-slate-300 gap-1"
+                >
+                  <ShieldCheck className="h-3 w-3 text-cyan-700" />
+                  {assinaturaSecretario ? 'Reassinar como Secretário' : 'Assinar como Secretário'}
+                </Button>
               </div>
             </div>
           </div>
@@ -619,6 +770,50 @@ export const ListaPresencaPage: React.FC = () => {
           </div>
         </footer>
       </article>
+
+      {/* Modal Reutilizável para Assinatura da Mesa Diretora */}
+      {modalAssinaturaMesa && (
+        <ModalAssinaturaEletronica
+          aberto={!!modalAssinaturaMesa}
+          onOpenChange={(ab) => !ab && setModalAssinaturaMesa(null)}
+          tituloDocumento="Lista Oficial de Presença"
+          subtitulo={`Assinatura da Mesa como ${
+            modalAssinaturaMesa === 'mesa_presidente' ? 'Presidente' : 'Secretário(a)'
+          } dos trabalhos`}
+          nomeInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? deliberacaoAtiva?.mesa_presidente_nome || ''
+              : deliberacaoAtiva?.mesa_secretario_nome || ''
+          }
+          cpfInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? deliberacaoAtiva?.mesa_presidente_cpf || ''
+              : deliberacaoAtiva?.mesa_secretario_cpf || ''
+          }
+          cargoInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? 'Presidente da Mesa Diretora'
+              : 'Secretário(a) da Mesa Diretora'
+          }
+          formatoInicial={
+            (modalAssinaturaMesa === 'mesa_presidente'
+              ? assinaturaPresidente?.formato_assinatura
+              : assinaturaSecretario?.formato_assinatura) || 'desenho'
+          }
+          assinaturaVisualInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? assinaturaPresidente?.assinatura_visual
+              : assinaturaSecretario?.assinatura_visual
+          }
+          assinaturaTextoInicial={
+            modalAssinaturaMesa === 'mesa_presidente'
+              ? assinaturaPresidente?.assinatura_texto
+              : assinaturaSecretario?.assinatura_texto
+          }
+          salvando={salvandoMesa}
+          onConfirmar={handleConfirmarAssinaturaMesa}
+        />
+      )}
 
       {/* Modal Registrar Presença / Assinatura */}
       <Dialog open={modalPresencaAberto} onOpenChange={setModalPresencaAberto}>
@@ -759,6 +954,20 @@ export const ListaPresencaPage: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* Componente Reutilizável de Escolha da Assinatura: Tela, Nome ou Deixar em Branco */}
+            <div className="pt-2">
+              <SeletorAssinatura
+                valorInicial={capturaPresenca}
+                nomeSugerido={
+                  formaPresenca === 'procuracao'
+                    ? nomeProcurador || participanteNome
+                    : participanteNome
+                }
+                onChange={(dados) => setCapturaPresenca(dados)}
+                disabled={salvando}
+              />
+            </div>
 
             <DialogFooter className="pt-2">
               <Button

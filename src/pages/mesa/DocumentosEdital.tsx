@@ -16,6 +16,8 @@ import { formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
 import pb from '@/lib/pocketbase/client'
 import { toast } from '@/hooks/use-toast'
 import { imprimirOuBaixarPdfEdital, type DadosEditalPdf } from '@/lib/pdfEdital'
+import { BlocoAssinaturaCompacto } from '@/components/assinatura/BlocoAssinaturaCompacto'
+import { ModalAssinaturaEletronica } from '@/components/assinatura/ModalAssinaturaEletronica'
 import {
   Card,
   CardHeader,
@@ -104,6 +106,7 @@ export const DocumentosEditalPage: React.FC = () => {
   const [salvandoEdital, setSalvandoEdital] = useState(false)
   const [assinandoEdital, setAssinandoEdital] = useState(false)
   const [disparandoEmails, setDisparandoEmails] = useState(false)
+  const [modalAssinaturaAberto, setModalAssinaturaAberto] = useState(false)
 
   // Estado do Autosave
   const [autosaveStatus, setAutosaveStatus] = useState<
@@ -115,6 +118,9 @@ export const DocumentosEditalPage: React.FC = () => {
   const [editalAssinadoHash, setEditalAssinadoHash] = useState<string | null>(null)
   const [editalAssinadoData, setEditalAssinadoData] = useState<string | null>(null)
   const [snapshotAssinado, setSnapshotAssinado] = useState<string | null>(null)
+  const [formatoAssinatura, setFormatoAssinatura] = useState<FormatoAssinatura>('desenho')
+  const [assinaturaVisual, setAssinaturaVisual] = useState<string | undefined>(undefined)
+  const [assinaturaTexto, setAssinaturaTexto] = useState<string | undefined>(undefined)
 
   // Modal Upload de Documento da Pauta
   const [modalUploadAberto, setModalUploadAberto] = useState(false)
@@ -269,6 +275,15 @@ export const DocumentosEditalPage: React.FC = () => {
             editalSalvo.data_assinatura || assEdital?.data_hora || assEdital?.created || null,
           )
           setSnapshotAssinado(editalSalvo.conteudo_assinado_snapshot || null)
+          setFormatoAssinatura(
+            editalSalvo.formato_assinatura || assEdital?.formato_assinatura || 'desenho',
+          )
+          setAssinaturaVisual(
+            editalSalvo.assinatura_visual || assEdital?.assinatura_visual || undefined,
+          )
+          setAssinaturaTexto(
+            editalSalvo.assinatura_texto || assEdital?.assinatura_texto || undefined,
+          )
         } else {
           // Nenhum edital salvo previamente: inicializar com padrões inteligentes
           setEditalDbId(null)
@@ -294,10 +309,16 @@ export const DocumentosEditalPage: React.FC = () => {
           if (assEdital) {
             setEditalAssinadoHash(assEdital.hash_documento)
             setEditalAssinadoData(assEdital.data_hora || assEdital.created)
+            setFormatoAssinatura(assEdital.formato_assinatura || 'desenho')
+            setAssinaturaVisual(assEdital.assinatura_visual || undefined)
+            setAssinaturaTexto(assEdital.assinatura_texto || undefined)
           } else {
             setEditalAssinadoHash(null)
             setEditalAssinadoData(null)
             setSnapshotAssinado(null)
+            setFormatoAssinatura('desenho')
+            setAssinaturaVisual(undefined)
+            setAssinaturaTexto(undefined)
           }
         }
       }
@@ -517,94 +538,103 @@ export const DocumentosEditalPage: React.FC = () => {
     }
   }
 
-  // Ação: Assinar e Publicar Edital de Convocação
-  const handleAssinarEdital = async () => {
+  // Ação: Abrir modal de assinatura com opções gráficas (tela, texto, em branco)
+  const handleAbrirModalAssinatura = () => {
     if (!deliberacaoAtiva) return
+    setModalAssinaturaAberto(true)
+  }
 
-    if (!editalForm.sindicoNome.trim()) {
-      toast({
-        title: 'Nome do Convocante obrigatório',
-        description: 'Preencha o nome do responsável pela assinatura da convocação.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    const rawCpf = editalForm.sindicoCpf.replace(/\D/g, '')
-    if (rawCpf.length > 0 && !validarCpf(editalForm.sindicoCpf)) {
-      setSindicoCpfErro(MSG_CPF_INVALIDO)
-      toast({
-        title: 'CPF do Convocante inválido',
-        description: 'Digite um CPF válido antes de assinar eletronicamente.',
-        variant: 'destructive',
-      })
-      return
-    }
-    setSindicoCpfErro(null)
+  // Ação executada pelo modal após escolher modo e confirmar
+  const handleConfirmarAssinaturaComModo = async (dadosAssinatura: {
+    nome: string
+    cpf: string
+    cargo?: string
+    formato: FormatoAssinatura
+    assinaturaVisual?: string
+    assinaturaTexto?: string
+  }) => {
+    if (!deliberacaoAtiva) return
 
     setAssinandoEdital(true)
     try {
       const dataHoraIso = new Date().toISOString()
+      const rawCpf = dadosAssinatura.cpf.replace(/\D/g, '')
 
-      // Conteúdo estrito a ser carimbado
+      // Atualizar estado do form com os dados confirmados
+      const formAtualizado = {
+        ...editalForm,
+        sindicoNome: dadosAssinatura.nome,
+        sindicoCpf: formatarCpf(rawCpf),
+        cargoConvocante: dadosAssinatura.cargo || editalForm.cargoConvocante,
+      }
+      setEditalForm(formAtualizado)
+
+      // Conteúdo estrito a ser carimbado incluindo dados e modo da assinatura
       const conteudoEdital = JSON.stringify({
         condominio: nomeCondominio,
         deliberacaoId: deliberacaoAtiva.id,
-        titulo: editalForm.titulo.trim() || deliberacaoAtiva.titulo,
-        subtitulo: editalForm.subtitulo.trim(),
-        textoAbertura: editalForm.textoAbertura.trim(),
-        dataAssembleia: editalForm.dataAssembleia.trim(),
-        primeiraConvocacao: editalForm.primeiraConvocacao.trim(),
-        segundaConvocacao: editalForm.segundaConvocacao.trim(),
-        local: editalForm.localTexto.trim(),
-        ordemDiaCustom: editalForm.ordemDiaCustom.trim(),
+        titulo: formAtualizado.titulo.trim() || deliberacaoAtiva.titulo,
+        subtitulo: formAtualizado.subtitulo.trim(),
+        textoAbertura: formAtualizado.textoAbertura.trim(),
+        dataAssembleia: formAtualizado.dataAssembleia.trim(),
+        primeiraConvocacao: formAtualizado.primeiraConvocacao.trim(),
+        segundaConvocacao: formAtualizado.segundaConvocacao.trim(),
+        local: formAtualizado.localTexto.trim(),
+        ordemDiaCustom: formAtualizado.ordemDiaCustom.trim(),
         pauta: itensPauta.map((it) => `${it.ordem}. ${it.titulo}`),
-        disposicoes: editalForm.disposicoesGerais.trim(),
-        regras: editalForm.regrasParticipacao.trim(),
-        sindicoNome: editalForm.sindicoNome.trim(),
+        disposicoes: formAtualizado.disposicoesGerais.trim(),
+        regras: formAtualizado.regrasParticipacao.trim(),
+        sindicoNome: dadosAssinatura.nome,
         sindicoCpf: rawCpf,
-        cargo: editalForm.cargoConvocante.trim(),
+        cargo: dadosAssinatura.cargo || formAtualizado.cargoConvocante.trim(),
+        formatoAssinatura: dadosAssinatura.formato,
         momentoAssinatura: dataHoraIso,
       })
 
       const hash = await calcularSha256Browser(conteudoEdital)
 
-      // 1. Gravar registro oficial na collection assinaturas_documento
+      // 1. Gravar registro oficial na collection assinaturas_documento com imagem/texto
       await api.registrarAssinaturaDocumento({
         documento_id: `edital_${deliberacaoAtiva.id}`,
         documento_tipo: 'edital',
         deliberacao: deliberacaoAtiva.id,
-        assinante_nome: editalForm.sindicoNome.trim(),
+        assinante_nome: dadosAssinatura.nome,
         assinante_cpf: rawCpf,
         tipo: 'sindico',
         hash_documento: hash,
         data_hora: dataHoraIso,
         usuario: user?.id,
         ip_dispositivo: navigator.userAgent,
+        formato_assinatura: dadosAssinatura.formato,
+        assinatura_visual: dadosAssinatura.assinaturaVisual,
+        assinatura_texto: dadosAssinatura.assinaturaTexto,
       })
 
-      // 2. Persistir na collection editais_deliberacao com snapshot
-      const novoSnapshot = snapshotAtual
+      // 2. Persistir na collection editais_deliberacao com snapshot e dados gráficos
+      const novoSnapshot = gerarSnapshotDeEstado(formAtualizado, itensPauta)
       const salvo = await api.salvarEditalDeliberacao(
         deliberacaoAtiva.id,
         {
-          titulo: editalForm.titulo.trim() || deliberacaoAtiva.titulo,
-          subtitulo: editalForm.subtitulo.trim(),
-          texto_abertura: editalForm.textoAbertura.trim(),
-          data_assembleia: editalForm.dataAssembleia.trim(),
-          primeira_convocacao: editalForm.primeiraConvocacao.trim(),
-          segunda_convocacao: editalForm.segundaConvocacao.trim(),
-          local_texto: editalForm.localTexto.trim(),
-          ordem_dia_custom: editalForm.ordemDiaCustom.trim(),
-          disposicoes_gerais: editalForm.disposicoesGerais.trim(),
-          regras_participacao: editalForm.regrasParticipacao.trim(),
-          sindico_nome: editalForm.sindicoNome.trim(),
+          titulo: formAtualizado.titulo.trim() || deliberacaoAtiva.titulo,
+          subtitulo: formAtualizado.subtitulo.trim(),
+          texto_abertura: formAtualizado.textoAbertura.trim(),
+          data_assembleia: formAtualizado.dataAssembleia.trim(),
+          primeira_convocacao: formAtualizado.primeiraConvocacao.trim(),
+          segunda_convocacao: formAtualizado.segundaConvocacao.trim(),
+          local_texto: formAtualizado.localTexto.trim(),
+          ordem_dia_custom: formAtualizado.ordemDiaCustom.trim(),
+          disposicoes_gerais: formAtualizado.disposicoesGerais.trim(),
+          regras_participacao: formAtualizado.regrasParticipacao.trim(),
+          sindico_nome: dadosAssinatura.nome,
           sindico_cpf: rawCpf,
-          cargo_convocante: editalForm.cargoConvocante.trim(),
+          cargo_convocante: dadosAssinatura.cargo || formAtualizado.cargoConvocante.trim(),
           status: 'assinado',
           hash_assinado: hash,
           data_assinatura: dataHoraIso,
           conteudo_assinado_snapshot: novoSnapshot,
+          formato_assinatura: dadosAssinatura.formato,
+          assinatura_visual: dadosAssinatura.assinaturaVisual,
+          assinatura_texto: dadosAssinatura.assinaturaTexto,
         },
         editalDbId || undefined,
       )
@@ -613,17 +643,22 @@ export const DocumentosEditalPage: React.FC = () => {
       setEditalAssinadoHash(hash)
       setEditalAssinadoData(dataHoraIso)
       setSnapshotAssinado(novoSnapshot)
+      setFormatoAssinatura(dadosAssinatura.formato)
+      setAssinaturaVisual(dadosAssinatura.assinaturaVisual)
+      setAssinaturaTexto(dadosAssinatura.assinaturaTexto)
 
       // 3. Registrar na trilha de auditoria encadeada
       await api.registrarEventoAuditoria({
         evento: 'assinatura_registrada',
-        fator: `Convocante: ${editalForm.sindicoNome.trim()} assinou digitalmente o Edital da deliberação ${deliberacaoAtiva.id} (Hash: ${hash.substring(0, 16)}...)`,
+        fator: `Convocante: ${dadosAssinatura.nome} assinou eletronicamente o Edital (${dadosAssinatura.formato}) da deliberação ${deliberacaoAtiva.id} (Hash: ${hash.substring(0, 16)}...)`,
         dispositivo: navigator.userAgent,
       })
 
+      setModalAssinaturaAberto(false)
+
       toast({
         title: 'Edital Assinado Eletronicamente!',
-        description: `Carimbo criptográfico SHA-256 gerado: ${hash.substring(0, 16)}...`,
+        description: `Modo: ${dadosAssinatura.formato === 'desenho' ? 'Tela desenhada' : dadosAssinatura.formato === 'texto' ? 'Nome digitado' : 'Em branco'}. Hash: ${hash.substring(0, 16)}...`,
       })
     } catch (err: any) {
       toast({
@@ -721,6 +756,9 @@ export const DocumentosEditalPage: React.FC = () => {
     status: hashDesatualizado ? 'rascunho' : editalAssinadoHash ? 'assinado' : 'rascunho',
     hashAssinatura: hashDesatualizado ? null : editalAssinadoHash,
     dataAssinatura: hashDesatualizado ? null : editalAssinadoData,
+    formatoAssinatura: hashDesatualizado ? 'em_branco' : formatoAssinatura,
+    assinaturaVisual: hashDesatualizado ? undefined : assinaturaVisual,
+    assinaturaTexto: hashDesatualizado ? undefined : assinaturaTexto,
   }
 
   // Ação: Baixar PDF
@@ -1312,7 +1350,7 @@ export const DocumentosEditalPage: React.FC = () => {
 
                       <Button
                         className="bg-cyan-700 hover:bg-cyan-800 text-white text-xs h-9"
-                        onClick={handleAssinarEdital}
+                        onClick={handleAbrirModalAssinatura}
                         disabled={assinandoEdital}
                       >
                         <ShieldCheck className="h-3.5 w-3.5 mr-1" />
@@ -1389,7 +1427,7 @@ export const DocumentosEditalPage: React.FC = () => {
                         </span>
                         <Button
                           size="sm"
-                          onClick={handleAssinarEdital}
+                          onClick={handleAbrirModalAssinatura}
                           className="h-7 text-[11px] bg-amber-600 hover:bg-amber-700 text-white"
                         >
                           Atualizar Agora
@@ -1492,24 +1530,17 @@ export const DocumentosEditalPage: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Assinatura do Convocante */}
+                    {/* Assinatura do Convocante com Bloco Compacto v0.0.21 e Assinatura Gráfica */}
                     <div className="pt-8 border-t-2 border-slate-900 font-sans text-center">
-                      <div className="inline-block text-center">
-                        <div className="w-64 border-t border-slate-800 mx-auto mb-1" />
-                        <div className="space-y-0 leading-tight">
-                          <p className="text-xs font-bold uppercase text-slate-900 m-0 p-0 leading-tight">
-                            {editalForm.sindicoNome || 'Síndico / Mesa Diretora'}
-                          </p>
-                          {editalForm.sindicoCpf && (
-                            <p className="text-[11px] text-slate-600 font-mono m-0 p-0 leading-tight">
-                              CPF: {editalForm.sindicoCpf}
-                            </p>
-                          )}
-                          <p className="text-[10px] text-slate-500 m-0 p-0 leading-tight">
-                            {editalForm.cargoConvocante}
-                          </p>
-                        </div>
-                      </div>
+                      <BlocoAssinaturaCompacto
+                        nome={editalForm.sindicoNome || 'Síndico / Mesa Diretora'}
+                        cpf={editalForm.sindicoCpf}
+                        cargo={editalForm.cargoConvocante}
+                        formato={hashDesatualizado ? 'em_branco' : formatoAssinatura}
+                        assinaturaVisual={hashDesatualizado ? undefined : assinaturaVisual}
+                        assinaturaTexto={hashDesatualizado ? undefined : assinaturaTexto}
+                        alinhamento="center"
+                      />
 
                       {/* Carimbo da Assinatura Eletrônica */}
                       {editalAssinadoHash && !hashDesatualizado ? (
@@ -1808,6 +1839,23 @@ export const DocumentosEditalPage: React.FC = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Modal Reutilizável de Assinatura Eletrônica (Desenho, Nome Digitado ou Em Branco) */}
+      <ModalAssinaturaEletronica
+        aberto={modalAssinaturaAberto}
+        onOpenChange={setModalAssinaturaAberto}
+        tituloDocumento={editalForm.titulo || deliberacaoAtiva?.titulo || 'Edital de Convocação'}
+        subtitulo="Selecione o modo de assinatura (desenhar na tela, digitar nome ou deixar em branco para papel)"
+        nomeInicial={editalForm.sindicoNome}
+        cpfInicial={editalForm.sindicoCpf}
+        cargoInicial={editalForm.cargoConvocante}
+        formatoInicial={formatoAssinatura}
+        assinaturaVisualInicial={assinaturaVisual}
+        assinaturaTextoInicial={assinaturaTexto}
+        salvando={assinandoEdital}
+        permitirEditarIdentificacao={true}
+        onConfirmar={handleConfirmarAssinaturaComModo}
+      />
 
       {/* Modal de Upload de Documento da Pauta */}
       <Dialog open={modalUploadAberto} onOpenChange={setModalUploadAberto}>

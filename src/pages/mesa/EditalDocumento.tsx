@@ -13,6 +13,7 @@ import { imprimirOuBaixarPdfEdital, type DadosEditalPdf } from '@/lib/pdfEdital'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SafeHtml } from '@/components/editor/SafeHtml'
+import { BlocoAssinaturaCompacto } from '@/components/assinatura/BlocoAssinaturaCompacto'
 import {
   Printer,
   Download,
@@ -122,6 +123,11 @@ export const EditalDocumentoPage: React.FC = () => {
         hashAssinatura: editalSalvo?.hash_assinado || assinatura?.hash_documento || null,
         dataAssinatura:
           editalSalvo?.data_assinatura || assinatura?.data_hora || assinatura?.created || null,
+        formatoAssinatura:
+          editalSalvo?.formato_assinatura || assinatura?.formato_assinatura || 'desenho',
+        assinaturaVisual:
+          editalSalvo?.assinatura_visual || assinatura?.assinatura_visual || undefined,
+        assinaturaTexto: editalSalvo?.assinatura_texto || assinatura?.assinatura_texto || undefined,
       }
     : null
 
@@ -313,22 +319,15 @@ export const EditalDocumentoPage: React.FC = () => {
 
         {/* Rodapé e Assinatura Eletrônica */}
         <div className="mt-12 pt-8 border-t-2 border-slate-900 font-sans text-center break-inside-avoid">
-          <div className="inline-block text-center">
-            <div className="w-64 border-t border-slate-800 mx-auto mb-1" />
-            <div className="space-y-0 leading-tight">
-              <p className="text-xs font-bold uppercase text-slate-900 m-0 p-0 leading-tight">
-                {dadosConsolidados.sindicoNome}
-              </p>
-              {dadosConsolidados.sindicoCpf && (
-                <p className="text-[11px] text-slate-600 font-mono m-0 p-0 leading-tight">
-                  CPF: {dadosConsolidados.sindicoCpf}
-                </p>
-              )}
-              <p className="text-[10px] text-slate-500 m-0 p-0 leading-tight">
-                {dadosConsolidados.cargoConvocante}
-              </p>
-            </div>
-          </div>
+          <BlocoAssinaturaCompacto
+            nome={dadosConsolidados.sindicoNome}
+            cpf={dadosConsolidados.sindicoCpf}
+            cargo={dadosConsolidados.cargoConvocante}
+            formato={dadosConsolidados.formatoAssinatura}
+            assinaturaVisual={dadosConsolidados.assinaturaVisual}
+            assinaturaTexto={dadosConsolidados.assinaturaTexto}
+            alinhamento="center"
+          />
 
           {/* Selo Criptográfico de Assinatura */}
           {dadosConsolidados.hashAssinatura ? (
