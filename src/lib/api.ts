@@ -208,6 +208,72 @@ export interface ApuracaoItemResult {
   }
 }
 
+/**
+ * Função utilitária para ordenação natural das unidades:
+ * Agrupa por grupo/bloco e depois ordena de forma lógica e crescente
+ * considerando andar numérico, posição/porta numérica ou número natural extraído do identificador.
+ */
+export function ordenarUnidadesLogicamente<
+  T extends {
+    identificador: string
+    bloco?: string
+    grupo?: string
+    andar?: string
+    posicao_numero?: number
+  },
+>(unidades: T[]): T[] {
+  return [...unidades].sort((a, b) => {
+    // 1. Comparar Grupo
+    const grupoA = (a.grupo || '').trim()
+    const grupoB = (b.grupo || '').trim()
+    if (grupoA !== grupoB) {
+      // Se um tem grupo e outro não, priorizar o que tem grupo
+      if (!grupoA) return 1
+      if (!grupoB) return -1
+      const cmpGrupo = grupoA.localeCompare(grupoB, undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      })
+      if (cmpGrupo !== 0) return cmpGrupo
+    }
+
+    // 2. Comparar Bloco
+    const blocoA = (a.bloco || '').trim()
+    const blocoB = (b.bloco || '').trim()
+    if (blocoA !== blocoB) {
+      const cmpBloco = blocoA.localeCompare(blocoB, undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      })
+      if (cmpBloco !== 0) return cmpBloco
+    }
+
+    // 3. Comparar Andar numericamente (se existir)
+    const andarA = Number(a.andar)
+    const andarB = Number(b.andar)
+    const temAndarA = !isNaN(andarA) && a.andar !== '' && a.andar !== undefined
+    const temAndarB = !isNaN(andarB) && b.andar !== '' && b.andar !== undefined
+    if (temAndarA && temAndarB && andarA !== andarB) {
+      return andarA - andarB
+    }
+
+    // 4. Comparar Posição / Porta numericamente (se existir)
+    const posA = a.posicao_numero
+    const posB = b.posicao_numero
+    const temPosA = typeof posA === 'number' && posA > 0
+    const temPosB = typeof posB === 'number' && posB > 0
+    if (temPosA && temPosB && posA !== posB) {
+      return posA - posB
+    }
+
+    // 5. Comparação Natural pelo Identificador (ordenação natural: 101 < 102 < 1001 < 1304)
+    return a.identificador.localeCompare(b.identificador, undefined, {
+      numeric: true,
+      sensitivity: 'base',
+    })
+  })
+}
+
 export interface ApuracaoResponse {
   success: boolean
   deliberacao: {
@@ -239,9 +305,10 @@ export interface ApuracaoResponse {
 export const api = {
   // Unidades
   async getUnidades() {
-    return pb.collection('unidades').getFullList<UnidadeRecord>({
-      sort: 'identificador',
+    const list = await pb.collection('unidades').getFullList<UnidadeRecord>({
+      sort: 'grupo,bloco,posicao_numero,identificador',
     })
+    return ordenarUnidadesLogicamente(list)
   },
 
   async getUnidade(id: string) {
@@ -519,6 +586,7 @@ export const api = {
         andar?: string
         peso_voto?: number
         tipo_unidade?: string
+        posicao_numero?: number
         status: 'existente' | 'nova'
       }>
     }>('/backend/v1/admin/unidades/preview', {

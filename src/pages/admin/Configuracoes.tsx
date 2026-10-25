@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { api, type UnidadeRecord, type TipoCondominio, type GrupoCondoConfig } from '@/lib/api'
+import {
+  api,
+  ordenarUnidadesLogicamente,
+  type UnidadeRecord,
+  type TipoCondominio,
+  type GrupoCondoConfig,
+} from '@/lib/api'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { useAuth } from '@/context/AuthContext'
 import {
@@ -48,6 +54,7 @@ import {
   Plus,
   Eye,
   ShieldCheck,
+  ShieldAlert,
   Check,
   PlusCircle,
   Hash,
@@ -108,6 +115,7 @@ export const ConfiguracoesPage: React.FC = () => {
       andar?: string
       peso_voto?: number
       tipo_unidade?: string
+      posicao_numero?: number
       status: 'existente' | 'nova'
     }>
   } | null>(null)
@@ -202,7 +210,7 @@ export const ConfiguracoesPage: React.FC = () => {
   const carregarUnidades = async () => {
     try {
       const u = await api.getUnidades()
-      // Exibir no painel as unidades ativas
+      // Exibir no painel as unidades ativas ordenadas logicamente
       const ativas = u.filter((item) => item.ativo !== false)
       setUnidadesCadastradas(ativas)
       setTotalAtualUnidades(ativas.length)
@@ -296,6 +304,9 @@ export const ConfiguracoesPage: React.FC = () => {
         rotulo_unidade: rotuloEfetivo,
         grupos: grupos,
       })
+      if (dados.amostra && Array.isArray(dados.amostra)) {
+        dados.amostra = ordenarUnidadesLogicamente(dados.amostra)
+      }
       setPreviewDados(dados)
       toast({
         title: 'Prévia gerada com segurança',
@@ -1314,29 +1325,59 @@ export const ConfiguracoesPage: React.FC = () => {
               </div>
             )}
 
-            {/* Amostra das unidades atualmente cadastradas no banco */}
+            {/* Lista das unidades atualmente cadastradas no banco */}
             <div className="space-y-2 pt-2 border-t border-slate-200">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  Unidades Atualmente no Banco de Dados ({unidadesCadastradas.length})
-                </span>
+                <div>
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    Unidades Atualmente no Banco de Dados ({unidadesCadastradas.length})
+                  </span>
+                  <span className="ml-2 text-[10px] text-slate-400 font-normal">
+                    (Ordenação lógica por bloco, andar e posição)
+                  </span>
+                </div>
                 <span className="text-[11px] text-slate-400">Todas protegidas contra exclusão</span>
               </div>
-              <div className="max-h-44 overflow-y-auto p-2 bg-white rounded-lg border border-slate-200 grid grid-cols-3 sm:grid-cols-6 md:grid-cols-8 gap-1.5 text-center text-xs">
-                {unidadesCadastradas.slice(0, 48).map((u) => (
-                  <div
-                    key={u.id}
-                    className="p-1 rounded bg-slate-50 border border-slate-100 text-slate-700 font-mono text-[11px] truncate"
-                    title={`${u.tipo_unidade || rotuloEfetivo} ${u.identificador} (${u.bloco || 'Lago Azul'}) - Peso: ${u.peso_voto ?? 1}`}
-                  >
-                    {u.identificador}
+
+              {/* Destaque e transparência para unidades preservadas por vínculo eleitoral histórico */}
+              {unidadesCadastradas.some((u) => u.identificador === '101A') && (
+                <div className="p-2 rounded-lg bg-amber-50/70 border border-amber-200/80 text-[11px] text-amber-900 flex items-start gap-2">
+                  <ShieldAlert className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <strong>Unidade 101A preservada por vínculo eleitoral:</strong> Esta unidade
+                    pertence ao histórico eleitoral do condomínio (possui credenciamento aprovado,
+                    presença e comprovante de comparecimento registrados na Assembleia em
+                    andamento). Em estrito cumprimento à trava de integridade eleitoral, ela não é
+                    desativada nem excluída.
                   </div>
-                ))}
-                {unidadesCadastradas.length > 48 && (
-                  <div className="p-1 rounded bg-purple-50 text-purple-700 font-semibold text-[11px] flex items-center justify-center col-span-2">
-                    +{unidadesCadastradas.length - 48} unidades
-                  </div>
-                )}
+                </div>
+              )}
+
+              <div className="max-h-56 overflow-y-auto p-2 bg-white rounded-lg border border-slate-200 grid grid-cols-3 sm:grid-cols-6 md:grid-cols-8 gap-1.5 text-center text-xs">
+                {unidadesCadastradas.map((u) => {
+                  const ehPreservadaEspecial = u.identificador === '101A'
+                  return (
+                    <div
+                      key={u.id}
+                      className={`p-1 rounded border font-mono text-[11px] truncate ${
+                        ehPreservadaEspecial
+                          ? 'bg-amber-50 border-amber-300 text-amber-900 font-semibold ring-1 ring-amber-300'
+                          : 'bg-slate-50 border-slate-100 text-slate-700'
+                      }`}
+                      title={`${u.tipo_unidade || rotuloEfetivo} ${u.identificador} (${u.bloco || 'Lago Azul'})${u.andar ? ` - Andar: ${u.andar}` : ''}${u.posicao_numero ? ` - Pos: ${u.posicao_numero}` : ''} - Peso: ${u.peso_voto ?? 1}${ehPreservadaEspecial ? ' [Unidade com vínculos eleitorais preservada]' : ''}`}
+                    >
+                      {u.identificador}
+                      {ehPreservadaEspecial && (
+                        <span
+                          className="ml-0.5 text-[9px] text-amber-600 font-sans font-bold"
+                          title="Preservada por vínculo eleitoral"
+                        >
+                          *
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </CardContent>

@@ -224,7 +224,13 @@ routerAdd('POST', '/backend/v1/admin/unidades/preview', (e) => {
   }
 
   // Buscar todas as unidades existentes no banco
-  const todasUnidades = e.app.findRecordsByFilter('unidades', '', 'identificador', 2000, 0)
+  const todasUnidades = e.app.findRecordsByFilter(
+    'unidades',
+    '',
+    'grupo,bloco,posicao_numero,identificador',
+    2000,
+    0,
+  )
   const existentesPorIdent = {}
   for (let u of todasUnidades) {
     existentesPorIdent[u.getString('identificador')] = u
@@ -267,6 +273,7 @@ routerAdd('POST', '/backend/v1/admin/unidades/preview', (e) => {
         andar: item.andar,
         peso_voto: item.peso_voto,
         tipo_unidade: item.tipo_unidade,
+        posicao_numero: item.posicao_numero,
         status: jaExiste ? 'existente' : 'nova',
       })
     }
@@ -548,7 +555,13 @@ routerAdd('POST', '/backend/v1/admin/unidades/regenerar', (e) => {
     }
   }
 
-  const todasUnidades = e.app.findRecordsByFilter('unidades', '', 'identificador', 2000, 0)
+  const todasUnidades = e.app.findRecordsByFilter(
+    'unidades',
+    '',
+    'grupo,bloco,posicao_numero,identificador',
+    2000,
+    0,
+  )
   const existentesPorIdent = {}
   for (let u of todasUnidades) {
     existentesPorIdent[u.getString('identificador')] = u
