@@ -2,7 +2,7 @@
  * Hook POST /backend/v1/otp/verify
  * Valida o código OTP informado pelo morador.
  * Máximo de 3 tentativas por sessão. Bloqueio progressivo de 10 minutos após 3 falhas.
- * Emite token_voto e registra eventos otp_validado / otp_falhou / autenticacao_concluida.
+ * Emite token_voto e registra eventos otp_validado / otp_falhou / autenticacao_concluida / token_emitido.
  */
 
 routerAdd('POST', '/backend/v1/otp/verify', (e) => {
@@ -91,6 +91,18 @@ routerAdd('POST', '/backend/v1/otp/verify', (e) => {
   if (otpExpiraStr && new Date(otpExpiraStr.replace(' ', 'T') + 'Z') < agora) {
     sessao.set('status', 'expirada')
     e.app.save(sessao)
+
+    try {
+      registrarAuditoria(e.app, {
+        evento: 'otp_falhou',
+        unidade: unidadeId,
+        fator: 'Código OTP expirado (5 minutos excedidos)',
+        dispositivo: e.requestInfo().headers['user-agent'] || 'navegador',
+      })
+    } catch (err) {
+      console.log('Erro ao registrar auditoria de OTP expirado:', err)
+    }
+
     return e.json(400, {
       success: false,
       message: 'O código OTP expirou (validade de 5 minutos). Solicite um novo envio.',
@@ -109,7 +121,9 @@ routerAdd('POST', '/backend/v1/otp/verify', (e) => {
         fator: 'Bloqueio progressivo 3 tentativas esgotadas',
         dispositivo: e.requestInfo().headers['user-agent'] || 'navegador',
       })
-    } catch (_) {}
+    } catch (err) {
+      console.log('Erro ao registrar auditoria de tentativas esgotadas:', err)
+    }
 
     return e.json(400, {
       success: false,
@@ -136,7 +150,9 @@ routerAdd('POST', '/backend/v1/otp/verify', (e) => {
         fator: 'Código incorreto (tentativa ' + novasTentativas + ' de 3)',
         dispositivo: e.requestInfo().headers['user-agent'] || 'navegador',
       })
-    } catch (_) {}
+    } catch (err) {
+      console.log('Erro ao registrar auditoria de falha OTP:', err)
+    }
 
     const restantes = 3 - novasTentativas
     return e.json(400, {
@@ -149,13 +165,12 @@ routerAdd('POST', '/backend/v1/otp/verify', (e) => {
   }
 
   // Código CORRETO!
-  // Gerar token de voto único
   const tokenVoto = 'TKN-' + $security.randomString(32)
   sessao.set('token_voto', tokenVoto)
   sessao.set('tentativas_falhas', 0)
   e.app.save(sessao)
 
-  // Registrar auditoria
+  // Registrar auditoria completa do fluxo de sucesso
   try {
     registrarAuditoria(e.app, {
       evento: 'otp_validado',

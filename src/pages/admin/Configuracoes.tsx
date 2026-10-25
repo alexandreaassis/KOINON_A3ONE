@@ -95,8 +95,12 @@ export const ConfiguracoesPage: React.FC = () => {
   const [previewDados, setPreviewDados] = useState<{
     totalProjetado: number
     totalExistentesNoBanco: number
+    totalAtivasAtuais?: number
     novasASeremCriadas: number
     preservadas: number
+    preservadasForaDaMalha?: number
+    desativadasProjetadas?: number
+    totalFinalAtivas?: number
     amostra: Array<{
       identificador: string
       bloco?: string
@@ -155,7 +159,8 @@ export const ConfiguracoesPage: React.FC = () => {
       // Se não havia grupos configurados, cria grupo padrão inicial compatível com o existente
       const qtdBlocos = config.quantidade_blocos || 2
       const unidadesPorBloco = config.unidades_por_bloco || 26
-      const prefixoBloco = config.prefixo_bloco || 'Bloco'
+      const prefixoBloco =
+        config.prefixo_bloco && config.prefixo_bloco !== '.' ? config.prefixo_bloco : 'Torre'
 
       if (tipo === 'horizontal') {
         setGrupos([
@@ -197,8 +202,10 @@ export const ConfiguracoesPage: React.FC = () => {
   const carregarUnidades = async () => {
     try {
       const u = await api.getUnidades()
-      setUnidadesCadastradas(u)
-      setTotalAtualUnidades(u.length)
+      // Exibir no painel as unidades ativas
+      const ativas = u.filter((item) => item.ativo !== false)
+      setUnidadesCadastradas(ativas)
+      setTotalAtualUnidades(ativas.length)
     } catch (err) {
       console.error('Erro ao carregar unidades:', err)
     }
@@ -292,7 +299,7 @@ export const ConfiguracoesPage: React.FC = () => {
       setPreviewDados(dados)
       toast({
         title: 'Prévia gerada com segurança',
-        description: `${dados.totalProjetado} unidades projetadas (${dados.preservadas} já existentes no banco, ${dados.novasASeremCriadas} novas).`,
+        description: `Projeção: ${dados.totalProjetado} unidades da malha • Total final ativo no banco: ${dados.totalFinalAtivas ?? dados.totalProjetado} unidades.`,
       })
     } catch (err: any) {
       console.error('Erro ao gerar prévia:', err)
@@ -453,7 +460,7 @@ export const ConfiguracoesPage: React.FC = () => {
       }
 
       await api.registrarEventoAuditoria({
-        evento: 'autenticacao_concluida',
+        evento: 'configuracao_atualizada',
         fator: `Admin ${user?.name || user?.email} atualizou configurações gerais (Nome: "${nomeCondominio.trim()}", Rótulo: "${rotuloEfetivo}", Tipo: "${tipoCondominio}")`,
       })
 
@@ -685,8 +692,8 @@ export const ConfiguracoesPage: React.FC = () => {
                   <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Nova Unidade Avulsa
                 </Button>
                 <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs px-2.5 py-1">
-                  {totalAtualUnidades} unidades no banco
-                </Badge>
+                  {totalAtualUnidades} unidades ativas
+                </Badge>{' '}
               </div>
             </div>
           </CardHeader>
@@ -942,10 +949,15 @@ export const ConfiguracoesPage: React.FC = () => {
                               Prefixo do Bloco
                             </Label>
                             <Input
-                              value={grupo.prefixo_bloco || 'Torre'}
-                              onChange={(e) =>
-                                handleAtualizarGrupo(gIndex, 'prefixo_bloco', e.target.value)
+                              value={
+                                grupo.prefixo_bloco && grupo.prefixo_bloco !== '.'
+                                  ? grupo.prefixo_bloco
+                                  : 'Torre'
                               }
+                              onChange={(e) => {
+                                const val = e.target.value.trim() === '.' ? 'Torre' : e.target.value
+                                handleAtualizarGrupo(gIndex, 'prefixo_bloco', val)
+                              }}
                               placeholder="Bloco, Torre, Edifício"
                               className="h-9 text-xs border-slate-300"
                             />
@@ -1211,17 +1223,35 @@ export const ConfiguracoesPage: React.FC = () => {
                       Sucesso
                     </h3>
                     <p className="text-xs text-slate-500">
-                      Total Projetado: <strong>{previewDados.totalProjetado}</strong> unidades •
-                      Cadastradas no banco: <strong>{previewDados.totalExistentesNoBanco}</strong>
+                      Malha nova: <strong>{previewDados.totalProjetado}</strong> unidades • Total
+                      ativo final que ficará no banco:{' '}
+                      <strong className="text-purple-700 text-sm">
+                        {previewDados.totalFinalAtivas ?? previewDados.totalProjetado} unidades
+                      </strong>
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">
-                      {previewDados.preservadas} preservadas
+                      {previewDados.preservadas} na malha
                     </Badge>
                     <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs">
-                      {previewDados.novasASeremCriadas} novas a criar
+                      +{previewDados.novasASeremCriadas} novas
+                    </Badge>
+                    {(previewDados.desativadasProjetadas || 0) > 0 && (
+                      <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs">
+                        {previewDados.desativadasProjetadas} a desativar (sem vínculo)
+                      </Badge>
+                    )}
+                    {(previewDados.preservadasForaDaMalha || 0) > 0 && (
+                      <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
+                        {previewDados.preservadasForaDaMalha} fora da malha com vínculo
+                        (preservadas)
+                      </Badge>
+                    )}
+                    <Badge className="bg-slate-900 text-white font-bold text-xs">
+                      Total Final: {previewDados.totalFinalAtivas ?? previewDados.totalProjetado}{' '}
+                      ativas
                     </Badge>
                   </div>
                 </div>
@@ -1346,10 +1376,31 @@ export const ConfiguracoesPage: React.FC = () => {
                 <span className="text-slate-600">Unidades existentes preservadas:</span>
                 <strong className="text-emerald-700">{previewDados?.preservadas || 0}</strong>
               </p>
+              {(previewDados?.desativadasProjetadas || 0) > 0 && (
+                <p className="flex justify-between">
+                  <span className="text-slate-600">
+                    Unidades legadas a desativar (sem vínculo):
+                  </span>
+                  <strong className="text-amber-700">
+                    -{previewDados?.desativadasProjetadas || 0}
+                  </strong>
+                </p>
+              )}
+              {(previewDados?.preservadasForaDaMalha || 0) > 0 && (
+                <p className="flex justify-between">
+                  <span className="text-slate-600">
+                    Unidades fora da malha com vínculo (preservadas):
+                  </span>
+                  <strong className="text-blue-700">
+                    {previewDados?.preservadasForaDaMalha || 0}
+                  </strong>
+                </p>
+              )}
               <p className="flex justify-between border-t border-slate-200 pt-1.5 font-bold">
-                <span className="text-slate-800">Total final no condomínio:</span>
-                <span className="text-slate-900">
-                  {(previewDados?.preservadas || 0) + (previewDados?.novasASeremCriadas || 0)}{' '}
+                <span className="text-slate-800">Total final de unidades ativas no banco:</span>
+                <span className="text-purple-700 text-sm">
+                  {previewDados?.totalFinalAtivas ??
+                    (previewDados?.preservadas || 0) + (previewDados?.novasASeremCriadas || 0)}{' '}
                   unidades
                 </span>
               </p>

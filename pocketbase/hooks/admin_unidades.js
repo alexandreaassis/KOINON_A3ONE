@@ -3,19 +3,22 @@
  * Endpoints:
  * 1) POST /backend/v1/admin/unidades/preview
  *    Gera prévia das unidades projetadas sem alterar o banco de dados.
- *    Retorna total projetado, amostra inicial e contagem de novas vs preservadas.
+ *    Retorna total projetado, amostra inicial, contagem de novas, preservadas na malha,
+ *    preservadas fora da malha (com vínculos legítimos), desativadas projetadas e o TOTAL FINAL ativo que ficará no banco.
  *
  * 2) POST /backend/v1/admin/unidades/regenerar
  *    Gera e sincroniza a malha de unidades do condomínio (vertical, horizontal, misto).
  *    REQUISITO OBRIGATÓRIO DE SEGURANÇA:
- *    - Jamais apaga ou renumera unidades existentes que tenham vínculos (comparecimentos, cédulas, credenciamentos, presenças).
- *    - Preserva o id interno de todas as unidades existentes.
- *    - Apenas insere as unidades faltantes.
- *    - Grava na trilha de auditoria encadeada com hash SHA-256.
+ *    - Desativa (ativo = false) as unidades ativas que ficarem FORA da nova malha, MAS SOMENTE as que não possuem
+ *      credenciamentos, presenças, votos/cédulas, comparecimentos, comprovantes ou sessões.
+ *    - Unidades com vínculos eleitorais que ficarem fora da malha NUNCA são desativadas ou apagadas: permanecem ativas e preservadas.
+ *    - Preserva o ID interno e vínculos de todas as unidades existentes.
+ *    - Insere as unidades faltantes como ativas (ativo = true). Se uma unidade da malha já existia desativada, reativa-a.
+ *    - Grava na trilha de auditoria encadeada com hash SHA-256 e evento correto ('malha_unidades_gerada').
  *
  * 3) POST /backend/v1/admin/unidades/avulsa
  *    Cadastra unidade avulsa fora do padrão (cobertura, salão, loja, box, etc.)
- *    com peso de voto customizado.
+ *    com peso de voto customizado e evento 'unidade_avulsa_criada'.
  */
 
 routerAdd('POST', '/backend/v1/admin/unidades/preview', (e) => {
@@ -37,7 +40,6 @@ routerAdd('POST', '/backend/v1/admin/unidades/preview', (e) => {
   const rotuloUnidade = (body.rotulo_unidade || 'Apartamento').trim()
   const grupos = Array.isArray(body.grupos) ? body.grupos : []
 
-  // Função interna para padronizar preenchimento de dígitos (ex: 1 -> 01 ou 001)
   function padDigits(num, totalDigits) {
     let s = String(num)
     while (s.length < totalDigits) {
@@ -46,7 +48,14 @@ routerAdd('POST', '/backend/v1/admin/unidades/preview', (e) => {
     return s
   }
 
-  // Gera a lista de identificadores conforme configuração
+  function sanitizarPrefixo(prefixoRaw, padrao) {
+    const limpo = (prefixoRaw || '').trim()
+    if (!limpo || limpo === '.') {
+      return padrao
+    }
+    return limpo
+  }
+
   const unidadesEsperadas = []
   const letras = [
     'A',
@@ -75,17 +84,17 @@ routerAdd('POST', '/backend/v1/admin/unidades/preview', (e) => {
     // Fallback legado de blocos simples
     const qtdBlocos = Number(body.quantidadeBlocos) || 2
     const unidadesPorBloco = Number(body.unidadesPorBloco) || 26
-    const prefixoBloco = (body.prefixoBloco || 'Bloco').trim()
+    const prefixoBloco = sanitizarPrefixo(body.prefixoBloco, 'Torre')
 
     for (let b = 0; b < qtdBlocos; b++) {
       const letraBloco = letras[b] || String(b + 1)
-      const nomeBloco = prefixoBloco + ' ' + letraBloco
+      const nomeBloco = qtdBlocos === 1 ? prefixoBloco : prefixoBloco + ' ' + letraBloco
 
       for (let u = 1; u <= unidadesPorBloco; u++) {
         const andar = Math.floor((u - 1) / 6) + 1
         const porta = ((u - 1) % 6) + 1
         const identNumero = andar + '0' + porta
-        const identificador = identNumero + letraBloco
+        const identificador = qtdBlocos === 1 ? identNumero : identNumero + letraBloco
         unidadesEsperadas.push({
           identificador: identificador,
           bloco: nomeBloco,
@@ -106,21 +115,20 @@ routerAdd('POST', '/backend/v1/admin/unidades/preview', (e) => {
 
       if (tipoGrupo === 'vertical') {
         const qtdBlocos = Math.max(1, Math.min(20, Number(g.quantidade_blocos) || 1))
-        const prefixoBloco = (g.prefixo_bloco || 'Torre').trim()
+        const prefixoBloco = sanitizarPrefixo(g.prefixo_bloco, 'Torre')
         const andaresPorBloco = Math.max(1, Math.min(100, Number(g.andares_por_bloco) || 4))
         const unidadesPorAndar = Math.max(1, Math.min(50, Number(g.unidades_por_andar) || 4))
         const andarInicial =
           g.andar_inicial !== undefined && g.andar_inicial !== null
             ? String(g.andar_inicial).trim()
             : '1'
-        const modeloNumeracao = g.modelo_numeracao || 'andar_posicao' // sequencial | andar_posicao | andar_posicao_prefixo | custom
+        const modeloNumeracao = g.modelo_numeracao || 'andar_posicao'
         const templateCustom = g.template_custom || '{bloco}-{andar}{unid}'
         const digitosUnid = Math.max(1, Math.min(4, Number(g.digitos_unid) || 2))
 
         for (let b = 0; b < qtdBlocos; b++) {
           const letraOuNum = letras[b] || String(b + 1)
-          const blocoIdent =
-            qtdBlocos === 1 && !g.quantidade_blocos ? prefixoBloco : prefixoBloco + ' ' + letraOuNum
+          const blocoIdent = qtdBlocos === 1 ? prefixoBloco : prefixoBloco + ' ' + letraOuNum
           let seqContador = 1
 
           for (let a = 0; a < andaresPorBloco; a++) {
@@ -146,7 +154,7 @@ routerAdd('POST', '/backend/v1/admin/unidades/preview', (e) => {
               } else if (modeloNumeracao === 'andar_posicao') {
                 ident = String(andarNum) + unidPadded + (qtdBlocos > 1 ? letraOuNum : '')
               } else if (modeloNumeracao === 'andar_posicao_prefixo') {
-                ident = letraOuNum + '-' + String(andarNum) + unidPadded
+                ident = (qtdBlocos > 1 ? letraOuNum + '-' : '') + String(andarNum) + unidPadded
               } else if (modeloNumeracao === 'custom') {
                 ident = templateCustom
                   .replace(/\{bloco\}/g, letraOuNum)
@@ -171,9 +179,9 @@ routerAdd('POST', '/backend/v1/admin/unidades/preview', (e) => {
           }
         }
       } else {
-        // Horizontal (rua / quadra / lote / setor)
+        // Horizontal
         const qtdUnidades = Math.max(1, Math.min(1000, Number(g.quantidade_unidades) || 20))
-        const prefixoRua = (g.prefixo_rua || 'Rua').trim()
+        const prefixoRua = sanitizarPrefixo(g.prefixo_rua, 'Rua')
         const modeloNumeracao = g.modelo_numeracao || 'sequencial'
         const numeroInicial = Number(g.numero_inicial) || 1
         const templateCustom = g.template_custom || '{prefixo}-{unid}'
@@ -209,22 +217,45 @@ routerAdd('POST', '/backend/v1/admin/unidades/preview', (e) => {
     }
   }
 
-  // Comparar com unidades existentes no banco
-  const unidadesExistentes = e.app.findRecordsByFilter('unidades', '', 'identificador', 2000, 0)
+  // Mapa de identificadores esperados na nova malha
+  const esperadosMap = {}
+  for (let item of unidadesEsperadas) {
+    esperadosMap[item.identificador] = item
+  }
+
+  // Buscar todas as unidades existentes no banco
+  const todasUnidades = e.app.findRecordsByFilter('unidades', '', 'identificador', 2000, 0)
   const existentesPorIdent = {}
-  for (let u of unidadesExistentes) {
+  for (let u of todasUnidades) {
     existentesPorIdent[u.getString('identificador')] = u
   }
 
+  // Mapear IDs com vínculos que JAMAIS podem ser desativados
+  const idsComVinculo = {}
+  function marcarVinculados(collectionName) {
+    try {
+      const records = e.app.findRecordsByFilter(collectionName, 'unidade != ""', '', 2000, 0)
+      for (let r of records) {
+        const uid = r.getString('unidade')
+        if (uid) idsComVinculo[uid] = true
+      }
+    } catch (_) {}
+  }
+  marcarVinculados('credenciamentos')
+  marcarVinculados('presencas')
+  marcarVinculados('comparecimentos')
+  marcarVinculados('comprovantes')
+  marcarVinculados('sessoes')
+
   let novasCount = 0
-  let preservadasCount = 0
+  let preservadasNaMalhaCount = 0
   const amostra = []
 
   for (let i = 0; i < unidadesEsperadas.length; i++) {
     const item = unidadesEsperadas[i]
     const jaExiste = !!existentesPorIdent[item.identificador]
     if (jaExiste) {
-      preservadasCount++
+      preservadasNaMalhaCount++
     } else {
       novasCount++
     }
@@ -241,12 +272,37 @@ routerAdd('POST', '/backend/v1/admin/unidades/preview', (e) => {
     }
   }
 
+  // Analisar unidades ativas atualmente fora da nova malha
+  let foraDaMalhaDesativadas = 0
+  let foraDaMalhaPreservadasComVinculo = 0
+
+  for (let u of todasUnidades) {
+    const ident = u.getString('identificador')
+    const ativo = u.getBool('ativo')
+    if (ativo && !esperadosMap[ident]) {
+      // Unidade ativa fora da malha
+      if (idsComVinculo[u.id]) {
+        foraDaMalhaPreservadasComVinculo++
+      } else {
+        foraDaMalhaDesativadas++
+      }
+    }
+  }
+
+  // Total final de unidades que ficarão ativas no banco:
+  // Unidades da malha projetada (todas ativas) + Unidades fora da malha preservadas por vínculo
+  const totalFinalAtivas = unidadesEsperadas.length + foraDaMalhaPreservadasComVinculo
+
   return e.json(200, {
     success: true,
     totalProjetado: unidadesEsperadas.length,
-    totalExistentesNoBanco: unidadesExistentes.length,
+    totalExistentesNoBanco: todasUnidades.length,
+    totalAtivasAtuais: todasUnidades.filter((u) => u.getBool('ativo')).length,
     novasASeremCriadas: novasCount,
-    preservadas: preservadasCount,
+    preservadas: preservadasNaMalhaCount,
+    preservadasForaDaMalha: foraDaMalhaPreservadasComVinculo,
+    desativadasProjetadas: foraDaMalhaDesativadas,
+    totalFinalAtivas: totalFinalAtivas,
     amostra: amostra,
   })
 })
@@ -325,6 +381,14 @@ routerAdd('POST', '/backend/v1/admin/unidades/regenerar', (e) => {
     return s
   }
 
+  function sanitizarPrefixo(prefixoRaw, padrao) {
+    const limpo = (prefixoRaw || '').trim()
+    if (!limpo || limpo === '.') {
+      return padrao
+    }
+    return limpo
+  }
+
   const unidadesEsperadas = []
   const letras = [
     'A',
@@ -352,17 +416,17 @@ routerAdd('POST', '/backend/v1/admin/unidades/regenerar', (e) => {
   if (grupos.length === 0) {
     const qtdBlocos = Number(body.quantidadeBlocos) || 2
     const unidadesPorBloco = Number(body.unidadesPorBloco) || 26
-    const prefixoBloco = (body.prefixoBloco || 'Bloco').trim()
+    const prefixoBloco = sanitizarPrefixo(body.prefixoBloco, 'Torre')
 
     for (let b = 0; b < qtdBlocos; b++) {
       const letraBloco = letras[b] || String(b + 1)
-      const nomeBloco = prefixoBloco + ' ' + letraBloco
+      const nomeBloco = qtdBlocos === 1 ? prefixoBloco : prefixoBloco + ' ' + letraBloco
 
       for (let u = 1; u <= unidadesPorBloco; u++) {
         const andar = Math.floor((u - 1) / 6) + 1
         const porta = ((u - 1) % 6) + 1
         const identNumero = andar + '0' + porta
-        const identificador = identNumero + letraBloco
+        const identificador = qtdBlocos === 1 ? identNumero : identNumero + letraBloco
         unidadesEsperadas.push({
           identificador: identificador,
           bloco: nomeBloco,
@@ -383,7 +447,7 @@ routerAdd('POST', '/backend/v1/admin/unidades/regenerar', (e) => {
 
       if (tipoGrupo === 'vertical') {
         const qtdBlocos = Math.max(1, Math.min(20, Number(g.quantidade_blocos) || 1))
-        const prefixoBloco = (g.prefixo_bloco || 'Torre').trim()
+        const prefixoBloco = sanitizarPrefixo(g.prefixo_bloco, 'Torre')
         const andaresPorBloco = Math.max(1, Math.min(100, Number(g.andares_por_bloco) || 4))
         const unidadesPorAndar = Math.max(1, Math.min(50, Number(g.unidades_por_andar) || 4))
         const andarInicial =
@@ -396,8 +460,7 @@ routerAdd('POST', '/backend/v1/admin/unidades/regenerar', (e) => {
 
         for (let b = 0; b < qtdBlocos; b++) {
           const letraOuNum = letras[b] || String(b + 1)
-          const blocoIdent =
-            qtdBlocos === 1 && !g.quantidade_blocos ? prefixoBloco : prefixoBloco + ' ' + letraOuNum
+          const blocoIdent = qtdBlocos === 1 ? prefixoBloco : prefixoBloco + ' ' + letraOuNum
           let seqContador = 1
 
           for (let a = 0; a < andaresPorBloco; a++) {
@@ -423,7 +486,7 @@ routerAdd('POST', '/backend/v1/admin/unidades/regenerar', (e) => {
               } else if (modeloNumeracao === 'andar_posicao') {
                 ident = String(andarNum) + unidPadded + (qtdBlocos > 1 ? letraOuNum : '')
               } else if (modeloNumeracao === 'andar_posicao_prefixo') {
-                ident = letraOuNum + '-' + String(andarNum) + unidPadded
+                ident = (qtdBlocos > 1 ? letraOuNum + '-' : '') + String(andarNum) + unidPadded
               } else if (modeloNumeracao === 'custom') {
                 ident = templateCustom
                   .replace(/\{bloco\}/g, letraOuNum)
@@ -449,7 +512,7 @@ routerAdd('POST', '/backend/v1/admin/unidades/regenerar', (e) => {
         }
       } else {
         const qtdUnidades = Math.max(1, Math.min(1000, Number(g.quantidade_unidades) || 20))
-        const prefixoRua = (g.prefixo_rua || 'Rua').trim()
+        const prefixoRua = sanitizarPrefixo(g.prefixo_rua, 'Rua')
         const modeloNumeracao = g.modelo_numeracao || 'sequencial'
         const numeroInicial = Number(g.numero_inicial) || 1
         const templateCustom = g.template_custom || '{prefixo}-{unid}'
@@ -485,23 +548,55 @@ routerAdd('POST', '/backend/v1/admin/unidades/regenerar', (e) => {
     }
   }
 
-  const unidadesExistentes = e.app.findRecordsByFilter('unidades', '', 'identificador', 2000, 0)
+  const todasUnidades = e.app.findRecordsByFilter('unidades', '', 'identificador', 2000, 0)
   const existentesPorIdent = {}
-  for (let u of unidadesExistentes) {
+  for (let u of todasUnidades) {
     existentesPorIdent[u.getString('identificador')] = u
+  }
+
+  // Identificar unidades com vínculos protegidos
+  const idsComVinculo = {}
+  function marcarVinculados(collectionName) {
+    try {
+      const records = e.app.findRecordsByFilter(collectionName, 'unidade != ""', '', 2000, 0)
+      for (let r of records) {
+        const uid = r.getString('unidade')
+        if (uid) idsComVinculo[uid] = true
+      }
+    } catch (_) {}
+  }
+  marcarVinculados('credenciamentos')
+  marcarVinculados('presencas')
+  marcarVinculados('comparecimentos')
+  marcarVinculados('comprovantes')
+  marcarVinculados('sessoes')
+
+  const esperadosMap = {}
+  for (let item of unidadesEsperadas) {
+    esperadosMap[item.identificador] = item
   }
 
   let criadasCount = 0
   let preservadasCount = 0
+  let reativadasCount = 0
   const unidadesCol = e.app.findCollectionByNameOrId('unidades')
 
+  // 1. Processar unidades da malha esperada
   for (let item of unidadesEsperadas) {
     if (existentesPorIdent[item.identificador]) {
-      // Unidade existente: PRESERVADA com id e vínculos intocados.
-      // Opcionalmente atualizamos campos complementares que não afetam a unicidade
       const recExistente = existentesPorIdent[item.identificador]
       let alterado = false
-      if (item.grupo && !recExistente.getString('grupo')) {
+
+      if (!recExistente.getBool('ativo')) {
+        recExistente.set('ativo', true)
+        alterado = true
+        reativadasCount++
+      }
+      if (item.bloco && recExistente.getString('bloco') !== item.bloco) {
+        recExistente.set('bloco', item.bloco)
+        alterado = true
+      }
+      if (item.grupo && recExistente.getString('grupo') !== item.grupo) {
         recExistente.set('grupo', item.grupo)
         alterado = true
       }
@@ -511,6 +606,10 @@ routerAdd('POST', '/backend/v1/admin/unidades/regenerar', (e) => {
       }
       if (recExistente.getFloat('peso_voto') <= 0 && item.peso_voto > 0) {
         recExistente.set('peso_voto', item.peso_voto)
+        alterado = true
+      }
+      if (item.andar && !recExistente.getString('andar')) {
+        recExistente.set('andar', item.andar)
         alterado = true
       }
       if (alterado) {
@@ -538,59 +637,106 @@ routerAdd('POST', '/backend/v1/admin/unidades/regenerar', (e) => {
     }
   }
 
-  // Atualizar configuracoes
+  // 2. Desativar unidades ativas que ficaram FORA da nova malha, MAS APENAS as sem vínculos
+  let desativadasCount = 0
+  let preservadasForaCount = 0
+
+  for (let u of todasUnidades) {
+    const ident = u.getString('identificador')
+    const ativo = u.getBool('ativo')
+
+    if (ativo && !esperadosMap[ident]) {
+      if (idsComVinculo[u.id]) {
+        // Possui vínculos eleitorais legítimos: JAMAIS desativar
+        preservadasForaCount++
+      } else {
+        // Sem vínculos: desativa com segurança
+        u.set('ativo', false)
+        try {
+          e.app.save(u)
+          desativadasCount++
+        } catch (_) {}
+      }
+    }
+  }
+
+  // 3. Atualizar configurações gerais
+  let totalAtivasFinal = 0
   try {
+    const ativas = e.app.findRecordsByFilter('unidades', 'ativo = true', '', 2000, 0)
+    totalAtivasFinal = ativas.length
+
     const configList = e.app.findRecordsByFilter('configuracoes', '', '-created', 1, 0)
     if (configList && configList.length > 0) {
       const c = configList[0]
       c.set('tipo_condominio', tipoCondominio)
       c.set('rotulo_unidade', rotuloUnidade)
-      if (grupos.length > 0) {
-        c.set('grupos_config', JSON.stringify(grupos))
+      const pBlocoAtual = (c.getString('prefixo_bloco') || '').trim()
+      if (pBlocoAtual === '.' || pBlocoAtual === '') {
+        c.set('prefixo_bloco', 'Torre')
       }
-      const totalFinal = e.app.countRecords('unidades')
-      c.set('total_unidades', totalFinal)
+      if (grupos.length > 0) {
+        // Garantir que grupos não salvem prefixo_bloco vazio ou '.'
+        const gruposSanitizados = grupos.map((g) => {
+          const clone = Object.assign({}, g)
+          if (clone.tipo === 'vertical') {
+            clone.prefixo_bloco = sanitizarPrefixo(clone.prefixo_bloco, 'Torre')
+          } else if (clone.tipo === 'horizontal') {
+            clone.prefixo_rua = sanitizarPrefixo(clone.prefixo_rua, 'Rua')
+          }
+          return clone
+        })
+        c.set('grupos_config', JSON.stringify(gruposSanitizados))
+      }
+      c.set('total_unidades', totalAtivasFinal)
       e.app.save(c)
     }
   } catch (err) {
     console.log('Erro ao atualizar configuracoes:', err)
   }
 
-  // Gravar auditoria encadeada
+  // 4. Gravar auditoria encadeada com evento 'malha_unidades_gerada'
   try {
     registrarAuditoria(e.app, {
-      evento: 'autenticacao_concluida',
+      evento: 'malha_unidades_gerada',
       fator:
         'Admin ' +
         authRecord.getString('name') +
-        ' regenerou malha (' +
+        ' gerou malha (' +
         tipoCondominio +
         '): ' +
         criadasCount +
         ' criadas, ' +
         preservadasCount +
-        ' preservadas (Total no banco: ' +
-        (preservadasCount + criadasCount) +
-        ')',
+        ' preservadas na malha, ' +
+        desativadasCount +
+        ' desativadas sem vínculo, ' +
+        preservadasForaCount +
+        ' preservadas fora da malha com vínculo. Total de unidades ativas no banco: ' +
+        totalAtivasFinal,
       dispositivo: e.requestInfo().headers['user-agent'] || 'admin-painel',
     })
   } catch (err) {
     console.log('Erro ao gravar auditoria admin:', err)
   }
 
-  const totalFinal = e.app.countRecords('unidades')
-
   return e.json(200, {
     success: true,
     criadas: criadasCount,
     preservadas: preservadasCount,
-    totalExistente: totalFinal,
+    desativadas: desativadasCount,
+    preservadasForaDaMalha: preservadasForaCount,
+    totalExistente: totalAtivasFinal,
     message:
       'Malha de unidades atualizada com sucesso. ' +
       criadasCount +
-      ' novas unidades adicionadas, ' +
+      ' novas adicionadas, ' +
       preservadasCount +
-      ' unidades preservadas.',
+      ' preservadas na malha, ' +
+      desativadasCount +
+      ' legadas desativadas. Total ativo: ' +
+      totalAtivasFinal +
+      '.',
   })
 })
 
@@ -675,9 +821,30 @@ routerAdd('POST', '/backend/v1/admin/unidades/avulsa', (e) => {
       ident: identificador,
     })
     if (existentes && existentes.length > 0) {
+      const ex = existentes[0]
+      if (!ex.getBool('ativo')) {
+        ex.set('ativo', true)
+        ex.set('bloco', bloco)
+        ex.set('peso_voto', pesoVoto)
+        ex.set('tipo_unidade', tipoUnidade)
+        if (responsavelNome) ex.set('responsavel_nome', responsavelNome)
+        e.app.save(ex)
+        return e.json(200, {
+          success: true,
+          unidade: {
+            id: ex.id,
+            identificador: identificador,
+            bloco: bloco,
+            tipo_unidade: tipoUnidade,
+            peso_voto: pesoVoto,
+          },
+          message: 'Unidade "' + identificador + '" já existia inativa e foi reativada!',
+        })
+      }
       return e.json(400, {
         success: false,
-        message: 'Já existe uma unidade cadastrada com o identificador "' + identificador + '".',
+        message:
+          'Já existe uma unidade ativa cadastrada com o identificador "' + identificador + '".',
       })
     }
   } catch (_) {}
@@ -696,10 +863,10 @@ routerAdd('POST', '/backend/v1/admin/unidades/avulsa', (e) => {
   rec.set('ativo', true)
   e.app.save(rec)
 
-  // Gravar auditoria
+  // Gravar auditoria com tipo 'unidade_avulsa_criada'
   try {
     registrarAuditoria(e.app, {
-      evento: 'autenticacao_concluida',
+      evento: 'unidade_avulsa_criada',
       fator:
         'Admin ' +
         authRecord.getString('name') +
@@ -719,11 +886,11 @@ routerAdd('POST', '/backend/v1/admin/unidades/avulsa', (e) => {
 
   // Atualizar total no configuracoes
   try {
+    const ativas = e.app.findRecordsByFilter('unidades', 'ativo = true', '', 2000, 0)
     const configList = e.app.findRecordsByFilter('configuracoes', '', '-created', 1, 0)
     if (configList && configList.length > 0) {
       const c = configList[0]
-      const totalFinal = e.app.countRecords('unidades')
-      c.set('total_unidades', totalFinal)
+      c.set('total_unidades', ativas.length)
       e.app.save(c)
     }
   } catch (_) {}

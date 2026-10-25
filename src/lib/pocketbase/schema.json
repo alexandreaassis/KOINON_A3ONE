@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-25T00:17:53.810Z",
+  "generatedAt": "2026-10-25T00:48:21.398Z",
   "collections": [
     {
       "name": "users",
@@ -739,7 +739,11 @@
             "assembleia_aberta",
             "assembleia_encerrada",
             "apuracao_concluida",
-            "resultado_publicado"
+            "resultado_publicado",
+            "malha_unidades_gerada",
+            "unidade_avulsa_criada",
+            "configuracao_atualizada",
+            "usuario_gerenciado"
           ]
         },
         {

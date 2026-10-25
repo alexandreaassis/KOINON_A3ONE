@@ -138,7 +138,6 @@ routerAdd('POST', '/backend/v1/otp/send', (e) => {
   }
 
   // 5. Validar credenciamento aprovado com o CPF
-  // Permitir CPF com ou sem formatação
   let credAprovado = null
   const creds = e.app.findRecordsByFilter(
     'credenciamentos',
@@ -220,8 +219,6 @@ routerAdd('POST', '/backend/v1/otp/send', (e) => {
     sessaoId: sessaoRec.id,
     celularMascara: celularMascara,
     expiraEmSegundos: 300,
-    // Em ambiente de protótipo de assembleia sem gateway SMS contratado,
-    // expõe o código para viabilizar testes imediatos e conferência pela mesa:
     devOtpCode: otpCode,
     message: 'Enviamos um código de verificação para o número cadastrado da unidade.',
   })

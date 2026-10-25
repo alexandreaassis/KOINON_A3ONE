@@ -58,10 +58,9 @@ export const ParametrosConvencaoPage: React.FC = () => {
       })
 
       await api.registrarEventoAuditoria({
-        evento: 'autenticacao_concluida',
-        fator: `Admin ${user?.name || user?.email} atualizou parâmetros globais da convenção (Inadimplente: ${inadimplenteVota}, Locatário: ${locatarioVota}, Quórum: "${quorumMateria}", Cédula: "${tipoCedula}")`,
+        evento: 'configuracao_atualizada',
+        fator: `Admin ${user?.name || user?.email} atualizou parâmetros globais de convenção condominial`,
       })
-
       await recarregarConfig()
       toast({
         title: 'Parâmetros Salvos',

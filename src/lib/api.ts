@@ -176,6 +176,10 @@ export interface AuditoriaEventRecord extends RecordModel {
     | 'assembleia_encerrada'
     | 'apuracao_concluida'
     | 'resultado_publicado'
+    | 'malha_unidades_gerada'
+    | 'unidade_avulsa_criada'
+    | 'configuracao_atualizada'
+    | 'usuario_gerenciado'
   data_hora?: string
   unidade?: string
   fator?: string
@@ -502,8 +506,12 @@ export const api = {
       success: boolean
       totalProjetado: number
       totalExistentesNoBanco: number
+      totalAtivasAtuais: number
       novasASeremCriadas: number
       preservadas: number
+      preservadasForaDaMalha: number
+      desativadasProjetadas: number
+      totalFinalAtivas: number
       amostra: Array<{
         identificador: string
         bloco?: string
@@ -531,6 +539,8 @@ export const api = {
       success: boolean
       criadas: number
       preservadas: number
+      desativadas: number
+      preservadasForaDaMalha: number
       totalExistente: number
       message: string
     }>('/backend/v1/admin/unidades/regenerar', {

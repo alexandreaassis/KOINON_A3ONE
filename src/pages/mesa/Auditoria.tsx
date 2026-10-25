@@ -121,6 +121,16 @@ export const AuditoriaPage: React.FC = () => {
         return <Badge className="bg-emerald-700 text-white text-[10px]">Apuração Concluída</Badge>
       case 'resultado_publicado':
         return <Badge className="bg-slate-900 text-white text-[10px]">Resultado Publicado</Badge>
+      case 'malha_unidades_gerada':
+        return <Badge className="bg-purple-700 text-white text-[10px]">Malha Gerada</Badge>
+      case 'unidade_avulsa_criada':
+        return (
+          <Badge className="bg-fuchsia-700 text-white text-[10px]">Unidade Avulsa Criada</Badge>
+        )
+      case 'configuracao_atualizada':
+        return <Badge className="bg-blue-700 text-white text-[10px]">Configuração Atualizada</Badge>
+      case 'usuario_gerenciado':
+        return <Badge className="bg-violet-700 text-white text-[10px]">Usuário Gerenciado</Badge>
       default:
         return (
           <Badge variant="outline" className="text-[10px]">

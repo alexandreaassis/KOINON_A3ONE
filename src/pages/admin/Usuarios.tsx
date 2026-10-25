@@ -117,10 +117,9 @@ export const GestaoUsuariosPage: React.FC = () => {
         })
 
         await api.registrarEventoAuditoria({
-          evento: 'autenticacao_concluida',
-          fator: `Admin ${currentUser?.name} atualizou dados do usuário ${email} (Papel: ${role}, Ativo: ${ativo})`,
+          evento: 'usuario_gerenciado',
+          fator: `Admin ${currentUser?.name || currentUser?.email} atualizou usuário ${nome.trim()} (${email.trim()})`,
         })
-
         toast({ title: 'Usuário atualizado com sucesso' })
       } else {
         await api.createUsuario({
@@ -135,10 +134,9 @@ export const GestaoUsuariosPage: React.FC = () => {
         })
 
         await api.registrarEventoAuditoria({
-          evento: 'autenticacao_concluida',
-          fator: `Admin ${currentUser?.name} cadastrou novo usuário ${email} (Papel: ${role})`,
+          evento: 'usuario_gerenciado',
+          fator: `Admin ${currentUser?.name || currentUser?.email} criou novo usuário ${nome.trim()} (${email.trim()}, perfil: ${role})`,
         })
-
         toast({ title: 'Usuário cadastrado com sucesso' })
       }
       setModalUsuarioAberto(false)
@@ -160,8 +158,8 @@ export const GestaoUsuariosPage: React.FC = () => {
     try {
       await api.updateUsuario(u.id, { ativo: novoStatus })
       await api.registrarEventoAuditoria({
-        evento: 'autenticacao_concluida',
-        fator: `Admin ${currentUser?.name} alterou status de ${u.email} para ${novoStatus ? 'ATIVO' : 'INATIVO'}`,
+        evento: 'usuario_gerenciado',
+        fator: `Admin ${currentUser?.name || currentUser?.email} alternou status do usuário ${u.name} (${u.email}) para ${novoStatus ? 'ativo' : 'inativo'}`,
       })
       toast({
         title: novoStatus ? 'Usuário Ativado' : 'Usuário Desativado',
@@ -188,10 +186,9 @@ export const GestaoUsuariosPage: React.FC = () => {
       })
 
       await api.registrarEventoAuditoria({
-        evento: 'autenticacao_concluida',
-        fator: `Admin ${currentUser?.name} realizou reset manual de senha para ${usuarioResetSenha.email}`,
+        evento: 'usuario_gerenciado',
+        fator: `Admin ${currentUser?.name || currentUser?.email} redefiniu senha do usuário ${usuarioResetSenha.name || usuarioResetSenha.email}`,
       })
-
       toast({
         title: 'Senha Redefinida',
         description: `A nova senha de ${usuarioResetSenha.name || usuarioResetSenha.email} foi gravada com sucesso.`,
