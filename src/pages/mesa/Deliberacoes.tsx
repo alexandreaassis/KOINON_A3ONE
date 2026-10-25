@@ -5,6 +5,7 @@ import {
   type ItemPautaRecord,
   type DeliberacaoStatus,
 } from '@/lib/api'
+import { formatarCpf } from '@/lib/cpf'
 import {
   Card,
   CardHeader,
@@ -155,9 +156,9 @@ export const DeliberacoesPage: React.FC = () => {
     setInadimplenteVota(d.inadimplente_pode_votar ?? true)
     setLocatarioVota(d.locatario_pode_votar ?? false)
     setMesaPresidenteNome(d.mesa_presidente_nome || '')
-    setMesaPresidenteCpf(d.mesa_presidente_cpf || '')
+    setMesaPresidenteCpf(formatarCpf(d.mesa_presidente_cpf || ''))
     setMesaSecretarioNome(d.mesa_secretario_nome || '')
-    setMesaSecretarioCpf(d.mesa_secretario_cpf || '')
+    setMesaSecretarioCpf(formatarCpf(d.mesa_secretario_cpf || ''))
     setModalDeliberacaoAberto(true)
   }
 
@@ -448,8 +449,8 @@ export const DeliberacoesPage: React.FC = () => {
                           {deliberacaoSelecionada.mesa_presidente_nome || 'Não definido'}
                         </strong>
                         {deliberacaoSelecionada.mesa_presidente_cpf && (
-                          <span className="text-slate-500 ml-1">
-                            (CPF: {deliberacaoSelecionada.mesa_presidente_cpf})
+                          <span className="text-slate-500 ml-1 font-mono">
+                            (CPF: {formatarCpf(deliberacaoSelecionada.mesa_presidente_cpf)})
                           </span>
                         )}
                       </div>
@@ -459,8 +460,8 @@ export const DeliberacoesPage: React.FC = () => {
                           {deliberacaoSelecionada.mesa_secretario_nome || 'Não definido'}
                         </strong>
                         {deliberacaoSelecionada.mesa_secretario_cpf && (
-                          <span className="text-slate-500 ml-1">
-                            (CPF: {deliberacaoSelecionada.mesa_secretario_cpf})
+                          <span className="text-slate-500 ml-1 font-mono">
+                            (CPF: {formatarCpf(deliberacaoSelecionada.mesa_secretario_cpf)})
                           </span>
                         )}
                       </div>
@@ -653,9 +654,10 @@ export const DeliberacoesPage: React.FC = () => {
                   </Label>
                   <Input
                     value={mesaPresidenteCpf}
-                    onChange={(e) => setMesaPresidenteCpf(e.target.value)}
+                    onChange={(e) => setMesaPresidenteCpf(formatarCpf(e.target.value))}
                     placeholder="000.000.000-00"
-                    className="text-xs h-8 bg-white"
+                    maxLength={14}
+                    className="text-xs h-8 bg-white font-mono"
                   />
                 </div>
               </div>
@@ -678,9 +680,10 @@ export const DeliberacoesPage: React.FC = () => {
                   </Label>
                   <Input
                     value={mesaSecretarioCpf}
-                    onChange={(e) => setMesaSecretarioCpf(e.target.value)}
+                    onChange={(e) => setMesaSecretarioCpf(formatarCpf(e.target.value))}
                     placeholder="000.000.000-00"
-                    className="text-xs h-8 bg-white"
+                    maxLength={14}
+                    className="text-xs h-8 bg-white font-mono"
                   />
                 </div>
               </div>

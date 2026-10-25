@@ -23,6 +23,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
+import { formatarCpf } from '@/lib/cpf'
 import {
   UserCheck,
   UploadCloud,
@@ -83,16 +84,7 @@ export const CredenciamentoPage: React.FC = () => {
 
   // Formatar CPF ao digitar
   const handleCpfChange = (val: string) => {
-    const raw = val.replace(/\D/g, '').slice(0, 11)
-    let formatado = raw
-    if (raw.length > 9) {
-      formatado = `${raw.slice(0, 3)}.${raw.slice(3, 6)}.${raw.slice(6, 9)}-${raw.slice(9)}`
-    } else if (raw.length > 6) {
-      formatado = `${raw.slice(0, 3)}.${raw.slice(3, 6)}.${raw.slice(6)}`
-    } else if (raw.length > 3) {
-      formatado = `${raw.slice(0, 3)}.${raw.slice(3)}`
-    }
-    setCpf(formatado)
+    setCpf(formatarCpf(val))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

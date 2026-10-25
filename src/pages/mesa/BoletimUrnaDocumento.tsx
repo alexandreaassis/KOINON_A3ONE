@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api, type ApuracaoResponse, type DeliberacaoRecord, type UnidadeRecord } from '@/lib/api'
 import { useCondoConfig } from '@/context/CondoConfigContext'
+import { formatarCpf } from '@/lib/cpf'
 import { Button } from '@/components/ui/button'
 import {
   Printer,
@@ -640,8 +641,10 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
                       boletim?.deliberacao.mesa_presidente_cpf) && (
                       <p className="text-[10px] text-slate-700 font-mono">
                         CPF:{' '}
-                        {deliberacao?.mesa_presidente_cpf ||
-                          boletim?.deliberacao.mesa_presidente_cpf}
+                        {formatarCpf(
+                          deliberacao?.mesa_presidente_cpf ||
+                            boletim?.deliberacao.mesa_presidente_cpf,
+                        )}
                       </p>
                     )}
                     <p className="text-[10px] text-slate-600">Presidente da Mesa Diretora</p>
@@ -674,8 +677,10 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
                       boletim?.deliberacao.mesa_secretario_cpf) && (
                       <p className="text-[10px] text-slate-700 font-mono">
                         CPF:{' '}
-                        {deliberacao?.mesa_secretario_cpf ||
-                          boletim?.deliberacao.mesa_secretario_cpf}
+                        {formatarCpf(
+                          deliberacao?.mesa_secretario_cpf ||
+                            boletim?.deliberacao.mesa_secretario_cpf,
+                        )}
                       </p>
                     )}
                     <p className="text-[10px] text-slate-600">Secretário(a) dos Trabalhos</p>

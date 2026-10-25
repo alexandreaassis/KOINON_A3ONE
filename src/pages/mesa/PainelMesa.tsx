@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   api,
   type DeliberacaoRecord,
@@ -7,6 +7,7 @@ import {
   type ComparecimentoRecord,
   type UnidadeRecord,
 } from '@/lib/api'
+import { formatarCpf } from '@/lib/cpf'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -59,6 +60,12 @@ export const PainelMesaPage: React.FC = () => {
 
   // Edição da Mesa Diretora (Presidente e Secretário)
   const [modalMesaAberto, setModalMesaAberto] = useState(false)
+  const modalMesaAbertoRef = useRef(false)
+  modalMesaAbertoRef.current = modalMesaAberto
+
+  const deliberacaoAtivaIdRef = useRef<string | null>(null)
+  deliberacaoAtivaIdRef.current = deliberacaoAtiva?.id || null
+
   const [mesaPresNome, setMesaPresNome] = useState('')
   const [mesaPresCpf, setMesaPresCpf] = useState('')
   const [mesaSecNome, setMesaSecNome] = useState('')
@@ -72,20 +79,30 @@ export const PainelMesaPage: React.FC = () => {
 
   const [carregando, setCarregando] = useState(true)
 
-  const carregarDados = async () => {
+  const carregarDados = async (isBackgroundPoll = false) => {
     try {
       const [delibs, unids] = await Promise.all([api.getDeliberacoes(), api.getUnidades()])
       setDeliberacoes(delibs)
       setUnidades(unids)
 
-      const ativa = delibs.find((d) => d.status !== 'PUBLICADA') || delibs[0] || null
+      // Se o usuário já está visualizando uma deliberação específica, preserva ela; caso contrário pega a ativa
+      const idAtual = deliberacaoAtivaIdRef.current
+      const ativa =
+        (idAtual ? delibs.find((d) => d.id === idAtual) : null) ||
+        delibs.find((d) => d.status !== 'PUBLICADA') ||
+        delibs[0] ||
+        null
+
       setDeliberacaoAtiva(ativa)
 
       if (ativa) {
-        setMesaPresNome(ativa.mesa_presidente_nome || '')
-        setMesaPresCpf(ativa.mesa_presidente_cpf || '')
-        setMesaSecNome(ativa.mesa_secretario_nome || '')
-        setMesaSecCpf(ativa.mesa_secretario_cpf || '')
+        // NUNCA sobrescrever os campos de digitação do modal se o modal da mesa estiver aberto ou se for background poll
+        if (!modalMesaAbertoRef.current && !isBackgroundPoll) {
+          setMesaPresNome(ativa.mesa_presidente_nome || '')
+          setMesaPresCpf(formatarCpf(ativa.mesa_presidente_cpf || ''))
+          setMesaSecNome(ativa.mesa_secretario_nome || '')
+          setMesaSecCpf(formatarCpf(ativa.mesa_secretario_cpf || ''))
+        }
 
         const [pres, comps] = await Promise.all([
           api.getPresencas(ativa.id),
@@ -102,8 +119,10 @@ export const PainelMesaPage: React.FC = () => {
   }
 
   useEffect(() => {
-    carregarDados()
-    const timer = setInterval(carregarDados, 10000)
+    carregarDados(false)
+    const timer = setInterval(() => {
+      carregarDados(true)
+    }, 10000)
     return () => clearInterval(timer)
   }, [])
 
@@ -111,10 +130,12 @@ export const PainelMesaPage: React.FC = () => {
     const d = deliberacoes.find((item) => item.id === id) || null
     setDeliberacaoAtiva(d)
     if (d) {
-      setMesaPresNome(d.mesa_presidente_nome || '')
-      setMesaPresCpf(d.mesa_presidente_cpf || '')
-      setMesaSecNome(d.mesa_secretario_nome || '')
-      setMesaSecCpf(d.mesa_secretario_cpf || '')
+      if (!modalMesaAbertoRef.current) {
+        setMesaPresNome(d.mesa_presidente_nome || '')
+        setMesaPresCpf(formatarCpf(d.mesa_presidente_cpf || ''))
+        setMesaSecNome(d.mesa_secretario_nome || '')
+        setMesaSecCpf(formatarCpf(d.mesa_secretario_cpf || ''))
+      }
 
       const [pres, comps] = await Promise.all([
         api.getPresencas(d.id),
@@ -295,8 +316,8 @@ export const PainelMesaPage: React.FC = () => {
                       <span className="text-slate-800 font-semibold">
                         {deliberacaoAtiva.mesa_presidente_nome}
                         {deliberacaoAtiva.mesa_presidente_cpf && (
-                          <span className="text-slate-500 font-normal ml-1">
-                            (CPF: {deliberacaoAtiva.mesa_presidente_cpf})
+                          <span className="text-slate-500 font-normal ml-1 font-mono">
+                            (CPF: {formatarCpf(deliberacaoAtiva.mesa_presidente_cpf)})
                           </span>
                         )}
                       </span>
@@ -313,8 +334,8 @@ export const PainelMesaPage: React.FC = () => {
                       <span className="text-slate-800 font-semibold">
                         {deliberacaoAtiva.mesa_secretario_nome}
                         {deliberacaoAtiva.mesa_secretario_cpf && (
-                          <span className="text-slate-500 font-normal ml-1">
-                            (CPF: {deliberacaoAtiva.mesa_secretario_cpf})
+                          <span className="text-slate-500 font-normal ml-1 font-mono">
+                            (CPF: {formatarCpf(deliberacaoAtiva.mesa_secretario_cpf)})
                           </span>
                         )}
                       </span>
@@ -334,9 +355,9 @@ export const PainelMesaPage: React.FC = () => {
                 size="sm"
                 onClick={() => {
                   setMesaPresNome(deliberacaoAtiva.mesa_presidente_nome || '')
-                  setMesaPresCpf(deliberacaoAtiva.mesa_presidente_cpf || '')
+                  setMesaPresCpf(formatarCpf(deliberacaoAtiva.mesa_presidente_cpf || ''))
                   setMesaSecNome(deliberacaoAtiva.mesa_secretario_nome || '')
-                  setMesaSecCpf(deliberacaoAtiva.mesa_secretario_cpf || '')
+                  setMesaSecCpf(formatarCpf(deliberacaoAtiva.mesa_secretario_cpf || ''))
                   setModalMesaAberto(true)
                 }}
                 className="text-xs border-amber-300 text-amber-900 hover:bg-amber-100 h-8 shrink-0 self-start md:self-center"
@@ -621,9 +642,10 @@ export const PainelMesaPage: React.FC = () => {
                 <Label className="text-[11px] font-semibold text-slate-700">CPF</Label>
                 <Input
                   value={mesaPresCpf}
-                  onChange={(e) => setMesaPresCpf(e.target.value)}
+                  onChange={(e) => setMesaPresCpf(formatarCpf(e.target.value))}
                   placeholder="000.000.000-00"
-                  className="text-xs h-8 bg-white"
+                  maxLength={14}
+                  className="text-xs h-8 bg-white font-mono"
                 />
               </div>
             </div>
@@ -646,9 +668,10 @@ export const PainelMesaPage: React.FC = () => {
                 <Label className="text-[11px] font-semibold text-slate-700">CPF</Label>
                 <Input
                   value={mesaSecCpf}
-                  onChange={(e) => setMesaSecCpf(e.target.value)}
+                  onChange={(e) => setMesaSecCpf(formatarCpf(e.target.value))}
                   placeholder="000.000.000-00"
-                  className="text-xs h-8 bg-white"
+                  maxLength={14}
+                  className="text-xs h-8 bg-white font-mono"
                 />
               </div>
             </div>
