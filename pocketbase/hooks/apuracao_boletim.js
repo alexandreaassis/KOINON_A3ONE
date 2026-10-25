@@ -123,6 +123,15 @@ routerAdd('GET', '/backend/v1/deliberacoes/apuracao', (e) => {
 
   const itensResultado = Object.values(mapaItens).sort((a, b) => a.ordem - b.ordem)
 
+  // Obter total de unidades ativas (unidades elegíveis)
+  let totalUnidadesElegiveis = 0
+  try {
+    const unidadesAtivas = e.app.findRecordsByFilter('unidades', 'ativo = true', '', 1000, 0)
+    totalUnidadesElegiveis = unidadesAtivas.length
+  } catch (_) {
+    totalUnidadesElegiveis = 0
+  }
+
   // Integridade: cédulas total deve ser igual a comparecimentos * quantidade de itens
   const totalCedulas = cedulas.length
   const totalComparecimentos = comparecimentos.length
@@ -136,15 +145,22 @@ routerAdd('GET', '/backend/v1/deliberacoes/apuracao', (e) => {
     deliberacao: {
       id: delib.id,
       titulo: delib.getString('titulo'),
+      descricao: delib.getString('descricao'),
+      data_inicio: delib.getString('data_inicio'),
+      data_fim: delib.getString('data_fim'),
       status: delib.getString('status'),
       tipo_cedula: delib.getString('tipo_cedula'),
       quorum_instalacao: delib.getInt('quorum_instalacao'),
+      quorum_materia: delib.getString('quorum_materia'),
+      inadimplente_pode_votar: delib.getBool('inadimplente_pode_votar'),
+      locatario_pode_votar: delib.getBool('locatario_pode_votar'),
       hash_raiz: delib.getString('hash_raiz') || ultimoHash,
     },
     apuracao: {
       totalComparecimentos: totalComparecimentos,
       totalCedulas: totalCedulas,
       esperadoCedulas: esperadoCedulas,
+      totalUnidadesElegiveis: totalUnidadesElegiveis,
       integridadeMatematica: integridadeCedulasComparecimento,
       presencas: {
         presencial: presencialCount,

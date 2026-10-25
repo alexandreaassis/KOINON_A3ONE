@@ -279,15 +279,22 @@ export interface ApuracaoResponse {
   deliberacao: {
     id: string
     titulo: string
+    descricao?: string
+    data_inicio?: string
+    data_fim?: string
     status: DeliberacaoStatus
     tipo_cedula: 'secreta' | 'nominal'
     quorum_instalacao?: number
+    quorum_materia?: string
+    inadimplente_pode_votar?: boolean
+    locatario_pode_votar?: boolean
     hash_raiz?: string
   }
   apuracao: {
     totalComparecimentos: number
     totalCedulas: number
     esperadoCedulas: number
+    totalUnidadesElegiveis?: number
     integridadeMatematica: boolean
     presencas: {
       presencial: number

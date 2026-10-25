@@ -8,6 +8,9 @@ import { CondoConfigProvider } from '@/context/CondoConfigContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
 
+// Documento Oficial de Impressão do Boletim de Urna (Sem sidebar/layout geral)
+import BoletimUrnaDocumentoPage from '@/pages/mesa/BoletimUrnaDocumento'
+
 // Páginas de Autenticação
 import LoginPage from '@/pages/auth/Login'
 import EsqueciSenhaPage from '@/pages/auth/EsqueciSenha'
@@ -166,6 +169,23 @@ const App = () => (
                   <AppLayout>
                     <AuditoriaPage />
                   </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Visão de Impressão Dedicada do Boletim de Urna (layout limpo, sem sidebar) */}
+            <Route
+              path="/mesa/auditoria/boletim/:deliberacaoId"
+              element={
+                <ProtectedRoute requireMesa>
+                  <BoletimUrnaDocumentoPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/auditoria/boletim"
+              element={
+                <ProtectedRoute requireMesa>
+                  <BoletimUrnaDocumentoPage />
                 </ProtectedRoute>
               }
             />

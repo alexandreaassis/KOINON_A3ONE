@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   api,
   type DeliberacaoRecord,
@@ -35,6 +36,7 @@ import {
 } from 'lucide-react'
 
 export const AuditoriaPage: React.FC = () => {
+  const navigate = useNavigate()
   const { rotuloUnidade } = useCondoConfig()
   const [deliberacoes, setDeliberacoes] = useState<DeliberacaoRecord[]>([])
   const [deliberacaoAtiva, setDeliberacaoAtiva] = useState<DeliberacaoRecord | null>(null)
@@ -214,10 +216,16 @@ export const AuditoriaPage: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.print()}
-                    className="text-xs gap-1.5"
+                    onClick={() => {
+                      if (deliberacaoAtiva?.id) {
+                        navigate(`/mesa/auditoria/boletim/${deliberacaoAtiva.id}`)
+                      } else {
+                        navigate('/mesa/auditoria/boletim')
+                      }
+                    }}
+                    className="text-xs gap-1.5 bg-slate-900 text-white hover:bg-slate-800 hover:text-white border-slate-900"
                   >
-                    <Printer className="h-3.5 w-3.5" /> Imprimir Boletim
+                    <Printer className="h-3.5 w-3.5" /> Imprimir Boletim Oficial
                   </Button>
                 </CardHeader>
 
