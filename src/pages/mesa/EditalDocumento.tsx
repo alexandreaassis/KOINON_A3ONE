@@ -93,7 +93,7 @@ export const EditalDocumentoPage: React.FC = () => {
         segundaConvocacao: editalSalvo?.segunda_convocacao || '19:30',
         localTexto:
           editalSalvo?.local_texto ||
-          'Salão de Festas do Condomínio / Plataforma Virtual Votum de Votação',
+          'Salão de Festas do Condomínio / Plataforma Virtual Indaba de Votação',
         itensPauta: itensPauta.map((it) => ({
           ordem: it.ordem,
           titulo: it.titulo,

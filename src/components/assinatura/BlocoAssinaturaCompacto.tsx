@@ -24,7 +24,7 @@ export const BlocoAssinaturaCompacto: React.FC<BlocoAssinaturaCompactoProps> = (
   assinaturaVisual,
   assinaturaTexto,
   larguraLinha = 'w-64',
-  corLinha = 'border-slate-900',
+  corLinha = 'border-[#1E1B18]',
   alinhamento = 'center',
   className = '',
   mostrarLinhaSeEmBranco = true,
@@ -49,7 +49,7 @@ export const BlocoAssinaturaCompacto: React.FC<BlocoAssinaturaCompactoProps> = (
         ) : temTexto ? (
           <span
             style={{ fontFamily: '"Dancing Script", "Great Vibes", cursive' }}
-            className="text-2xl text-slate-950 font-bold leading-none truncate max-w-[240px] px-2 block"
+            className="text-2xl text-[#1E1B18] font-bold leading-none truncate max-w-[240px] px-2 block"
           >
             {assinaturaTexto}
           </span>
@@ -66,17 +66,17 @@ export const BlocoAssinaturaCompacto: React.FC<BlocoAssinaturaCompactoProps> = (
         />
       )}
 
-      {/* Bloco compacto de identificação (espaçamento zerado conforme v0.0.21) */}
+      {/* Bloco compacto de identificação */}
       <div className="space-y-0 leading-tight">
-        <p className="text-xs font-bold uppercase text-slate-950 m-0 p-0 leading-tight">
+        <p className="text-xs font-semibold uppercase text-[#1E1B18] m-0 p-0 leading-tight">
           {nome || 'Nome do Assinante'}
         </p>
         {cpf && (
-          <p className="text-[10px] text-slate-600 font-mono m-0 p-0 leading-tight">
+          <p className="text-[10px] text-[#6B6259] font-mono m-0 p-0 leading-tight">
             CPF: {formatarCpf(cpf)}
           </p>
         )}
-        {cargo && <p className="text-[10px] text-slate-500 m-0 p-0 leading-tight">{cargo}</p>}
+        {cargo && <p className="text-[10px] text-[#6B6259] m-0 p-0 leading-tight">{cargo}</p>}
       </div>
     </div>
   )

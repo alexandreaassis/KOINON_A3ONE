@@ -1,7 +1,7 @@
 /* Global styles - Theme, font, utilities, animations and global components */
 
-/* CHANGE THE FONT BELOW TO WHATEVER YOU WANT */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+/* Identidade Visual Indaba — Design System Oficial */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -9,103 +9,102 @@
 
 @layer base {
   :root {
-    /* Change the colors to match the design system */
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Paleta Oficial Indaba */
+    /* Indaba Deep: #1E1B18 => hsl(30, 11%, 11%) */
+    /* Ocre: #E39A2B => hsl(36, 76%, 53%) */
+    /* Terracota: #C75B39 => hsl(14, 57%, 50%) */
+    /* Areia: #F4EFE7 => hsl(36, 36%, 93%) */
+    /* Papel: #FFFDFA => hsl(40, 100%, 99%) */
+    /* Grafite: #6B6259 => hsl(33, 9%, 38%) */
+    /* Borda: #E8E1D6 => hsl(38, 28%, 88%) */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --indaba-deep: #1e1b18;
+    --indaba-ocre: #e39a2b;
+    --indaba-terracota: #c75b39;
+    --indaba-areia: #f4efe7;
+    --indaba-papel: #fffdfa;
+    --indaba-grafite: #6b6259;
+    --indaba-borda: #e8e1d6;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Mapeamento Shadcn para tokens Indaba */
+    --background: 36 36% 93%; /* Areia */
+    --foreground: 30 11% 11%; /* Indaba Deep */
 
-    --primary: 222.2 84% 4.9%;
-    --primary-foreground: 210 40% 98%;
+    --card: 40 100% 99%; /* Papel */
+    --card-foreground: 30 11% 11%; /* Indaba Deep */
 
-    --secondary: 210 40% 98%;
-    --secondary-foreground: 222.2 84% 4.9%;
+    --popover: 40 100% 99%; /* Papel */
+    --popover-foreground: 30 11% 11%; /* Indaba Deep */
 
-    --muted: 210 40% 98%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Botão primário Ocre #E39A2B com texto Indaba Deep #1E1B18 */
+    --primary: 36 76% 53%;
+    --primary-foreground: 30 11% 11%;
 
-    --accent: 210 40% 98%;
-    --accent-foreground: 222.2 84% 4.9%;
+    /* Secundário: fundo transparente / papel com borda e texto Indaba Deep */
+    --secondary: 36 36% 93%;
+    --secondary-foreground: 30 11% 11%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --muted: 36 30% 91%;
+    --muted-foreground: 33 9% 38%; /* Grafite */
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --accent: 36 76% 53%;
+    --accent-foreground: 30 11% 11%;
 
-    --radius: 0.5rem;
+    /* Terracota para alertas e indicadores negativos */
+    --destructive: 14 57% 50%;
+    --destructive-foreground: 40 100% 99%;
 
-    --sidebar-background: 0 0% 98%;
+    --border: 38 28% 88%; /* #E8E1D6 */
+    --input: 38 28% 88%; /* #E8E1D6 */
+    --ring: 36 76% 53%; /* Ocre #E39A2B */
 
-    --sidebar-foreground: 222.2 84% 4.9%;
+    --radius: 0.75rem; /* 12px padrão para cartões */
 
-    --sidebar-primary: 222.2 84% 4.9%;
+    /* Sidebar Indaba Deep */
+    --sidebar-background: 30 11% 11%;
+    --sidebar-foreground: 36 30% 91%;
+    --sidebar-primary: 36 76% 53%;
+    --sidebar-primary-foreground: 30 11% 11%;
+    --sidebar-accent: 30 11% 15%;
+    --sidebar-accent-foreground: 40 100% 99%;
+    --sidebar-border: 30 11% 18%;
+    --sidebar-ring: 36 76% 53%;
 
-    --sidebar-primary-foreground: 0 0% 100%;
-
-    --sidebar-accent: 210 40% 98%;
-
-    --sidebar-accent-foreground: 222.2 84% 4.9%;
-
-    --sidebar-border: 214.3 31.8% 91.4%;
-
-    --sidebar-ring: 222.2 84% 4.9%;
-
-    --chart-1: 34 100% 44%;
-    --chart-2: 189 100% 38%;
-    --chart-3: 209 100% 32%;
-    --chart-4: 42 100% 50%;
-    --chart-5: 33 100% 50%;
+    --chart-1: 36 76% 53%; /* Ocre */
+    --chart-2: 30 11% 11%; /* Indaba Deep */
+    --chart-3: 14 57% 50%; /* Terracota */
+    --chart-4: 33 9% 38%; /* Grafite */
+    --chart-5: 38 28% 88%; /* Borda */
   }
 
-  .dark {
-    /* Change the colors to match the design system consistent with the dark mode */
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+  * {
+    border-color: #e8e1d6;
+  }
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+  body {
+    background-color: #f4efe7;
+    color: #1e1b18;
+    font-family:
+      'Manrope',
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      Roboto,
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 84% 4.9%;
-
-    --secondary: 222.2 84% 4.9%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 222.2 84% 4.9%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 222.2 84% 4.9%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 222.2 84% 4.9%;
-    --input: 222.2 84% 4.9%;
-    --ring: 214.3 31.8% 91.4%;
-    --sidebar-background: 222.2 84% 4.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 222.2 84% 4.9%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222.2 84% 4.9%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222.2 84% 4.9%;
-    --sidebar-ring: 222.2 84% 4.9%;
-
-    --chart-1: 270 100% 44%;
-    --chart-2: 164 100% 38%;
-    --chart-3: 43 100% 32%;
-    --chart-4: 340 100% 50%;
-    --chart-5: 10 100% 50%;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: #1e1b18;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    font-style: normal !important;
   }
 
   /* NEVER REMOVE THIS */
@@ -349,7 +348,66 @@
   }
 }
 
-/* Rich Text Editor Content & Rendered HTML */
+/* Classes utilitárias do Design System Indaba para substituição rápida */
+/* Harmonização com o Design System Indaba */
+.bg-cyan-700,
+.bg-cyan-600,
+.bg-cyan-800,
+.bg-blue-600,
+.bg-blue-700 {
+  background-color: #e39a2b !important;
+  color: #1e1b18 !important;
+  border-color: transparent !important;
+}
+.bg-cyan-700:hover,
+.bg-cyan-800:hover,
+.bg-blue-600:hover,
+.bg-blue-700:hover {
+  background-color: #d48c20 !important;
+  color: #1e1b18 !important;
+}
+.bg-cyan-50,
+.bg-blue-50 {
+  background-color: rgba(227, 154, 43, 0.12) !important;
+}
+.text-cyan-600,
+.text-cyan-700,
+.text-cyan-800,
+.text-blue-600,
+.text-blue-700 {
+  color: #1e1b18 !important;
+}
+.text-cyan-500 {
+  color: #e39a2b !important;
+}
+.border-cyan-200,
+.border-cyan-300,
+.border-cyan-100,
+.border-blue-200,
+.border-blue-300 {
+  border-color: #e8e1d6 !important;
+}
+
+/* Tabelas conforme especificação:
+   Cabeçalho com fundo Areia #F4EFE7, texto Grafite #6B6259 peso 600 caixa alta pequena;
+   linhas separadas por 1px #E8E1D6; sem zebra colorida.
+*/
+table thead th {
+  background-color: #f4efe7 !important;
+  color: #6b6259 !important;
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  border-bottom: 1px solid #e8e1d6 !important;
+}
+table tbody tr {
+  border-bottom: 1px solid #e8e1d6 !important;
+  background-color: #fffdfa !important;
+}
+table tbody tr:hover {
+  background-color: rgba(244, 239, 231, 0.4) !important;
+} /* Rich Text Editor Content & Rendered HTML */
 .rich-editor-content .ProseMirror,
 .rendered-document-html {
   outline: none;

@@ -10,19 +10,22 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        default:
+          'bg-[#E39A2B] text-[#1E1B18] font-semibold rounded-[10px] hover:bg-[#d48c20] focus-visible:ring-2 focus-visible:ring-[#E39A2B] focus-visible:ring-offset-2 border-0',
+        destructive:
+          'bg-[#C75B39] text-[#FFFDFA] font-semibold rounded-[10px] hover:bg-[#b24e2f] focus-visible:ring-2 focus-visible:ring-[#C75B39] focus-visible:ring-offset-2 border-0',
         outline:
-          'border border-input bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        ghost: 'text-foreground hover:bg-accent hover:text-accent-foreground',
-        link: 'text-foreground underline-offset-4 hover:underline',
+          'border border-[#E8E1D6] bg-transparent text-[#1E1B18] font-medium rounded-[10px] hover:bg-[#F4EFE7]/60 hover:text-[#1E1B18] focus-visible:ring-2 focus-visible:ring-[#E39A2B] focus-visible:ring-offset-2',
+        secondary:
+          'border border-[#E8E1D6] bg-transparent text-[#1E1B18] font-medium rounded-[10px] hover:bg-[#F4EFE7]/60 hover:text-[#1E1B18]',
+        ghost: 'text-[#1E1B18] hover:bg-[#F4EFE7]/70 hover:text-[#1E1B18] rounded-[10px]',
+        link: 'text-[#E39A2B] font-semibold underline-offset-4 hover:underline p-0 h-auto',
       },
       size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-9 rounded-md px-3',
-        lg: 'h-11 rounded-md px-8',
-        icon: 'h-10 w-10',
+        default: 'h-10 px-4 py-2 text-sm',
+        sm: 'h-9 rounded-[10px] px-3 text-xs',
+        lg: 'h-11 rounded-[10px] px-8 text-sm',
+        icon: 'h-10 w-10 rounded-[10px]',
       },
     },
     defaultVariants: {

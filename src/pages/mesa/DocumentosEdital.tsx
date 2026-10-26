@@ -93,7 +93,7 @@ export const DocumentosEditalPage: React.FC = () => {
     primeiraConvocacao: '19:00',
     segundaConvocacao: '19:30',
     dataAssembleia: '',
-    localTexto: 'Salão de Festas do Condomínio / Plataforma Virtual Votum',
+    localTexto: 'Salão de Festas do Condomínio / Plataforma Virtual Indaba',
     ordemDiaCustom: '',
     disposicoesGerais:
       'Os condôminos poderão votar presencialmente ou por meio da plataforma eletrônica. É admitida representação por procuração com firma reconhecida ou assinatura eletrônica idônea.',
@@ -249,7 +249,8 @@ export const DocumentosEditalPage: React.FC = () => {
             primeiraConvocacao: editalSalvo.primeira_convocacao || '19:00',
             segundaConvocacao: editalSalvo.segunda_convocacao || '19:30',
             localTexto:
-              editalSalvo.local_texto || 'Salão de Festas do Condomínio / Plataforma Virtual Votum',
+              editalSalvo.local_texto ||
+              'Salão de Festas do Condomínio / Plataforma Virtual Indaba',
             ordemDiaCustom: editalSalvo.ordem_dia_custom || '',
             disposicoesGerais:
               editalSalvo.disposicoes_gerais ||
@@ -295,7 +296,7 @@ export const DocumentosEditalPage: React.FC = () => {
             dataAssembleia: '',
             primeiraConvocacao: '19:00',
             segundaConvocacao: '19:30',
-            localTexto: 'Salão de Festas do Condomínio / Plataforma Virtual Votum',
+            localTexto: 'Salão de Festas do Condomínio / Plataforma Virtual Indaba',
             ordemDiaCustom: '',
             disposicoesGerais:
               'Os condôminos poderão votar presencialmente ou por meio da plataforma eletrônica. É admitida representação por procuração com firma reconhecida ou assinatura eletrônica idônea.',
@@ -469,7 +470,7 @@ export const DocumentosEditalPage: React.FC = () => {
       const salvo = await persistirRascunhoNoBanco(false)
       if (!silencioso) {
         toast({
-          title: 'Edital Salvo com Sucesso!',
+          title: 'Edital salvo com sucesso',
           description: 'Todas as alterações de texto e parâmetros foram persistidas no banco.',
         })
       }
@@ -658,7 +659,7 @@ export const DocumentosEditalPage: React.FC = () => {
       setModalAssinaturaAberto(false)
 
       toast({
-        title: 'Edital Assinado Eletronicamente!',
+        title: 'Edital assinado eletronicamente',
         description: `Modo: ${dadosAssinatura.formato === 'desenho' ? 'Tela desenhada' : dadosAssinatura.formato === 'texto' ? 'Nome digitado' : 'Em branco'}. Hash: ${hash.substring(0, 16)}...`,
       })
     } catch (err: any) {
@@ -723,7 +724,7 @@ export const DocumentosEditalPage: React.FC = () => {
       }
 
       toast({
-        title: 'Notificações Enfileiradas com Sucesso!',
+        title: 'Notificações enfileiradas com sucesso',
         description: resp.message || `Disparado para ${resp.totalDestinatarios} moradores.`,
       })
 
@@ -810,7 +811,7 @@ export const DocumentosEditalPage: React.FC = () => {
     try {
       const resp = await api.reenviarNotificacao(notifId)
       if (resp.success) {
-        toast({ title: 'E-mail reenviado com sucesso!' })
+        toast({ title: 'E-mail reenviado com sucesso' })
       } else {
         toast({
           title: 'Erro no reenvio',
@@ -877,7 +878,7 @@ export const DocumentosEditalPage: React.FC = () => {
         dispositivo: navigator.userAgent,
       })
 
-      toast({ title: 'Documento Anexado à Pauta!' })
+      toast({ title: 'Documento anexado à pauta' })
       setModalUploadAberto(false)
       setTituloDoc('')
       setDescricaoDoc('')

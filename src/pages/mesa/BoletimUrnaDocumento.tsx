@@ -224,7 +224,7 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
 
       setModalAssinaturaMesa(null)
       toast({
-        title: 'Assinatura do Boletim Registrada!',
+        title: 'Assinatura do boletim registrada',
         description: `Carimbo SHA-256 gerado: ${hash.substring(0, 16)}...`,
       })
     } catch (err: any) {

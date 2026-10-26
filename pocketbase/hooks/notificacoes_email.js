@@ -60,7 +60,7 @@ onRecordCreate((e) => {
                 </tr>
                 <tr>
                   <td style="background-color: #f8fafc; padding: 20px 30px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; text-align: center;">
-                    <p style="margin: 0 0 6px 0; font-weight: 600; color: #475569;">${nomeCondo} — Votum</p>
+                    <p style="margin: 0 0 6px 0; font-weight: 600; color: #1E1B18;">${nomeCondo} — Indaba</p>
                     <p style="margin: 0; line-height: 1.4;">
                       Esta é uma notificação oficial da assembleia condominial. Não responda diretamente a este e-mail.<br>
                       Em conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei 13.709/2018).

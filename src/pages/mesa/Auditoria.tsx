@@ -96,7 +96,7 @@ export const AuditoriaPage: React.FC = () => {
   const copiarHash = (h: string) => {
     navigator.clipboard.writeText(h)
     toast({
-      title: 'Hash Copiado!',
+      title: 'Hash copiado',
       description: 'Hash SHA-256 copiado para a área de transferência.',
     })
   }

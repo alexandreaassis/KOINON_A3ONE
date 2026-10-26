@@ -380,8 +380,8 @@ export const AtaAssembleiaPage: React.FC = () => {
       if (resp.success && resp.textoTranscrito) {
         anexarAoTextoBruto(resp.textoTranscrito, 'Transcrição de Áudio da Mesa')
         toast({
-          title: 'Áudio Transcrito com Sucesso via Groq Whisper!',
-          description: `Foram gerados ${resp.caracteres} caracteres e anexados à matéria bruta com carimbo de horário.`,
+          title: 'Áudio transcrito via Groq Whisper',
+          description: `Áudio processado e transcrito integralmente (${resp.duracaoSegundos ? `${resp.duracaoSegundos}s` : 'concluído'}). O texto foi anexado como matéria bruta para geração da ata.`,
         })
       } else {
         toast({
@@ -434,8 +434,8 @@ export const AtaAssembleiaPage: React.FC = () => {
       if (resp.success && resp.textoExtraido) {
         anexarAoTextoBruto(resp.textoExtraido, `Documento Digitalizado: ${arquivo.name}`)
         toast({
-          title: 'Documento Extraído com Sucesso!',
-          description: `${resp.caracteres} caracteres extraídos de "${arquivo.name}" e anexados à matéria bruta.`,
+          title: 'Documento extraído com sucesso',
+          description: `Conteúdo de "${arquivo.name}" importado (${resp.caracteres ? `${resp.caracteres} caracteres` : 'extração concluída'}). O texto foi anexado como matéria bruta para redação da ata.`,
         })
       } else {
         toast({
@@ -744,10 +744,10 @@ export const AtaAssembleiaPage: React.FC = () => {
         setStatusAta('rascunho')
 
         toast({
-          title: 'Ata Gerada com Sucesso!',
+          title: 'Minuta da ata gerada',
           description: temAnotacoesDigitadas
-            ? 'A IA incorporou suas anotações brutas e estruturou a ata conforme os padrões jurídicos. Revise os detalhes abaixo.'
-            : 'A IA estruturou a ata conforme os dados cadastrais da assembleia. Você pode revisá-la e personalizá-la.',
+            ? 'A inteligência estruturou a ata conforme anotações brutas e diretrizes jurídicas. Revise os detalhes abaixo.'
+            : 'A ata foi estruturada conforme os dados cadastrais da assembleia. Você pode revisá-la e editá-la.',
         })
       }
     } catch (err: any) {
@@ -849,7 +849,7 @@ export const AtaAssembleiaPage: React.FC = () => {
 
       setModalAssinaturaMesa(null)
       toast({
-        title: `Assinatura de ${modalAssinaturaMesa === 'presidente' ? 'Presidente' : 'Secretário(a)'} Concluída!`,
+        title: `Assinatura de ${modalAssinaturaMesa === 'presidente' ? 'Presidente' : 'Secretário(a)'} concluída`,
         description: `Carimbo SHA-256 gerado: ${hashIndividual.substring(0, 16)}...`,
       })
     } catch (err: any) {
@@ -884,7 +884,7 @@ export const AtaAssembleiaPage: React.FC = () => {
       setModalPublicarAberto(false)
 
       toast({
-        title: 'Ata Publicada Oficialmente!',
+        title: 'Ata publicada oficialmente',
         description: resp.message,
       })
     } catch (err: any) {

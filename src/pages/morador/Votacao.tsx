@@ -322,8 +322,8 @@ export const VotacaoPage: React.FC = () => {
       }
 
       toast({
-        title: 'Voto Registrado na Urna!',
-        description: `Código de conferência: ${resp.reciboCodigo}. Voto irretratável.`,
+        title: 'Voto registrado na urna',
+        description: 'Seu voto foi criptografado e computado com sucesso.',
       })
     } catch (err: any) {
       console.error('Erro ao registrar cédulas:', err)

@@ -96,8 +96,8 @@ export const ReciboPage: React.FC = () => {
   const copiarCodigo = (codigo: string) => {
     navigator.clipboard.writeText(codigo)
     toast({
-      title: 'Copiado!',
-      description: 'Código de conferência copiado para a área de transferência.',
+      title: 'Hash copiado',
+      description: 'Hash SHA-256 do voto copiado para a área de transferência.',
     })
   }
 

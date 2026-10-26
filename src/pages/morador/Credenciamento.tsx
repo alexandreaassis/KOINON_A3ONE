@@ -158,7 +158,7 @@ export const CredenciamentoPage: React.FC = () => {
       const novo = await api.submeterCredenciamento(formData)
       setCredExistente(novo)
       toast({
-        title: 'Documentação Enviada!',
+        title: 'Documentação enviada',
         description: 'Seu credenciamento foi registrado e será analisado pela Mesa Diretora.',
       })
     } catch (err: any) {

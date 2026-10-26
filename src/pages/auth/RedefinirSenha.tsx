@@ -13,7 +13,9 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Lock, CheckCircle2, AlertTriangle, ArrowLeft, Droplets } from 'lucide-react'
+import { IndabaLogo } from '@/components/brand/IndabaLogo'
+import { IndabaSymbol } from '@/components/brand/IndabaSymbol'
+import { Lock, CheckCircle2, AlertTriangle, ArrowLeft } from 'lucide-react'
 
 export const RedefinirSenhaPage: React.FC = () => {
   const [searchParams] = useSearchParams()
@@ -61,100 +63,130 @@ export const RedefinirSenhaPage: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cyan-50 via-slate-50 to-blue-100 p-4">
-      <Card className="w-full max-w-md border-cyan-100 shadow-xl">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-cyan-600 to-blue-700 text-white shadow-md shadow-cyan-200">
-            <Droplets className="h-8 w-8 text-cyan-200" />
-          </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">
-            Nova Senha
-          </CardTitle>
-          <CardDescription className="text-slate-600 text-sm">
-            Condomínio Residencial Lago Azul — Crie uma senha segura
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="pt-4">
-          {sucesso ? (
-            <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              <AlertTitle className="font-semibold">Senha alterada com sucesso!</AlertTitle>
-              <AlertDescription className="text-sm mt-1">
-                Sua senha foi redefinida com segurança. Redirecionando para o login em instantes...
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {erro && (
-                <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-900">
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                  <AlertTitle className="text-sm font-semibold">Atenção</AlertTitle>
-                  <AlertDescription className="text-xs">{erro}</AlertDescription>
-                </Alert>
-              )}
-
-              {!token && (
-                <Alert className="border-amber-200 bg-amber-50 text-amber-900">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="text-xs">
-                    Nenhum token fornecido na URL. Utilize o link enviado por e-mail para continuar.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="novaSenha">Nova Senha (mín. 8 dígitos)</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                  <Input
-                    id="novaSenha"
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={novaSenha}
-                    onChange={(e) => setNovaSenha(e.target.value)}
-                    className="pl-10 h-11"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmacao">Confirme a Nova Senha</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                  <Input
-                    id="confirmacao"
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={confirmacao}
-                    onChange={(e) => setConfirmacao(e.target.value)}
-                    className="pl-10 h-11"
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={carregando || !token}
-                className="w-full h-11 bg-cyan-700 hover:bg-cyan-800 font-semibold"
-              >
-                {carregando ? 'Salvando...' : 'Salvar Nova Senha'}
-              </Button>
-            </form>
-          )}
-        </CardContent>
-
-        <CardFooter className="flex justify-center border-t border-slate-100 pt-4">
-          <Link
-            to="/login"
-            className="inline-flex items-center text-sm font-medium text-cyan-700 hover:text-cyan-900 hover:underline"
-          >
-            <ArrowLeft className="mr-1 h-4 w-4" /> Voltar para o Login
+    <div className="flex min-h-screen flex-col bg-[#F4EFE7] text-[#1E1B18]">
+      <header className="border-b border-[#E8E1D6] bg-[#FFFDFA] px-6 py-4">
+        <div className="mx-auto flex max-w-5xl items-center justify-between">
+          <IndabaLogo size={30} variant="color" />
+          <Link to="/login" className="text-xs font-semibold text-[#E39A2B] hover:underline">
+            Voltar para o Login
           </Link>
-        </CardFooter>
-      </Card>
+        </div>
+      </header>
+
+      <main className="flex flex-1 items-center justify-center p-4 sm:p-6">
+        <Card className="w-full max-w-md border border-[#E8E1D6] bg-[#FFFDFA] shadow-[0_4px_24px_rgba(30,27,24,0.06)] rounded-[12px]">
+          <CardHeader className="text-center pb-2 pt-6">
+            <div className="mx-auto mb-3 flex items-center justify-center">
+              <IndabaSymbol size={44} variant="color" />
+            </div>
+            <CardTitle className="text-2xl font-semibold tracking-[-0.02em] text-[#1E1B18]">
+              Nova Senha
+            </CardTitle>
+            <CardDescription className="text-xs text-[#6B6259]">
+              Plataforma Indaba — Defina sua nova senha de acesso
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="pt-4 space-y-4">
+            {sucesso ? (
+              <Alert className="border border-[#E39A2B]/40 bg-[#E39A2B]/10 text-[#1E1B18] rounded-[10px]">
+                <CheckCircle2 className="h-5 w-5 text-[#E39A2B]" />
+                <AlertTitle className="font-semibold text-[#1E1B18]">
+                  Senha alterada com sucesso
+                </AlertTitle>
+                <AlertDescription className="text-xs text-[#1E1B18] mt-1">
+                  Sua senha foi redefinida. Redirecionando para o login em instantes...
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {erro && (
+                  <Alert
+                    variant="destructive"
+                    className="border border-[#C75B39]/30 bg-[#C75B39]/10 text-[#1E1B18] rounded-[10px]"
+                  >
+                    <AlertTriangle className="h-4 w-4 text-[#C75B39]" />
+                    <AlertTitle className="text-xs font-semibold text-[#C75B39]">
+                      Atenção
+                    </AlertTitle>
+                    <AlertDescription className="text-xs text-[#1E1B18]">{erro}</AlertDescription>
+                  </Alert>
+                )}
+
+                {!token && (
+                  <Alert className="border border-[#C75B39]/30 bg-[#C75B39]/10 text-[#1E1B18] rounded-[10px]">
+                    <AlertTriangle className="h-4 w-4 text-[#C75B39]" />
+                    <AlertDescription className="text-xs text-[#1E1B18]">
+                      Nenhum token fornecido na URL. Utilize o link enviado por e-mail para
+                      continuar.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="novaSenha" className="text-xs font-medium text-[#1E1B18]">
+                    Nova Senha (mínimo 8 caracteres)
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-[#6B6259]" />
+                    <Input
+                      id="novaSenha"
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      value={novaSenha}
+                      onChange={(e) => setNovaSenha(e.target.value)}
+                      className="pl-10 h-10 border-[#E8E1D6] bg-[#FFFDFA] text-[#1E1B18] placeholder:text-[#6B6259] rounded-[10px]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirmacao" className="text-xs font-medium text-[#1E1B18]">
+                    Confirme a Nova Senha
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-[#6B6259]" />
+                    <Input
+                      id="confirmacao"
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      value={confirmacao}
+                      onChange={(e) => setConfirmacao(e.target.value)}
+                      className="pl-10 h-10 border-[#E8E1D6] bg-[#FFFDFA] text-[#1E1B18] placeholder:text-[#6B6259] rounded-[10px]"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={carregando || !token}
+                  className="w-full h-10 bg-[#E39A2B] text-[#1E1B18] font-semibold hover:bg-[#d48c20] rounded-[10px] shadow-none border-0"
+                >
+                  {carregando ? 'Salvando...' : 'Salvar Nova Senha'}
+                </Button>
+              </form>
+            )}
+          </CardContent>
+
+          <CardFooter className="flex justify-center border-t border-[#E8E1D6] pt-4">
+            <Link
+              to="/login"
+              className="inline-flex items-center text-xs font-semibold text-[#1E1B18] hover:text-[#E39A2B]"
+            >
+              <ArrowLeft className="mr-1.5 h-4 w-4" /> Voltar para o Login
+            </Link>
+          </CardFooter>
+        </Card>
+      </main>
+
+      <footer className="border-t border-[#E8E1D6] bg-[#1E1B18] py-4 px-6 text-white text-xs">
+        <div className="mx-auto flex max-w-5xl items-center justify-between">
+          <IndabaLogo size={22} variant="negative" />
+          <p className="text-[#E8E1D6]/70 text-[11px]">Segurança e integridade Indaba</p>
+        </div>
+      </footer>
     </div>
   )
 }

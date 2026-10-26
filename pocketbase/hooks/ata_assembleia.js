@@ -60,7 +60,7 @@ routerAdd('POST', '/backend/v1/atas/gerar-ia', (e) => {
         `Data da Assembleia indicada no Edital: ${ed.getString('data_assembleia') || 'Não especificada'}\n` +
         `Primeira Convocação: ${ed.getString('primeira_convocacao') || '19:00'}\n` +
         `Segunda Convocação: ${ed.getString('segunda_convocacao') || '19:30'}\n` +
-        `Local indicado: ${ed.getString('local_texto') || 'Salão de Festas / Plataforma Votum'}\n` +
+        `Local indicado: ${ed.getString('local_texto') || 'Salão de Festas / Plataforma Indaba'}\n` +
         `Convocante: ${ed.getString('sindico_nome') || 'Síndico(a)'} (CPF: ${ed.getString('sindico_cpf') || '—'})\n`
     }
   } catch (_) {}
@@ -195,10 +195,10 @@ routerAdd('POST', '/backend/v1/atas/gerar-ia', (e) => {
     `QUÓRUM E PRESENÇAS APURADAS:\n` +
     `• Total Geral de Unidades Presentes: ${totalPresencas}\n` +
     `• Presenças Físicas (Presencial no Salão): ${totalPresencial}\n` +
-    `• Presenças Virtuais (Plataforma Remota Votum): ${totalRemoto}\n` +
+    `• Presenças Virtuais (Plataforma Remota Indaba): ${totalRemoto}\n` +
     `• Representações por Procuração Cadastradas: ${totalProcuracao}\n\n` +
     `ITENS DA ORDEM DO DIA E APURAÇÃO DOS VOTOS:\n${itensPautaTexto || 'Nenhum item com votação registrada até o momento.'}\n\n` +
-    `INTEGRIDADE CRIPTOGRÁFICA DA URNA ELETRÔNICA VOTUM:\n` +
+    `INTEGRIDADE CRIPTOGRÁFICA DA URNA ELETRÔNICA INDABA:\n` +
     `• Hash Raiz Consolidado SHA-256: ${hashRaizUrna}\n\n` +
     `=== DIRETRIZES DE SAÍDA ===\n` +
     `1. Retorne EXCLUSIVAMENTE código HTML sem blocos de código (\`\`\`html ou \`\`\`).\n` +
@@ -843,7 +843,7 @@ routerAdd('POST', '/backend/v1/atas/publicar', (e) => {
       const tituloNotif = `Ata Oficial Publicada: ${delib.getString('titulo')}`
       const corpoNotif =
         `Prezado(a) Condômino(a),\n\n` +
-        `Informamos que a ATA OFICIAL da assembleia "${delib.getString('titulo')}" foi lavrada, assinada pela mesa diretora e PUBLICADA no sistema Votum.\n\n` +
+        `Informamos que a ATA OFICIAL da assembleia "${delib.getString('titulo')}" foi lavrada, assinada pela mesa diretora e PUBLICADA no sistema Indaba.\n\n` +
         `Você já pode consultar o teor integral da ata, as deliberações e as assinaturas eletrônicas na área do morador.\n\n` +
         `Agradecemos a sua participação cívica na governança do condomínio.`
 

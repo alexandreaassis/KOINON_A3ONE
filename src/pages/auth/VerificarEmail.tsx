@@ -11,7 +11,9 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { CheckCircle2, AlertTriangle, ArrowRight, Droplets } from 'lucide-react'
+import { IndabaLogo } from '@/components/brand/IndabaLogo'
+import { IndabaSymbol } from '@/components/brand/IndabaSymbol'
+import { CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react'
 
 export const VerificarEmailPage: React.FC = () => {
   const [searchParams] = useSearchParams()
@@ -46,62 +48,85 @@ export const VerificarEmailPage: React.FC = () => {
   }, [token])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cyan-50 via-slate-50 to-blue-100 p-4">
-      <Card className="w-full max-w-md border-cyan-100 shadow-xl">
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-cyan-600 to-blue-700 text-white shadow-md shadow-cyan-200">
-            <Droplets className="h-8 w-8 text-cyan-200" />
-          </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">
-            Confirmação de E-mail
-          </CardTitle>
-          <CardDescription className="text-slate-600 text-sm">
-            Condomínio Residencial Lago Azul
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="pt-4">
-          {status === 'verificando' && (
-            <div className="flex flex-col items-center py-6 text-center space-y-3">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-600 border-t-transparent" />
-              <p className="text-sm font-medium text-slate-700">
-                Validando autenticidade do link...
-              </p>
-            </div>
-          )}
-
-          {status === 'sucesso' && (
-            <Alert className="border-emerald-200 bg-emerald-50 text-emerald-900">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              <AlertTitle className="font-semibold text-emerald-900">
-                E-mail verificado com sucesso!
-              </AlertTitle>
-              <AlertDescription className="text-emerald-800 text-sm mt-1">
-                Sua conta está confirmada e habilitada para credenciamento e votação eletrônica na
-                assembleia.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {status === 'erro' && (
-            <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-900">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertTitle className="font-semibold">Falha na verificação</AlertTitle>
-              <AlertDescription className="text-xs mt-1">
-                {mensagemErro || 'Não foi possível validar este token de e-mail.'}
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-
-        <CardFooter className="flex justify-center border-t border-slate-100 pt-4">
-          <Link to="/login" className="w-full">
-            <Button className="w-full bg-cyan-700 hover:bg-cyan-800">
-              Ir para o Login <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+    <div className="flex min-h-screen flex-col bg-[#F4EFE7] text-[#1E1B18]">
+      <header className="border-b border-[#E8E1D6] bg-[#FFFDFA] px-6 py-4">
+        <div className="mx-auto flex max-w-5xl items-center justify-between">
+          <IndabaLogo size={30} variant="color" />
+          <Link to="/login" className="text-xs font-semibold text-[#E39A2B] hover:underline">
+            Ir para o Login
           </Link>
-        </CardFooter>
-      </Card>
+        </div>
+      </header>
+
+      <main className="flex flex-1 items-center justify-center p-4 sm:p-6">
+        <Card className="w-full max-w-md border border-[#E8E1D6] bg-[#FFFDFA] shadow-[0_4px_24px_rgba(30,27,24,0.06)] rounded-[12px]">
+          <CardHeader className="text-center pb-2 pt-6">
+            <div className="mx-auto mb-3 flex items-center justify-center">
+              <IndabaSymbol size={44} variant="color" />
+            </div>
+            <CardTitle className="text-2xl font-semibold tracking-[-0.02em] text-[#1E1B18]">
+              Confirmação de E-mail
+            </CardTitle>
+            <CardDescription className="text-xs text-[#6B6259]">
+              Plataforma Indaba — Verificação cadastral
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="pt-4 space-y-4">
+            {status === 'verificando' && (
+              <div className="flex flex-col items-center py-6 text-center space-y-3">
+                <div className="h-8 w-8 animate-spin rounded-full border-3 border-[#E39A2B] border-t-transparent" />
+                <p className="text-xs font-medium text-[#6B6259]">
+                  Validando autenticidade do link...
+                </p>
+              </div>
+            )}
+
+            {status === 'sucesso' && (
+              <Alert className="border border-[#E39A2B]/40 bg-[#E39A2B]/10 text-[#1E1B18] rounded-[10px]">
+                <CheckCircle2 className="h-5 w-5 text-[#E39A2B]" />
+                <AlertTitle className="font-semibold text-[#1E1B18]">
+                  E-mail verificado com sucesso
+                </AlertTitle>
+                <AlertDescription className="text-xs text-[#1E1B18] mt-1">
+                  Sua conta está confirmada e habilitada para credenciamento e votação na
+                  plataforma.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {status === 'erro' && (
+              <Alert
+                variant="destructive"
+                className="border border-[#C75B39]/30 bg-[#C75B39]/10 text-[#1E1B18] rounded-[10px]"
+              >
+                <AlertTriangle className="h-4 w-4 text-[#C75B39]" />
+                <AlertTitle className="font-semibold text-[#C75B39]">
+                  Falha na verificação
+                </AlertTitle>
+                <AlertDescription className="text-xs text-[#1E1B18] mt-1">
+                  {mensagemErro || 'Não foi possível validar este token de e-mail.'}
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+
+          <CardFooter className="flex justify-center border-t border-[#E8E1D6] pt-4">
+            <Link to="/login" className="w-full">
+              <Button className="w-full h-10 bg-[#E39A2B] text-[#1E1B18] font-semibold hover:bg-[#d48c20] rounded-[10px] shadow-none border-0">
+                Ir para o Login <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardFooter>
+        </Card>
+      </main>
+
+      <footer className="border-t border-[#E8E1D6] bg-[#1E1B18] py-4 px-6 text-white text-xs">
+        <div className="mx-auto flex max-w-5xl items-center justify-between">
+          <IndabaLogo size={22} variant="negative" />
+          <p className="text-[#E8E1D6]/70 text-[11px]">Segurança e integridade Indaba</p>
+        </div>
+      </footer>
     </div>
   )
 }

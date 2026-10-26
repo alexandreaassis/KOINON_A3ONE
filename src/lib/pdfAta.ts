@@ -355,7 +355,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
     <!-- Bloco Criptográfico de Auditoria da Urna e da Ata -->
     <div class="crypto-box">
       <div class="crypto-box-title">
-        <span>🛡️ CERTIFICAÇÃO E INTEGRIDADE CRIPTOGRÁFICA (ICP-BRASIL / SHA-256)</span>
+        <span>CERTIFICAÇÃO E INTEGRIDADE CRIPTOGRÁFICA (ICP-BRASIL / SHA-256)</span>
       </div>
       <div><strong>Hash Raiz da Urna Auditada:</strong> ${dados.hashRaizUrna || 'Cédulas consolidadas no encerramento'}</div>
       ${
@@ -415,7 +415,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
     </div>
 
     <div class="footer-note">
-      Documento lavrado e homologado através do Sistema Votum de Governança Condominial.<br>
+      Documento lavrado e homologado através da Plataforma Indaba de Governança Condominial.<br>
       A autenticidade e validade jurídica deste documento podem ser conferidas por meio do hash criptográfico SHA-256 e da trilha de auditoria da assembleia.
     </div>
   </div>

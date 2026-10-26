@@ -288,7 +288,7 @@ export const ListaPresencaPage: React.FC = () => {
       })
 
       toast({
-        title: 'Presença e Assinatura Registradas!',
+        title: 'Presença e assinatura registradas',
         description: `Carimbo SHA-256 gerado: ${hashAssinatura.substring(0, 16)}...`,
       })
 
@@ -374,7 +374,7 @@ export const ListaPresencaPage: React.FC = () => {
 
       setModalAssinaturaMesa(null)
       toast({
-        title: 'Assinatura da Mesa Registrada!',
+        title: 'Assinatura da mesa registrada',
         description: `Carimbo SHA-256 gerado: ${hash.substring(0, 16)}...`,
       })
     } catch (err: any) {

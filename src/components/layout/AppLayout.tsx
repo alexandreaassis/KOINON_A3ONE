@@ -21,24 +21,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { IndabaLogo } from '@/components/brand/IndabaLogo'
 import {
-  Droplets,
   Menu,
   LogOut,
   Home,
   Vote,
-  FileCheck2,
   Receipt,
   Users,
   ShieldCheck,
   FileSpreadsheet,
   History,
-  Wifi,
   WifiOff,
   UserCheck,
   ChevronRight,
   Settings,
-  ShieldAlert,
   SlidersHorizontal,
   FileText,
   FolderArchive,
@@ -56,14 +53,13 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     user,
     role,
     isAdmin,
-    isMesaOuAdmin,
     unidadeSelecionada,
     unidadesDisponiveis,
     selecionarUnidade,
     logout,
     isOnline,
   } = useAuth()
-  const { nomeCondominio, logoUrl, rotuloUnidade } = useCondoConfig()
+  const { nomeCondominio, rotuloUnidade } = useCondoConfig()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -181,39 +177,27 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
 
   const breadcrumbs = getBreadcrumbs()
 
+  const getIniciais = (nomeOuEmail?: string) => {
+    if (!nomeOuEmail) return 'U'
+    const partes = nomeOuEmail.trim().split(/\s+/)
+    if (partes.length >= 2) {
+      return (partes[0][0] + partes[1][0]).toUpperCase()
+    }
+    return nomeOuEmail.slice(0, 2).toUpperCase()
+  }
+
   const SidebarContent = () => (
-    <div className="flex h-full flex-col justify-between bg-slate-900 text-slate-100">
-      <div>
-        {/* Brand Header com Logo Dinâmico */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-slate-800">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-900/40 overflow-hidden shrink-0">
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt={nomeCondominio}
-                className="h-full w-full object-contain p-1"
-              />
-            ) : (
-              <Droplets className="h-6 w-6 text-cyan-200" />
-            )}
-          </div>
-          <div className="leading-tight min-w-0 flex-1">
-            <span
-              className="font-bold text-sm text-white tracking-wide block truncate"
-              title={nomeCondominio}
-            >
-              {nomeCondominio}
-            </span>
-            <span className="text-[10px] font-medium text-cyan-400 uppercase tracking-wider block">
-              Votação Condominial
-            </span>
-          </div>
+    <div className="flex h-full flex-col justify-between bg-[#1E1B18] text-[#E8E1D6]">
+      <div className="overflow-y-auto">
+        {/* Brand Header com Logotipo Indaba Negativo no topo da Sidebar */}
+        <div className="px-5 py-5 border-b border-[#2E2A26]">
+          <IndabaLogo size={28} variant="negative" subtitle={nomeCondominio} />
         </div>
 
         {/* Seletor de Unidade Ativa */}
         {unidadesDisponiveis.length > 0 && (
-          <div className="p-3 border-b border-slate-800/80 bg-slate-950/40">
-            <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-1 px-1">
+          <div className="p-3 border-b border-[#2E2A26] bg-[#171412]">
+            <div className="text-[11px] uppercase tracking-[0.04em] font-medium text-[#6B6259] mb-1 px-1">
               Unidade Ativa
             </div>
             <Select
@@ -223,15 +207,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                 if (u) selecionarUnidade(u)
               }}
             >
-              <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-xs text-slate-200 h-9">
+              <SelectTrigger className="w-full bg-[#1E1B18] border-[#2E2A26] text-xs text-[#E8E1D6] h-9 rounded-[10px] focus:ring-[#E39A2B]">
                 <SelectValue placeholder="Selecione sua unidade" />
               </SelectTrigger>
-              <SelectContent className="max-h-64 bg-slate-900 text-slate-100 border-slate-700">
+              <SelectContent className="max-h-64 bg-[#1E1B18] text-[#E8E1D6] border-[#2E2A26]">
                 {unidadesDisponiveis.map((u) => (
                   <SelectItem
                     key={u.id}
                     value={u.id}
-                    className="text-xs focus:bg-cyan-950 focus:text-cyan-200"
+                    className="text-xs text-[#E8E1D6] focus:bg-[#2A2622] focus:text-[#FFFDFA]"
                   >
                     {u.tipo_unidade || rotuloUnidade} {u.identificador} ({u.bloco || nomeCondominio}
                     )
@@ -246,7 +230,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
         <div className="px-3 py-4 space-y-6">
           {/* Módulo do Morador */}
           <div>
-            <div className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+            <div className="px-3 text-[11px] font-medium uppercase tracking-[0.04em] text-[#6B6259] mb-2">
               Módulo do Morador
             </div>
             <nav className="space-y-1">
@@ -258,13 +242,17 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                     key={item.path}
                     to={item.path}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                    className={`relative flex items-center gap-3 px-3 py-2 rounded-[10px] text-xs font-medium transition-colors ${
                       isActive
-                        ? 'bg-cyan-700 text-white shadow-xs font-semibold'
-                        : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
+                        ? 'bg-[#2A2622] text-[#FFFDFA] font-semibold border-l-[3px] border-l-[#E39A2B] rounded-l-none'
+                        : 'text-[#E8E1D6]/80 hover:bg-[#2A2622]/60 hover:text-[#FFFDFA]'
                     }`}
                   >
-                    <Icon className="h-4 w-4 shrink-0 text-cyan-300" />
+                    <Icon
+                      className={`h-4 w-4 shrink-0 ${
+                        isActive ? 'text-[#E39A2B]' : 'text-[#6B6259]'
+                      }`}
+                    />
                     <span>{item.label}</span>
                   </Link>
                 )
@@ -274,15 +262,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
 
           {/* Módulo da Mesa (visível com destaque se role === mesa) */}
           <div>
-            <div className="px-3 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-amber-400 mb-2">
+            <div className="px-3 flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.04em] text-[#6B6259] mb-2">
               <span>Módulo da Mesa</span>
               {role === 'mesa' && (
-                <Badge
-                  variant="outline"
-                  className="text-[9px] px-1 py-0 border-amber-500/50 text-amber-300"
-                >
+                <span className="text-[9px] px-1.5 py-0.5 rounded-[8px] bg-[#E39A2B]/20 text-[#E39A2B] font-semibold">
                   Operador
-                </Badge>
+                </span>
               )}
             </div>
             <nav className="space-y-1">
@@ -294,13 +279,17 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                     key={item.path}
                     to={item.path}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                    className={`relative flex items-center gap-3 px-3 py-2 rounded-[10px] text-xs font-medium transition-colors ${
                       isActive
-                        ? 'bg-amber-600 text-white shadow-xs font-semibold'
-                        : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
+                        ? 'bg-[#2A2622] text-[#FFFDFA] font-semibold border-l-[3px] border-l-[#E39A2B] rounded-l-none'
+                        : 'text-[#E8E1D6]/80 hover:bg-[#2A2622]/60 hover:text-[#FFFDFA]'
                     }`}
                   >
-                    <Icon className="h-4 w-4 shrink-0 text-amber-300" />
+                    <Icon
+                      className={`h-4 w-4 shrink-0 ${
+                        isActive ? 'text-[#E39A2B]' : 'text-[#6B6259]'
+                      }`}
+                    />
                     <span>{item.label}</span>
                   </Link>
                 )
@@ -308,17 +297,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
             </nav>
           </div>
 
-          {/* Módulo de Administração (visível para admin ou mesa administradora) */}
+          {/* Módulo de Administração */}
           {(isAdmin || role === 'mesa') && (
             <div>
-              <div className="px-3 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-purple-400 mb-2">
+              <div className="px-3 flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.04em] text-[#6B6259] mb-2">
                 <span>Administração</span>
-                <Badge
-                  variant="outline"
-                  className="text-[9px] px-1 py-0 border-purple-500/50 text-purple-300"
-                >
+                <span className="text-[9px] px-1.5 py-0.5 rounded-[8px] bg-[#2E2A26] text-[#E8E1D6] font-semibold">
                   Admin
-                </Badge>
+                </span>
               </div>
               <nav className="space-y-1">
                 {navAdmin.map((item) => {
@@ -329,13 +315,17 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                       key={item.path}
                       to={item.path}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                      className={`relative flex items-center gap-3 px-3 py-2 rounded-[10px] text-xs font-medium transition-colors ${
                         isActive
-                          ? 'bg-purple-700 text-white shadow-xs font-semibold'
-                          : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
+                          ? 'bg-[#2A2622] text-[#FFFDFA] font-semibold border-l-[3px] border-l-[#E39A2B] rounded-l-none'
+                          : 'text-[#E8E1D6]/80 hover:bg-[#2A2622]/60 hover:text-[#FFFDFA]'
                       }`}
                     >
-                      <Icon className="h-4 w-4 shrink-0 text-purple-300" />
+                      <Icon
+                        className={`h-4 w-4 shrink-0 ${
+                          isActive ? 'text-[#E39A2B]' : 'text-[#6B6259]'
+                        }`}
+                      />
                       <span>{item.label}</span>
                     </Link>
                   )
@@ -346,25 +336,32 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
         </div>
       </div>
 
-      {/* Perfil & Logout no rodapé da Sidebar */}
-      <div className="p-3 border-t border-slate-800 bg-slate-950/30">
-        <div className="flex items-center justify-between gap-2 px-2 py-1.5">
-          <div className="truncate">
-            <p className="text-xs font-medium text-white truncate">{user?.name || user?.email}</p>
-            <p className="text-[10px] text-slate-400 truncate">
-              {role === 'admin'
-                ? 'Administrador Geral'
-                : role === 'mesa'
-                  ? 'Membro da Mesa'
-                  : `Condômino ${unidadeSelecionada?.tipo_unidade || rotuloUnidade} ${unidadeSelecionada?.identificador || '—'}`}
-            </p>
+      {/* Bloco do usuário no rodapé da Sidebar: avatar circular, nome e cargo */}
+      <div className="p-3 border-t border-[#2E2A26] bg-[#171412]">
+        <div className="flex items-center justify-between gap-2.5 px-2 py-1.5">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="h-9 w-9 rounded-full bg-[#2A2622] border border-[#2E2A26] flex items-center justify-center text-[#E39A2B] font-semibold text-xs shrink-0">
+              {getIniciais(user?.name || user?.email)}
+            </div>
+            <div className="truncate">
+              <p className="text-xs font-semibold text-[#FFFDFA] truncate leading-tight">
+                {user?.name || user?.email}
+              </p>
+              <p className="text-[10px] text-[#6B6259] truncate mt-0.5">
+                {role === 'admin'
+                  ? 'Administrador Geral'
+                  : role === 'mesa'
+                    ? 'Membro da Mesa'
+                    : `Condômino ${unidadeSelecionada?.tipo_unidade || rotuloUnidade} ${unidadeSelecionada?.identificador || '—'}`}
+              </p>
+            </div>
           </div>
           <Button
             size="icon"
             variant="ghost"
             onClick={logout}
-            title="Sair do sistema"
-            className="text-slate-400 hover:text-white hover:bg-slate-800 h-8 w-8"
+            title="Sair da plataforma"
+            className="text-[#6B6259] hover:text-[#FFFDFA] hover:bg-[#2A2622] h-8 w-8 rounded-[10px] shrink-0"
           >
             <LogOut className="h-4 w-4" />
           </Button>
@@ -374,36 +371,39 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
   )
 
   return (
-    <div className="min-h-screen flex bg-slate-50 text-slate-900">
-      {/* Offline Alert Overlay (não bloqueante para leitura) */}
+    <div className="min-h-screen flex bg-[#F4EFE7] text-[#1E1B18]">
+      {/* Alerta de Conexão Indaba */}
       {!isOnline && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500 text-white text-xs font-medium py-1.5 px-4 text-center shadow-md flex items-center justify-center gap-2">
-          <WifiOff className="h-4 w-4 animate-bounce" />
+        <div className="fixed top-0 left-0 right-0 z-50 bg-[#C75B39] text-[#FFFDFA] text-xs font-semibold py-2 px-4 text-center shadow-md flex items-center justify-center gap-2">
+          <WifiOff className="h-4 w-4" />
           <span>
-            Modo Offline: reconectando ao servidor {nomeCondominio}... Voto temporariamente
-            desabilitado.
+            Conexão interrompida com o servidor. Ações de voto aguardam restabelecimento da rede.
           </span>
         </div>
       )}
 
-      {/* Desktop Sidebar (Fixa à esquerda) */}
-      <aside className="hidden lg:block w-64 shrink-0 border-r border-slate-800 h-screen sticky top-0 shadow-lg">
+      {/* Desktop Sidebar (Fundo Indaba Deep #1E1B18, 64px de largura mínima) */}
+      <aside className="hidden lg:block w-64 shrink-0 border-r border-[#2E2A26] h-screen sticky top-0 shadow-[0_4px_24px_rgba(30,27,24,0.06)]">
         <SidebarContent />
       </aside>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Barra Superior */}
-        <header className="sticky top-0 z-30 h-16 border-b border-slate-200 bg-white/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between shadow-xs">
+        {/* Barra Superior Institucional */}
+        <header className="sticky top-0 z-30 h-16 border-b border-[#E8E1D6] bg-[#FFFDFA]/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between shadow-[0_4px_24px_rgba(30,27,24,0.04)]">
           {/* Mobile Drawer Trigger & Breadcrumb */}
           <div className="flex items-center gap-3">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden text-slate-700">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="lg:hidden text-[#1E1B18] hover:bg-[#F4EFE7]"
+                >
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-72 bg-slate-900 border-r-0">
+              <SheetContent side="left" className="p-0 w-72 bg-[#1E1B18] border-r-0">
                 <SheetHeader className="sr-only">
                   <SheetTitle>Menu de Navegação {nomeCondominio}</SheetTitle>
                 </SheetHeader>
@@ -411,11 +411,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
               </SheetContent>
             </Sheet>
 
-            {/* Breadcrumb */}
-            <div className="flex items-center text-xs text-slate-500 gap-1.5">
+            {/* Breadcrumb em Grafite com último item em Indaba Deep */}
+            <div className="flex items-center text-xs text-[#6B6259] gap-1.5">
               <span>{breadcrumbs[0]}</span>
-              <ChevronRight className="h-3 w-3 text-slate-400" />
-              <span className="font-semibold text-slate-800">{breadcrumbs[1]}</span>
+              <ChevronRight className="h-3 w-3 text-[#6B6259]" />
+              <span className="font-semibold text-[#1E1B18]">{breadcrumbs[1]}</span>
             </div>
           </div>
 
@@ -423,34 +423,34 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
           <div className="flex items-center gap-3">
             {/* Indicador de Conectividade */}
             <div
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] text-[11px] font-medium border ${
                 isOnline
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                  ? 'bg-[#E39A2B]/10 text-[#1E1B18] border-[#E39A2B]/30'
+                  : 'bg-[#C75B39]/10 text-[#C75B39] border-[#C75B39]/30'
               }`}
-              title={isOnline ? 'Conexão ativa com o Skip Cloud' : 'Tentando reconectar...'}
+              title={isOnline ? 'Conexão ativa com a plataforma' : 'Reconectando ao servidor...'}
             >
               {isOnline ? (
                 <>
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="h-2 w-2 rounded-full bg-[#E39A2B]" />
                   <span className="hidden sm:inline">Online</span>
                 </>
               ) : (
                 <>
-                  <span className="h-2 w-2 rounded-full bg-amber-500" />
+                  <span className="h-2 w-2 rounded-full bg-[#C75B39]" />
                   <span>Reconectando...</span>
                 </>
               )}
             </div>
 
-            {/* Badge de Perfil */}
+            {/* Selo de Perfil */}
             <Badge
-              className={`text-[11px] font-bold px-2 py-0.5 uppercase tracking-wider shrink-0 text-center leading-normal ${
+              className={`text-[11px] font-semibold px-2 py-0.5 uppercase tracking-wider shrink-0 text-center rounded-[8px] border ${
                 role === 'admin'
-                  ? 'bg-purple-700 text-white hover:bg-purple-800'
+                  ? 'bg-[#1E1B18] text-[#FFFDFA] border-[#2E2A26]'
                   : role === 'mesa'
-                    ? 'bg-amber-600 text-white hover:bg-amber-700'
-                    : 'bg-cyan-700 text-white hover:bg-cyan-800'
+                    ? 'bg-[#E39A2B]/15 text-[#1E1B18] border-[#E39A2B]/40'
+                    : 'bg-[#F4EFE7] text-[#1E1B18] border-[#E8E1D6]'
               }`}
             >
               {role === 'admin' ? 'ADMIN' : role === 'mesa' ? 'MESA' : 'MORADOR'}
@@ -462,41 +462,53 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-2 border-slate-200 text-slate-700"
+                  className="gap-2 border-[#E8E1D6] bg-[#FFFDFA] text-[#1E1B18] hover:bg-[#F4EFE7] rounded-[10px]"
                 >
                   <span className="max-w-[120px] truncate text-xs font-semibold">
                     {user?.name || user?.email}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent
+                align="end"
+                className="w-56 bg-[#FFFDFA] border-[#E8E1D6] rounded-[12px] shadow-[0_4px_24px_rgba(30,27,24,0.06)] text-[#1E1B18]"
+              >
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-xs font-medium leading-none text-slate-900">{user?.name}</p>
-                    <p className="text-[11px] leading-none text-slate-500">{user?.email}</p>
-                    <p className="text-[11px] font-semibold text-cyan-700">
+                    <p className="text-xs font-semibold text-[#1E1B18]">{user?.name}</p>
+                    <p className="text-[11px] text-[#6B6259]">{user?.email}</p>
+                    <p className="text-[11px] font-medium text-[#E39A2B] mt-1">
                       Unidade: {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
                       {unidadeSelecionada?.identificador || 'Não selecionada'}
                     </p>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate('/credenciamento')}>
-                  <UserCheck className="mr-2 h-4 w-4" /> Situação Cadastral
+                <DropdownMenuSeparator className="bg-[#E8E1D6]" />
+                <DropdownMenuItem
+                  onClick={() => navigate('/credenciamento')}
+                  className="text-xs text-[#1E1B18] focus:bg-[#F4EFE7] focus:text-[#1E1B18]"
+                >
+                  <UserCheck className="mr-2 h-4 w-4 text-[#6B6259]" /> Situação Cadastral
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/recibo')}>
-                  <Receipt className="mr-2 h-4 w-4" /> Comprovantes de Voto
+                <DropdownMenuItem
+                  onClick={() => navigate('/recibo')}
+                  className="text-xs text-[#1E1B18] focus:bg-[#F4EFE7] focus:text-[#1E1B18]"
+                >
+                  <Receipt className="mr-2 h-4 w-4 text-[#6B6259]" /> Comprovantes de Voto
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-700">
-                  <LogOut className="mr-2 h-4 w-4" /> Encerrar Sessão
+                <DropdownMenuSeparator className="bg-[#E8E1D6]" />
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="text-xs text-[#C75B39] focus:bg-[#C75B39]/10 focus:text-[#C75B39]"
+                >
+                  <LogOut className="mr-2 h-4 w-4 text-[#C75B39]" /> Encerrar Sessão
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </header>
 
-        {/* Corpo da Página */}
+        {/* Corpo da Página (Fundo Areia #F4EFE7 com cartões em Papel #FFFDFA) */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <div className="mx-auto max-w-[1200px]">
             {/* Banner contextual de status da votação persistente */}
@@ -510,9 +522,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
             {(title || subtitle) && (
               <div className="mb-6">
                 {title && (
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
+                  <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#1E1B18]">
+                    {title}
+                  </h1>
                 )}
-                {subtitle && <p className="text-sm text-slate-600 mt-1">{subtitle}</p>}
+                {subtitle && <p className="text-sm text-[#6B6259] mt-1">{subtitle}</p>}
               </div>
             )}
 
@@ -521,16 +535,17 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
           </div>
         </main>
 
-        {/* Rodapé Compacto com alinhamento LGPD */}
-        <footer className="border-t border-slate-200 bg-white py-4 px-6 text-center text-xs text-slate-500">
+        {/* Rodapé Institucional Indaba */}
+        <footer className="border-t border-[#E8E1D6] bg-[#1E1B18] py-4 px-6 text-center text-xs text-[#E8E1D6]">
           <div className="mx-auto max-w-[1200px] flex flex-col sm:flex-row items-center justify-between gap-2">
-            <p>
-              Assembleia Eletrônica {nomeCondominio} — apuração conferida e auditada pela mesa
-              diretora.
-            </p>
-            <p className="text-slate-400 text-[11px]">
-              Sigilo de cédula criptografado SHA-256 • Em conformidade com a LGPD (Lei nº
-              13.709/2018).
+            <div className="flex items-center gap-3">
+              <IndabaLogo size={20} variant="negative" />
+              <p className="text-[#E8E1D6]/80 text-[11px] text-left">
+                Assembleia {nomeCondominio} — apuração conferida e auditada pela mesa diretora.
+              </p>
+            </div>
+            <p className="text-[#E8E1D6]/60 text-[11px]">
+              Sigilo criptográfico SHA-256 • Conformidade com a LGPD (Lei nº 13.709/2018).
             </p>
           </div>
         </footer>

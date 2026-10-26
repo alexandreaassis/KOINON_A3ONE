@@ -157,7 +157,7 @@ export const InformativoDeliberacoesPage: React.FC = () => {
 
       setModalAssinaturaMesa(null)
       toast({
-        title: 'Assinatura do Informativo Registrada!',
+        title: 'Assinatura do informativo registrada',
         description: `Carimbo SHA-256 gerado: ${hash.substring(0, 16)}...`,
       })
     } catch (err: any) {
