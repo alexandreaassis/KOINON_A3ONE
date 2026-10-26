@@ -63,6 +63,11 @@ import {
   ExternalLink,
   Users,
   Eye,
+  Mic,
+  Square,
+  UploadCloud,
+  FileUp,
+  Volume2,
 } from 'lucide-react'
 
 export const AtaAssembleiaPage: React.FC = () => {
@@ -113,6 +118,18 @@ export const AtaAssembleiaPage: React.FC = () => {
   const [enviarEmailPublicacao, setEnviarEmailPublicacao] = useState(true)
   const [modalConfirmarRegeneracao, setModalConfirmarRegeneracao] = useState(false)
   const [modalPublicarAberto, setModalPublicarAberto] = useState(false)
+
+  // Fase 3: Gravação de Áudio e Extração de Documentos
+  const [gravandoAudio, setGravandoAudio] = useState(false)
+  const [tempoGravacaoSegundos, setTempoGravacaoSegundos] = useState(0)
+  const [transcrevendoAudio, setTranscrevendoAudio] = useState(false)
+  const [extraindoDocumento, setExtraindoDocumento] = useState(false)
+  const [nomeArquivoProcessando, setNomeArquivoProcessando] = useState<string | null>(null)
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const timerGravacaoRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const inputDocumentoRef = useRef<HTMLInputElement | null>(null)
 
   // Modal Único de Assinatura Eletrônica (Mesa)
   const [modalAssinaturaMesa, setModalAssinaturaMesa] = useState<
@@ -183,6 +200,263 @@ export const AtaAssembleiaPage: React.FC = () => {
 
   const assinaturaDesatualizadaRef = useRef(assinaturaDesatualizada)
   assinaturaDesatualizadaRef.current = assinaturaDesatualizada
+
+  // Limpar recursos de mídia se o componente for desmontado
+  useEffect(() => {
+    return () => {
+      if (timerGravacaoRef.current) {
+        clearInterval(timerGravacaoRef.current)
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        try {
+          mediaRecorderRef.current.stop()
+        } catch {
+          /* intentionally ignored */
+        }
+      }
+    }
+  }, [])
+
+  // Formatação de cronômetro mm:ss
+  const formatarTempo = (totalSegundos: number) => {
+    const min = Math.floor(totalSegundos / 60)
+    const seg = totalSegundos % 60
+    return `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`
+  }
+
+  // Anexar texto ao campo de matéria bruta existente
+  const anexarAoTextoBruto = (novoTrecho: string, cabecalho: string) => {
+    const textoLimpo = novoTrecho.trim()
+    if (!textoLimpo) return
+
+    setTextoEntradaBruto((anterior) => {
+      const dataHora = new Date().toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      const bloco = `\n\n--- [${cabecalho} • ${dataHora}] ---\n${textoLimpo}\n`
+      return anterior.trim() ? `${anterior.trim()}${bloco}` : bloco.trim()
+    })
+  }
+
+  // Iniciar Gravação de Áudio via MediaRecorder
+  const handleIniciarGravacao = async () => {
+    if (!deliberacaoAtiva) {
+      toast({
+        title: 'Selecione uma assembleia',
+        description: 'É necessário ter uma assembleia selecionada para gravar.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast({
+        title: 'Gravação não suportada',
+        description: 'Seu navegador não suporta captura de microfone via MediaDevices.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      audioChunksRef.current = []
+
+      // Escolher melhor mimeType suportado pelo browser
+      let options: MediaRecorderOptions = {}
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        options = { mimeType: 'audio/webm;codecs=opus' }
+      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+        options = { mimeType: 'audio/webm' }
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        options = { mimeType: 'audio/mp4' }
+      } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+        options = { mimeType: 'audio/ogg;codecs=opus' }
+      }
+
+      const recorder = new MediaRecorder(stream, options)
+      mediaRecorderRef.current = recorder
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      recorder.onstop = async () => {
+        // Parar todas as faixas do microfone
+        stream.getTracks().forEach((track) => track.stop())
+
+        const duracao = tempoGravacaoSegundosRef.current
+        const mimeTypeFinal = options.mimeType || 'audio/webm'
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeTypeFinal })
+
+        if (audioBlob.size === 0) {
+          toast({
+            title: 'Gravação vazia',
+            description: 'Nenhum sinal de áudio foi capturado pelo microfone.',
+            variant: 'destructive',
+          })
+          return
+        }
+
+        // Enviar para o backend para transcrição
+        await processarEnvioAudio(audioBlob, duracao)
+      }
+
+      recorder.start(1000) // Emitir chunks a cada 1 segundo
+      setGravandoAudio(true)
+      setTempoGravacaoSegundos(0)
+
+      if (timerGravacaoRef.current) clearInterval(timerGravacaoRef.current)
+      timerGravacaoRef.current = setInterval(() => {
+        setTempoGravacaoSegundos((prev) => prev + 1)
+      }, 1000)
+
+      toast({
+        title: 'Gravação Iniciada',
+        description: 'Fale claramente ao microfone. Clique em "Parar e Transcrever" ao concluir.',
+      })
+    } catch (err: any) {
+      console.error('Erro ao acessar microfone:', err)
+      toast({
+        title: 'Microfone Bloqueado ou Indisponível',
+        description:
+          err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError'
+            ? 'Permissão de microfone negada no navegador. Autorize o acesso ao microfone nas configurações.'
+            : err?.message || 'Não foi possível inicializar a gravação de áudio.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Ref para capturar duração no callback de onstop
+  const tempoGravacaoSegundosRef = useRef(tempoGravacaoSegundos)
+  tempoGravacaoSegundosRef.current = tempoGravacaoSegundos
+
+  // Parar gravação
+  const handlePararGravacao = () => {
+    if (timerGravacaoRef.current) {
+      clearInterval(timerGravacaoRef.current)
+      timerGravacaoRef.current = null
+    }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
+    }
+    setGravandoAudio(false)
+  }
+
+  // Cancelar gravação sem enviar
+  const handleCancelarGravacao = () => {
+    if (timerGravacaoRef.current) {
+      clearInterval(timerGravacaoRef.current)
+      timerGravacaoRef.current = null
+    }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      // Remover listener onstop antes de parar para não processar
+      mediaRecorderRef.current.onstop = null
+      mediaRecorderRef.current.stop()
+      mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop())
+    }
+    audioChunksRef.current = []
+    setGravandoAudio(false)
+    setTempoGravacaoSegundos(0)
+    toast({
+      title: 'Gravação cancelada',
+      description: 'O áudio gravado foi descartado.',
+    })
+  }
+
+  // Enviar áudio para o backend transcrever
+  const processarEnvioAudio = async (audioBlob: Blob, duracao: number) => {
+    if (!deliberacaoAtiva) return
+
+    setTranscrevendoAudio(true)
+    try {
+      const resp = await api.transcreverAudioAta(deliberacaoAtiva.id, audioBlob, duracao)
+      if (resp.success && resp.textoTranscrito) {
+        anexarAoTextoBruto(resp.textoTranscrito, 'Transcrição de Áudio da Mesa')
+        toast({
+          title: 'Áudio Transcrito com Sucesso!',
+          description: `Foram gerados ${resp.caracteres} caracteres e anexados à matéria bruta como fonte primária.`,
+        })
+      } else {
+        toast({
+          title: 'Transcrição Concluída',
+          description: resp.message || 'Nenhum texto detectado no áudio enviado.',
+        })
+      }
+    } catch (err: any) {
+      console.error('Erro na transcrição de áudio:', err)
+      toast({
+        title: 'Transcrição não pôde ser concluída',
+        description:
+          err?.data?.message ||
+          err?.message ||
+          'Falha temporária ao transcrever áudio na plataforma.',
+        variant: 'destructive',
+      })
+    } finally {
+      setTranscrevendoAudio(false)
+      setTempoGravacaoSegundos(0)
+    }
+  }
+
+  // Upload e Extração de Documentos (PDF, TXT, MD, Imagens)
+  const handleArquivoSelecionado = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0 || !deliberacaoAtiva) return
+
+    const arquivo = files[0]
+    // Limpar o input para permitir selecionar o mesmo arquivo novamente
+    e.target.value = ''
+
+    const maxBytes = 10 * 1024 * 1024 // 10 MB
+    if (arquivo.size > maxBytes) {
+      toast({
+        title: 'Arquivo muito grande',
+        description: `O arquivo selecionado (${(arquivo.size / (1024 * 1024)).toFixed(1)} MB) excede o limite de 10 MB.`,
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setExtraindoDocumento(true)
+    setNomeArquivoProcessando(arquivo.name)
+
+    try {
+      const resp = await api.extrairDocumentoAta(deliberacaoAtiva.id, arquivo)
+      if (resp.success && resp.textoExtraido) {
+        anexarAoTextoBruto(resp.textoExtraido, `Documento Digitalizado: ${arquivo.name}`)
+        toast({
+          title: 'Documento Extraído com Sucesso!',
+          description: `${resp.caracteres} caracteres extraídos de "${arquivo.name}" e anexados à matéria bruta.`,
+        })
+      } else {
+        toast({
+          title: 'Processamento de Documento',
+          description: resp.message || 'Nenhum texto extraído do documento.',
+        })
+      }
+    } catch (err: any) {
+      console.error('Erro na extração de documento:', err)
+      const msg =
+        err?.data?.message ||
+        err?.message ||
+        'Não foi possível extrair o texto do arquivo selecionado.'
+      toast({
+        title: 'Falha ao Extrair Documento',
+        description: msg,
+        variant: 'destructive',
+      })
+    } finally {
+      setExtraindoDocumento(false)
+      setNomeArquivoProcessando(null)
+    }
+  }
 
   // Carregar dados da assembleia e da ata correspondente
   const carregarDados = async (delibId?: string) => {
@@ -888,6 +1162,126 @@ export const AtaAssembleiaPage: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-4 space-y-3">
+                  {/* Barra de Ações de Entrada: Gravar Áudio + Upload Documento */}
+                  <div className="p-3 bg-slate-50/90 rounded-lg border border-slate-200/90 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                        <Volume2 className="h-3.5 w-3.5 text-cyan-700" />
+                        Métodos de Captura de Matéria Bruta:
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        Áudio, Documento Digitalizado ou Digitação Direta
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Botão de Gravação de Áudio */}
+                      {!gravandoAudio ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleIniciarGravacao}
+                          disabled={transcrevendoAudio || extraindoDocumento || gerandoIa}
+                          className="text-xs h-8 gap-1.5 bg-white border-slate-300 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors"
+                        >
+                          <Mic className="h-3.5 w-3.5 text-red-600" />
+                          Gravar Áudio da Sessão
+                        </Button>
+                      ) : (
+                        <div className="flex items-center gap-2 bg-red-50 px-2.5 py-1 rounded-md border border-red-300 animate-pulse">
+                          <span className="h-2.5 w-2.5 rounded-full bg-red-600 animate-ping shrink-0" />
+                          <span className="text-xs font-mono font-bold text-red-700">
+                            Gravando: {formatarTempo(tempoGravacaoSegundos)}
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={handlePararGravacao}
+                            className="bg-red-600 hover:bg-red-700 text-white text-xs h-7 px-2.5 gap-1 ml-1"
+                          >
+                            <Square className="h-3 w-3 fill-current" />
+                            Parar e Transcrever
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleCancelarGravacao}
+                            className="text-[11px] h-7 px-2 text-slate-600 hover:text-red-700"
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Botão de Upload de Documento Digitalizado / Arquivo de Texto */}
+                      <input
+                        ref={inputDocumentoRef}
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md"
+                        className="hidden"
+                        onChange={handleArquivoSelecionado}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => inputDocumentoRef.current?.click()}
+                        disabled={
+                          gravandoAudio || transcrevendoAudio || extraindoDocumento || gerandoIa
+                        }
+                        className="text-xs h-8 gap-1.5 bg-white border-slate-300 hover:bg-cyan-50 hover:border-cyan-300 hover:text-cyan-800 transition-colors"
+                      >
+                        <FileUp className="h-3.5 w-3.5 text-cyan-700" />
+                        Anexar Documento Digitalizado (PDF/Img/TXT)
+                      </Button>
+
+                      {/* Limpar matéria bruta se houver */}
+                      {textoEntradaBruto.trim().length > 0 &&
+                        !gravandoAudio &&
+                        !transcrevendoAudio && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  'Deseja realmente limpar toda a matéria bruta digitada/anexada?',
+                                )
+                              ) {
+                                setTextoEntradaBruto('')
+                              }
+                            }}
+                            className="text-[11px] h-8 px-2 text-slate-500 hover:text-red-600 ml-auto"
+                          >
+                            Limpar Texto
+                          </Button>
+                        )}
+                    </div>
+
+                    {/* Feedback visual durante processamento de áudio ou documento */}
+                    {transcrevendoAudio && (
+                      <div className="flex items-center gap-2 p-2 bg-cyan-50 rounded border border-cyan-200 text-xs text-cyan-900">
+                        <Loader2 className="h-4 w-4 animate-spin text-cyan-700 shrink-0" />
+                        <span>
+                          Transcrevendo áudio gravado via inteligência artificial... Aguarde.
+                        </span>
+                      </div>
+                    )}
+
+                    {extraindoDocumento && (
+                      <div className="flex items-center gap-2 p-2 bg-cyan-50 rounded border border-cyan-200 text-xs text-cyan-900">
+                        <Loader2 className="h-4 w-4 animate-spin text-cyan-700 shrink-0" />
+                        <span>
+                          Extraindo conteúdo do documento{' '}
+                          <strong>{nomeArquivoProcessando || 'selecionado'}</strong>... Aguarde.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
@@ -905,19 +1299,20 @@ export const AtaAssembleiaPage: React.FC = () => {
                       </Label>
                     </div>
                     <Textarea
-                      placeholder="Ex: A assembleia iniciou com a palavra do Presidente. Houve debate acalorado sobre a reforma da guarita e os condôminos aprovaram o orçamento número 2. Foram registradas manifestações dos moradores sobre a taxa de condomínio..."
+                      placeholder="Ex: A assembleia iniciou com a palavra do Presidente. Houve debate acalorado sobre a reforma da guarita e os condôminos aprovaram o orçamento número 2. Foram registradas manifestações dos moradores sobre a taxa de condomínio... (Você também pode gravar áudio ou anexar documento acima)"
                       value={textoEntradaBruto}
                       onChange={(e) => setTextoEntradaBruto(e.target.value)}
-                      rows={6}
+                      rows={7}
                       disabled={gerandoIa}
                       className="text-xs font-mono bg-slate-50/50 resize-y border-slate-300 focus:bg-white"
                     />
                     <p className="text-[11px] text-cyan-900 bg-cyan-50/70 p-2 rounded border border-cyan-100 flex items-start gap-1.5">
                       <Sparkles className="h-3.5 w-3.5 text-cyan-700 shrink-0 mt-0.5" />
                       <span>
-                        <strong>Fonte Primária dos Debates:</strong> A IA prioriza este campo para
-                        redigir o resumo fático dos trabalhos, discussões entre condôminos,
-                        perguntas e respostas e ocorrências da reunião.
+                        <strong>Fonte Primária dos Debates:</strong> A IA prioriza todo o conteúdo
+                        deste campo (seja digitado, gravado por voz ou extraído de documentos) para
+                        redigir a narrativa fática dos trabalhos, mantendo as intervenções e nomes
+                        de condôminos.
                       </span>
                     </p>
                   </div>

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T02:03:17.114Z",
+  "generatedAt": "2026-10-26T16:05:58.289Z",
   "collections": [
     {
       "name": "users",
@@ -777,7 +777,9 @@
             "notificacao_enviada",
             "ata_gerada_ia",
             "ata_assinada_mesa",
-            "ata_publicada"
+            "ata_publicada",
+            "audio_transcricao",
+            "documento_extracao"
           ]
         },
         {

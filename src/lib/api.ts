@@ -1173,4 +1173,50 @@ export const api = {
       body: { ataId, enviarEmail },
     })
   },
+
+  async transcreverAudioAta(deliberacaoId: string, audioBlob: Blob, duracaoSegundos = 0) {
+    const formData = new FormData()
+    formData.append('deliberacaoId', deliberacaoId)
+    formData.append('duracaoSegundos', String(duracaoSegundos))
+    // Definir nome de arquivo adequado conforme o mimeType do blob
+    const extensao = audioBlob.type.includes('mp4')
+      ? 'mp4'
+      : audioBlob.type.includes('ogg')
+        ? 'ogg'
+        : audioBlob.type.includes('wav')
+          ? 'wav'
+          : 'webm'
+    formData.append('arquivo', audioBlob, `audio_assembleia_${Date.now()}.${extensao}`)
+
+    return pb.send<{
+      success: boolean
+      textoTranscrito?: string
+      caracteres?: number
+      duracaoSegundos?: number
+      capabilityAvailable?: boolean
+      message: string
+    }>('/backend/v1/atas/transcrever-audio', {
+      method: 'POST',
+      body: formData,
+    })
+  },
+
+  async extrairDocumentoAta(deliberacaoId: string, arquivo: File) {
+    const formData = new FormData()
+    formData.append('deliberacaoId', deliberacaoId)
+    formData.append('arquivo', arquivo, arquivo.name)
+
+    return pb.send<{
+      success: boolean
+      textoExtraido?: string
+      caracteres?: number
+      nomeArquivo?: string
+      capabilityAvailable?: boolean
+      ocrRequired?: boolean
+      message: string
+    }>('/backend/v1/atas/extrair-documento', {
+      method: 'POST',
+      body: formData,
+    })
+  },
 }
