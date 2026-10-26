@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from '@/hooks/use-toast'
+import { Link } from 'react-router-dom'
 import {
   Building2,
   Upload,
@@ -60,6 +61,8 @@ import {
   Hash,
   Scale,
   Sparkles,
+  Users,
+  ChevronRight,
 } from 'lucide-react'
 import { urnaAudio } from '@/lib/urnaAudio'
 
@@ -496,14 +499,25 @@ export const ConfiguracoesPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Cabeçalho */}
-      <div>
-        <h2 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-          <Building2 className="h-6 w-6 text-purple-700" /> Configurações do Condomínio
-        </h2>
-        <p className="text-xs text-slate-600 mt-1">
-          Identidade institucional, parametrização avançada da malha de unidades (vertical,
-          horizontal ou misto) e dimensionamento para a assembleia.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+            <Building2 className="h-6 w-6 text-purple-700" /> Configurações do Condomínio
+          </h2>
+          <p className="text-xs text-slate-600 mt-1">
+            Identidade institucional, parametrização avançada da malha de unidades (vertical,
+            horizontal ou misto) e dimensionamento para a assembleia.
+          </p>
+        </div>
+        <Link to="/admin/usuarios">
+          <Button
+            variant="outline"
+            className="border-[#E8E1D6] hover:bg-[#F4EFE7] text-[#1E1B18] font-semibold text-xs h-9 px-3.5 rounded-[10px] shadow-xs"
+          >
+            <Users className="mr-2 h-4 w-4 text-[#E39A2B]" /> Gestão de Usuários e Permissões
+            <ChevronRight className="ml-1.5 h-3.5 w-3.5 text-[#6B6259]" />
+          </Button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-6">

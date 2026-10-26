@@ -297,8 +297,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
             </nav>
           </div>
 
-          {/* Módulo de Administração */}
-          {(isAdmin || role === 'mesa') && (
+          {/* Módulo de Administração (Apenas Perfil Admin) */}
+          {isAdmin && (
             <div>
               <div className="px-3 flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.04em] text-[#6B6259] mb-2">
                 <span>Administração</span>

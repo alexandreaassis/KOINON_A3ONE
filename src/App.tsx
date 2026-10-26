@@ -339,7 +339,7 @@ const App = () => (
             <Route
               path="/admin/configuracoes"
               element={
-                <ProtectedRoute requireMesa>
+                <ProtectedRoute requireAdmin>
                   <AppLayout>
                     <ConfiguracoesPage />
                   </AppLayout>
@@ -349,7 +349,7 @@ const App = () => (
             <Route
               path="/admin/usuarios"
               element={
-                <ProtectedRoute requireMesa>
+                <ProtectedRoute requireAdmin>
                   <AppLayout>
                     <GestaoUsuariosPage />
                   </AppLayout>
@@ -359,7 +359,7 @@ const App = () => (
             <Route
               path="/admin/parametros"
               element={
-                <ProtectedRoute requireMesa>
+                <ProtectedRoute requireAdmin>
                   <AppLayout>
                     <ParametrosConvencaoPage />
                   </AppLayout>

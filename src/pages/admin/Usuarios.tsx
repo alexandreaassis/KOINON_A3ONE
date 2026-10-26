@@ -64,6 +64,7 @@ export const GestaoUsuariosPage: React.FC = () => {
   const [modalNovoAberto, setModalNovoAberto] = useState(false)
   const [novoNome, setNovoNome] = useState('')
   const [novoEmail, setNovoEmail] = useState('')
+  const [novoSenha, setNovoSenha] = useState('')
   const [novoCpf, setNovoCpf] = useState('')
   const [novoCpfErro, setNovoCpfErro] = useState<string | null>(null)
   const [novoRole, setNovoRole] = useState<UserRole>('morador')
@@ -71,7 +72,6 @@ export const GestaoUsuariosPage: React.FC = () => {
   const [novoAtivo, setNovoAtivo] = useState(true)
   const [novoEnviarConvite, setNovoEnviarConvite] = useState(true)
   const [salvandoNovo, setSalvandoNovo] = useState(false)
-
   // Modal Editar Usuário
   const [modalEditarAberto, setModalEditarAberto] = useState(false)
   const [usuarioEditando, setUsuarioEditando] = useState<UserRecord | null>(null)
@@ -99,7 +99,7 @@ export const GestaoUsuariosPage: React.FC = () => {
       console.error('Erro ao carregar lista de usuários:', err)
       toast({
         title: 'Falha ao consultar usuários',
-        description: 'Verifique se você possui permissão de membro da mesa ou administrador.',
+        description: 'Verifique se você possui privilégios de administrador geral.',
         variant: 'destructive',
       })
     } finally {
@@ -167,6 +167,7 @@ export const GestaoUsuariosPage: React.FC = () => {
   const abrirNovoUsuario = () => {
     setNovoNome('')
     setNovoEmail('')
+    setNovoSenha('')
     setNovoCpf('')
     setNovoCpfErro(null)
     setNovoRole('morador')
@@ -198,11 +199,21 @@ export const GestaoUsuariosPage: React.FC = () => {
       return
     }
 
+    if (novoSenha && novoSenha.length < 8) {
+      toast({
+        title: 'Senha muito curta',
+        description: 'A senha informada deve ter pelo menos 8 caracteres.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setSalvandoNovo(true)
     try {
       const res = await api.criarUsuarioGestao({
         name: novoNome.trim(),
         email: novoEmail.trim(),
+        password: novoSenha.trim() || undefined,
         cpf: rawCpf,
         role: novoRole,
         unidade: novoUnidadeId === 'none' ? '' : novoUnidadeId,
@@ -904,6 +915,25 @@ export const GestaoUsuariosPage: React.FC = () => {
                 placeholder="usuario@lagoazul.com.br"
                 className="text-xs h-9 border-[#E8E1D6] bg-[#FFFDFA] rounded-[10px]"
               />
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium text-[#1E1B18]">
+                  Senha Inicial (Opcional)
+                </Label>
+                <span className="text-[10px] text-[#6B6259]">Mínimo 8 caracteres</span>
+              </div>
+              <Input
+                type="password"
+                value={novoSenha}
+                onChange={(e) => setNovoSenha(e.target.value)}
+                placeholder="Deixe em branco para gerar senha temporária segura"
+                className="text-xs h-9 border-[#E8E1D6] bg-[#FFFDFA] rounded-[10px]"
+              />
+              <p className="text-[10px] text-[#6B6259]">
+                Se deixada em branco, uma senha forte aleatória será gerada e enviada via convite.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

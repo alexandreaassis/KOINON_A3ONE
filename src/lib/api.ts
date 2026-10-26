@@ -851,6 +851,7 @@ export const api = {
   async criarUsuarioGestao(dados: {
     name: string
     email: string
+    password?: string
     cpf?: string
     role: UserRole
     unidade?: string

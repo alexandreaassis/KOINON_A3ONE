@@ -22,7 +22,7 @@ onRecordAuthRequest((e) => {
   e.next()
 }, 'users')
 
-// 2. Endpoint: Criar Usuário
+// 2. Endpoint: Criar Usuário (Restrito exclusivamente a Administradores)
 routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
   const { registrarAuditoria } = require(`${__hooks}/hash_encadeado.js`)
 
@@ -31,10 +31,10 @@ routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
     return e.json(403, { success: false, message: 'Acesso não autenticado.' })
   }
   const operadorRole = operador.getString('role')
-  if (operadorRole !== 'admin' && operadorRole !== 'mesa') {
+  if (operadorRole !== 'admin') {
     return e.json(403, {
       success: false,
-      message: 'Acesso restrito a administradores ou membros da mesa.',
+      message: 'Acesso restrito exclusivamente ao perfil de administrador.',
     })
   }
 
@@ -127,7 +127,7 @@ routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
   })
 })
 
-// 3. Endpoint: Atualizar Usuário
+// 3. Endpoint: Atualizar Usuário (Restrito exclusivamente a Administradores)
 routerAdd('POST', '/backend/v1/admin/usuarios/atualizar', (e) => {
   const { registrarAuditoria } = require(`${__hooks}/hash_encadeado.js`)
 
@@ -136,10 +136,10 @@ routerAdd('POST', '/backend/v1/admin/usuarios/atualizar', (e) => {
     return e.json(403, { success: false, message: 'Acesso não autenticado.' })
   }
   const operadorRole = operador.getString('role')
-  if (operadorRole !== 'admin' && operadorRole !== 'mesa') {
+  if (operadorRole !== 'admin') {
     return e.json(403, {
       success: false,
-      message: 'Acesso restrito a administradores ou membros da mesa.',
+      message: 'Acesso restrito exclusivamente ao perfil de administrador.',
     })
   }
 
@@ -265,7 +265,7 @@ routerAdd('POST', '/backend/v1/admin/usuarios/atualizar', (e) => {
   })
 })
 
-// 4. Endpoint: Redefinir Senha (dispara e-mail)
+// 4. Endpoint: Redefinir Senha (dispara e-mail) (Restrito a Administradores)
 routerAdd('POST', '/backend/v1/admin/usuarios/redefinir-senha', (e) => {
   const { registrarAuditoria } = require(`${__hooks}/hash_encadeado.js`)
 
@@ -274,10 +274,10 @@ routerAdd('POST', '/backend/v1/admin/usuarios/redefinir-senha', (e) => {
     return e.json(403, { success: false, message: 'Acesso não autenticado.' })
   }
   const operadorRole = operador.getString('role')
-  if (operadorRole !== 'admin' && operadorRole !== 'mesa') {
+  if (operadorRole !== 'admin') {
     return e.json(403, {
       success: false,
-      message: 'Acesso restrito a administradores ou membros da mesa.',
+      message: 'Acesso restrito exclusivamente ao perfil de administrador.',
     })
   }
 
