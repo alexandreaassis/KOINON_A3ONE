@@ -238,7 +238,15 @@ routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
   let conviteEnviado = false
   if (enviarConvite) {
     try {
-      e.app.sendPasswordResetEmail(novoUser)
+      if (typeof $mails !== 'undefined' && typeof $mails.sendRecordPasswordReset === 'function') {
+        $mails.sendRecordPasswordReset(e.app, novoUser)
+      } else if (typeof e.app.sendRecordPasswordReset === 'function') {
+        e.app.sendRecordPasswordReset(novoUser)
+      } else if (typeof e.app.sendPasswordResetEmail === 'function') {
+        e.app.sendPasswordResetEmail(novoUser)
+      } else {
+        throw new Error('Método de envio de redefinição de senha não disponível no runtime.')
+      }
       conviteEnviado = true
     } catch (mailErr) {
       console.log('Aviso ao enviar e-mail de redefinição para novo usuário:', mailErr)
@@ -616,7 +624,15 @@ routerAdd('POST', '/backend/v1/admin/usuarios/redefinir-senha', (e) => {
   const nome = userAlvo.getString('name') || email
 
   try {
-    e.app.sendPasswordResetEmail(userAlvo)
+    if (typeof $mails !== 'undefined' && typeof $mails.sendRecordPasswordReset === 'function') {
+      $mails.sendRecordPasswordReset(e.app, userAlvo)
+    } else if (typeof e.app.sendRecordPasswordReset === 'function') {
+      e.app.sendRecordPasswordReset(userAlvo)
+    } else if (typeof e.app.sendPasswordResetEmail === 'function') {
+      e.app.sendPasswordResetEmail(userAlvo)
+    } else {
+      throw new Error('Método de envio de redefinição de senha não disponível no runtime.')
+    }
   } catch (err) {
     console.log('Erro ao disparar e-mail de redefinição de senha:', err)
     return e.json(500, { success: false, message: 'Falha ao disparar e-mail de recuperação.' })
