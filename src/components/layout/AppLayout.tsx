@@ -258,11 +258,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
 
   // Componente de Conteúdo da Sidebar (compartilhado entre desktop e mobile)
   const SidebarContent = ({ isCollapsed = false }: { isCollapsed?: boolean }) => {
-    // Regra estrita de visibilidade por perfil solicitada pelo usuário:
-    // - morador vê apenas Módulo do Morador
+    // Regras de visibilidade por perfil:
+    // - morador vê Módulo do Morador
     // - mesa vê Módulo da Mesa
-    // - admin vê itens de Administração (além dos operacionais que gerencia)
-    const mostrarMorador = role === 'morador' || (!role && !isAdmin)
+    // - admin (administrador geral) vê Morador, Mesa e Administração
+    const mostrarMorador = role === 'morador' || role === 'admin' || (!role && !isAdmin)
     const mostrarMesa = role === 'mesa' || role === 'admin'
     const mostrarAdmin = role === 'admin'
 
