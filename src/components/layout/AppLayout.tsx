@@ -82,21 +82,44 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
         setDeliberacaoAtiva(delib)
 
         if (delib && unidadeSelecionada) {
-          // Checar se já votou
-          const comp = await api.getComparecimento(delib.id, unidadeSelecionada.id)
-          if (!ativo) return
-          setJaVotou(!!comp)
+          try {
+            // Checar se já votou
+            const comp = await api.getComparecimento(delib.id, unidadeSelecionada.id)
+            if (!ativo) return
+            setJaVotou(!!comp)
+          } catch (compErr) {
+            console.warn('Erro ao verificar comparecimento da unidade:', compErr)
+            if (!ativo) return
+            setJaVotou(false)
+          }
 
-          // Checar reconciliação física presencial
-          const presencas = await api.getPresencas(delib.id)
-          if (!ativo) return
-          const temPresencial = presencas.some(
-            (p) => p.unidade === unidadeSelecionada.id && p.tipo === 'presencial',
-          )
-          setIsPresencial(temPresencial)
+          try {
+            // Checar reconciliação física presencial
+            const presencas = await api.getPresencas(delib.id)
+            if (!ativo) return
+            const temPresencial = Array.isArray(presencas)
+              ? presencas.some(
+                  (p) => p.unidade === unidadeSelecionada.id && p.tipo === 'presencial',
+                )
+              : false
+            setIsPresencial(temPresencial)
+          } catch (presErr) {
+            console.warn('Erro ao verificar presenças da deliberação:', presErr)
+            if (!ativo) return
+            setIsPresencial(false)
+          }
+        } else if (!delib && ativo) {
+          setJaVotou(false)
+          setIsPresencial(false)
         }
       } catch (err) {
-        console.error('Erro ao verificar status da deliberação:', err)
+        // Degradação graciosa: falha na consulta nunca derruba a renderização da aplicação
+        console.warn('Erro ao verificar status da deliberação no AppLayout:', err)
+        if (ativo) {
+          setDeliberacaoAtiva(null)
+          setJaVotou(false)
+          setIsPresencial(false)
+        }
       }
     }
 

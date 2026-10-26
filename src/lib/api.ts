@@ -512,17 +512,25 @@ export const api = {
     return pb.collection('deliberacoes').getOne<DeliberacaoRecord>(id)
   },
 
-  async getDeliberacaoAtiva() {
-    const list = await pb.collection('deliberacoes').getList<DeliberacaoRecord>(1, 1, {
-      filter: "status != 'PUBLICADA' && status != 'ENCERRADA'",
-      sort: '-created',
-    })
-    if (list.items.length > 0) return list.items[0]
-    // Se não tiver nenhuma em andamento, retorna a mais recente
-    const anyList = await pb.collection('deliberacoes').getList<DeliberacaoRecord>(1, 1, {
-      sort: '-created',
-    })
-    return anyList.items[0] || null
+  async getDeliberacaoAtiva(): Promise<DeliberacaoRecord | null> {
+    try {
+      // 1. Tenta buscar deliberação ativa/em andamento
+      const list = await pb.collection('deliberacoes').getList<DeliberacaoRecord>(1, 1, {
+        filter: "status != 'PUBLICADA' && status != 'ENCERRADA'",
+        sort: '-created',
+      })
+      if (list?.items && list.items.length > 0) return list.items[0]
+
+      // 2. Se não houver em andamento, retorna a mais recente (ex: já encerrada ou publicada)
+      const anyList = await pb.collection('deliberacoes').getList<DeliberacaoRecord>(1, 1, {
+        sort: '-created',
+      })
+      return anyList?.items?.[0] || null
+    } catch (err: any) {
+      // Degradação graciosa: se não autenticado (401/403), erro de filtro, tabela vazia ou rede instável
+      console.warn('api.getDeliberacaoAtiva: falha ao consultar deliberações:', err?.message || err)
+      return null
+    }
   },
 
   async createDeliberacao(data: Partial<DeliberacaoRecord>) {
