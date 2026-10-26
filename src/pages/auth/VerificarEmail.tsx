@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import React, { useState, useEffect, useMemo } from 'react'
+import { Link, useSearchParams, useParams, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import {
   Card,
   CardHeader,
@@ -17,8 +18,37 @@ import { CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react'
 
 export const VerificarEmailPage: React.FC = () => {
   const [searchParams] = useSearchParams()
-  const token = searchParams.get('token') || ''
+  const routeParams = useParams<{ token?: string }>()
+  const location = useLocation()
   const { confirmarEmailComToken } = useAuth()
+
+  const token = useMemo(() => {
+    if (searchParams.get('token')) return searchParams.get('token')!.trim()
+    if (searchParams.get('t')) return searchParams.get('t')!.trim()
+    if (routeParams.token) return routeParams.token.trim()
+
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hashQuery = window.location.hash.split('?')[1]
+      if (hashQuery) {
+        const parsed = new URLSearchParams(hashQuery)
+        if (parsed.get('token')) return parsed.get('token')!.trim()
+      }
+      const matchHashToken = window.location.hash.match(
+        /(?:confirm-verification|verify-email|verificar-email)\/([a-zA-Z0-9._-]+)/,
+      )
+      if (matchHashToken && matchHashToken[1]) return matchHashToken[1].trim()
+    }
+
+    const pathSegments = location.pathname.split('/').filter(Boolean)
+    if (pathSegments.length >= 2) {
+      const lastSeg = pathSegments[pathSegments.length - 1]
+      if (lastSeg && lastSeg.length > 20 && !lastSeg.includes('=')) {
+        return lastSeg.trim()
+      }
+    }
+
+    return ''
+  }, [searchParams, routeParams, location.pathname])
 
   const [status, setStatus] = useState<'verificando' | 'sucesso' | 'erro'>('verificando')
   const [mensagemErro, setMensagemErro] = useState('')
@@ -38,7 +68,7 @@ export const VerificarEmailPage: React.FC = () => {
       .catch((err: any) => {
         if (isMounted) {
           setStatus('erro')
-          setMensagemErro(err?.message || 'Link inválido ou já utilizado.')
+          setMensagemErro(getErrorMessage(err, 'Link inválido ou já utilizado.'))
         }
       })
 

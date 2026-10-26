@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
-import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import React, { useState, useMemo } from 'react'
+import { Link, useSearchParams, useParams, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import {
   Card,
   CardHeader,
@@ -19,9 +20,45 @@ import { Lock, CheckCircle2, AlertTriangle, ArrowLeft } from 'lucide-react'
 
 export const RedefinirSenhaPage: React.FC = () => {
   const [searchParams] = useSearchParams()
-  const token = searchParams.get('token') || ''
+  const routeParams = useParams<{ token?: string }>()
+  const location = useLocation()
   const navigate = useNavigate()
   const { redefinirSenhaComToken } = useAuth()
+
+  // Extração robusta do token de múltiplos formatos:
+  // 1. Query parameter ?token=... ou ?t=...
+  // 2. Route path parameter /redefinir-senha/:token ou /reset-password/:token
+  // 3. Hash routing fallback ex: /#/redefinir-senha?token=... ou window.location.hash
+  const token = useMemo(() => {
+    if (searchParams.get('token')) return searchParams.get('token')!.trim()
+    if (searchParams.get('t')) return searchParams.get('t')!.trim()
+    if (routeParams.token) return routeParams.token.trim()
+
+    // Fallback: verificar se o token veio na hash da URL (ex: #/redefinir-senha?token=...)
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hashQuery = window.location.hash.split('?')[1]
+      if (hashQuery) {
+        const parsed = new URLSearchParams(hashQuery)
+        if (parsed.get('token')) return parsed.get('token')!.trim()
+        if (parsed.get('t')) return parsed.get('t')!.trim()
+      }
+      const matchHashToken = window.location.hash.match(
+        /(?:confirm-password-reset|reset-password|redefinir-senha)\/([a-zA-Z0-9._-]+)/,
+      )
+      if (matchHashToken && matchHashToken[1]) return matchHashToken[1].trim()
+    }
+
+    // Fallback: verificar se pathname contém segmento final de token
+    const pathSegments = location.pathname.split('/').filter(Boolean)
+    if (pathSegments.length >= 2) {
+      const lastSeg = pathSegments[pathSegments.length - 1]
+      if (lastSeg && lastSeg.length > 20 && !lastSeg.includes('=')) {
+        return lastSeg.trim()
+      }
+    }
+
+    return ''
+  }, [searchParams, routeParams, location.pathname])
 
   const [novaSenha, setNovaSenha] = useState('')
   const [confirmacao, setConfirmacao] = useState('')
@@ -56,7 +93,12 @@ export const RedefinirSenhaPage: React.FC = () => {
         navigate('/login')
       }, 3000)
     } catch (err: any) {
-      setErro(err?.message || 'Falha ao redefinir a senha. O link pode ter expirado.')
+      console.error('Erro ao redefinir senha:', err)
+      const msg = getErrorMessage(
+        err,
+        'Falha ao redefinir a senha. O link pode ter expirado ou já foi utilizado.',
+      )
+      setErro(msg)
     } finally {
       setCarregando(false)
     }

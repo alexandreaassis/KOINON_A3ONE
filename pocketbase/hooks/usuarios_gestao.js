@@ -9,6 +9,50 @@
  * 4) POST /backend/v1/admin/usuarios/redefinir-senha
  */
 
+// Interceptador de envio de e-mail de redefinição de senha para garantir URL pública amigável
+onMailerRecordPasswordResetSend((e) => {
+  try {
+    const siteUrl = $os.getenv('SITE_URL') || ''
+    const token = (e.meta && e.meta.token) || ''
+
+    if (e.message && typeof e.message.html === 'string') {
+      let html = e.message.html
+
+      // 1. Se contiver o padrão padrão do PocketBase Admin UI: /_/#/auth/confirm-password-reset/
+      if (token && html.includes('/_/#/auth/confirm-password-reset/')) {
+        const regexAdminUi =
+          /https?:\/\/[^\s"']+\/_+\/#\/auth\/confirm-password-reset\/[a-zA-Z0-9._-]+/g
+        const novaUrl =
+          (siteUrl ? siteUrl.replace(/\/$/, '') : '') + '/redefinir-senha?token=' + token
+        html = html.replace(regexAdminUi, novaUrl)
+      }
+
+      // 2. Se houver {APP_URL} ou URL backend sendo usada onde deveria ser frontend
+      if (siteUrl) {
+        const backendUrl = $os.getenv('PB_INSTANCE_URL') || ''
+        if (backendUrl && html.includes(backendUrl)) {
+          html = html.split(backendUrl).join(siteUrl.replace(/\/$/, ''))
+        }
+      }
+
+      // 3. Garantir que qualquer link apontando para reset-password ou confirm-password-reset
+      // aponte para /redefinir-senha com token
+      if (token && (html.includes('confirm-password-reset') || html.includes('reset-password'))) {
+        const fallbackRegex =
+          /https?:\/\/[^\s"']+\/(?:confirm-password-reset|reset-password|redefinir-senha)[^\s"']*/g
+        const targetUrl =
+          (siteUrl ? siteUrl.replace(/\/$/, '') : '') + '/redefinir-senha?token=' + token
+        html = html.replace(fallbackRegex, targetUrl)
+      }
+
+      e.message.html = html
+    }
+  } catch (err) {
+    console.log('Aviso no hook onMailerRecordPasswordResetSend:', err)
+  }
+  e.next()
+})
+
 // 1. Bloqueio no login se o usuário estiver com ativo === false e registro de logs de acesso
 onRecordAuthRequest((e) => {
   const record = e.record

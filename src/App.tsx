@@ -95,8 +95,31 @@ const App = () => (
             {/* Rotas Públicas de Autenticação */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/esqueci-senha" element={<EsqueciSenhaPage />} />
+            <Route path="/forgot-password" element={<EsqueciSenhaPage />} />
+
+            {/* Rotas de Redefinição de Senha (com query param ou path param do token) */}
             <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
+            <Route path="/redefinir-senha/:token" element={<RedefinirSenhaPage />} />
+            <Route path="/reset-password" element={<RedefinirSenhaPage />} />
+            <Route path="/reset-password/:token" element={<RedefinirSenhaPage />} />
+            <Route path="/confirm-password-reset" element={<RedefinirSenhaPage />} />
+            <Route path="/confirm-password-reset/:token" element={<RedefinirSenhaPage />} />
+            <Route path="/auth/confirm-password-reset" element={<RedefinirSenhaPage />} />
+            <Route path="/auth/confirm-password-reset/:token" element={<RedefinirSenhaPage />} />
+            <Route
+              path="/_/#/auth/confirm-password-reset/:token"
+              element={<RedefinirSenhaPage />}
+            />
+
+            {/* Confirmação e Verificação de E-mail */}
             <Route path="/verificar-email" element={<VerificarEmailPage />} />
+            <Route path="/verificar-email/:token" element={<VerificarEmailPage />} />
+            <Route path="/verify-email" element={<VerificarEmailPage />} />
+            <Route path="/verify-email/:token" element={<VerificarEmailPage />} />
+            <Route path="/confirm-verification" element={<VerificarEmailPage />} />
+            <Route path="/confirm-verification/:token" element={<VerificarEmailPage />} />
+            <Route path="/auth/confirm-verification" element={<VerificarEmailPage />} />
+            <Route path="/auth/confirm-verification/:token" element={<VerificarEmailPage />} />
 
             {/* Rotas Protegidas - Módulo do Morador */}
             <Route
