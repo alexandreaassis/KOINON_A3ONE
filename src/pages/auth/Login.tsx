@@ -46,7 +46,12 @@ export const LoginPage: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Erro de login:', err)
-      setErro('Credenciais inválidas. Verifique seu e-mail e senha cadastrados.')
+      const rawMsg = err?.message || err?.data?.message || ''
+      if (rawMsg.includes('Usuário inativo') || rawMsg.includes('inativo')) {
+        setErro('Usuário inativo — contate a administração.')
+      } else {
+        setErro('Credenciais inválidas. Verifique seu e-mail e senha cadastrados.')
+      }
     } finally {
       setCarregando(false)
     }

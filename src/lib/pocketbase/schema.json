@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T18:20:33.238Z",
+  "generatedAt": "2026-10-26T19:30:47.775Z",
   "collections": [
     {
       "name": "users",
@@ -57,11 +57,18 @@
           "required": false,
           "system": false,
           "selectValues": ["morador", "mesa", "admin"]
+        },
+        {
+          "name": "cpf",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
-        "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+        "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''",
+        "CREATE INDEX `idx_users_cpf` ON `users` (cpf)"
       ]
     },
     {

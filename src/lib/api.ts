@@ -8,6 +8,7 @@ export interface UserRecord extends RecordModel {
   name: string
   role: UserRole
   avatar?: string
+  cpf?: string
   unidade?: string
   ativo?: boolean
   expand?: {
@@ -831,11 +832,67 @@ export const api = {
     })
   },
 
-  // 7. Gestão de Usuários (Módulo Admin)
-  async getUsuarios() {
+  // 7. Gestão de Usuários e Permissões (Módulo de Gestão)
+  async getUsuarios(page = 1, perPage = 50, filter = '') {
+    return pb.collection('users').getList<UserRecord>(page, perPage, {
+      sort: '-created',
+      filter: filter || undefined,
+      expand: 'unidade',
+    })
+  },
+
+  async getTodosUsuarios() {
     return pb.collection('users').getFullList<UserRecord>({
       sort: '-created',
       expand: 'unidade',
+    })
+  },
+
+  async criarUsuarioGestao(dados: {
+    name: string
+    email: string
+    cpf?: string
+    role: UserRole
+    unidade?: string
+    ativo?: boolean
+    enviarConvite?: boolean
+  }) {
+    return pb.send<{
+      success: boolean
+      message: string
+      conviteEnviado?: boolean
+      user: UserRecord
+    }>('/backend/v1/admin/usuarios/criar', {
+      method: 'POST',
+      body: dados,
+    })
+  },
+
+  async atualizarUsuarioGestao(dados: {
+    id: string
+    name?: string
+    role?: UserRole
+    cpf?: string
+    unidade?: string
+    ativo?: boolean
+  }) {
+    return pb.send<{
+      success: boolean
+      message: string
+      user: UserRecord
+    }>('/backend/v1/admin/usuarios/atualizar', {
+      method: 'POST',
+      body: dados,
+    })
+  },
+
+  async redefinirSenhaUsuarioGestao(id: string) {
+    return pb.send<{
+      success: boolean
+      message: string
+    }>('/backend/v1/admin/usuarios/redefinir-senha', {
+      method: 'POST',
+      body: { id },
     })
   },
 

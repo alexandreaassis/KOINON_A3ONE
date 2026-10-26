@@ -69,3 +69,16 @@ export function validarCpf(valor: string | undefined | null): boolean {
  * Mensagem padrão amigável para erro de validação de CPF.
  */
 export const MSG_CPF_INVALIDO = 'CPF inválido — verifique os números digitados'
+
+/**
+ * Mascara o CPF para exibição segura em listas e tabelas (ex: 123.***.***-00).
+ * Protege a privacidade de dados do condômino em conformidade com as diretrizes de LGPD.
+ */
+export function mascararCpf(valor: string | undefined | null): string {
+  const raw = limparCpf(valor)
+  if (!raw || raw.length < 5) return valor || '—'
+  if (raw.length === 11) {
+    return `${raw.slice(0, 3)}.***.***-${raw.slice(9, 11)}`
+  }
+  return `${raw.slice(0, 2)}***${raw.slice(-2)}`
+}

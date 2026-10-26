@@ -36,20 +36,20 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (requireAdmin && !isAdmin) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
-        <Card className="max-w-md border-purple-200 shadow-md">
+      <div className="flex min-h-screen items-center justify-center bg-[#F4EFE7] p-4 text-[#1E1B18]">
+        <Card className="max-w-md border-[#E8E1D6] bg-[#FFFDFA] shadow-[0_4px_24px_rgba(30,27,24,0.06)] rounded-[12px]">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-purple-100 text-purple-700">
+            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-[#E39A2B]/15 text-[#E39A2B]">
               <ShieldAlert className="h-7 w-7" />
             </div>
-            <CardTitle className="text-xl font-bold text-slate-900">
+            <CardTitle className="text-xl font-semibold tracking-[-0.02em] text-[#1E1B18]">
               Acesso Restrito à Administração
             </CardTitle>
-            <CardDescription className="text-sm text-slate-600">
+            <CardDescription className="text-xs text-[#6B6259]">
               Esta seção é restrita aos administradores do condomínio. Seu perfil atual está
               classificado como{' '}
-              <strong className="text-slate-800 capitalize">
-                {role || 'Morador'} ({user.name})
+              <strong className="text-[#1E1B18] font-semibold">
+                {role || 'Morador'} ({user.name || user.email})
               </strong>
               .
             </CardDescription>
@@ -57,14 +57,18 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           <CardContent className="flex flex-col gap-2 pt-2">
             <Button
               variant="default"
-              className="bg-purple-700 hover:bg-purple-800"
+              className="bg-[#E39A2B] hover:bg-[#d48c20] text-[#1E1B18] font-semibold rounded-[10px] shadow-none border-0"
               onClick={() => {
                 window.location.href = '/'
               }}
             >
               <Home className="mr-2 h-4 w-4" /> Voltar para o Painel
             </Button>
-            <Button variant="outline" onClick={logout}>
+            <Button
+              variant="outline"
+              className="border-[#E8E1D6] hover:bg-[#F4EFE7] rounded-[10px]"
+              onClick={logout}
+            >
               <LogOut className="mr-2 h-4 w-4" /> Trocar de Conta
             </Button>
           </CardContent>
@@ -75,32 +79,39 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (requireMesa && !isMesaOuAdmin) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
-        <Card className="max-w-md border-amber-200 shadow-md">
+      <div className="flex min-h-screen items-center justify-center bg-[#F4EFE7] p-4 text-[#1E1B18]">
+        <Card className="max-w-md border-[#E8E1D6] bg-[#FFFDFA] shadow-[0_4px_24px_rgba(30,27,24,0.06)] rounded-[12px]">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-[#E39A2B]/15 text-[#E39A2B]">
               <ShieldAlert className="h-7 w-7" />
             </div>
-            <CardTitle className="text-xl font-bold text-slate-900">
-              Acesso Restrito à Mesa
+            <CardTitle className="text-xl font-semibold tracking-[-0.02em] text-[#1E1B18]">
+              Acesso Restrito à Mesa e Administração
             </CardTitle>
-            <CardDescription className="text-sm text-slate-600">
-              Esta seção é destinada exclusivamente aos membros da mesa diretora e administradores
-              da assembleia. Seu perfil atual está classificado como{' '}
-              <strong className="text-slate-800">Morador ({user.name})</strong>.
+            <CardDescription className="text-xs text-[#6B6259]">
+              Esta seção é restrita aos membros da mesa diretora e administradores da assembleia.
+              Seu perfil atual está classificado como{' '}
+              <strong className="text-[#1E1B18] font-semibold">
+                Morador ({user.name || user.email})
+              </strong>
+              .
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 pt-2">
             <Button
               variant="default"
-              className="bg-cyan-700 hover:bg-cyan-800"
+              className="bg-[#E39A2B] hover:bg-[#d48c20] text-[#1E1B18] font-semibold rounded-[10px] shadow-none border-0"
               onClick={() => {
                 window.location.href = '/'
               }}
             >
               <Home className="mr-2 h-4 w-4" /> Voltar para Minha Situação
             </Button>
-            <Button variant="outline" onClick={logout}>
+            <Button
+              variant="outline"
+              className="border-[#E8E1D6] hover:bg-[#F4EFE7] rounded-[10px]"
+              onClick={logout}
+            >
               <LogOut className="mr-2 h-4 w-4" /> Trocar de Conta
             </Button>
           </CardContent>

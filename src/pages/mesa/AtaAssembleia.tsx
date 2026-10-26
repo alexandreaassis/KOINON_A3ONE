@@ -122,11 +122,13 @@ export const AtaAssembleiaPage: React.FC = () => {
   // Fase 3: Gravação de Áudio e Extração de Documentos
   const [gravandoAudio, setGravandoAudio] = useState(false)
   const [tempoGravacaoSegundos, setTempoGravacaoSegundos] = useState(0)
+  const [modalConfirmarCancelarGravacao, setModalConfirmarCancelarGravacao] = useState(false)
   const [transcrevendoAudio, setTranscrevendoAudio] = useState(false)
   const [extraindoDocumento, setExtraindoDocumento] = useState(false)
   const [nomeArquivoProcessando, setNomeArquivoProcessando] = useState<string | null>(null)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const mediaStreamRef = useRef<MediaStream | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const timerGravacaoRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const inputDocumentoRef = useRef<HTMLInputElement | null>(null)
@@ -284,9 +286,14 @@ export const AtaAssembleiaPage: React.FC = () => {
         }
       }
 
+      mediaStreamRef.current = stream
+
       recorder.onstop = async () => {
         // Parar todas as faixas do microfone
         stream.getTracks().forEach((track) => track.stop())
+        if (mediaStreamRef.current === stream) {
+          mediaStreamRef.current = null
+        }
 
         const duracao = tempoGravacaoSegundosRef.current
         const mimeTypeFinal = options.mimeType || 'audio/webm'
@@ -336,20 +343,58 @@ export const AtaAssembleiaPage: React.FC = () => {
   tempoGravacaoSegundosRef.current = tempoGravacaoSegundos
 
   // Parar gravação
-  const handlePararGravacao = () => {
+  const handlePararGravacao = async () => {
     if (timerGravacaoRef.current) {
       clearInterval(timerGravacaoRef.current)
       timerGravacaoRef.current = null
     }
 
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop()
-    }
+    const recorder = mediaRecorderRef.current
     setGravandoAudio(false)
+
+    // Se o recorder ainda estiver ativo, parar normalmente (o onstop cuidará do envio)
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop()
+      return
+    }
+
+    // Proteger o caso "track morreu": navegador interrompeu a gravação em segundo plano
+    // ou recorder já transitou para inactive antes do clique
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop())
+      mediaStreamRef.current = null
+    }
+
+    const duracao = tempoGravacaoSegundosRef.current
+    const mimeTypeFinal = recorder?.mimeType || 'audio/webm'
+    const audioBlob = new Blob(audioChunksRef.current, { type: mimeTypeFinal })
+
+    if (audioBlob.size > 0 && audioChunksRef.current.length > 0) {
+      // Há áudio recuperável acumulado
+      toast({
+        title: 'Finalizando gravação',
+        description: 'Processando os fragmentos de áudio capturados antes da interrupção...',
+      })
+      await processarEnvioAudio(audioBlob, duracao)
+    } else {
+      setTempoGravacaoSegundos(0)
+      toast({
+        title: 'Gravação interrompida',
+        description: 'A gravação foi interrompida pelo navegador. Grave novamente.',
+        variant: 'destructive',
+      })
+    }
   }
 
-  // Cancelar gravação sem enviar
-  const handleCancelarGravacao = () => {
+  // Solicitar cancelamento (abre diálogo de confirmação sem parar a gravação)
+  const handleSolicitarCancelarGravacao = () => {
+    setModalConfirmarCancelarGravacao(true)
+  }
+
+  // Confirmar descarte do áudio gravado
+  const handleConfirmarDescarteGravacao = () => {
+    setModalConfirmarCancelarGravacao(false)
+
     if (timerGravacaoRef.current) {
       clearInterval(timerGravacaoRef.current)
       timerGravacaoRef.current = null
@@ -361,6 +406,11 @@ export const AtaAssembleiaPage: React.FC = () => {
       mediaRecorderRef.current.stop()
       mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop())
     }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop())
+      mediaStreamRef.current = null
+    }
+
     audioChunksRef.current = []
     setGravandoAudio(false)
     setTempoGravacaoSegundos(0)
@@ -1185,35 +1235,38 @@ export const AtaAssembleiaPage: React.FC = () => {
                           size="sm"
                           onClick={handleIniciarGravacao}
                           disabled={transcrevendoAudio || extraindoDocumento || gerandoIa}
-                          className="text-xs h-8 gap-1.5 bg-white border-slate-300 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors"
+                          className="text-xs h-9 min-h-[44px] px-3 gap-1.5 bg-white border-slate-300 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors"
                         >
-                          <Mic className="h-3.5 w-3.5 text-red-600" />
+                          <Mic className="h-4 w-4 text-red-600" />
                           Gravar Áudio da Sessão
                         </Button>
                       ) : (
-                        <div className="flex items-center gap-2 bg-red-50 px-2.5 py-1 rounded-md border border-red-300 animate-pulse">
-                          <span className="h-2.5 w-2.5 rounded-full bg-red-600 animate-ping shrink-0" />
-                          <span className="text-xs font-mono font-bold text-red-700">
-                            Gravando: {formatarTempo(tempoGravacaoSegundos)}
-                          </span>
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={handlePararGravacao}
-                            className="bg-red-600 hover:bg-red-700 text-white text-xs h-7 px-2.5 gap-1 ml-1"
-                          >
-                            <Square className="h-3 w-3 fill-current" />
-                            Parar e Transcrever
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleCancelarGravacao}
-                            className="text-[11px] h-7 px-2 text-slate-600 hover:text-red-700"
-                          >
-                            Cancelar
-                          </Button>
+                        <div className="w-full sm:w-auto flex flex-wrap items-center justify-between gap-3 bg-red-50/90 px-3 py-2 rounded-lg border border-red-300 shadow-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2.5 w-2.5 rounded-full bg-red-600 animate-ping shrink-0" />
+                            <span className="text-xs font-mono font-bold text-red-700">
+                              Gravando: {formatarTempo(tempoGravacaoSegundos)}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <Button
+                              type="button"
+                              onClick={handlePararGravacao}
+                              className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold h-11 min-h-[44px] px-4 gap-2 shadow-xs transition-colors"
+                            >
+                              <Square className="h-3.5 w-3.5 fill-current" />
+                              Parar e Transcrever
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleSolicitarCancelarGravacao}
+                              className="text-xs font-medium h-11 min-h-[44px] px-3 bg-white/80 border-slate-300 text-slate-600 hover:text-red-700 hover:bg-red-50 hover:border-red-200 transition-colors"
+                            >
+                              Cancelar
+                            </Button>
+                          </div>
                         </div>
                       )}
 
@@ -1691,6 +1744,48 @@ export const AtaAssembleiaPage: React.FC = () => {
         salvando={salvandoAssinatura}
         permitirEditarIdentificacao={true}
       />
+
+      {/* MODAL CONFIRMAÇÃO PARA CANCELAR E DESCARTAR GRAVAÇÃO DE ÁUDIO */}
+      <Dialog
+        open={modalConfirmarCancelarGravacao}
+        onOpenChange={(open) => {
+          // Se fechar o diálogo pelo backdrop ou ESC, apenas mantém gravando normalmente
+          setModalConfirmarCancelarGravacao(open)
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+              Descartar gravação em andamento?
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600 pt-1 leading-relaxed">
+              Deseja descartar a gravação de {formatarTempo(tempoGravacaoSegundos)}? O áudio
+              capturado será permanentemente eliminado e não poderá ser recuperado para transcrição.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setModalConfirmarCancelarGravacao(false)}
+              className="text-xs min-h-[40px] px-3.5"
+            >
+              Continuar gravando
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={handleConfirmarDescarteGravacao}
+              className="bg-red-600 hover:bg-red-700 text-white text-xs min-h-[40px] px-3.5 font-medium"
+            >
+              Descartar áudio
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* MODAL CONFIRMAÇÃO PARA REGENERAR ATA POR IA */}
       <Dialog open={modalConfirmarRegeneracao} onOpenChange={setModalConfirmarRegeneracao}>

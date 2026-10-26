@@ -159,6 +159,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, pass: string) => {
     const authData = await pb.collection('users').authWithPassword<UserRecord>(email.trim(), pass)
     const authUser = authData.record
+
+    // Validação adicional preventiva do lado do cliente: usuário inativo
+    if (authUser.ativo === false) {
+      pb.authStore.clear()
+      setUser(null)
+      throw new Error('Usuário inativo — contate a administração.')
+    }
+
     setUser(authUser)
 
     // Carregar unidades
