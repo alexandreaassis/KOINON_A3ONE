@@ -265,6 +265,44 @@ export interface EditalDeliberacaoRecord extends RecordModel {
   }
 }
 
+export type StatusAtaAssembleia = 'rascunho' | 'assinada' | 'publicada'
+
+export interface AtaAssembleiaRecord extends RecordModel {
+  deliberacao: string
+  titulo?: string
+  texto_entrada_bruto?: string
+  conteudo_html?: string
+  status: StatusAtaAssembleia
+
+  // Assinatura Presidente da Mesa
+  presidente_nome?: string
+  presidente_cpf?: string
+  presidente_formato?: FormatoAssinatura
+  presidente_assinatura_visual?: string
+  presidente_assinatura_texto?: string
+  presidente_assinado_em?: string
+  presidente_hash?: string
+
+  // Assinatura Secretário(a) da Mesa
+  secretario_nome?: string
+  secretario_cpf?: string
+  secretario_formato?: FormatoAssinatura
+  secretario_assinatura_visual?: string
+  secretario_assinatura_texto?: string
+  secretario_assinado_em?: string
+  secretario_hash?: string
+
+  // Snapshot e Criptografia
+  conteudo_assinado_snapshot?: string
+  hash_ata?: string
+  hash_raiz_urna?: string
+  data_publicacao?: string
+
+  expand?: {
+    deliberacao?: DeliberacaoRecord
+  }
+}
+
 export interface AssinaturaDocumentoRecord extends RecordModel {
   documento_id: string
   documento_tipo: string
@@ -1040,5 +1078,99 @@ export const api = {
       }
       throw err
     }
+  },
+
+  // 13. Módulo de Ata da Assembleia (Fase 2)
+  async getAtaPorDeliberacao(deliberacaoId: string) {
+    const list = await pb.collection('atas_assembleia').getList<AtaAssembleiaRecord>(1, 1, {
+      filter: pb.filter('deliberacao = {:delib}', { delib: deliberacaoId }),
+      sort: '-created',
+      expand: 'deliberacao',
+    })
+    return list.items[0] || null
+  },
+
+  async getAta(id: string) {
+    return pb.collection('atas_assembleia').getOne<AtaAssembleiaRecord>(id, {
+      expand: 'deliberacao',
+    })
+  },
+
+  async salvarAta(
+    deliberacaoId: string,
+    dados: Partial<AtaAssembleiaRecord>,
+    idExistente?: string,
+  ) {
+    const payload = {
+      ...dados,
+      deliberacao: deliberacaoId,
+    }
+
+    const tentar = async () => {
+      if (idExistente) {
+        return await pb
+          .collection('atas_assembleia')
+          .update<AtaAssembleiaRecord>(idExistente, payload, {
+            requestKey: null,
+          })
+      }
+
+      try {
+        const existente = await this.getAtaPorDeliberacao(deliberacaoId)
+        if (existente) {
+          return await pb
+            .collection('atas_assembleia')
+            .update<AtaAssembleiaRecord>(existente.id, payload, {
+              requestKey: null,
+            })
+        }
+      } catch {
+        /* intentionally ignored */
+      }
+
+      return await pb.collection('atas_assembleia').create<AtaAssembleiaRecord>(payload, {
+        requestKey: null,
+      })
+    }
+
+    try {
+      return await tentar()
+    } catch (err: any) {
+      const isRede =
+        !err?.status ||
+        err?.status === 0 ||
+        err?.message?.includes('Failed to fetch') ||
+        err?.message?.includes('NetworkError') ||
+        err?.name === 'ClientResponseError 0'
+      if (isRede) {
+        await new Promise((res) => setTimeout(res, 600))
+        return await tentar()
+      }
+      throw err
+    }
+  },
+
+  async gerarAtaComIa(deliberacaoId: string, textoBruto: string) {
+    return pb.send<{
+      success: boolean
+      conteudoHtml: string
+      hashRaizUrna?: string
+      conversationId?: string
+      message: string
+    }>('/backend/v1/atas/gerar-ia', {
+      method: 'POST',
+      body: { deliberacaoId, textoBruto },
+    })
+  },
+
+  async publicarAta(ataId: string, enviarEmail = false) {
+    return pb.send<{
+      success: boolean
+      totalNotificados: number
+      message: string
+    }>('/backend/v1/atas/publicar', {
+      method: 'POST',
+      body: { ataId, enviarEmail },
+    })
   },
 }

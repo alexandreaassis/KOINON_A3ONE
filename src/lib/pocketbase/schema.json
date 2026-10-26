@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T01:14:15.438Z",
+  "generatedAt": "2026-10-26T01:25:56.151Z",
   "collections": [
     {
       "name": "users",
@@ -774,7 +774,10 @@
             "presenca_assinada",
             "dossie_gerado",
             "notificacao_criada",
-            "notificacao_enviada"
+            "notificacao_enviada",
+            "ata_gerada_ia",
+            "ata_assinada_mesa",
+            "ata_publicada"
           ]
         },
         {
@@ -1628,6 +1631,179 @@
       ],
       "indexes": [
         "CREATE UNIQUE INDEX idx_editais_deliberacao ON editais_deliberacao (deliberacao)"
+      ]
+    },
+    {
+      "name": "atas_assembleia",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')"
+      },
+      "fields": [
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "texto_entrada_bruto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conteudo_html",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["rascunho", "assinada", "publicada"]
+        },
+        {
+          "name": "presidente_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "presidente_cpf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "presidente_formato",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["desenho", "texto", "em_branco"]
+        },
+        {
+          "name": "presidente_assinatura_visual",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "presidente_assinatura_texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "presidente_assinado_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "presidente_hash",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "secretario_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "secretario_cpf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "secretario_formato",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["desenho", "texto", "em_branco"]
+        },
+        {
+          "name": "secretario_assinatura_visual",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "secretario_assinatura_texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "secretario_assinado_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "secretario_hash",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conteudo_assinado_snapshot",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hash_ata",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hash_raiz_urna",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_publicacao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_atas_deliberacao ON atas_assembleia (deliberacao)",
+        "CREATE INDEX idx_atas_status ON atas_assembleia (status)"
       ]
     }
   ]

@@ -26,9 +26,12 @@ import CredenciamentoPage from '@/pages/morador/Credenciamento'
 import VotacaoPage from '@/pages/morador/Votacao'
 import ReciboPage from '@/pages/morador/Recibo'
 import DocumentosAssembleiaMoradorPage from '@/pages/morador/DocumentosAssembleia'
+import AtaMoradorPage from '@/pages/morador/AtaMorador'
 
 // Páginas do Módulo da Mesa Diretora
 import PainelMesaPage from '@/pages/mesa/PainelMesa'
+import AtaAssembleiaPage from '@/pages/mesa/AtaAssembleia'
+import AtaImprimirPage from '@/pages/mesa/AtaImprimir'
 import DocumentosEditalPage from '@/pages/mesa/DocumentosEdital'
 import ListaPresencaPage from '@/pages/mesa/ListaPresenca'
 import CredenciaisPendentesPage from '@/pages/mesa/CredenciaisPendentes'
@@ -146,6 +149,26 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/ata-assembleia"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <AtaMoradorPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ata-assembleia/:id"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <AtaMoradorPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
 
             {/* Rotas Protegidas - Módulo da Mesa Diretora */}
             <Route
@@ -154,6 +177,26 @@ const App = () => (
                 <ProtectedRoute requireMesa>
                   <AppLayout>
                     <PainelMesaPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/ata"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <AtaAssembleiaPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/ata/:id"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <AtaAssembleiaPage />
                   </AppLayout>
                 </ProtectedRoute>
               }
@@ -222,6 +265,23 @@ const App = () => (
               element={
                 <ProtectedRoute requireMesa>
                   <BoletimUrnaDocumentoPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Visão de Impressão Dedicada da Ata Notarial A4 */}
+            <Route
+              path="/mesa/ata/imprimir/:id"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AtaImprimirPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/ata/imprimir"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AtaImprimirPage />
                 </ProtectedRoute>
               }
             />

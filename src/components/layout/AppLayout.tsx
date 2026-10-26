@@ -41,6 +41,7 @@ import {
   ShieldAlert,
   SlidersHorizontal,
   FileText,
+  FolderArchive,
 } from 'lucide-react'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 
@@ -110,7 +111,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
   // Menus de navegação
   const navMorador = [
     { label: 'Minha Situação', path: '/', icon: Home },
-    { label: 'Documentos da Assembleia', path: '/documentos-assembleia', icon: FileText },
+    { label: 'Ata da Assembleia', path: '/ata-assembleia', icon: FileText },
+    { label: 'Documentos da Pauta', path: '/documentos-assembleia', icon: FolderArchive },
     { label: 'Credenciamento', path: '/credenciamento', icon: UserCheck },
     { label: 'Cabine de Votação', path: '/votacao', icon: Vote },
     { label: 'Meus Recibos', path: '/recibo', icon: Receipt },
@@ -118,7 +120,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
 
   const navMesa = [
     { label: 'Painel da Mesa', path: '/mesa', icon: ShieldCheck },
-    { label: 'Documentos & Edital', path: '/mesa/documentos', icon: FileText },
+    { label: 'Ata da Assembleia (IA)', path: '/mesa/ata', icon: FileText },
+    { label: 'Documentos & Edital', path: '/mesa/documentos', icon: FolderArchive },
     { label: 'Lista de Presença', path: '/mesa/presenca', icon: UserCheck },
     { label: 'Credenciais Pendentes', path: '/mesa/credenciamentos', icon: Users },
     { label: 'Deliberações e Pautas', path: '/mesa/deliberacoes', icon: FileSpreadsheet },
@@ -139,7 +142,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     if (p === '/votacao') return ['Morador', 'Cabine de Votação']
     if (p === '/recibo') return ['Morador', 'Comprovante']
     if (p === '/mesa') return ['Mesa Diretora', 'Painel Geral']
+    if (p === '/ata-assembleia') return ['Morador', 'Ata Notarial']
     if (p === '/documentos-assembleia') return ['Morador', 'Documentos da Assembleia']
+    if (p === '/mesa/ata') return ['Mesa Diretora', 'Ata da Assembleia']
     if (p === '/mesa/documentos') return ['Mesa Diretora', 'Documentos & Edital']
     if (p === '/mesa/presenca') return ['Mesa Diretora', 'Lista de Presença']
     if (p === '/mesa/credenciamentos') return ['Mesa Diretora', 'Credenciais']

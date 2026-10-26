@@ -320,7 +320,6 @@ export const MinhaSituacaoPage: React.FC = () => {
               </span>
               {renderStatusCredenciamento()}
             </div>
-
             {/* Avisos Especiais */}
             {isPresencial && (
               <Alert className="border-amber-300 bg-amber-50 text-amber-900">
@@ -335,7 +334,6 @@ export const MinhaSituacaoPage: React.FC = () => {
                 </AlertDescription>
               </Alert>
             )}
-
             {jaVotou && (
               <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -358,6 +356,30 @@ export const MinhaSituacaoPage: React.FC = () => {
                 </Link>
               </div>
             )}
+            {/* Atalho para Ata Notarial da Assembleia */}
+            {deliberacaoAtiva && (
+              <div className="p-3.5 rounded-lg bg-cyan-50 border border-cyan-200 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <FileCheck2 className="h-5 w-5 text-cyan-700" />
+                  <div>
+                    <p className="text-xs font-bold text-cyan-950">Ata Notarial da Assembleia</p>
+                    <p className="text-[11px] text-cyan-800">
+                      Acompanhe o registro oficial, o boletim consolidado e as assinaturas da Mesa
+                      Diretora.
+                    </p>
+                  </div>
+                </div>
+                <Link to="/ata-assembleia">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-cyan-300 text-cyan-900 bg-white hover:bg-cyan-100 text-xs h-8"
+                  >
+                    Consultar Ata
+                  </Button>
+                </Link>
+              </div>
+            )}{' '}
           </CardContent>
 
           <CardFooter className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">

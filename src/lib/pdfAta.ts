@@ -1,0 +1,445 @@
+/**
+ * Utilitário de Geração e Impressão de PDF para a Ata de Assembleia Geral (Fase 2)
+ * Formato institucional A4 com cabeçalho do condomínio, texto solene justificado,
+ * selo de integridade criptográfica SHA-256 da ata e da urna, e assinaturas da mesa diretora.
+ */
+
+import { type FormatoAssinatura } from '@/lib/api'
+
+export interface DadosAtaPdf {
+  nomeCondominio: string
+  logoUrl?: string
+  titulo: string
+  subtitulo?: string
+  conteudoHtml: string
+  dataEmissao?: string
+  status?: string
+  hashAta?: string | null
+  hashRaizUrna?: string | null
+  dataPublicacao?: string | null
+
+  // Presidente da Mesa
+  presidenteNome: string
+  presidenteCpf?: string
+  presidenteFormato?: FormatoAssinatura
+  presidenteAssinaturaVisual?: string
+  presidenteAssinaturaTexto?: string
+  presidenteAssinadoEm?: string | null
+  presidenteHash?: string | null
+
+  // Secretário(a) da Mesa
+  secretarioNome: string
+  secretarioCpf?: string
+  secretarioFormato?: FormatoAssinatura
+  secretarioAssinaturaVisual?: string
+  secretarioAssinaturaTexto?: string
+  secretarioAssinadoEm?: string | null
+  secretarioHash?: string | null
+}
+
+function renderAssinaturaVisual(
+  formato?: FormatoAssinatura,
+  visual?: string,
+  texto?: string,
+): string {
+  if (formato === 'desenho' && visual) {
+    return `<div style="height: 44px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 2px;">
+      <img src="${visual}" alt="Assinatura" style="max-height: 42px; max-width: 200px; object-fit: contain;" />
+    </div>`
+  }
+  if (formato === 'texto' && texto) {
+    return `<div style="height: 44px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 2px;">
+      <span style="font-family: 'Dancing Script', 'Great Vibes', cursive; font-size: 22pt; color: #020617; font-weight: bold; line-height: 1;">${texto}</span>
+    </div>`
+  }
+  return `<div style="height: 20px;"></div>`
+}
+
+export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
+  const dataHoje =
+    dados.dataEmissao ||
+    new Date().toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
+
+  const horaHoje = new Date().toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  const statusLabel =
+    dados.status === 'publicada'
+      ? 'PUBLICADA E HOMOLOGADA'
+      : dados.status === 'assinada'
+        ? 'ASSINADA PELA MESA'
+        : 'MINUTA / RASCUNHO'
+
+  const statusCor =
+    dados.status === 'publicada' ? '#0284c7' : dados.status === 'assinada' ? '#059669' : '#d97706'
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Ata de Assembleia - ${dados.nomeCondominio}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Great+Vibes&display=swap" rel="stylesheet" />
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 18mm 16mm 18mm 16mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Georgia", "Cambria", "Times New Roman", serif;
+      color: #0f172a;
+      background: #ffffff;
+      line-height: 1.6;
+      font-size: 11pt;
+    }
+    .document-page {
+      width: 100%;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 0;
+    }
+    header {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .logo-condo {
+      height: 52px;
+      max-width: 120px;
+      object-fit: contain;
+    }
+    .header-text {
+      text-align: center;
+      flex: 1;
+    }
+    .header-tag {
+      font-size: 8pt;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #0369a1;
+      margin-bottom: 2px;
+    }
+    .condo-title {
+      font-size: 15pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin: 0;
+      color: #020617;
+      letter-spacing: 0.5px;
+    }
+    .header-sub {
+      font-size: 9pt;
+      color: #475569;
+      margin: 2px 0 0 0;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .emission-badge {
+      text-align: right;
+      font-family: monospace;
+      font-size: 8pt;
+      color: #64748b;
+      white-space: nowrap;
+    }
+    .doc-headline {
+      text-align: center;
+      margin: 14px 0 18px 0;
+      padding: 10px 14px;
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+    }
+    .doc-headline h2 {
+      margin: 0;
+      font-size: 14pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #020617;
+    }
+    .doc-headline p {
+      margin: 4px 0 0 0;
+      font-size: 9.5pt;
+      color: #475569;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-weight: 500;
+    }
+    .text-body {
+      text-align: justify;
+      margin-bottom: 16px;
+      line-height: 1.65;
+    }
+    .rendered-document-html p {
+      margin-top: 0;
+      margin-bottom: 10px;
+      text-indent: 28px;
+    }
+    .rendered-document-html h3 {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 11pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #0f172a;
+      margin: 16px 0 6px 0;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 3px;
+      text-indent: 0;
+    }
+    .rendered-document-html h4 {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 10pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 12px 0 4px 0;
+      text-indent: 0;
+    }
+    .rendered-document-html ul, .rendered-document-html ol {
+      margin: 6px 0 10px 24px !important;
+      padding-left: 4px !important;
+    }
+    .rendered-document-html li {
+      margin-bottom: 4px;
+    }
+    .rendered-document-html blockquote {
+      border-left: 3px solid #cbd5e1;
+      padding-left: 12px;
+      margin: 8px 0;
+      color: #475569;
+      font-style: italic;
+    }
+    .crypto-box {
+      margin: 20px 0;
+      padding: 12px 16px;
+      background-color: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 8.5pt;
+      color: #334155;
+      line-height: 1.4;
+      page-break-inside: avoid;
+    }
+    .crypto-box-title {
+      font-weight: bold;
+      color: #0f172a;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 9pt;
+    }
+    .signatures-section {
+      margin-top: 30px;
+      page-break-inside: avoid;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .signatures-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      text-align: center;
+      margin-top: 10px;
+    }
+    .signature-card {
+      display: inline-block;
+      width: 100%;
+    }
+    .signature-line {
+      width: 240px;
+      border-top: 1.5px solid #0f172a;
+      margin: 0 auto 4px auto;
+    }
+    .signature-name {
+      font-size: 10pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      color: #0f172a;
+      margin: 0;
+      line-height: 1.15;
+    }
+    .signature-cpf {
+      font-size: 8.5pt;
+      color: #475569;
+      font-family: monospace;
+      margin: 0;
+      line-height: 1.15;
+    }
+    .signature-role {
+      font-size: 8pt;
+      color: #64748b;
+      margin: 0;
+      line-height: 1.15;
+    }
+    .signature-hash-stamp {
+      margin-top: 4px;
+      font-size: 7pt;
+      color: #059669;
+      font-family: monospace;
+      word-break: break-all;
+    }
+    .footer-note {
+      margin-top: 28px;
+      padding-top: 10px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 7.5pt;
+      color: #94a3b8;
+      text-align: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      page-break-inside: avoid;
+    }
+    @media print {
+      body {
+        margin: 0;
+        background: #ffffff;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="document-page">
+    <header>
+      <div class="header-content">
+        ${
+          dados.logoUrl
+            ? `<img src="${dados.logoUrl}" alt="${dados.nomeCondominio}" class="logo-condo" />`
+            : ''
+        }
+        <div class="header-text">
+          <div class="header-tag">Ata Notarial e Deliberativa</div>
+          <h1 class="condo-title">${dados.nomeCondominio}</h1>
+          <p class="header-sub">Assembleia Geral de Condôminos</p>
+        </div>
+        <div class="emission-badge">
+          <div><strong>Emissão:</strong> ${dataHoje}</div>
+          <div>${horaHoje}</div>
+          <div style="margin-top: 3px; color: ${statusCor}; font-weight: bold;">${statusLabel}</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="doc-headline">
+      <h2>${dados.titulo || 'ATA DA ASSEMBLEIA GERAL ORDINÁRIA/EXTRAORDINÁRIA'}</h2>
+      ${dados.subtitulo ? `<p>${dados.subtitulo}</p>` : ''}
+    </div>
+
+    <!-- Corpo Solene da Ata -->
+    <div class="text-body rendered-document-html">
+      ${dados.conteudoHtml || '<p>Ata em elaboração pela mesa diretora.</p>'}
+    </div>
+
+    <!-- Bloco Criptográfico de Auditoria da Urna e da Ata -->
+    <div class="crypto-box">
+      <div class="crypto-box-title">
+        <span>🛡️ CERTIFICAÇÃO E INTEGRIDADE CRIPTOGRÁFICA (ICP-BRASIL / SHA-256)</span>
+      </div>
+      <div><strong>Hash Raiz da Urna Auditada:</strong> ${dados.hashRaizUrna || 'Cédulas consolidadas no encerramento'}</div>
+      ${
+        dados.hashAta
+          ? `<div><strong>Carimbo SHA-256 da Ata:</strong> ${dados.hashAta}</div>`
+          : '<div><strong>Status Criptográfico:</strong> Minuta aguardando assinatura final da mesa</div>'
+      }
+      ${
+        dados.dataPublicacao
+          ? `<div><strong>Data/Hora de Publicação Oficial:</strong> ${new Date(dados.dataPublicacao).toLocaleString('pt-BR')}</div>`
+          : ''
+      }
+      <div style="color: #64748b; font-size: 7.5pt; margin-top: 4px;">
+        Esta ata foi lavrada sob a fé pública da Mesa Diretora eleita, com integridade garantida por assinatura eletrônica e trilha de auditoria digital encadeada.
+      </div>
+    </div>
+
+    <!-- Bloco de Assinaturas da Mesa Diretora (Presidente e Secretário) -->
+    <div class="signatures-section">
+      <div class="signatures-grid">
+        <!-- Presidente da Mesa -->
+        <div class="signature-card">
+          ${renderAssinaturaVisual(
+            dados.presidenteFormato,
+            dados.presidenteAssinaturaVisual,
+            dados.presidenteAssinaturaTexto,
+          )}
+          <div class="signature-line"></div>
+          <div class="signature-name">${dados.presidenteNome || 'Presidente da Mesa'}</div>
+          ${dados.presidenteCpf ? `<div class="signature-cpf">CPF: ${dados.presidenteCpf}</div>` : ''}
+          <div class="signature-role">Presidente da Assembleia</div>
+          ${
+            dados.presidenteHash
+              ? `<div class="signature-hash-stamp">Assinado em ${dados.presidenteAssinadoEm ? new Date(dados.presidenteAssinadoEm).toLocaleString('pt-BR') : ''}<br>SHA: ${dados.presidenteHash.substring(0, 24)}...</div>`
+              : '<div style="font-size: 7.5pt; color: #94a3b8; margin-top: 2px;">Aguardando assinatura</div>'
+          }
+        </div>
+
+        <!-- Secretário(a) da Mesa -->
+        <div class="signature-card">
+          ${renderAssinaturaVisual(
+            dados.secretarioFormato,
+            dados.secretarioAssinaturaVisual,
+            dados.secretarioAssinaturaTexto,
+          )}
+          <div class="signature-line"></div>
+          <div class="signature-name">${dados.secretarioNome || 'Secretário(a) da Mesa'}</div>
+          ${dados.secretarioCpf ? `<div class="signature-cpf">CPF: ${dados.secretarioCpf}</div>` : ''}
+          <div class="signature-role">Secretário(a) da Assembleia</div>
+          ${
+            dados.secretarioHash
+              ? `<div class="signature-hash-stamp">Assinado em ${dados.secretarioAssinadoEm ? new Date(dados.secretarioAssinadoEm).toLocaleString('pt-BR') : ''}<br>SHA: ${dados.secretarioHash.substring(0, 24)}...</div>`
+              : '<div style="font-size: 7.5pt; color: #94a3b8; margin-top: 2px;">Aguardando assinatura</div>'
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      Documento lavrado e homologado através do Sistema Votum de Governança Condominial.<br>
+      A autenticidade e validade jurídica deste documento podem ser conferidas por meio do hash criptográfico SHA-256 e da trilha de auditoria da assembleia.
+    </div>
+  </div>
+</body>
+</html>`
+}
+
+export function imprimirOuBaixarPdfAta(dados: DadosAtaPdf): void {
+  const html = gerarHtmlDocumentoAta(dados)
+  const janela = window.open('', '_blank', 'width=920,height=1000')
+
+  if (!janela) {
+    alert(
+      'O navegador bloqueou a abertura da janela de impressão da Ata. Por favor, permita pop-ups para este site.',
+    )
+    return
+  }
+
+  janela.document.open()
+  janela.document.write(html)
+  janela.document.close()
+
+  janela.focus()
+  setTimeout(() => {
+    janela.print()
+  }, 400)
+}
