@@ -331,42 +331,131 @@ routerAdd('POST', '/backend/v1/atas/transcrever-audio', (e) => {
     })
   }
 
-  // Verificar capacidade nativa de transcrição de áudio
-  // A plataforma Skip Cloud possui o gateway $ai (chat e embed) e $documents (toMarkdown para PDF/Office).
-  // Se houver método de transcrição nativo em $ai (ex: $ai.transcribe ou $ai.audio), tentamos invocar.
+  // 1. Obter chave de API Groq configurada como segredo de ambiente
+  const groqApiKey = ($os.getenv('GROQ_API_KEY') || '').trim()
+  if (!groqApiKey) {
+    return e.json(503, {
+      success: false,
+      capabilityAvailable: false,
+      message:
+        'Transcrição não configurada — contate o administrador (chave Groq não encontrada nas variáveis do servidor).',
+    })
+  }
+
+  // Limite da API Groq de 25 MB (o frontend já limita em 10 MB e aqui checamos 25 MB preventivamente)
+  const groqMaxBytes = 25 * 1024 * 1024
+  if (audioFile.size > groqMaxBytes) {
+    return e.json(413, {
+      success: false,
+      message:
+        'O arquivo de áudio ultrapassa o limite de 25 MB do serviço de transcrição Groq. Grave a sessão em trechos menores para transcrever.',
+    })
+  }
+
   let transcricaoTexto = ''
-  let metodoTranscricao = ''
+  let metodoTranscricao = 'groq:whisper-large-v3'
 
   try {
-    if (typeof $ai !== 'undefined' && typeof $ai.transcribe === 'function') {
-      const resTranscribe = $ai.transcribe({ file: audioFile, language: 'pt' })
-      transcricaoTexto = (resTranscribe && (resTranscribe.text || resTranscribe.transcript)) || ''
-      metodoTranscricao = '$ai.transcribe'
-    } else if (
-      typeof $ai !== 'undefined' &&
-      typeof $ai.audio === 'object' &&
-      typeof $ai.audio.transcribe === 'function'
-    ) {
-      const resAudio = $ai.audio.transcribe({ file: audioFile, language: 'pt' })
-      transcricaoTexto = (resAudio && (resAudio.text || resAudio.transcript)) || ''
-      metodoTranscricao = '$ai.audio.transcribe'
+    // Determinar nome do arquivo com extensão válida
+    let nomeArquivo = audioFile.name || 'audio.webm'
+    if (!nomeArquivo.includes('.')) {
+      nomeArquivo = nomeArquivo + '.webm'
+    }
+
+    // Preparar instância de FormData compatível com PocketBase JSVM
+    const formData = new FormData()
+    formData.append('model', 'whisper-large-v3')
+    formData.append('language', 'pt')
+    formData.append('response_format', 'json')
+
+    // No PocketBase JSVM, FormData aceita $filesystem.File (obtido via fileFromBytes ou diretamente do upload)
+    let anexoInserido = false
+    try {
+      if (typeof audioFile.bytes === 'function') {
+        const fileBytes = audioFile.bytes()
+        if (typeof $filesystem !== 'undefined' && typeof $filesystem.fileFromBytes === 'function') {
+          const fsFile = $filesystem.fileFromBytes(fileBytes, nomeArquivo)
+          formData.append('file', fsFile)
+          anexoInserido = true
+        }
+      }
+    } catch (fsErr) {
+      console.log('Aviso ao converter arquivo com $filesystem.fileFromBytes:', fsErr)
+    }
+
+    if (!anexoInserido) {
+      // Fallback: tentar anexar audioFile diretamente
+      formData.append('file', audioFile)
+    }
+
+    console.log(
+      `Enviando áudio (${audioFile.size} bytes, nome: ${nomeArquivo}) para Groq Whisper API...`,
+    )
+
+    const respGroq = $http.send({
+      url: 'https://api.groq.com/openai/v1/audio/transcriptions',
+      method: 'POST',
+      body: formData,
+      headers: {
+        Authorization: `Bearer ${groqApiKey}`,
+      },
+      timeout: 120,
+    })
+
+    const statusCode = respGroq.statusCode || 0
+    let corpoJson = respGroq.json
+    if (!corpoJson && respGroq.body) {
+      try {
+        const rawStr = String.fromCharCode.apply(null, new Uint8Array(respGroq.body))
+        corpoJson = JSON.parse(rawStr)
+      } catch (_) {}
+    }
+
+    if (statusCode === 200 && corpoJson) {
+      transcricaoTexto = (corpoJson.text || '').trim()
     } else {
-      // Plataforma não disponibiliza transcrição de áudio nativa no momento
-      return e.json(501, {
+      console.log('Resposta de erro do Groq Whisper:', statusCode, JSON.stringify(corpoJson || {}))
+
+      const groqMsg =
+        (corpoJson && corpoJson.error && corpoJson.error.message) ||
+        (corpoJson && corpoJson.message) ||
+        ''
+
+      if (statusCode === 429) {
+        return e.json(429, {
+          success: false,
+          message:
+            'Limite de requisições excedido no serviço Groq (Rate Limit / 429). Aguarde alguns instantes e tente transcrever novamente.',
+        })
+      } else if (statusCode === 413) {
+        return e.json(413, {
+          success: false,
+          message:
+            'O áudio ultrapassa o limite de 25 MB do serviço de transcrição Groq. Grave a sessão em trechos menores.',
+        })
+      } else if (statusCode === 401 || statusCode === 403) {
+        return e.json(502, {
+          success: false,
+          message:
+            'Chave de acesso à API Groq recusada pelo provedor (401/403). Verifique a credencial configurada no ambiente.',
+        })
+      }
+
+      return e.json(502, {
         success: false,
-        capabilityAvailable: false,
         message:
-          'A plataforma Skip Cloud não possui capacidade nativa de transcrição direta de áudio ($ai.transcribe / Whisper) habilitada no backend. A gravação foi capturada corretamente pelo dispositivo, porém o serviço de transcrição automatizada por IA não está disponível neste ambiente. Você pode utilizar a entrada por digitação/texto ou documento digitalizado.',
+          groqMsg ||
+          `Falha na transcrição pelo Groq (código HTTP ${statusCode}). Verifique a gravação e tente novamente.`,
       })
     }
   } catch (err) {
-    console.log('Erro ao executar transcrição de áudio no backend:', err)
+    console.log('Erro de conexão ou execução ao chamar Groq Whisper:', err)
+    const errMsg = (err && err.message) || String(err)
     return e.json(500, {
       success: false,
       message:
-        err && err.message
-          ? err.message
-          : 'Falha no processamento da transcrição de áudio pela IA.',
+        'Não foi possível conectar ao serviço de transcrição Groq (erro de rede ou timeout). Detalhe: ' +
+        errMsg,
     })
   }
 

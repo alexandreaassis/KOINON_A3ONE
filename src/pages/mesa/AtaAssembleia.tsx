@@ -380,8 +380,8 @@ export const AtaAssembleiaPage: React.FC = () => {
       if (resp.success && resp.textoTranscrito) {
         anexarAoTextoBruto(resp.textoTranscrito, 'Transcrição de Áudio da Mesa')
         toast({
-          title: 'Áudio Transcrito com Sucesso!',
-          description: `Foram gerados ${resp.caracteres} caracteres e anexados à matéria bruta como fonte primária.`,
+          title: 'Áudio Transcrito com Sucesso via Groq Whisper!',
+          description: `Foram gerados ${resp.caracteres} caracteres e anexados à matéria bruta com carimbo de horário.`,
         })
       } else {
         toast({
@@ -391,12 +391,14 @@ export const AtaAssembleiaPage: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Erro na transcrição de áudio:', err)
+      const msg =
+        err?.data?.message ||
+        err?.response?.message ||
+        err?.message ||
+        'Falha temporária ao transcrever áudio no servidor.'
       toast({
-        title: 'Transcrição não pôde ser concluída',
-        description:
-          err?.data?.message ||
-          err?.message ||
-          'Falha temporária ao transcrever áudio na plataforma.',
+        title: 'Falha na Transcrição de Áudio',
+        description: msg,
         variant: 'destructive',
       })
     } finally {
