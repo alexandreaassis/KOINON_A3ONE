@@ -316,7 +316,42 @@ routerAdd('POST', '/backend/v1/atas/transcrever-audio', (e) => {
     return e.json(404, { success: false, message: 'Deliberação não encontrada' })
   }
 
-  const files = e.findUploadedFiles('arquivo')
+  // 1. Obter chave de API Groq: fallback em cascata (primeiro $os.getenv, depois configuracoes_backend)
+  let groqApiKey = ($os.getenv('GROQ_API_KEY') || '').trim()
+  if (!groqApiKey) {
+    try {
+      const configRec = e.app.findFirstRecordByData(
+        'configuracoes_backend',
+        'chave',
+        'GROQ_API_KEY',
+      )
+      if (configRec) {
+        groqApiKey = (configRec.getString('valor') || '').trim()
+      }
+    } catch (_) {}
+  }
+
+  if (!groqApiKey) {
+    return e.json(503, {
+      success: false,
+      capabilityAvailable: false,
+      message:
+        'Transcrição não configurada — contate o administrador (chave Groq não encontrada nas variáveis do servidor).',
+    })
+  }
+
+  let files = []
+  try {
+    files = e.findUploadedFiles('arquivo')
+  } catch (filesErr) {
+    // Caso a requisição não seja multipart/form-data
+    return e.json(400, {
+      success: false,
+      message:
+        'Nenhum arquivo de áudio foi enviado (requisição deve ser multipart/form-data com o campo "arquivo").',
+    })
+  }
+
   if (!files || files.length === 0) {
     return e.json(400, { success: false, message: 'Nenhum arquivo de áudio foi enviado.' })
   }
@@ -328,17 +363,6 @@ routerAdd('POST', '/backend/v1/atas/transcrever-audio', (e) => {
       success: false,
       message:
         'O arquivo de áudio ultrapassa o limite máximo de 15 MB. Envie uma gravação mais curta.',
-    })
-  }
-
-  // 1. Obter chave de API Groq configurada como segredo de ambiente
-  const groqApiKey = ($os.getenv('GROQ_API_KEY') || '').trim()
-  if (!groqApiKey) {
-    return e.json(503, {
-      success: false,
-      capabilityAvailable: false,
-      message:
-        'Transcrição não configurada — contate o administrador (chave Groq não encontrada nas variáveis do servidor).',
     })
   }
 
