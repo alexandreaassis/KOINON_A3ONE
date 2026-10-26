@@ -163,9 +163,25 @@ routerAdd('POST', '/backend/v1/atas/gerar-ia', (e) => {
   const hashRaizUrna = delib.getString('hash_raiz') || 'Aguardando encerramento/apuração da urna'
 
   // 7. Montar o Prompt estruturado completo para o Agente Skip Cloud
+  // Colocando as anotações brutas em destaque imediato como fonte primária
+  const temNotasBrutas = Boolean(textoBruto && textoBruto.length > 0)
+  const avisoNotasBrutas = temNotasBrutas
+    ? `ATENÇÃO PRIORITÁRIA: O usuário forneceu anotações da mesa/transcrição contendo ${textoBruto.length} caracteres. Você DEVE usar essas anotações como FONTE PRIMÁRIA de fatos, debates, intervenções, perguntas e respostas, preservando nomes citados e ocorrências no corpo da ata.`
+    : `Nota: Não foram fornecidas anotações brutas específicas da mesa. Redija os debates de forma sucinta e formal a partir da ordem do dia e das votações.`
+
   const promptMensagem =
-    `Por favor, redija a ATA FORMAL E COMPLETA de Assembleia Geral de Condomínio Edilício em formato HTML para o ${nomeCondominio}.\n\n` +
-    `DADOS ESTRUTURADOS DA ASSEMBLEIA:\n` +
+    `Você é o redator oficial da ata da assembleia do ${nomeCondominio}.\n` +
+    `REDIGIR A ATA COMPLETA EM CÓDIGO HTML DIRETO.\n\n` +
+    `=== REGRA FUNDAMENTAL SOBRE AS ANOTAÇÕES DA MESA ===\n` +
+    `${avisoNotasBrutas}\n\n` +
+    `=== [FONTE PRIMÁRIA] ANOTAÇÕES BRUTAS DA MESA DIRETORA / TRANSCRIÇÃO DOS TRABALHOS ===\n` +
+    (temNotasBrutas
+      ? `Abaixo está a matéria bruta real digitada/anotada durante a assembleia:\n` +
+        `"""\n${textoBruto}\n"""\n` +
+        `INSTRUÇÃO OBRIGATÓRIA: Incorpore integralmente os pontos narrados acima, organizando-os sob os itens de pauta correspondentes ou em uma seção "Resumo dos Debates e Manifestações dos Condôminos". Nunca resuma a ata apenas com os números das votações se houver debates descritos acima.`
+      : `(Nenhuma anotação adicional fornecida pela mesa. Utilize os dados estruturados abaixo.)`) +
+    `\n\n` +
+    `=== [DADOS ESTRUTURADOS COMPLEMENTARES] ===\n` +
     `• Título da Assembleia: ${delib.getString('titulo')}\n` +
     `• Descrição Geral: ${delib.getString('descricao') || 'Assembleia Geral do Condomínio'}\n` +
     `• Período de Realização: Início em ${delib.getString('data_inicio') || 'data da sessão'} até ${delib.getString('data_fim') || 'conclusão dos trabalhos'}\n` +
@@ -184,14 +200,15 @@ routerAdd('POST', '/backend/v1/atas/gerar-ia', (e) => {
     `ITENS DA ORDEM DO DIA E APURAÇÃO DOS VOTOS:\n${itensPautaTexto || 'Nenhum item com votação registrada até o momento.'}\n\n` +
     `INTEGRIDADE CRIPTOGRÁFICA DA URNA ELETRÔNICA VOTUM:\n` +
     `• Hash Raiz Consolidado SHA-256: ${hashRaizUrna}\n\n` +
-    `RELATO BRUTO / NOTAS DA MESA DIRETORA (Transcrição e anotações dos debates):\n` +
-    `"""\n${textoBruto || 'A assembleia transcorreu em clima cordial, havendo manifestação dos presentes quanto aos itens da ordem do dia, que foram discutidos e submetidos à votação eletrônica e presencial.'}\n"""\n\n` +
-    `INSTRUÇÕES CRUCIAIS:\n` +
-    `- Redija o texto formal completo em HTML (tags <p>, <h3>, <h4>, <ul>, <li>, <strong>, <em>).\n` +
-    `- NÃO coloque bloco de código markdown como \`\`\`html ou \`\`\` nem saudações iniciais ou finais.\n` +
-    `- Retorne estritamente o código HTML da ata, pronto para exibição e edição no editor Tiptap.`
+    `=== DIRETRIZES DE SAÍDA ===\n` +
+    `1. Retorne EXCLUSIVAMENTE código HTML sem blocos de código (\`\`\`html ou \`\`\`).\n` +
+    `2. Use tags semânticas: <h3> para seções principais, <h4> para subtítulos/itens, <p> para parágrafos, <ul> e <li> para listas, <strong> para destaques solenes.\n` +
+    `3. A narrativa DEVE refletir as anotações brutas com fidelidade fática e solenidade jurídica.`
 
   try {
+    console.log(
+      `Invocando agente redator-ata-assembleia para deliberacao ${deliberacaoId}. Tamanho do texto bruto: ${textoBruto.length} caracteres.`,
+    )
     const agente = $ai.agent('redator-ata-assembleia')
     const chatResult = agente.chat({
       user_id: authRecord.id,

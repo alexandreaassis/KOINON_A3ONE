@@ -449,6 +449,7 @@ export const AtaAssembleiaPage: React.FC = () => {
     setModalConfirmarRegeneracao(false)
     setGerandoIa(true)
 
+    const temAnotacoesDigitadas = textoEntradaBruto.trim().length > 0
     try {
       const resp = await api.gerarAtaComIa(deliberacaoAtiva.id, textoEntradaBruto)
       if (resp.success && resp.conteudoHtml) {
@@ -468,8 +469,9 @@ export const AtaAssembleiaPage: React.FC = () => {
 
         toast({
           title: 'Ata Gerada com Sucesso!',
-          description:
-            'A IA estruturou a ata conforme os padrões jurídicos brasileiros. Você pode revisá-la e personalizá-la.',
+          description: temAnotacoesDigitadas
+            ? 'A IA incorporou suas anotações brutas e estruturou a ata conforme os padrões jurídicos. Revise os detalhes abaixo.'
+            : 'A IA estruturou a ata conforme os dados cadastrais da assembleia. Você pode revisá-la e personalizá-la.',
         })
       }
     } catch (err: any) {
@@ -887,17 +889,37 @@ export const AtaAssembleiaPage: React.FC = () => {
                 </CardHeader>
                 <CardContent className="pt-4 space-y-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-700">
-                      Rascunhos, Notas de Debate e Transcrição da Assembleia (Texto Livre):
-                    </Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                        <span>
+                          Rascunhos, Notas de Debate e Transcrição da Assembleia (Fonte Primária):
+                        </span>
+                        {textoEntradaBruto.trim().length > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] bg-cyan-50 border-cyan-200 text-cyan-800 font-normal"
+                          >
+                            {textoEntradaBruto.trim().length} caracteres fornecidos
+                          </Badge>
+                        )}
+                      </Label>
+                    </div>
                     <Textarea
                       placeholder="Ex: A assembleia iniciou com a palavra do Presidente. Houve debate acalorado sobre a reforma da guarita e os condôminos aprovaram o orçamento número 2. Foram registradas manifestações dos moradores sobre a taxa de condomínio..."
                       value={textoEntradaBruto}
                       onChange={(e) => setTextoEntradaBruto(e.target.value)}
-                      rows={5}
+                      rows={6}
                       disabled={gerandoIa}
-                      className="text-xs font-mono bg-slate-50/50 resize-y"
+                      className="text-xs font-mono bg-slate-50/50 resize-y border-slate-300 focus:bg-white"
                     />
+                    <p className="text-[11px] text-cyan-900 bg-cyan-50/70 p-2 rounded border border-cyan-100 flex items-start gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-cyan-700 shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Fonte Primária dos Debates:</strong> A IA prioriza este campo para
+                        redigir o resumo fático dos trabalhos, discussões entre condôminos,
+                        perguntas e respostas e ocorrências da reunião.
+                      </span>
+                    </p>
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
