@@ -86,6 +86,32 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
     assinaturaTextoInicial,
   ])
 
+  const [erroEnvio, setErroEnvio] = useState<string | null>(null)
+
+  // Sincronizar quando o modal abrir
+  React.useEffect(() => {
+    if (aberto) {
+      setNome(nomeInicial)
+      setCpf(cpfInicial)
+      setCargo(cargoInicial)
+      setCpfErro(null)
+      setErroEnvio(null)
+      setCaptura({
+        formato: formatoInicial,
+        assinaturaVisual: assinaturaVisualInicial,
+        assinaturaTexto: assinaturaTextoInicial || nomeInicial,
+      })
+    }
+  }, [
+    aberto,
+    nomeInicial,
+    cpfInicial,
+    cargoInicial,
+    formatoInicial,
+    assinaturaVisualInicial,
+    assinaturaTextoInicial,
+  ])
+
   const handleConfirmar = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -99,16 +125,26 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
       return
     }
     setCpfErro(null)
+    setErroEnvio(null)
 
-    await onConfirmar({
-      nome: nome.trim(),
-      cpf: rawCpf,
-      cargo: cargo.trim(),
-      formato: captura.formato,
-      assinaturaVisual: captura.formato === 'desenho' ? captura.assinaturaVisual : undefined,
-      assinaturaTexto:
-        captura.formato === 'texto' ? captura.assinaturaTexto || nome.trim() : undefined,
-    })
+    try {
+      await onConfirmar({
+        nome: nome.trim(),
+        cpf: rawCpf,
+        cargo: cargo.trim(),
+        formato: captura.formato,
+        assinaturaVisual: captura.formato === 'desenho' ? captura.assinaturaVisual : undefined,
+        assinaturaTexto:
+          captura.formato === 'texto' ? captura.assinaturaTexto || nome.trim() : undefined,
+      })
+    } catch (err: any) {
+      const msg =
+        err?.message?.includes('Failed to fetch') || !err?.status || err?.status === 0
+          ? 'Falha de comunicação com o servidor (conexão interrompida). O traço desenhado foi preservado. Por favor, tente novamente.'
+          : err?.message ||
+            'Falha ao registrar assinatura eletrônica. O traço desenhado foi preservado para nova tentativa.'
+      setErroEnvio(msg)
+    }
   }
 
   return (
@@ -196,6 +232,16 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
             onChange={(dados) => setCaptura(dados)}
             disabled={salvando}
           />
+
+          {erroEnvio && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-xs text-red-800 space-y-1">
+              <p className="font-semibold flex items-center gap-1.5 text-red-900">
+                <span className="inline-block w-2 h-2 rounded-full bg-red-600" />
+                Erro ao gravar assinatura
+              </p>
+              <p className="text-[11px] leading-relaxed">{erroEnvio}</p>
+            </div>
+          )}
 
           <div className="p-2.5 bg-slate-50 border border-slate-200 rounded text-[11px] text-slate-600 leading-relaxed">
             <span className="font-semibold text-slate-800 block">Integridade Criptográfica:</span>

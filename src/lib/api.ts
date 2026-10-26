@@ -859,11 +859,36 @@ export const api = {
   },
 
   async registrarAssinaturaDocumento(dados: Partial<AssinaturaDocumentoRecord>) {
-    return pb.collection('assinaturas_documento').create<AssinaturaDocumentoRecord>({
+    const payload = {
       ...dados,
       data_hora: dados.data_hora || new Date().toISOString(),
-      status: 'valida',
-    })
+      status: 'valida' as const,
+    }
+
+    // Tentativa com retry automático único em caso de instabilidade de transporte de rede móvel
+    const tentar = async () => {
+      return await pb
+        .collection('assinaturas_documento')
+        .create<AssinaturaDocumentoRecord>(payload, {
+          requestKey: null, // Desativar autocancelamento de requisições simultâneas
+        })
+    }
+
+    try {
+      return await tentar()
+    } catch (err: any) {
+      const isRede =
+        !err?.status ||
+        err?.status === 0 ||
+        err?.message?.includes('Failed to fetch') ||
+        err?.message?.includes('NetworkError') ||
+        err?.name === 'ClientResponseError 0'
+      if (isRede) {
+        await new Promise((res) => setTimeout(res, 600))
+        return await tentar()
+      }
+      throw err
+    }
   },
 
   // 10. Presenças com Assinatura Eletrônica e Procurações
@@ -879,10 +904,36 @@ export const api = {
     formData: FormData | Partial<PresencaAssinaturaRecord>,
     id?: string,
   ) {
-    if (id) {
-      return pb.collection('presencas_assinatura').update<PresencaAssinaturaRecord>(id, formData)
+    const tentar = async () => {
+      if (id) {
+        return await pb
+          .collection('presencas_assinatura')
+          .update<PresencaAssinaturaRecord>(id, formData, {
+            requestKey: null,
+          })
+      }
+      return await pb
+        .collection('presencas_assinatura')
+        .create<PresencaAssinaturaRecord>(formData, {
+          requestKey: null,
+        })
     }
-    return pb.collection('presencas_assinatura').create<PresencaAssinaturaRecord>(formData)
+
+    try {
+      return await tentar()
+    } catch (err: any) {
+      const isRede =
+        !err?.status ||
+        err?.status === 0 ||
+        err?.message?.includes('Failed to fetch') ||
+        err?.message?.includes('NetworkError') ||
+        err?.name === 'ClientResponseError 0'
+      if (isRede) {
+        await new Promise((res) => setTimeout(res, 600))
+        return await tentar()
+      }
+      throw err
+    }
   },
 
   // 11. Notificações por E-mail
@@ -941,29 +992,53 @@ export const api = {
     dados: Partial<EditalDeliberacaoRecord>,
     idExistente?: string,
   ) {
-    if (idExistente) {
-      return pb.collection('editais_deliberacao').update<EditalDeliberacaoRecord>(idExistente, {
-        ...dados,
-        deliberacao: deliberacaoId,
+    const payload = {
+      ...dados,
+      deliberacao: deliberacaoId,
+    }
+
+    const tentar = async () => {
+      if (idExistente) {
+        return await pb
+          .collection('editais_deliberacao')
+          .update<EditalDeliberacaoRecord>(idExistente, payload, {
+            requestKey: null,
+          })
+      }
+
+      // Tentar localizar se já existe para atualizar ao invés de duplicar
+      try {
+        const existente = await this.getEditalPorDeliberacao(deliberacaoId)
+        if (existente) {
+          return await pb
+            .collection('editais_deliberacao')
+            .update<EditalDeliberacaoRecord>(existente.id, payload, {
+              requestKey: null,
+            })
+        }
+      } catch {
+        /* intentionally ignored */
+      }
+
+      return await pb.collection('editais_deliberacao').create<EditalDeliberacaoRecord>(payload, {
+        requestKey: null,
       })
     }
 
-    // Tentar localizar se já existe para atualizar ao invés de duplicar
     try {
-      const existente = await this.getEditalPorDeliberacao(deliberacaoId)
-      if (existente) {
-        return pb.collection('editais_deliberacao').update<EditalDeliberacaoRecord>(existente.id, {
-          ...dados,
-          deliberacao: deliberacaoId,
-        })
+      return await tentar()
+    } catch (err: any) {
+      const isRede =
+        !err?.status ||
+        err?.status === 0 ||
+        err?.message?.includes('Failed to fetch') ||
+        err?.message?.includes('NetworkError') ||
+        err?.name === 'ClientResponseError 0'
+      if (isRede) {
+        await new Promise((res) => setTimeout(res, 600))
+        return await tentar()
       }
-    } catch {
-      /* intentionally ignored */
+      throw err
     }
-
-    return pb.collection('editais_deliberacao').create<EditalDeliberacaoRecord>({
-      ...dados,
-      deliberacao: deliberacaoId,
-    })
   },
 }

@@ -662,11 +662,20 @@ export const DocumentosEditalPage: React.FC = () => {
         description: `Modo: ${dadosAssinatura.formato === 'desenho' ? 'Tela desenhada' : dadosAssinatura.formato === 'texto' ? 'Nome digitado' : 'Em branco'}. Hash: ${hash.substring(0, 16)}...`,
       })
     } catch (err: any) {
+      const isRede =
+        !err?.status ||
+        err?.status === 0 ||
+        err?.message?.includes('Failed to fetch') ||
+        err?.message?.includes('NetworkError')
+      const msg = isRede
+        ? 'Falha de conexão com o servidor. O traço da sua assinatura foi preservado — clique em "Confirmar e Assinar" novamente.'
+        : err?.message || 'Falha ao registrar assinatura eletrônica.'
       toast({
         title: 'Falha ao registrar assinatura',
-        description: err?.message,
+        description: msg,
         variant: 'destructive',
       })
+      throw err // Repassar para que o ModalAssinaturaEletronica exiba o aviso e mantenha o modal aberto sem descartar o desenho
     } finally {
       setAssinandoEdital(false)
     }

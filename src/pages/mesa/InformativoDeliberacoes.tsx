@@ -161,11 +161,20 @@ export const InformativoDeliberacoesPage: React.FC = () => {
         description: `Carimbo SHA-256 gerado: ${hash.substring(0, 16)}...`,
       })
     } catch (err: any) {
+      const isRede =
+        !err?.status ||
+        err?.status === 0 ||
+        err?.message?.includes('Failed to fetch') ||
+        err?.message?.includes('NetworkError')
+      const msg = isRede
+        ? 'Falha de conexão com o servidor. O traço da sua assinatura foi preservado — clique em "Confirmar e Assinar" novamente.'
+        : err?.message || 'Falha ao registrar assinatura eletrônica.'
       toast({
         title: 'Erro ao registrar assinatura',
-        description: err?.message,
+        description: msg,
         variant: 'destructive',
       })
+      throw err
     } finally {
       setSalvandoMesa(false)
     }

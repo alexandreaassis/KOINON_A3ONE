@@ -89,17 +89,17 @@ export function otimizarCanvasAssinatura(canvas: HTMLCanvasElement): string | un
 
   if (cropWidth <= 0 || cropHeight <= 0) return undefined
 
-  // Redimensionar proporcionalmente para altura máx 100px e largura máx 400px
-  const maxTargetHeight = 100
-  const maxTargetWidth = 400
-
-  let targetWidth = cropWidth
-  let targetHeight = cropHeight
+  // Redimensionar proporcionalmente para altura máx 60px e largura máx 240px.
+  // BlocoAssinaturaCompacto exibe a imagem em max-h-10 (40px) e max-w-[220px].
+  // 60px de altura garante traço nítido em telas retina/mobile e documentos A4/impressão,
+  // mantendo o payload PNG minúsculo (~2KB a 5KB em base64) para tráfego seguro em rede móvel.
+  const maxTargetHeight = 60
+  const maxTargetWidth = 240
 
   const scale = Math.min(1, maxTargetWidth / cropWidth, maxTargetHeight / cropHeight)
 
-  targetWidth = Math.max(1, Math.round(cropWidth * scale))
-  targetHeight = Math.max(1, Math.round(cropHeight * scale))
+  const targetWidth = Math.max(1, Math.round(cropWidth * scale))
+  const targetHeight = Math.max(1, Math.round(cropHeight * scale))
 
   const tempCanvas = document.createElement('canvas')
   tempCanvas.width = targetWidth
