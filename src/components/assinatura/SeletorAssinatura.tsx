@@ -19,23 +19,103 @@ interface SeletorAssinaturaProps {
   disabled?: boolean
 }
 
-const LIMITE_TAMANHO_DATAURL = 500 * 1024 // 500KB
+const LIMITE_TAMANHO_DATAURL = 450000 // 450k caracteres (compatível com campo max 500000)
 
 /**
  * Sanitiza e valida o dataURL da assinatura desenhada em canvas
  */
 export function validarESanitizarDataUrl(dataUrl?: string): string | undefined {
   if (!dataUrl) return undefined
+  const limpo = dataUrl.trim()
   if (
-    !dataUrl.startsWith('data:image/png;base64,') &&
-    !dataUrl.startsWith('data:image/webp;base64,')
+    !limpo.startsWith('data:image/png;base64,') &&
+    !limpo.startsWith('data:image/webp;base64,') &&
+    !limpo.startsWith('data:image/jpeg;base64,')
   ) {
     return undefined
   }
-  if (dataUrl.length > LIMITE_TAMANHO_DATAURL) {
+  if (limpo.length > LIMITE_TAMANHO_DATAURL) {
     return undefined
   }
-  return dataUrl
+  return limpo
+}
+
+/**
+ * Extrai a assinatura do canvas com recorte do espaço em branco (bounding box)
+ * e redimensionamento proporcional (altura máx ~100px) com fundo transparente em PNG otimizado.
+ * Isso gera uma imagem compacta (frequentemente < 10KB ou ~15KB em base64), com fidelidade perfeita.
+ */
+export function otimizarCanvasAssinatura(canvas: HTMLCanvasElement): string | undefined {
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return undefined
+
+  const { width, height } = canvas
+  if (width === 0 || height === 0) return undefined
+
+  const imgData = ctx.getImageData(0, 0, width, height)
+  const data = imgData.data
+
+  let minX = width
+  let minY = height
+  let maxX = 0
+  let maxY = 0
+  let temPixel = false
+
+  // Detectar bounding box de pixels visíveis (alpha > 15)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4
+      const alpha = data[idx + 3]
+      if (alpha > 15) {
+        temPixel = true
+        if (x < minX) minX = x
+        if (x > maxX) maxX = x
+        if (y < minY) minY = y
+        if (y > maxY) maxY = y
+      }
+    }
+  }
+
+  if (!temPixel) {
+    return undefined
+  }
+
+  // Adicionar margem de segurança ao redor do traço
+  const padding = 10
+  const cropX = Math.max(0, minX - padding)
+  const cropY = Math.max(0, minY - padding)
+  const cropWidth = Math.min(width - cropX, maxX - minX + 1 + padding * 2)
+  const cropHeight = Math.min(height - cropY, maxY - minY + 1 + padding * 2)
+
+  if (cropWidth <= 0 || cropHeight <= 0) return undefined
+
+  // Redimensionar proporcionalmente para altura máx 100px e largura máx 400px
+  const maxTargetHeight = 100
+  const maxTargetWidth = 400
+
+  let targetWidth = cropWidth
+  let targetHeight = cropHeight
+
+  const scale = Math.min(1, maxTargetWidth / cropWidth, maxTargetHeight / cropHeight)
+
+  targetWidth = Math.max(1, Math.round(cropWidth * scale))
+  targetHeight = Math.max(1, Math.round(cropHeight * scale))
+
+  const tempCanvas = document.createElement('canvas')
+  tempCanvas.width = targetWidth
+  tempCanvas.height = targetHeight
+
+  const tempCtx = tempCanvas.getContext('2d')
+  if (!tempCtx) return undefined
+
+  tempCtx.imageSmoothingEnabled = true
+  tempCtx.imageSmoothingQuality = 'high'
+
+  tempCtx.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, targetWidth, targetHeight)
+
+  // Exportar como PNG preservando transparência
+  const dataUrl = tempCanvas.toDataURL('image/png')
+  return validarESanitizarDataUrl(dataUrl)
 }
 
 export const SeletorAssinatura: React.FC<SeletorAssinaturaProps> = ({
@@ -73,10 +153,10 @@ export const SeletorAssinatura: React.FC<SeletorAssinaturaProps> = ({
       })
     } else if (formato === 'desenho') {
       if (canvasRef.current && temDesenho) {
-        const dataUrl = canvasRef.current.toDataURL('image/png')
+        const visual = otimizarCanvasAssinatura(canvasRef.current) || valorInicial?.assinaturaVisual
         onChange({
           formato: 'desenho',
-          assinaturaVisual: validarESanitizarDataUrl(dataUrl),
+          assinaturaVisual: visual,
         })
       } else {
         onChange({
@@ -157,10 +237,13 @@ export const SeletorAssinatura: React.FC<SeletorAssinaturaProps> = ({
 
     const canvas = canvasRef.current
     if (canvas) {
-      const dataUrl = canvas.toDataURL('image/png')
+      const visualOtimizado = otimizarCanvasAssinatura(canvas)
+      if (visualOtimizado) {
+        setTemDesenho(true)
+      }
       onChange({
         formato: 'desenho',
-        assinaturaVisual: validarESanitizarDataUrl(dataUrl),
+        assinaturaVisual: visualOtimizado,
       })
     }
   }
