@@ -9,13 +9,60 @@
  * 4) POST /backend/v1/admin/usuarios/redefinir-senha
  */
 
-// 1. Bloqueio no login se o usuário estiver com ativo === false
+// 1. Bloqueio no login se o usuário estiver com ativo === false e registro de logs de acesso
 onRecordAuthRequest((e) => {
   const record = e.record
   if (record && record.collection().name === 'users') {
     const isAtivo = record.getBool('ativo')
     if (isAtivo === false) {
+      // Registrar tentativa falha por usuário inativo
+      try {
+        const logsCol = e.app.findCollectionByNameOrId('logs_acesso')
+        const logRec = new Record(logsCol)
+        logRec.set('user', record.id)
+        logRec.set('email', record.getString('email'))
+        logRec.set('nome', record.getString('name'))
+        logRec.set('data_hora', new Date().toISOString())
+        logRec.set('metodo', 'senha')
+        logRec.set('status', 'falha')
+        logRec.set('motivo_falha', 'Usuário inativo no sistema')
+        try {
+          const req = e.requestInfo()
+          if (req && req.headers) {
+            const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || ''
+            logRec.set('ip', typeof ip === 'string' ? ip.split(',')[0].trim() : '')
+            logRec.set('user_agent', req.headers['user-agent'] || '')
+          }
+        } catch (_) {}
+        e.app.save(logRec)
+      } catch (logErr) {
+        console.log('Aviso ao registrar log de acesso inativo:', logErr)
+      }
+
       throw new BadRequestError('Usuário inativo — contate a administração.')
+    }
+
+    // Registrar autenticação bem-sucedida
+    try {
+      const logsCol = e.app.findCollectionByNameOrId('logs_acesso')
+      const logRec = new Record(logsCol)
+      logRec.set('user', record.id)
+      logRec.set('email', record.getString('email'))
+      logRec.set('nome', record.getString('name'))
+      logRec.set('data_hora', new Date().toISOString())
+      logRec.set('metodo', 'senha')
+      logRec.set('status', 'sucesso')
+      try {
+        const req = e.requestInfo()
+        if (req && req.headers) {
+          const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || ''
+          logRec.set('ip', typeof ip === 'string' ? ip.split(',')[0].trim() : '')
+          logRec.set('user_agent', req.headers['user-agent'] || '')
+        }
+      } catch (_) {}
+      e.app.save(logRec)
+    } catch (logErr) {
+      console.log('Aviso ao registrar log de acesso com sucesso:', logErr)
     }
   }
 
@@ -315,4 +362,52 @@ routerAdd('POST', '/backend/v1/admin/usuarios/redefinir-senha', (e) => {
     success: true,
     message: `Instruções de redefinição de senha enviadas com sucesso para ${email}.`,
   })
+})
+
+// 5. Endpoint: Registrar tentativa de login falha (chamado pelo cliente quando pb.authWithPassword falha)
+routerAdd('POST', '/backend/v1/auth/log-falha', (e) => {
+  const body = e.requestInfo().body || {}
+  const email = (body.email || '').trim().toLowerCase()
+  const motivo = (body.motivo || 'Credenciais inválidas').trim()
+
+  if (!email || !email.includes('@')) {
+    return e.json(400, { success: false, message: 'E-mail não informado.' })
+  }
+
+  try {
+    let userId = ''
+    let userName = ''
+    try {
+      const userRec = e.app.findAuthRecordByEmail('_pb_users_auth_', email)
+      if (userRec) {
+        userId = userRec.id
+        userName = userRec.getString('name')
+      }
+    } catch (_) {}
+
+    const logsCol = e.app.findCollectionByNameOrId('logs_acesso')
+    const logRec = new Record(logsCol)
+    if (userId) logRec.set('user', userId)
+    logRec.set('email', email)
+    if (userName) logRec.set('nome', userName)
+    logRec.set('data_hora', new Date().toISOString())
+    logRec.set('metodo', 'senha')
+    logRec.set('status', 'falha')
+    logRec.set('motivo_falha', motivo)
+
+    try {
+      const req = e.requestInfo()
+      if (req && req.headers) {
+        const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || ''
+        logRec.set('ip', typeof ip === 'string' ? ip.split(',')[0].trim() : '')
+        logRec.set('user_agent', req.headers['user-agent'] || '')
+      }
+    } catch (_) {}
+
+    e.app.save(logRec)
+    return e.json(200, { success: true })
+  } catch (err) {
+    console.log('Erro ao salvar log de tentativa falha:', err)
+    return e.json(200, { success: false })
+  }
 })

@@ -81,6 +81,12 @@
     border-color: #e8e1d6;
   }
 
+  html {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
     background-color: #f4efe7;
     color: #1e1b18;
@@ -91,8 +97,22 @@
       'Segoe UI',
       Roboto,
       sans-serif;
+    font-weight: 400;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Nitidez de ícones e SVGs: renderização nítida sem blur em todas as densidades */
+  svg {
+    shape-rendering: geometricPrecision;
+    text-rendering: geometricPrecision;
+  }
+
+  /* Pesos de fonte adequados: corpo 400, rótulos 500, títulos 600 conforme identidade */
+  label,
+  .text-label {
+    font-weight: 500;
   }
 
   h1,

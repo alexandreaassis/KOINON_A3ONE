@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { api, type UserRecord, type UserRole, type UnidadeRecord } from '@/lib/api'
+import {
+  api,
+  type UserRecord,
+  type UserRole,
+  type UnidadeRecord,
+  type LogAcessoRecord,
+} from '@/lib/api'
 import { useAuth } from '@/context/AuthContext'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
@@ -42,6 +48,9 @@ import {
   Check,
   Building,
   UserCheck,
+  History,
+  Clock,
+  RotateCw,
 } from 'lucide-react'
 
 const ITENS_POR_PAGINA = 10
@@ -87,6 +96,12 @@ export const GestaoUsuariosPage: React.FC = () => {
   const [modalResetAberto, setModalResetAberto] = useState(false)
   const [usuarioReset, setUsuarioReset] = useState<UserRecord | null>(null)
   const [enviandoReset, setEnviandoReset] = useState(false)
+
+  // Modal Logs de Acesso
+  const [modalLogsAberto, setModalLogsAberto] = useState(false)
+  const [usuarioLogs, setUsuarioLogs] = useState<UserRecord | null>(null)
+  const [logsAcesso, setLogsAcesso] = useState<LogAcessoRecord[]>([])
+  const [carregandoLogs, setCarregandoLogs] = useState(false)
 
   // Carregar dados
   const carregar = useCallback(async () => {
@@ -397,6 +412,40 @@ export const GestaoUsuariosPage: React.FC = () => {
     }
   }
 
+  // Abrir Modal de Logs de Acesso
+  const abrirLogsAcesso = async (u: UserRecord) => {
+    setUsuarioLogs(u)
+    setModalLogsAberto(true)
+    setCarregandoLogs(true)
+    try {
+      const res = await api.getLogsAcesso({ userId: u.id, limit: 50 })
+      setLogsAcesso(res.items)
+    } catch (err) {
+      console.error('Erro ao consultar logs de acesso:', err)
+      toast({
+        title: 'Falha ao buscar logs',
+        description: 'Não foi possível carregar o histórico de acessos deste usuário.',
+        variant: 'destructive',
+      })
+    } finally {
+      setCarregandoLogs(false)
+    }
+  }
+
+  // Recarregar logs do usuário selecionado
+  const recarregarLogs = async () => {
+    if (!usuarioLogs) return
+    setCarregandoLogs(true)
+    try {
+      const res = await api.getLogsAcesso({ userId: usuarioLogs.id, limit: 50 })
+      setLogsAcesso(res.items)
+    } catch (err) {
+      console.error('Erro ao recarregar logs:', err)
+    } finally {
+      setCarregandoLogs(false)
+    }
+  }
+
   // Formatador de data
   const formatarData = (iso?: string) => {
     if (!iso) return '—'
@@ -406,6 +455,23 @@ export const GestaoUsuariosPage: React.FC = () => {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
+      })
+    } catch {
+      return '—'
+    }
+  }
+
+  const formatarDataHoraCompleta = (iso?: string) => {
+    if (!iso) return '—'
+    try {
+      const d = new Date(iso)
+      return d.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
       })
     } catch {
       return '—'
@@ -711,6 +777,15 @@ export const GestaoUsuariosPage: React.FC = () => {
                               </Button>
                               <Button
                                 size="sm"
+                                variant="outline"
+                                className="text-xs h-7 px-2 border-[#E8E1D6] text-[#6B6259] hover:text-[#1E1B18] hover:bg-[#F4EFE7] rounded-[8px]"
+                                title="Visualizar histórico e logs de acesso"
+                                onClick={() => abrirLogsAcesso(u)}
+                              >
+                                <History className="h-3.5 w-3.5 mr-1 text-[#E39A2B]" /> Logs
+                              </Button>
+                              <Button
+                                size="sm"
                                 variant="ghost"
                                 className="text-xs h-7 px-2 text-[#6B6259] hover:text-[#1E1B18] hover:bg-[#F4EFE7] rounded-[8px]"
                                 title="Enviar redefinição de senha por e-mail"
@@ -814,10 +889,19 @@ export const GestaoUsuariosPage: React.FC = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-xs h-7 px-3 border-[#E8E1D6] rounded-[8px]"
+                            className="text-xs h-7 px-2.5 border-[#E8E1D6] rounded-[8px]"
                             onClick={() => abrirEditarUsuario(u)}
                           >
                             Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7 px-2 border-[#E8E1D6] text-[#6B6259] rounded-[8px]"
+                            title="Logs de acesso"
+                            onClick={() => abrirLogsAcesso(u)}
+                          >
+                            <History className="h-3.5 w-3.5 mr-1 text-[#E39A2B]" /> Logs
                           </Button>
                           <Button
                             size="sm"
@@ -1187,7 +1271,7 @@ export const GestaoUsuariosPage: React.FC = () => {
               Cancelar
             </Button>
             <Button
-              type="button"
+              type="submit"
               disabled={enviandoReset}
               size="sm"
               onClick={handleDispararResetSenha}
@@ -1198,8 +1282,133 @@ export const GestaoUsuariosPage: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* MODAL 4: Logs de Acesso por Usuário */}
+      <Dialog open={modalLogsAberto} onOpenChange={setModalLogsAberto}>
+        <DialogContent className="max-w-2xl bg-[#FFFDFA] border-[#E8E1D6] rounded-[12px] text-[#1E1B18]">
+          <DialogHeader className="border-b border-[#E8E1D6] pb-3">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-base font-semibold text-[#1E1B18] flex items-center gap-2">
+                <History className="h-4 w-4 text-[#E39A2B]" /> Histórico de Logs de Acesso
+              </DialogTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={recarregarLogs}
+                disabled={carregandoLogs}
+                className="h-7 px-2 text-xs text-[#6B6259] hover:text-[#1E1B18]"
+                title="Atualizar lista de logs"
+              >
+                <RotateCw className={`h-3.5 w-3.5 mr-1 ${carregandoLogs ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
+            </div>
+            <DialogDescription className="text-xs text-[#6B6259]">
+              Registro cronológico de autenticações e tentativas de acesso de{' '}
+              <strong className="text-[#1E1B18]">
+                {usuarioLogs?.name || usuarioLogs?.email}
+              </strong>{' '}
+              ({usuarioLogs?.email}).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2">
+            {carregandoLogs ? (
+              <div className="py-12 flex flex-col items-center justify-center text-[#6B6259] gap-2">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#E39A2B] border-t-transparent" />
+                <p className="text-xs">Carregando eventos de autenticação...</p>
+              </div>
+            ) : logsAcesso.length === 0 ? (
+              <div className="py-10 text-center text-[#6B6259] space-y-1">
+                <Clock className="h-8 w-8 mx-auto text-[#6B6259]/40 mb-1" />
+                <p className="text-sm font-medium text-[#1E1B18]">Nenhum acesso registrado ainda</p>
+                <p className="text-xs">
+                  Eventos de login deste usuário serão registrados automaticamente nesta trilha
+                  operacional.
+                </p>
+              </div>
+            ) : (
+              <div className="max-h-80 overflow-y-auto border border-[#E8E1D6] rounded-[10px]">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#F4EFE7] border-b border-[#E8E1D6] text-[#6B6259] font-semibold uppercase text-[10px] tracking-wider sticky top-0">
+                    <tr>
+                      <th className="py-2.5 px-3">Data e Hora</th>
+                      <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3">Método</th>
+                      <th className="py-2.5 px-3">IP / Origem</th>
+                      <th className="py-2.5 px-3">Detalhes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E8E1D6]/60">
+                    {logsAcesso.map((log) => {
+                      const isSucesso = log.status === 'sucesso'
+                      return (
+                        <tr key={log.id} className="hover:bg-[#F4EFE7]/40 transition-colors">
+                          <td className="py-2 px-3 font-mono text-[11px] text-[#1E1B18] whitespace-nowrap">
+                            {formatarDataHoraCompleta(log.data_hora || log.created)}
+                          </td>
+                          <td className="py-2 px-3">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                                isSucesso
+                                  ? 'bg-[#2A6E3F]/10 text-[#2A6E3F] border-[#2A6E3F]/30'
+                                  : 'bg-[#C75B39]/10 text-[#C75B39] border-[#C75B39]/30'
+                              }`}
+                            >
+                              {isSucesso ? (
+                                <>
+                                  <CheckCircle2 className="h-3 w-3" /> Sucesso
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="h-3 w-3" /> Falha
+                                </>
+                              )}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 uppercase text-[10px] font-mono text-[#6B6259]">
+                            {log.metodo || 'senha'}
+                          </td>
+                          <td className="py-2 px-3 font-mono text-[11px] text-[#6B6259]">
+                            {log.ip || '—'}
+                          </td>
+                          <td
+                            className="py-2 px-3 text-[11px] text-[#6B6259] max-w-[200px] truncate"
+                            title={log.motivo_falha || log.user_agent || ''}
+                          >
+                            {log.motivo_falha ? (
+                              <span className="text-[#C75B39]">{log.motivo_falha}</span>
+                            ) : log.user_agent ? (
+                              <span className="truncate block font-mono text-[10px] text-[#6B6259]/80">
+                                {log.user_agent}
+                              </span>
+                            ) : (
+                              'Autenticação efetuada'
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="pt-2 border-t border-[#E8E1D6]">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setModalLogsAberto(false)}
+              className="border-[#E8E1D6] rounded-[10px]"
+            >
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
-
 export default GestaoUsuariosPage

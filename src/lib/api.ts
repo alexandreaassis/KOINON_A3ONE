@@ -368,6 +368,21 @@ export interface NotificacaoRecord extends RecordModel {
   }
 }
 
+export interface LogAcessoRecord extends RecordModel {
+  user?: string
+  email: string
+  nome?: string
+  data_hora: string
+  metodo: 'senha' | 'token' | 'otp' | 'outro'
+  status: 'sucesso' | 'falha'
+  ip?: string
+  user_agent?: string
+  motivo_falha?: string
+  expand?: {
+    user?: UserRecord
+  }
+}
+
 export interface ApuracaoItemResult {
   id: string
   ordem: number
@@ -895,6 +910,32 @@ export const api = {
       method: 'POST',
       body: { id },
     })
+  },
+
+  async getLogsAcesso(filtros?: { userId?: string; email?: string; limit?: number }) {
+    const limit = filtros?.limit || 50
+    let filter = ''
+    if (filtros?.userId) {
+      filter = pb.filter('user = {:uid}', { uid: filtros.userId })
+    } else if (filtros?.email) {
+      filter = pb.filter('email = {:em}', { em: filtros.email.trim().toLowerCase() })
+    }
+    return pb.collection('logs_acesso').getList<LogAcessoRecord>(1, limit, {
+      filter: filter || undefined,
+      sort: '-data_hora',
+      expand: 'user',
+    })
+  },
+
+  async registrarLogFalhaAutenticacao(email: string, motivo?: string) {
+    try {
+      await pb.send('/backend/v1/auth/log-falha', {
+        method: 'POST',
+        body: { email, motivo },
+      })
+    } catch (_) {
+      // Ignorar falhas secundárias ao logar tentativa
+    }
   },
 
   async updateUsuario(id: string, data: Partial<UserRecord>) {

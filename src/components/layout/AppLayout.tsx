@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { IndabaLogo } from '@/components/brand/IndabaLogo'
+import { IndabaSymbol } from '@/components/brand/IndabaSymbol'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Menu,
   LogOut,
@@ -32,7 +34,6 @@ import {
   ShieldCheck,
   FileSpreadsheet,
   History,
-  WifiOff,
   UserCheck,
   ChevronRight,
   Settings,
@@ -67,6 +68,27 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
   const [jaVotou, setJaVotou] = useState(false)
   const [isPresencial, setIsPresencial] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Estado de sidebar colapsada persistido no localStorage
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('indaba_sidebar_collapsed') === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  const alternarCollapse = () => {
+    setCollapsed((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('indaba_sidebar_collapsed', String(next))
+      } catch {
+        /* intentionally ignored */
+      }
+      return next
+    })
+  }
 
   // Carregar dados de status da votação
   useEffect(() => {
@@ -186,205 +208,427 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     return nomeOuEmail.slice(0, 2).toUpperCase()
   }
 
-  const SidebarContent = () => (
-    <div className="flex h-full flex-col justify-between bg-[#1E1B18] text-[#E8E1D6]">
-      <div className="overflow-y-auto">
-        {/* Brand Header com Logotipo Indaba Negativo no topo da Sidebar */}
-        <div className="px-5 py-5 border-b border-[#2E2A26]">
-          <IndabaLogo size={28} variant="negative" subtitle={nomeCondominio} />
+  // Renderizador de item de menu com suporte a modo colapsado e tooltip
+  const renderNavItem = (
+    item: { label: string; path: string; icon: React.ComponentType<{ className?: string }> },
+    isCollapsed: boolean,
+    onNavigate?: () => void,
+  ) => {
+    const isActive = location.pathname === item.path
+    const Icon = item.icon
+
+    const linkContent = (
+      <Link
+        key={item.path}
+        to={item.path}
+        onClick={onNavigate}
+        className={`relative flex items-center rounded-[10px] text-xs font-medium transition-colors ${
+          isCollapsed ? 'justify-center p-2.5 mx-auto' : 'gap-3 px-3 py-2'
+        } ${
+          isActive
+            ? `bg-[#2A2622] text-[#FFFDFA] font-semibold ${
+                isCollapsed
+                  ? 'border-l-[3px] border-l-[#E39A2B] rounded-l-none'
+                  : 'border-l-[3px] border-l-[#E39A2B] rounded-l-none'
+              }`
+            : 'text-[#E8E1D6]/80 hover:bg-[#2A2622]/60 hover:text-[#FFFDFA]'
+        }`}
+      >
+        <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#E39A2B]' : 'text-[#6B6259]'}`} />
+        {!isCollapsed && <span className="truncate">{item.label}</span>}
+      </Link>
+    )
+
+    if (isCollapsed) {
+      return (
+        <Tooltip key={item.path} delayDuration={150}>
+          <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+          <TooltipContent
+            side="right"
+            className="bg-[#1E1B18] text-[#FFFDFA] border-[#2E2A26] text-xs font-semibold px-2.5 py-1 rounded-[8px] shadow-lg z-50"
+          >
+            {item.label}
+          </TooltipContent>
+        </Tooltip>
+      )
+    }
+
+    return linkContent
+  }
+
+  // Componente de Conteúdo da Sidebar (compartilhado entre desktop e mobile)
+  const SidebarContent = ({ isCollapsed = false }: { isCollapsed?: boolean }) => {
+    // Regra estrita de visibilidade por perfil solicitada pelo usuário:
+    // - morador vê apenas Módulo do Morador
+    // - mesa vê Módulo da Mesa
+    // - admin vê itens de Administração (além dos operacionais que gerencia)
+    const mostrarMorador = role === 'morador' || (!role && !isAdmin)
+    const mostrarMesa = role === 'mesa' || role === 'admin'
+    const mostrarAdmin = role === 'admin'
+
+    return (
+      <div className="flex h-full flex-col justify-between bg-[#1E1B18] text-[#E8E1D6] select-none">
+        <div className="overflow-y-auto overflow-x-hidden">
+          {/* Brand Header com Logotipo Indaba Negativo no topo da Sidebar e Botão de Colapso */}
+          <div
+            className={`border-b border-[#2E2A26] flex items-center justify-between ${
+              isCollapsed ? 'p-3 flex-col gap-2' : 'px-4 py-4'
+            }`}
+          >
+            {isCollapsed ? (
+              <Tooltip delayDuration={150}>
+                <TooltipTrigger asChild>
+                  <Link
+                    to="/"
+                    className="flex items-center justify-center p-1 rounded hover:opacity-90"
+                  >
+                    <IndabaSymbol size={28} variant="negative" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="right"
+                  className="bg-[#1E1B18] text-[#FFFDFA] border-[#2E2A26] text-xs font-semibold px-2.5 py-1 rounded-[8px]"
+                >
+                  Indaba — {nomeCondominio}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <div className="truncate flex-1 min-w-0">
+                <IndabaLogo size={26} variant="negative" subtitle={nomeCondominio} />
+              </div>
+            )}
+
+            {/* Botão de Alternar Colapso da Barra Lateral (Desktop apenas, SVG inline padrão da marca) */}
+            <Tooltip delayDuration={200}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={alternarCollapse}
+                  aria-label={isCollapsed ? 'Expandir barra lateral' : 'Recolher barra lateral'}
+                  className="hidden lg:flex items-center justify-center h-7 w-7 rounded-[8px] text-[#6B6259] hover:text-[#FFFDFA] hover:bg-[#2A2622] transition-colors shrink-0"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="shrink-0"
+                    aria-hidden="true"
+                  >
+                    <rect
+                      x="1.5"
+                      y="2"
+                      width="13"
+                      height="12"
+                      rx="2.5"
+                      stroke="currentColor"
+                      strokeWidth="1.3"
+                    />
+                    <line
+                      x1="5.5"
+                      y1="2"
+                      x2="5.5"
+                      y2="14"
+                      stroke="currentColor"
+                      strokeWidth="1.3"
+                    />
+                    {isCollapsed ? (
+                      <path
+                        d="M8.5 6L10.5 8L8.5 10"
+                        stroke="currentColor"
+                        strokeWidth="1.3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    ) : (
+                      <path
+                        d="M10.5 6L8.5 8L10.5 10"
+                        stroke="currentColor"
+                        strokeWidth="1.3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    )}
+                  </svg>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="right"
+                className="bg-[#1E1B18] text-[#FFFDFA] border-[#2E2A26] text-xs font-semibold px-2.5 py-1 rounded-[8px]"
+              >
+                {isCollapsed ? 'Expandir menu lateral' : 'Recolher para ícones'}
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* Seletor de Unidade Ativa */}
+          {unidadesDisponiveis.length > 0 && !isCollapsed && (
+            <div className="p-3 border-b border-[#2E2A26] bg-[#171412]">
+              <div className="text-[11px] uppercase tracking-[0.04em] font-medium text-[#6B6259] mb-1 px-1">
+                Unidade Ativa
+              </div>
+              <Select
+                value={unidadeSelecionada?.id || ''}
+                onValueChange={(val) => {
+                  const u = unidadesDisponiveis.find((item) => item.id === val)
+                  if (u) selecionarUnidade(u)
+                }}
+              >
+                <SelectTrigger className="w-full bg-[#1E1B18] border-[#2E2A26] text-xs text-[#E8E1D6] h-9 rounded-[10px] focus:ring-[#E39A2B]">
+                  <SelectValue placeholder="Selecione sua unidade" />
+                </SelectTrigger>
+                <SelectContent className="max-h-64 bg-[#1E1B18] text-[#E8E1D6] border-[#2E2A26]">
+                  {unidadesDisponiveis.map((u) => (
+                    <SelectItem
+                      key={u.id}
+                      value={u.id}
+                      className="text-xs text-[#E8E1D6] focus:bg-[#2A2622] focus:text-[#FFFDFA]"
+                    >
+                      {u.tipo_unidade || rotuloUnidade} {u.identificador} (
+                      {u.bloco || nomeCondominio})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Links de navegação filtrados estritamente por perfil */}
+          <div className={`py-4 ${isCollapsed ? 'px-1.5 space-y-4' : 'px-3 space-y-5'}`}>
+            {/* Módulo do Morador: Apenas para moradores ou morador autenticado */}
+            {mostrarMorador && (
+              <div>
+                {!isCollapsed && (
+                  <div className="px-3 text-[11px] font-medium uppercase tracking-[0.04em] text-[#6B6259] mb-2">
+                    Módulo do Morador
+                  </div>
+                )}
+                <nav className="space-y-1">
+                  {navMorador.map((item) =>
+                    renderNavItem(item, isCollapsed, () => setMobileMenuOpen(false)),
+                  )}
+                </nav>
+              </div>
+            )}
+
+            {/* Módulo da Mesa: Apenas para membros da mesa e administradores */}
+            {mostrarMesa && (
+              <div>
+                {!isCollapsed && (
+                  <div className="px-3 flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.04em] text-[#6B6259] mb-2">
+                    <span>Módulo da Mesa</span>
+                    {role === 'mesa' && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-[8px] bg-[#E39A2B]/20 text-[#E39A2B] font-semibold">
+                        Operador
+                      </span>
+                    )}
+                  </div>
+                )}
+                <nav className="space-y-1">
+                  {navMesa.map((item) =>
+                    renderNavItem(item, isCollapsed, () => setMobileMenuOpen(false)),
+                  )}
+                </nav>
+              </div>
+            )}
+
+            {/* Módulo de Administração: Rigorosamente restrito ao Perfil Admin */}
+            {mostrarAdmin && (
+              <div>
+                {!isCollapsed && (
+                  <div className="px-3 flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.04em] text-[#6B6259] mb-2">
+                    <span>Administração</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-[8px] bg-[#2E2A26] text-[#E8E1D6] font-semibold">
+                      Admin
+                    </span>
+                  </div>
+                )}
+                <nav className="space-y-1">
+                  {navAdmin.map((item) =>
+                    renderNavItem(item, isCollapsed, () => setMobileMenuOpen(false)),
+                  )}
+                </nav>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Seletor de Unidade Ativa */}
-        {unidadesDisponiveis.length > 0 && (
-          <div className="p-3 border-b border-[#2E2A26] bg-[#171412]">
-            <div className="text-[11px] uppercase tracking-[0.04em] font-medium text-[#6B6259] mb-1 px-1">
-              Unidade Ativa
-            </div>
-            <Select
-              value={unidadeSelecionada?.id || ''}
-              onValueChange={(val) => {
-                const u = unidadesDisponiveis.find((item) => item.id === val)
-                if (u) selecionarUnidade(u)
-              }}
-            >
-              <SelectTrigger className="w-full bg-[#1E1B18] border-[#2E2A26] text-xs text-[#E8E1D6] h-9 rounded-[10px] focus:ring-[#E39A2B]">
-                <SelectValue placeholder="Selecione sua unidade" />
-              </SelectTrigger>
-              <SelectContent className="max-h-64 bg-[#1E1B18] text-[#E8E1D6] border-[#2E2A26]">
-                {unidadesDisponiveis.map((u) => (
-                  <SelectItem
-                    key={u.id}
-                    value={u.id}
-                    className="text-xs text-[#E8E1D6] focus:bg-[#2A2622] focus:text-[#FFFDFA]"
-                  >
-                    {u.tipo_unidade || rotuloUnidade} {u.identificador} ({u.bloco || nomeCondominio}
-                    )
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        {/* Bloco do usuário no rodapé da Sidebar: avatar circular, nome e cargo */}
+        <div className="p-2.5 border-t border-[#2E2A26] bg-[#171412]">
+          {isCollapsed ? (
+            <div className="flex flex-col items-center gap-2 py-1">
+              <Tooltip delayDuration={150}>
+                <TooltipTrigger asChild>
+                  <div className="h-9 w-9 rounded-full bg-[#2A2622] border border-[#2E2A26] flex items-center justify-center text-[#E39A2B] font-semibold text-xs cursor-pointer">
+                    {getIniciais(user?.name || user?.email)}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="right"
+                  className="bg-[#1E1B18] text-[#FFFDFA] border-[#2E2A26] text-xs p-2 rounded-[8px] shadow-lg"
+                >
+                  <p className="font-semibold text-xs text-[#FFFDFA]">
+                    {user?.name || user?.email}
+                  </p>
+                  <p className="text-[10px] text-[#6B6259]">
+                    {role === 'admin'
+                      ? 'Administrador Geral'
+                      : role === 'mesa'
+                        ? 'Membro da Mesa'
+                        : `Condômino ${unidadeSelecionada?.tipo_unidade || rotuloUnidade} ${unidadeSelecionada?.identificador || '—'}`}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
 
-        {/* Links de navegação */}
-        <div className="px-3 py-4 space-y-6">
-          {/* Módulo do Morador */}
-          <div>
-            <div className="px-3 text-[11px] font-medium uppercase tracking-[0.04em] text-[#6B6259] mb-2">
-              Módulo do Morador
-            </div>
-            <nav className="space-y-1">
-              {navMorador.map((item) => {
-                const isActive = location.pathname === item.path
-                const Icon = item.icon
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`relative flex items-center gap-3 px-3 py-2 rounded-[10px] text-xs font-medium transition-colors ${
-                      isActive
-                        ? 'bg-[#2A2622] text-[#FFFDFA] font-semibold border-l-[3px] border-l-[#E39A2B] rounded-l-none'
-                        : 'text-[#E8E1D6]/80 hover:bg-[#2A2622]/60 hover:text-[#FFFDFA]'
-                    }`}
+              <Tooltip delayDuration={150}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={logout}
+                    aria-label="Sair da plataforma"
+                    className="text-[#6B6259] hover:text-[#FFFDFA] hover:bg-[#2A2622] h-7 w-7 rounded-[8px] flex items-center justify-center transition-colors"
                   >
-                    <Icon
-                      className={`h-4 w-4 shrink-0 ${
-                        isActive ? 'text-[#E39A2B]' : 'text-[#6B6259]'
-                      }`}
-                    />
-                    <span>{item.label}</span>
-                  </Link>
-                )
-              })}
-            </nav>
-          </div>
-
-          {/* Módulo da Mesa (visível com destaque se role === mesa) */}
-          <div>
-            <div className="px-3 flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.04em] text-[#6B6259] mb-2">
-              <span>Módulo da Mesa</span>
-              {role === 'mesa' && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded-[8px] bg-[#E39A2B]/20 text-[#E39A2B] font-semibold">
-                  Operador
-                </span>
-              )}
-            </div>
-            <nav className="space-y-1">
-              {navMesa.map((item) => {
-                const isActive = location.pathname === item.path
-                const Icon = item.icon
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`relative flex items-center gap-3 px-3 py-2 rounded-[10px] text-xs font-medium transition-colors ${
-                      isActive
-                        ? 'bg-[#2A2622] text-[#FFFDFA] font-semibold border-l-[3px] border-l-[#E39A2B] rounded-l-none'
-                        : 'text-[#E8E1D6]/80 hover:bg-[#2A2622]/60 hover:text-[#FFFDFA]'
-                    }`}
-                  >
-                    <Icon
-                      className={`h-4 w-4 shrink-0 ${
-                        isActive ? 'text-[#E39A2B]' : 'text-[#6B6259]'
-                      }`}
-                    />
-                    <span>{item.label}</span>
-                  </Link>
-                )
-              })}
-            </nav>
-          </div>
-
-          {/* Módulo de Administração (Apenas Perfil Admin) */}
-          {isAdmin && (
-            <div>
-              <div className="px-3 flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.04em] text-[#6B6259] mb-2">
-                <span>Administração</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded-[8px] bg-[#2E2A26] text-[#E8E1D6] font-semibold">
-                  Admin
-                </span>
-              </div>
-              <nav className="space-y-1">
-                {navAdmin.map((item) => {
-                  const isActive = location.pathname === item.path
-                  const Icon = item.icon
-                  return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`relative flex items-center gap-3 px-3 py-2 rounded-[10px] text-xs font-medium transition-colors ${
-                        isActive
-                          ? 'bg-[#2A2622] text-[#FFFDFA] font-semibold border-l-[3px] border-l-[#E39A2B] rounded-l-none'
-                          : 'text-[#E8E1D6]/80 hover:bg-[#2A2622]/60 hover:text-[#FFFDFA]'
-                      }`}
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="shrink-0"
+                      aria-hidden="true"
                     >
-                      <Icon
-                        className={`h-4 w-4 shrink-0 ${
-                          isActive ? 'text-[#E39A2B]' : 'text-[#6B6259]'
-                        }`}
+                      <path
+                        d="M6 14H3.33333C2.97971 14 2.64057 13.8595 2.39052 13.6095C2.14048 13.3594 2 13.0203 2 12.6667V3.33333C2 2.97971 2.14048 2.64057 2.39052 2.39052C2.64057 2.14048 2.97971 2 3.33333 2H6"
+                        stroke="currentColor"
+                        strokeWidth="1.3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                       />
-                      <span>{item.label}</span>
-                    </Link>
-                  )
-                })}
-              </nav>
+                      <path
+                        d="M10.6667 11.3333L14 8L10.6667 4.66667"
+                        stroke="currentColor"
+                        strokeWidth="1.3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M14 8H6"
+                        stroke="currentColor"
+                        strokeWidth="1.3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="right"
+                  className="bg-[#1E1B18] text-[#FFFDFA] border-[#2E2A26] text-xs font-semibold px-2 py-1 rounded-[8px]"
+                >
+                  Sair
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2.5 px-2 py-1.5">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="h-9 w-9 rounded-full bg-[#2A2622] border border-[#2E2A26] flex items-center justify-center text-[#E39A2B] font-semibold text-xs shrink-0">
+                  {getIniciais(user?.name || user?.email)}
+                </div>
+                <div className="truncate">
+                  <p className="text-xs font-semibold text-[#FFFDFA] truncate leading-tight">
+                    {user?.name || user?.email}
+                  </p>
+                  <p className="text-[10px] text-[#6B6259] truncate mt-0.5">
+                    {role === 'admin'
+                      ? 'Administrador Geral'
+                      : role === 'mesa'
+                        ? 'Membro da Mesa'
+                        : `Condômino ${unidadeSelecionada?.tipo_unidade || rotuloUnidade} ${unidadeSelecionada?.identificador || '—'}`}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={logout}
+                title="Sair da plataforma"
+                aria-label="Sair da plataforma"
+                className="text-[#6B6259] hover:text-[#FFFDFA] hover:bg-[#2A2622] h-8 w-8 rounded-[10px] shrink-0 flex items-center justify-center transition-colors"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="shrink-0"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M6 14H3.33333C2.97971 14 2.64057 13.8595 2.39052 13.6095C2.14048 13.3594 2 13.0203 2 12.6667V3.33333C2 2.97971 2.14048 2.64057 2.39052 2.39052C2.64057 2.14048 2.97971 2 3.33333 2H6"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M10.6667 11.3333L14 8L10.6667 4.66667"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M14 8H6"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
             </div>
           )}
         </div>
       </div>
-
-      {/* Bloco do usuário no rodapé da Sidebar: avatar circular, nome e cargo */}
-      <div className="p-3 border-t border-[#2E2A26] bg-[#171412]">
-        <div className="flex items-center justify-between gap-2.5 px-2 py-1.5">
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className="h-9 w-9 rounded-full bg-[#2A2622] border border-[#2E2A26] flex items-center justify-center text-[#E39A2B] font-semibold text-xs shrink-0">
-              {getIniciais(user?.name || user?.email)}
-            </div>
-            <div className="truncate">
-              <p className="text-xs font-semibold text-[#FFFDFA] truncate leading-tight">
-                {user?.name || user?.email}
-              </p>
-              <p className="text-[10px] text-[#6B6259] truncate mt-0.5">
-                {role === 'admin'
-                  ? 'Administrador Geral'
-                  : role === 'mesa'
-                    ? 'Membro da Mesa'
-                    : `Condômino ${unidadeSelecionada?.tipo_unidade || rotuloUnidade} ${unidadeSelecionada?.identificador || '—'}`}
-              </p>
-            </div>
-          </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={logout}
-            title="Sair da plataforma"
-            className="text-[#6B6259] hover:text-[#FFFDFA] hover:bg-[#2A2622] h-8 w-8 rounded-[10px] shrink-0"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
+    )
+  }
 
   return (
     <div className="min-h-screen flex bg-[#F4EFE7] text-[#1E1B18]">
       {/* Alerta de Conexão Indaba */}
       {!isOnline && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-[#C75B39] text-[#FFFDFA] text-xs font-semibold py-2 px-4 text-center shadow-md flex items-center justify-center gap-2">
-          <WifiOff className="h-4 w-4" />
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="shrink-0"
+          >
+            <path
+              d="M1 1L15 15M11.1333 4.86667C12.4497 6.18305 13.2929 7.89286 13.5606 9.73426M1.46667 6.26667C2.46325 5.27008 3.69342 4.54284 5.04412 4.14498M4.2 9.8C4.94586 9.05414 5.92211 8.57143 6.96914 8.42398M11.8 9.8C11.3957 9.39572 10.9169 9.07663 10.3908 8.85764M8 13.3333H8.00667"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
           <span>
             Conexão interrompida com o servidor. Ações de voto aguardam restabelecimento da rede.
           </span>
         </div>
       )}
 
-      {/* Desktop Sidebar (Fundo Indaba Deep #1E1B18, 64px de largura mínima) */}
-      <aside className="hidden lg:block w-64 shrink-0 border-r border-[#2E2A26] h-screen sticky top-0 shadow-[0_4px_24px_rgba(30,27,24,0.06)]">
-        <SidebarContent />
+      {/* Desktop Sidebar com largura dinâmica (w-64 expandida ou w-[68px] colapsada) */}
+      <aside
+        className={`hidden lg:block shrink-0 border-r border-[#2E2A26] h-screen sticky top-0 shadow-[0_4px_24px_rgba(30,27,24,0.06)] transition-[width] duration-200 ease-in-out ${
+          collapsed ? 'w-[68px]' : 'w-64'
+        }`}
+      >
+        <SidebarContent isCollapsed={collapsed} />
       </aside>
 
       {/* Main Content Area */}

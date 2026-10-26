@@ -157,7 +157,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const login = async (email: string, pass: string) => {
-    const authData = await pb.collection('users').authWithPassword<UserRecord>(email.trim(), pass)
+    let authData
+    try {
+      authData = await pb.collection('users').authWithPassword<UserRecord>(email.trim(), pass)
+    } catch (err: any) {
+      // Registrar log de tentativa malsucedida no backend
+      api.registrarLogFalhaAutenticacao(
+        email.trim(),
+        err?.message || 'Falha de autenticação / credenciais incorretas',
+      )
+      throw err
+    }
+
     const authUser = authData.record
 
     // Validação adicional preventiva do lado do cliente: usuário inativo
