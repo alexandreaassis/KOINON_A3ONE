@@ -51,6 +51,7 @@ import {
   Search,
   ExternalLink,
   ShieldCheck,
+  RotateCcw,
 } from 'lucide-react'
 import { BlocoAssinaturaCompacto } from '@/components/assinatura/BlocoAssinaturaCompacto'
 import {
@@ -397,21 +398,170 @@ export const ListaPresencaPage: React.FC = () => {
     }
   }
 
+  // Definição e Larguras padrão das Colunas da Tabela
+  const STORAGE_KEY_LARGURAS = 'indaba_lista_presenca_colunas_v1'
+  const LARGURAS_PADRAO: Record<string, number> = {
+    unidade: 80, // min 64
+    titular: 240, // min 140
+    situacao: 110, // min 90
+    procuracao: 220, // min 130
+    assinatura: 210, // min 150
+  }
+  const LARGURAS_MINIMAS: Record<string, number> = {
+    unidade: 64,
+    titular: 130,
+    situacao: 80,
+    procuracao: 120,
+    assinatura: 140,
+  }
+
+  const [largurasColunas, setLargurasColunas] = useState<Record<string, number>>(() => {
+    try {
+      const salvo = localStorage.getItem(STORAGE_KEY_LARGURAS)
+      if (salvo) {
+        const parsed = JSON.parse(salvo)
+        return { ...LARGURAS_PADRAO, ...parsed }
+      }
+    } catch {
+      /* ignore */
+    }
+    return LARGURAS_PADRAO
+  })
+
+  // Salvar larguras ao alterar
+  const salvarLarguraColuna = (colKey: string, novaLargura: number) => {
+    setLargurasColunas((antigas) => {
+      const min = LARGURAS_MINIMAS[colKey] || 60
+      const ajustada = Math.max(min, Math.round(novaLargura))
+      const novo = { ...antigas, [colKey]: ajustada }
+      try {
+        localStorage.setItem(STORAGE_KEY_LARGURAS, JSON.stringify(novo))
+      } catch {
+        /* ignore */
+      }
+      return novo
+    })
+  }
+
+  // Restaurar larguras ao padrão
+  const restaurarLargurasPadrao = () => {
+    setLargurasColunas(LARGURAS_PADRAO)
+    try {
+      localStorage.removeItem(STORAGE_KEY_LARGURAS)
+    } catch {
+      /* ignore */
+    }
+    toast({
+      title: 'Larguras restauradas',
+      description: 'As colunas da lista de presença voltaram à largura padrão.',
+    })
+  }
+
+  // Iniciar arraste de redimensionamento (Mouse ou Touch)
+  const iniciarRedimensionamento = (
+    colKey: string,
+    eventoInicial: React.MouseEvent | React.TouchEvent,
+  ) => {
+    eventoInicial.preventDefault()
+    eventoInicial.stopPropagation()
+
+    const clientXInicial =
+      'touches' in eventoInicial ? eventoInicial.touches[0].clientX : eventoInicial.clientX
+    const larguraInicial = largurasColunas[colKey] || LARGURAS_PADRAO[colKey] || 100
+    const min = LARGURAS_MINIMAS[colKey] || 60
+
+    let larguraAtual = larguraInicial
+
+    const onPointerMove = (e: MouseEvent | TouchEvent) => {
+      const currentX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX
+      const deltaX = currentX - clientXInicial
+      larguraAtual = Math.max(min, Math.round(larguraInicial + deltaX))
+
+      setLargurasColunas((prev) => ({
+        ...prev,
+        [colKey]: larguraAtual,
+      }))
+    }
+
+    const onPointerUp = () => {
+      window.removeEventListener('mousemove', onPointerMove)
+      window.removeEventListener('mouseup', onPointerUp)
+      window.removeEventListener('touchmove', onPointerMove)
+      window.removeEventListener('touchend', onPointerUp)
+      window.removeEventListener('touchcancel', onPointerUp)
+
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+
+      // Persistir valor final
+      setLargurasColunas((prev) => {
+        const finalObj = { ...prev, [colKey]: larguraAtual }
+        try {
+          localStorage.setItem(STORAGE_KEY_LARGURAS, JSON.stringify(finalObj))
+        } catch {
+          /* ignore */
+        }
+        return finalObj
+      })
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    window.addEventListener('mousemove', onPointerMove, { passive: true })
+    window.addEventListener('mouseup', onPointerUp)
+    window.addEventListener('touchmove', onPointerMove, { passive: true })
+    window.addEventListener('touchend', onPointerUp)
+    window.addEventListener('touchcancel', onPointerUp)
+  }
+
   // Unidades combinadas com status de presença
   const mapaPresencas = new Map<string, PresencaAssinaturaRecord>()
   presencasAssinadas.forEach((p) => mapaPresencas.set(p.unidade, p))
+
+  // Utilitário para extrair apenas a numeração da unidade
+  const formatarApenasNumeroUnidade = (identificador?: string): string => {
+    if (!identificador) return '—'
+    const limpo = identificador.trim()
+    // 1. Tentar casar dígitos (ex: "Unidade 12" -> "12", "Apto 304" -> "304", "101A" -> "101")
+    const matchNumero = limpo.match(/\d+/)
+    if (matchNumero) {
+      return matchNumero[0]
+    }
+    // 2. Se não contiver número explícito, remover palavras como "Unidade", "Apto", "Lote", "Casa"
+    const semPrefixo = limpo.replace(
+      /^(unidade|unid\.?|apto\.?|apartamento|lote|casa|sala|bloco)\s*/i,
+      '',
+    )
+    return semPrefixo || limpo
+  }
+
+  // Descrição completa da unidade para tooltip / title
+  const obterDescricaoCompletaUnidade = (u: UnidadeRecord): string => {
+    const rotulo = u.tipo_unidade || rotuloUnidade || 'Unidade'
+    const partes: string[] = [`${rotulo} ${u.identificador || ''}`.trim()]
+    if (u.bloco) partes.push(`Bloco: ${u.bloco}`)
+    if (u.andar) partes.push(`Andar: ${u.andar}`)
+    if (u.posicao_numero) partes.push(`Posição: ${u.posicao_numero}`)
+    return partes.join(' • ')
+  }
 
   // Unidades filtradas pela busca
   const unidadesFiltradas = unidades.filter((u) => {
     if (!busca.trim()) return true
     const termo = busca.toLowerCase()
     const ident = (u.identificador || '').toLowerCase()
+    const num = formatarApenasNumeroUnidade(u.identificador).toLowerCase()
     const bloco = (u.bloco || '').toLowerCase()
     const resp = (u.responsavel_nome || '').toLowerCase()
     const pres = mapaPresencas.get(u.id)
     const proc = (pres?.nome_procurador || '').toLowerCase()
     return (
-      ident.includes(termo) || bloco.includes(termo) || resp.includes(termo) || proc.includes(termo)
+      ident.includes(termo) ||
+      num.includes(termo) ||
+      bloco.includes(termo) ||
+      resp.includes(termo) ||
+      proc.includes(termo)
     )
   })
 
@@ -503,30 +653,42 @@ export const ListaPresencaPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* Barra de Busca (Oculto em impressão) */}
-      <div className="print:hidden flex items-center gap-3">
+      {/* Barra de Busca e Ações de Tabela (Oculto em impressão) */}
+      <div className="print:hidden flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#6B6259]" />
           <Input
             type="text"
             placeholder="Buscar por unidade, condômino ou procurador..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            className="pl-9 text-xs h-9 bg-white"
+            className="pl-9 text-xs h-9 bg-[#FFFDFA] border-[#E8E1D6]"
           />
         </div>
 
-        <div className="p-2 rounded bg-amber-50 border border-amber-200 text-[11px] text-amber-900 flex-1">
-          <strong>Ressalva Jurídica:</strong> As assinaturas e carimbos SHA-256 gerados atestam a
-          presença no sistema condominial interno; certifique-se da exigência de firma reconhecida
-          em procurações para fins cartorários.
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={restaurarLargurasPadrao}
+            className="text-[11px] h-8 px-2.5 border-[#E8E1D6] text-[#6B6259] hover:text-[#1E1B18] hover:bg-[#F4EFE7] rounded-[8px]"
+            title="Restaurar a largura padrão de todas as colunas"
+          >
+            <RotateCcw className="h-3.5 w-3.5 mr-1 text-[#E39A2B]" /> Restaurar larguras
+          </Button>
+
+          <div className="p-2 rounded-[8px] bg-[#F4EFE7] border border-[#E8E1D6] text-[11px] text-[#6B6259]">
+            <strong className="text-[#1E1B18]">Dica:</strong> arraste a divisória dos cabeçalhos
+            para ajustar as colunas (ou duplo clique para resetar).
+          </div>
         </div>
       </div>
 
       {/* DOCUMENTO OFICIAL A4 IMPRIMÍVEL (Mesmo padrão do Boletim de Urna) */}
-      <article className="border border-slate-300 shadow-md bg-white rounded-lg p-8 max-w-[900px] mx-auto print:border-none print:shadow-none print:p-0 print:max-w-none text-slate-900 font-serif leading-normal">
+      <article className="border border-[#E8E1D6] shadow-sm bg-[#FFFDFA] rounded-lg p-6 sm:p-8 max-w-[960px] mx-auto print:border-none print:shadow-none print:p-0 print:max-w-none text-[#1E1B18] font-serif leading-normal">
         {/* Cabeçalho Institucional do Documento */}
-        <header className="border-b-2 border-slate-900 pb-4 mb-6 text-center font-sans">
+        <header className="border-b-2 border-[#1E1B18] pb-4 mb-6 text-center font-sans">
           <div className="flex items-center justify-between mb-2">
             {logoUrl && (
               <img
@@ -536,22 +698,22 @@ export const ListaPresencaPage: React.FC = () => {
               />
             )}
             <div className="flex-1 text-center px-4">
-              <span className="text-[10px] uppercase tracking-widest font-bold text-cyan-800 block">
+              <span className="text-[10px] uppercase tracking-widest font-bold text-[#E39A2B] block">
                 Plataforma Oficial de Governança Condominial
               </span>
-              <h1 className="text-lg font-bold text-slate-950 uppercase">{nomeCondominio}</h1>
-              <p className="text-xs text-slate-600">
+              <h1 className="text-lg font-bold text-[#1E1B18] uppercase">{nomeCondominio}</h1>
+              <p className="text-xs text-[#6B6259]">
                 Lista Oficial de Presença e Registro de Comparecimento em Assembleia
               </p>
             </div>
-            <div className="text-right text-[11px] font-mono text-slate-600">
+            <div className="text-right text-[11px] font-mono text-[#6B6259]">
               <span>Emissão:</span>
               <br />
-              <strong>{new Date().toLocaleDateString('pt-BR')}</strong>
+              <strong className="text-[#1E1B18]">{new Date().toLocaleDateString('pt-BR')}</strong>
             </div>
           </div>
 
-          <div className="bg-slate-100 p-2 rounded text-xs font-semibold text-slate-800 flex items-center justify-between mt-2 font-mono">
+          <div className="bg-[#F4EFE7] border border-[#E8E1D6] p-2.5 rounded text-xs font-semibold text-[#1E1B18] flex items-center justify-between mt-2 font-mono">
             <span>Assembleia: {deliberacaoAtiva?.titulo || '—'}</span>
             <span>
               Quórum Presente: {totalPresentes} de {unidades.length} unidades (
@@ -560,160 +722,327 @@ export const ListaPresencaPage: React.FC = () => {
           </div>
         </header>
 
-        {/* Tabela de Assinaturas e Presenças */}
+        {/* Tabela de Assinaturas e Presenças com Colunas Redimensionáveis */}
         <section className="font-sans text-xs">
-          <table className="w-full text-left border-collapse border border-slate-300">
-            <thead>
-              <tr className="bg-slate-200 text-slate-900 font-bold border-b border-slate-300">
-                <th className="p-2 border-r border-slate-300 w-20 text-center">Unidade</th>
-                <th className="p-2 border-r border-slate-300">Titular / Representante</th>
-                <th className="p-2 border-r border-slate-300 w-28 text-center">Modalidade</th>
-                <th className="p-2 border-r border-slate-300">Representação / Procurador</th>
-                <th className="p-2 text-center w-48">Assinatura / Hash SHA-256</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {unidadesFiltradas.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="p-4 text-center text-slate-500 italic">
-                    Nenhuma unidade encontrada para os critérios selecionados.
-                  </td>
-                </tr>
-              ) : (
-                unidadesFiltradas.map((u) => {
-                  const pres = mapaPresencas.get(u.id)
-                  const presLegada = presencasAntigas.find((p) => p.unidade === u.id)
-                  const estaPresente = !!pres || !!presLegada
-
-                  return (
-                    <tr
-                      key={u.id}
-                      className={estaPresente ? 'bg-white' : 'bg-slate-50 text-slate-400'}
+          <div className="overflow-x-auto w-full rounded-md border border-[#E8E1D6]">
+            <table
+              className="w-full text-left border-collapse"
+              style={{
+                tableLayout: 'fixed',
+                minWidth:
+                  largurasColunas.unidade +
+                  largurasColunas.titular +
+                  largurasColunas.situacao +
+                  largurasColunas.procuracao +
+                  largurasColunas.assinatura,
+              }}
+            >
+              <colgroup>
+                <col style={{ width: `${largurasColunas.unidade}px` }} />
+                <col style={{ width: `${largurasColunas.titular}px` }} />
+                <col style={{ width: `${largurasColunas.situacao}px` }} />
+                <col style={{ width: `${largurasColunas.procuracao}px` }} />
+                <col style={{ width: `${largurasColunas.assinatura}px` }} />
+              </colgroup>
+              <thead>
+                <tr className="bg-[#F4EFE7] text-[#6B6259] font-semibold text-[11px] uppercase tracking-wider select-none border-b border-[#E8E1D6]">
+                  {/* Coluna 1: Unidade (apenas numeração) */}
+                  <th
+                    className="p-2 border-r border-[#E8E1D6] text-center relative group"
+                    title="Unidade (exibindo apenas numeração; passe o mouse para detalhes da torre/bloco)"
+                  >
+                    <span className="truncate block font-semibold text-[#6B6259]">Unidade</span>
+                    <span
+                      role="separator"
+                      aria-orientation="vertical"
+                      title="Arrastar para redimensionar (duplo clique para restaurar)"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#E39A2B]/40 active:bg-[#E39A2B] z-10 print:hidden flex items-center justify-center touch-none"
+                      onMouseDown={(e) => iniciarRedimensionamento('unidade', e)}
+                      onTouchStart={(e) => iniciarRedimensionamento('unidade', e)}
+                      onDoubleClick={() => salvarLarguraColuna('unidade', LARGURAS_PADRAO.unidade)}
                     >
-                      {/* Unidade */}
-                      <td className="p-2 border-r border-slate-300 font-bold text-center">
-                        {u.tipo_unidade || rotuloUnidade} {u.identificador}
-                        {u.bloco && (
-                          <span className="block text-[10px] font-normal text-slate-500">
-                            ({u.bloco})
+                      <span className="w-0.5 h-3.5 bg-[#6B6259]/30 rounded-full group-hover:bg-[#E39A2B]" />
+                    </span>
+                  </th>
+
+                  {/* Coluna 2: Nome Completo abreviado para Nome */}
+                  <th
+                    className="p-2 border-r border-[#E8E1D6] relative group"
+                    title="Nome Completo do Titular ou Representante"
+                  >
+                    <span className="truncate block font-semibold text-[#6B6259]">Nome</span>
+                    <span
+                      role="separator"
+                      aria-orientation="vertical"
+                      title="Arrastar para redimensionar (duplo clique para restaurar)"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#E39A2B]/40 active:bg-[#E39A2B] z-10 print:hidden flex items-center justify-center touch-none"
+                      onMouseDown={(e) => iniciarRedimensionamento('titular', e)}
+                      onTouchStart={(e) => iniciarRedimensionamento('titular', e)}
+                      onDoubleClick={() => salvarLarguraColuna('titular', LARGURAS_PADRAO.titular)}
+                    >
+                      <span className="w-0.5 h-3.5 bg-[#6B6259]/30 rounded-full group-hover:bg-[#E39A2B]" />
+                    </span>
+                  </th>
+
+                  {/* Coluna 3: Situação de Presença abreviada para Situação */}
+                  <th
+                    className="p-2 border-r border-[#E8E1D6] text-center relative group"
+                    title="Situação de Presença (Presencial, Remoto, Por Procuração ou Ausente)"
+                  >
+                    <span className="truncate block font-semibold text-[#6B6259]">Situação</span>
+                    <span
+                      role="separator"
+                      aria-orientation="vertical"
+                      title="Arrastar para redimensionar (duplo clique para restaurar)"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#E39A2B]/40 active:bg-[#E39A2B] z-10 print:hidden flex items-center justify-center touch-none"
+                      onMouseDown={(e) => iniciarRedimensionamento('situacao', e)}
+                      onTouchStart={(e) => iniciarRedimensionamento('situacao', e)}
+                      onDoubleClick={() =>
+                        salvarLarguraColuna('situacao', LARGURAS_PADRAO.situacao)
+                      }
+                    >
+                      <span className="w-0.5 h-3.5 bg-[#6B6259]/30 rounded-full group-hover:bg-[#E39A2B]" />
+                    </span>
+                  </th>
+
+                  {/* Coluna 4: Poderes de Procuração / Representante abreviado para Proc. */}
+                  <th
+                    className="p-2 border-r border-[#E8E1D6] relative group"
+                    title="Poderes de Procuração / Representante Legal com CPF e documento anexo"
+                  >
+                    <span className="truncate block font-semibold text-[#6B6259]">Proc.</span>
+                    <span
+                      role="separator"
+                      aria-orientation="vertical"
+                      title="Arrastar para redimensionar (duplo clique para restaurar)"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#E39A2B]/40 active:bg-[#E39A2B] z-10 print:hidden flex items-center justify-center touch-none"
+                      onMouseDown={(e) => iniciarRedimensionamento('procuracao', e)}
+                      onTouchStart={(e) => iniciarRedimensionamento('procuracao', e)}
+                      onDoubleClick={() =>
+                        salvarLarguraColuna('procuracao', LARGURAS_PADRAO.procuracao)
+                      }
+                    >
+                      <span className="w-0.5 h-3.5 bg-[#6B6259]/30 rounded-full group-hover:bg-[#E39A2B]" />
+                    </span>
+                  </th>
+
+                  {/* Coluna 5: Assinatura / Carimbo SHA-256 abreviado para Assinatura */}
+                  <th
+                    className="p-2 text-center relative group"
+                    title="Assinatura Eletrônica, Credenciado às (Data/Hora) e Carimbo Hash SHA-256"
+                  >
+                    <span className="truncate block font-semibold text-[#6B6259]">Assinatura</span>
+                    <span
+                      role="separator"
+                      aria-orientation="vertical"
+                      title="Arrastar para redimensionar (duplo clique para restaurar)"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#E39A2B]/40 active:bg-[#E39A2B] z-10 print:hidden flex items-center justify-center touch-none"
+                      onMouseDown={(e) => iniciarRedimensionamento('assinatura', e)}
+                      onTouchStart={(e) => iniciarRedimensionamento('assinatura', e)}
+                      onDoubleClick={() =>
+                        salvarLarguraColuna('assinatura', LARGURAS_PADRAO.assinatura)
+                      }
+                    >
+                      <span className="w-0.5 h-3.5 bg-[#6B6259]/30 rounded-full group-hover:bg-[#E39A2B]" />
+                    </span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E8E1D6]">
+                {unidadesFiltradas.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-6 text-center text-[#6B6259] italic bg-[#FFFDFA]">
+                      Nenhuma unidade encontrada para os critérios selecionados.
+                    </td>
+                  </tr>
+                ) : (
+                  unidadesFiltradas.map((u) => {
+                    const pres = mapaPresencas.get(u.id)
+                    const presLegada = presencasAntigas.find((p) => p.unidade === u.id)
+                    const estaPresente = !!pres || !!presLegada
+                    const numeroUnidade = formatarApenasNumeroUnidade(u.identificador)
+                    const descricaoUnidade = obterDescricaoCompletaUnidade(u)
+
+                    return (
+                      <tr
+                        key={u.id}
+                        className={
+                          estaPresente
+                            ? 'bg-[#FFFDFA] hover:bg-[#F4EFE7]/50'
+                            : 'bg-[#F4EFE7]/30 text-[#6B6259]/80'
+                        }
+                      >
+                        {/* 1. Unidade: APENAS a numeração, com bloco em tooltip ou badge discreto */}
+                        <td
+                          className="p-2 border-r border-[#E8E1D6] font-bold text-center text-[#1E1B18]"
+                          title={descricaoUnidade}
+                        >
+                          <span className="font-mono text-sm block tracking-tight">
+                            {numeroUnidade}
                           </span>
-                        )}
-                      </td>
-
-                      {/* Nome do Titular */}
-                      <td className="p-2 border-r border-slate-300">
-                        {pres ? (
-                          <>
-                            <strong className="text-slate-900 block">{pres.nome}</strong>
-                            {pres.cpf && (
-                              <span className="text-[10px] text-slate-600 font-mono">
-                                CPF: {formatarCpf(pres.cpf)}
-                              </span>
-                            )}
-                          </>
-                        ) : u.responsavel_nome ? (
-                          <span className="text-slate-600">{u.responsavel_nome}</span>
-                        ) : (
-                          <span className="text-slate-400 italic">Não registrado</span>
-                        )}
-                      </td>
-
-                      {/* Modalidade */}
-                      <td className="p-2 border-r border-slate-300 text-center">
-                        {pres ? (
-                          <Badge
-                            variant="outline"
-                            className={`text-[9px] uppercase px-1 py-0 font-bold ${
-                              pres.forma === 'procuracao'
-                                ? 'border-amber-500 text-amber-800 bg-amber-50'
-                                : pres.forma === 'remoto'
-                                  ? 'border-cyan-500 text-cyan-800 bg-cyan-50'
-                                  : 'border-emerald-500 text-emerald-800 bg-emerald-50'
-                            }`}
-                          >
-                            {pres.forma}
-                          </Badge>
-                        ) : presLegada ? (
-                          <Badge variant="outline" className="text-[9px] uppercase px-1 py-0">
-                            {presLegada.tipo}
-                          </Badge>
-                        ) : (
-                          <span className="text-[10px] text-slate-400">Ausente</span>
-                        )}
-                      </td>
-
-                      {/* Procurador / Representante */}
-                      <td className="p-2 border-r border-slate-300">
-                        {pres?.forma === 'procuracao' ? (
-                          <div className="space-y-0.5">
-                            <span className="font-bold text-amber-900 block">
-                              Por Procuração: {pres.nome_procurador}
+                          {u.bloco && (
+                            <span
+                              className="inline-block text-[9px] font-normal text-[#6B6259] bg-[#F4EFE7] border border-[#E8E1D6] px-1 rounded mt-0.5 truncate max-w-full"
+                              title={`Bloco: ${u.bloco}`}
+                            >
+                              {u.bloco.replace(/^Bloco\s+/i, 'Bl. ')}
                             </span>
-                            {pres.cpf_procurador && (
-                              <span className="text-[10px] text-slate-600 font-mono block">
-                                CPF: {formatarCpf(pres.cpf_procurador)}
-                              </span>
-                            )}
-                            {pres.procuracao_arquivo && (
-                              <a
-                                href={pb.files.getURL(pres, pres.procuracao_arquivo)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-[10px] text-cyan-700 hover:underline print:hidden"
-                              >
-                                <ExternalLink className="h-3 w-3" /> Ver arquivo da procuração
-                              </a>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 text-[11px]">—</span>
-                        )}
-                      </td>
+                          )}
+                        </td>
 
-                      {/* Assinatura Eletrônica / Hash */}
-                      <td className="p-2 text-center">
-                        {pres?.assinatura_hash ? (
-                          <div className="flex flex-col items-center">
-                            {/* Renderização gráfica se houver (desenho ou cursiva) */}
-                            {pres.formato_assinatura === 'desenho' && pres.assinatura_visual ? (
-                              <img
-                                src={pres.assinatura_visual}
-                                alt="Assinatura"
-                                className="max-h-7 max-w-[140px] object-contain mb-0.5"
-                              />
-                            ) : pres.formato_assinatura === 'texto' && pres.assinatura_texto ? (
+                        {/* 2. Nome do Titular / Representante */}
+                        <td className="p-2 border-r border-[#E8E1D6] overflow-hidden">
+                          {pres ? (
+                            <div className="truncate">
+                              <strong className="text-[#1E1B18] block truncate" title={pres.nome}>
+                                {pres.nome}
+                              </strong>
+                              {pres.cpf && (
+                                <span className="text-[10px] text-[#6B6259] font-mono block">
+                                  CPF: {formatarCpf(pres.cpf)}
+                                </span>
+                              )}
+                            </div>
+                          ) : u.responsavel_nome ? (
+                            <div className="truncate">
                               <span
-                                style={{ fontFamily: '"Dancing Script", "Great Vibes", cursive' }}
-                                className="text-base text-slate-900 font-bold leading-none mb-0.5 block truncate max-w-[150px]"
+                                className="text-[#1E1B18] block truncate"
+                                title={u.responsavel_nome}
                               >
-                                {pres.assinatura_texto}
+                                {u.responsavel_nome}
                               </span>
-                            ) : null}
-
-                            <div className="font-mono text-[9px] leading-tight text-slate-700">
-                              <span className="font-bold text-emerald-700 block">
-                                ✓ ASSINADO DIGITALMENTE
-                              </span>
-                              <span className="break-all text-[8px] text-slate-500 block">
-                                {pres.assinatura_hash.substring(0, 18)}...
-                              </span>
-                              <span className="text-[8px] text-slate-400 block">
-                                {pres.data_hora_assinatura
-                                  ? new Date(pres.data_hora_assinatura).toLocaleString('pt-BR')
-                                  : ''}
+                              <span className="text-[10px] text-[#6B6259] italic block">
+                                Cadastrado
                               </span>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="border-b border-dashed border-slate-300 h-6" />
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
+                          ) : (
+                            <span className="text-[#6B6259]/60 italic text-[11px]">
+                              Não registrado
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 3. Situação de Presença */}
+                        <td className="p-2 border-r border-[#E8E1D6] text-center">
+                          {pres ? (
+                            <Badge
+                              variant="outline"
+                              className={`text-[9px] uppercase px-1.5 py-0.5 font-bold tracking-wider rounded-[6px] ${
+                                pres.forma === 'procuracao'
+                                  ? 'border-[#E39A2B]/40 text-[#1E1B18] bg-[#E39A2B]/15'
+                                  : pres.forma === 'remoto'
+                                    ? 'border-cyan-500/30 text-cyan-800 bg-cyan-50'
+                                    : 'border-emerald-600/30 text-emerald-800 bg-emerald-50'
+                              }`}
+                              title={`Presença via ${pres.forma}`}
+                            >
+                              {pres.forma === 'procuracao'
+                                ? 'Procuração'
+                                : pres.forma === 'remoto'
+                                  ? 'Remoto'
+                                  : 'Presencial'}
+                            </Badge>
+                          ) : presLegada ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] uppercase px-1.5 py-0.5 rounded-[6px] border-[#E8E1D6] bg-[#F4EFE7] text-[#1E1B18]"
+                              title={`Presença via ${presLegada.tipo}`}
+                            >
+                              {presLegada.tipo}
+                            </Badge>
+                          ) : (
+                            <span className="text-[10px] text-[#6B6259]/70 font-medium">
+                              Ausente
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 4. Procurador / Representante (Proc.) */}
+                        <td className="p-2 border-r border-[#E8E1D6] overflow-hidden">
+                          {pres?.forma === 'procuracao' ? (
+                            <div className="space-y-0.5 truncate">
+                              <span
+                                className="font-semibold text-[#1E1B18] block truncate"
+                                title={`Procurador: ${pres.nome_procurador}`}
+                              >
+                                {pres.nome_procurador}
+                              </span>
+                              {pres.cpf_procurador && (
+                                <span className="text-[10px] text-[#6B6259] font-mono block">
+                                  CPF: {formatarCpf(pres.cpf_procurador)}
+                                </span>
+                              )}
+                              {pres.procuracao_arquivo && (
+                                <a
+                                  href={pb.files.getURL(pres, pres.procuracao_arquivo)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[10px] text-[#E39A2B] hover:underline print:hidden font-medium"
+                                  title="Abrir arquivo da procuração anexado"
+                                >
+                                  <ExternalLink className="h-3 w-3" /> Anexo
+                                </a>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[#6B6259]/50 text-[11px]">—</span>
+                          )}
+                        </td>
+
+                        {/* 5. Assinatura Eletrônica / Carimbo */}
+                        <td className="p-2 text-center overflow-hidden">
+                          {pres?.assinatura_hash ? (
+                            <div className="flex flex-col items-center">
+                              {/* Renderização gráfica se houver (desenho ou cursiva) */}
+                              {pres.formato_assinatura === 'desenho' && pres.assinatura_visual ? (
+                                <img
+                                  src={pres.assinatura_visual}
+                                  alt="Assinatura"
+                                  className="max-h-7 max-w-[130px] object-contain mb-0.5"
+                                />
+                              ) : pres.formato_assinatura === 'texto' && pres.assinatura_texto ? (
+                                <span
+                                  style={{ fontFamily: '"Dancing Script", "Great Vibes", cursive' }}
+                                  className="text-sm text-[#1E1B18] font-bold leading-none mb-0.5 block truncate max-w-[140px]"
+                                  title={pres.assinatura_texto}
+                                >
+                                  {pres.assinatura_texto}
+                                </span>
+                              ) : null}
+
+                              <div className="font-mono text-[9px] leading-tight text-[#1E1B18]">
+                                <span className="font-bold text-emerald-700 block">✓ ASSINADO</span>
+                                <span
+                                  className="break-all text-[8px] text-[#6B6259] block"
+                                  title={`Carimbo SHA-256 completo: ${pres.assinatura_hash}`}
+                                >
+                                  {pres.assinatura_hash.substring(0, 14)}...
+                                </span>
+                                {pres.data_hora_assinatura && (
+                                  <span
+                                    className="text-[8px] text-[#6B6259] block"
+                                    title={`Credenciado às ${new Date(pres.data_hora_assinatura).toLocaleString('pt-BR')}`}
+                                  >
+                                    Credenciado às{' '}
+                                    {new Date(pres.data_hora_assinatura).toLocaleTimeString(
+                                      'pt-BR',
+                                      { hour: '2-digit', minute: '2-digit' },
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="border-b border-dashed border-[#E8E1D6] h-6" />
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         {/* Rodapé Institucional com Assinatura da Mesa e Resalva LGPD */}
