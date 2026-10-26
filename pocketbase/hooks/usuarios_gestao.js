@@ -71,9 +71,64 @@ onRecordAuthRequest((e) => {
 
 // 2. Endpoint: Criar Usuário (Restrito exclusivamente a Administradores)
 routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
-  const { registrarAuditoria } = require(`${__hooks}/hash_encadeado.js`)
+  function registrarAuditoria(app, dados) {
+    try {
+      const audCol = app.findCollectionByNameOrId('auditoria_events')
+      let ultimoHash = '0000000000000000000000000000000000000000000000000000000000000000'
+      let proximoSeq = 1
 
-  const operador = e.auth
+      try {
+        const ultimos = app.findRecordsByFilter('auditoria_events', '', '-sequencial', 1, 0)
+        if (ultimos && ultimos.length > 0) {
+          const u = ultimos[0]
+          ultimoHash = u.getString('hash_evento') || ultimoHash
+          proximoSeq = (u.getInt('sequencial') || 0) + 1
+        }
+      } catch (_) {}
+
+      const payload = JSON.stringify({
+        evento: dados.evento,
+        data_hora: dados.data_hora || new Date().toISOString(),
+        unidade: dados.unidade || '',
+        fator: dados.fator || '',
+        dispositivo: dados.dispositivo || '',
+        sequencial: proximoSeq,
+        hash_anterior: ultimoHash,
+      })
+
+      const hashEvento = $security.sha256(ultimoHash + ':' + payload)
+
+      const rec = new Record(audCol)
+      rec.set('evento', dados.evento)
+      rec.set(
+        'data_hora',
+        dados.data_hora || new Date().toISOString().replace('T', ' ').substring(0, 19),
+      )
+      if (dados.unidade) rec.set('unidade', dados.unidade)
+      rec.set('fator', dados.fator || 'sistema')
+      rec.set('dispositivo', dados.dispositivo || 'servidor')
+      rec.set('sequencial', proximoSeq)
+      rec.set('hash_evento', hashEvento)
+      rec.set('hash_anterior', ultimoHash)
+
+      app.save(rec)
+      return rec
+    } catch (err) {
+      console.log('Erro ao registrar auditoria em usuarios_gestao:', err)
+      return null
+    }
+  }
+
+  let operador = e.auth
+  if (!operador) {
+    try {
+      const authHeader = e.requestInfo().headers['authorization'] || ''
+      const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+      if (token) {
+        operador = e.app.findAuthRecordByToken(token, 'auth')
+      }
+    } catch (_) {}
+  }
   if (!operador) {
     return e.json(403, { success: false, message: 'Acesso não autenticado.' })
   }
@@ -88,7 +143,8 @@ routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
   const body = e.requestInfo().body || {}
   const nome = (body.name || '').trim()
   const email = (body.email || '').trim().toLowerCase()
-  const cpf = (body.cpf || '').replace(/\D/g, '').slice(0, 11)
+  const rawCpf = String(body.cpf || '').trim()
+  const cpf = rawCpf.replace(/\D/g, '').slice(0, 11)
   const role = body.role === 'admin' || body.role === 'mesa' ? body.role : 'morador'
   const unidadeId = (body.unidade || '').trim()
   const ativo = body.ativo !== false
@@ -101,26 +157,62 @@ routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
     return e.json(400, { success: false, message: 'E-mail inválido ou não informado.' })
   }
 
+  // Se CPF foi preenchido, verificar formato básico (11 dígitos)
+  if (rawCpf && cpf.length > 0 && cpf.length !== 11) {
+    return e.json(400, {
+      success: false,
+      message: 'CPF inválido. Certifique-se de preencher os 11 dígitos.',
+    })
+  }
+
   // Verificar se o e-mail já existe
   try {
     const jaExiste = e.app.findAuthRecordByEmail('_pb_users_auth_', email)
     if (jaExiste) {
       return e.json(400, {
         success: false,
-        message: 'Já existe um usuário cadastrado com este e-mail.',
+        message: 'E-mail já está em uso por outro usuário.',
       })
     }
   } catch (_) {
     // E-mail livre
   }
 
-  // Gerar senha forte aleatória para criação inicial (senhas nunca trafegam em texto puro nas respostas)
-  const senhaTemporaria = $security.randomString(16) + 'Aa1!'
+  // Verificar unicidade de CPF (se informado)
+  if (cpf) {
+    try {
+      const usersComCpf = e.app.findRecordsByFilter('users', 'cpf = {:c}', '', 1, 0, { c: cpf })
+      if (usersComCpf && usersComCpf.length > 0) {
+        return e.json(400, {
+          success: false,
+          message: 'CPF já cadastrado para outro condômino no sistema.',
+        })
+      }
+    } catch (_) {}
+  }
+
+  // Validar se a unidade informada existe (se informada)
+  if (unidadeId && unidadeId !== 'none') {
+    try {
+      e.app.findRecordById('unidades', unidadeId)
+    } catch (_) {
+      return e.json(400, {
+        success: false,
+        message: 'A unidade selecionada não foi localizada no cadastro do condomínio.',
+      })
+    }
+  }
+
+  // Gerar senha forte ou usar informada
+  let senhaFinal = (body.password || '').trim()
+  if (!senhaFinal || senhaFinal.length < 8) {
+    senhaFinal = $security.randomString(16) + 'Aa1!'
+  }
 
   const usersCol = e.app.findCollectionByNameOrId('_pb_users_auth_')
   const novoUser = new Record(usersCol)
   novoUser.setEmail(email)
-  novoUser.setPassword(senhaTemporaria)
+  novoUser.setPassword(senhaFinal)
   novoUser.setVerified(true)
   novoUser.set('name', nome)
   novoUser.set('role', role)
@@ -132,7 +224,15 @@ routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
     novoUser.set('unidade', unidadeId)
   }
 
-  e.app.save(novoUser)
+  try {
+    e.app.save(novoUser)
+  } catch (saveErr) {
+    console.log('Erro ao salvar novo usuário em usuarios_gestao:', saveErr)
+    return e.json(400, {
+      success: false,
+      message: 'Não foi possível salvar o usuário. Verifique se o e-mail ou CPF já estão em uso.',
+    })
+  }
 
   // Enviar convite de definição/recuperação de senha se solicitado
   let conviteEnviado = false
@@ -149,7 +249,7 @@ routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
   const opNome = operador.getString('name') || operador.getString('email')
   registrarAuditoria(e.app, {
     evento: 'usuario_gerenciado',
-    fator: `Operador ${opNome} criou usuário ${nome} (${email}, perfil: ${role})`,
+    fator: `Operador ${opNome} cadastrou o usuário ${nome} (${email}, perfil: ${role})`,
     dispositivo: 'painel-admin',
     unidade: unidadeId && unidadeId !== 'none' ? unidadeId : '',
   })
@@ -176,9 +276,64 @@ routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
 
 // 3. Endpoint: Atualizar Usuário (Restrito exclusivamente a Administradores)
 routerAdd('POST', '/backend/v1/admin/usuarios/atualizar', (e) => {
-  const { registrarAuditoria } = require(`${__hooks}/hash_encadeado.js`)
+  function registrarAuditoria(app, dados) {
+    try {
+      const audCol = app.findCollectionByNameOrId('auditoria_events')
+      let ultimoHash = '0000000000000000000000000000000000000000000000000000000000000000'
+      let proximoSeq = 1
 
-  const operador = e.auth
+      try {
+        const ultimos = app.findRecordsByFilter('auditoria_events', '', '-sequencial', 1, 0)
+        if (ultimos && ultimos.length > 0) {
+          const u = ultimos[0]
+          ultimoHash = u.getString('hash_evento') || ultimoHash
+          proximoSeq = (u.getInt('sequencial') || 0) + 1
+        }
+      } catch (_) {}
+
+      const payload = JSON.stringify({
+        evento: dados.evento,
+        data_hora: dados.data_hora || new Date().toISOString(),
+        unidade: dados.unidade || '',
+        fator: dados.fator || '',
+        dispositivo: dados.dispositivo || '',
+        sequencial: proximoSeq,
+        hash_anterior: ultimoHash,
+      })
+
+      const hashEvento = $security.sha256(ultimoHash + ':' + payload)
+
+      const rec = new Record(audCol)
+      rec.set('evento', dados.evento)
+      rec.set(
+        'data_hora',
+        dados.data_hora || new Date().toISOString().replace('T', ' ').substring(0, 19),
+      )
+      if (dados.unidade) rec.set('unidade', dados.unidade)
+      rec.set('fator', dados.fator || 'sistema')
+      rec.set('dispositivo', dados.dispositivo || 'servidor')
+      rec.set('sequencial', proximoSeq)
+      rec.set('hash_evento', hashEvento)
+      rec.set('hash_anterior', ultimoHash)
+
+      app.save(rec)
+      return rec
+    } catch (err) {
+      console.log('Erro ao registrar auditoria em usuarios_gestao:', err)
+      return null
+    }
+  }
+
+  let operador = e.auth
+  if (!operador) {
+    try {
+      const authHeader = e.requestInfo().headers['authorization'] || ''
+      const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+      if (token) {
+        operador = e.app.findAuthRecordByToken(token, 'auth')
+      }
+    } catch (_) {}
+  }
   if (!operador) {
     return e.json(403, { success: false, message: 'Acesso não autenticado.' })
   }
@@ -198,7 +353,7 @@ routerAdd('POST', '/backend/v1/admin/usuarios/atualizar', (e) => {
 
   let userAlvo
   try {
-    userAlvo = e.app.findRecordById('_pb_users_auth_', id)
+    userAlvo = e.app.findRecordById('users', id)
   } catch (_) {
     return e.json(404, { success: false, message: 'Usuário não localizado no sistema.' })
   }
@@ -211,12 +366,51 @@ routerAdd('POST', '/backend/v1/admin/usuarios/atualizar', (e) => {
   const novoNome = body.name !== undefined ? String(body.name).trim() : nomeAnterior
   const novoRole = body.role !== undefined ? String(body.role).trim() : roleAnterior
   const novoAtivo = body.ativo !== undefined ? Boolean(body.ativo) : ativoAnterior
+  const rawUnidade = body.unidade !== undefined ? String(body.unidade).trim() : undefined
   const unidadeId =
-    body.unidade !== undefined ? String(body.unidade).trim() : userAlvo.getString('unidade')
+    rawUnidade !== undefined
+      ? rawUnidade === 'none' || rawUnidade === ''
+        ? ''
+        : rawUnidade
+      : userAlvo.getString('unidade')
+
+  const rawCpf = body.cpf !== undefined ? String(body.cpf).trim() : undefined
   const cpf =
-    body.cpf !== undefined
-      ? String(body.cpf).replace(/\D/g, '').slice(0, 11)
-      : userAlvo.getString('cpf')
+    rawCpf !== undefined ? rawCpf.replace(/\D/g, '').slice(0, 11) : userAlvo.getString('cpf')
+
+  if (body.name !== undefined && !novoNome) {
+    return e.json(400, { success: false, message: 'O nome do usuário não pode ficar vazio.' })
+  }
+
+  if (rawCpf !== undefined && rawCpf.length > 0 && cpf.length !== 11) {
+    return e.json(400, {
+      success: false,
+      message: 'CPF inválido. Certifique-se de preencher os 11 dígitos.',
+    })
+  }
+
+  // Verificar se o CPF já pertence a outro usuário
+  if (cpf && cpf !== userAlvo.getString('cpf')) {
+    try {
+      const usersComCpf = e.app.findRecordsByFilter(
+        'users',
+        'cpf = {:c} && id != {:id}',
+        '',
+        1,
+        0,
+        {
+          c: cpf,
+          id: userAlvo.id,
+        },
+      )
+      if (usersComCpf && usersComCpf.length > 0) {
+        return e.json(400, {
+          success: false,
+          message: 'CPF já cadastrado para outro condômino no sistema.',
+        })
+      }
+    } catch (_) {}
+  }
 
   // Regra de segurança: Não permitir desativar ou demover o próprio usuário logado
   if (operador.id === userAlvo.id) {
@@ -267,20 +461,42 @@ routerAdd('POST', '/backend/v1/admin/usuarios/atualizar', (e) => {
     }
   }
 
+  // Validar se a unidade existe antes de associar (se informada)
+  if (body.unidade !== undefined && unidadeId && unidadeId !== 'none') {
+    try {
+      e.app.findRecordById('unidades', unidadeId)
+    } catch (_) {
+      return e.json(400, {
+        success: false,
+        message: 'A unidade informada para vinculação não existe ou foi removida.',
+      })
+    }
+  }
+
   // Aplicar alterações
   if (novoNome) userAlvo.set('name', novoNome)
   if (novoRole) userAlvo.set('role', novoRole)
   userAlvo.set('ativo', novoAtivo)
-  if (body.cpf !== undefined) userAlvo.set('cpf', cpf)
+  if (body.cpf !== undefined) {
+    userAlvo.set('cpf', cpf || '')
+  }
   if (body.unidade !== undefined) {
     userAlvo.set('unidade', unidadeId === 'none' ? '' : unidadeId)
   }
 
-  e.app.save(userAlvo)
+  try {
+    e.app.save(userAlvo)
+  } catch (saveErr) {
+    console.log('Erro ao salvar registro de usuário em usuarios_gestao:', saveErr)
+    return e.json(400, {
+      success: false,
+      message: 'Não foi possível gravar os dados do usuário. Verifique as informações preenchidas.',
+    })
+  }
 
   // Auditoria
   const opNome = operador.getString('name') || operador.getString('email')
-  let descricaoMudanca = `Operador ${opNome} atualizou usuário ${novoNome} (${emailAlvo})`
+  let descricaoMudanca = `Operador ${opNome} atualizou os dados do usuário ${novoNome} (${emailAlvo})`
   if (ativoAnterior !== novoAtivo) {
     descricaoMudanca += ` | Status: ${novoAtivo ? 'ATIVADO' : 'DESATIVADO'}`
   }
@@ -314,9 +530,64 @@ routerAdd('POST', '/backend/v1/admin/usuarios/atualizar', (e) => {
 
 // 4. Endpoint: Redefinir Senha (dispara e-mail) (Restrito a Administradores)
 routerAdd('POST', '/backend/v1/admin/usuarios/redefinir-senha', (e) => {
-  const { registrarAuditoria } = require(`${__hooks}/hash_encadeado.js`)
+  function registrarAuditoria(app, dados) {
+    try {
+      const audCol = app.findCollectionByNameOrId('auditoria_events')
+      let ultimoHash = '0000000000000000000000000000000000000000000000000000000000000000'
+      let proximoSeq = 1
 
-  const operador = e.auth
+      try {
+        const ultimos = app.findRecordsByFilter('auditoria_events', '', '-sequencial', 1, 0)
+        if (ultimos && ultimos.length > 0) {
+          const u = ultimos[0]
+          ultimoHash = u.getString('hash_evento') || ultimoHash
+          proximoSeq = (u.getInt('sequencial') || 0) + 1
+        }
+      } catch (_) {}
+
+      const payload = JSON.stringify({
+        evento: dados.evento,
+        data_hora: dados.data_hora || new Date().toISOString(),
+        unidade: dados.unidade || '',
+        fator: dados.fator || '',
+        dispositivo: dados.dispositivo || '',
+        sequencial: proximoSeq,
+        hash_anterior: ultimoHash,
+      })
+
+      const hashEvento = $security.sha256(ultimoHash + ':' + payload)
+
+      const rec = new Record(audCol)
+      rec.set('evento', dados.evento)
+      rec.set(
+        'data_hora',
+        dados.data_hora || new Date().toISOString().replace('T', ' ').substring(0, 19),
+      )
+      if (dados.unidade) rec.set('unidade', dados.unidade)
+      rec.set('fator', dados.fator || 'sistema')
+      rec.set('dispositivo', dados.dispositivo || 'servidor')
+      rec.set('sequencial', proximoSeq)
+      rec.set('hash_evento', hashEvento)
+      rec.set('hash_anterior', ultimoHash)
+
+      app.save(rec)
+      return rec
+    } catch (err) {
+      console.log('Erro ao registrar auditoria em usuarios_gestao:', err)
+      return null
+    }
+  }
+
+  let operador = e.auth
+  if (!operador) {
+    try {
+      const authHeader = e.requestInfo().headers['authorization'] || ''
+      const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+      if (token) {
+        operador = e.app.findAuthRecordByToken(token, 'auth')
+      }
+    } catch (_) {}
+  }
   if (!operador) {
     return e.json(403, { success: false, message: 'Acesso não autenticado.' })
   }
@@ -336,7 +607,7 @@ routerAdd('POST', '/backend/v1/admin/usuarios/redefinir-senha', (e) => {
 
   let userAlvo
   try {
-    userAlvo = e.app.findRecordById('_pb_users_auth_', id)
+    userAlvo = e.app.findRecordById('users', id)
   } catch (_) {
     return e.json(404, { success: false, message: 'Usuário não localizado.' })
   }

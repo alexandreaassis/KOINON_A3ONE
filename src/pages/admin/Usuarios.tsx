@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { useAuth } from '@/context/AuthContext'
+import { useCondoConfig } from '@/context/CondoConfigContext'
 import {
   api,
   type UserRecord,
@@ -6,14 +8,13 @@ import {
   type UnidadeRecord,
   type LogAcessoRecord,
 } from '@/lib/api'
-import { useAuth } from '@/context/AuthContext'
-import { useCondoConfig } from '@/context/CondoConfigContext'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -107,14 +108,33 @@ export const GestaoUsuariosPage: React.FC = () => {
   const carregar = useCallback(async () => {
     setCarregando(true)
     try {
-      const [todosUsers, unds] = await Promise.all([api.getTodosUsuarios(), api.getUnidades()])
-      setUsuarios(todosUsers)
-      setUnidades(unds)
+      const [todosUsersRes, undsRes] = await Promise.allSettled([
+        api.getTodosUsuarios(),
+        api.getUnidades(),
+      ])
+
+      if (todosUsersRes.status === 'fulfilled') {
+        setUsuarios(todosUsersRes.value || [])
+      } else {
+        console.error('Erro ao carregar usuários:', todosUsersRes.reason)
+        const msg = getErrorMessage(todosUsersRes.reason, 'Não foi possível listar os usuários.')
+        toast({
+          title: 'Falha ao consultar usuários',
+          description: msg,
+          variant: 'destructive',
+        })
+      }
+
+      if (undsRes.status === 'fulfilled') {
+        setUnidades(undsRes.value || [])
+      } else {
+        console.warn('Aviso ao carregar unidades:', undsRes.reason)
+      }
     } catch (err) {
-      console.error('Erro ao carregar lista de usuários:', err)
+      console.error('Erro inesperado em carregar:', err)
       toast({
-        title: 'Falha ao consultar usuários',
-        description: 'Verifique se você possui privilégios de administrador geral.',
+        title: 'Falha na comunicação',
+        description: getErrorMessage(err, 'Não foi possível carregar os dados de gestão.'),
         variant: 'destructive',
       })
     } finally {
@@ -238,7 +258,7 @@ export const GestaoUsuariosPage: React.FC = () => {
 
       toast({
         title: 'Usuário cadastrado com sucesso',
-        description: res.conviteEnviado
+        description: res?.conviteEnviado
           ? 'Convite para definição de senha enviado por e-mail.'
           : 'Registro adicionado à base de condôminos.',
       })
@@ -247,7 +267,7 @@ export const GestaoUsuariosPage: React.FC = () => {
       carregar()
     } catch (err: any) {
       console.error('Erro ao cadastrar usuário:', err)
-      const msg = err?.data?.message || err?.message || 'Falha ao salvar usuário no sistema.'
+      const msg = getErrorMessage(err, 'Falha ao salvar usuário no sistema.')
       toast({
         title: 'Erro ao cadastrar usuário',
         description: msg,
@@ -319,14 +339,14 @@ export const GestaoUsuariosPage: React.FC = () => {
 
       toast({
         title: 'Usuário atualizado com sucesso',
-        description: res.message || 'Dados e permissões gravados na trilha de auditoria.',
+        description: res?.message || 'Dados e permissões gravados na trilha de auditoria.',
       })
 
       setModalEditarAberto(false)
       carregar()
     } catch (err: any) {
       console.error('Erro ao atualizar usuário:', err)
-      const msg = err?.data?.message || err?.message || 'Falha ao atualizar dados.'
+      const msg = getErrorMessage(err, 'Falha ao atualizar dados do usuário.')
       toast({
         title: 'Erro ao atualizar usuário',
         description: msg,
@@ -377,7 +397,8 @@ export const GestaoUsuariosPage: React.FC = () => {
       })
       carregar()
     } catch (err: any) {
-      const msg = err?.data?.message || err?.message || 'Falha ao alterar status.'
+      console.error('Erro ao alternar status do usuário:', err)
+      const msg = getErrorMessage(err, 'Falha ao alterar status de acesso.')
       toast({
         title: 'Erro ao alterar status',
         description: msg,
@@ -395,13 +416,13 @@ export const GestaoUsuariosPage: React.FC = () => {
       const res = await api.redefinirSenhaUsuarioGestao(usuarioReset.id)
       toast({
         title: 'Instruções Enviadas',
-        description: res.message || `E-mail de recuperação enviado para ${usuarioReset.email}.`,
+        description: res?.message || `E-mail de recuperação enviado para ${usuarioReset.email}.`,
       })
       setModalResetAberto(false)
       setUsuarioReset(null)
     } catch (err: any) {
       console.error('Erro ao enviar recuperação de senha:', err)
-      const msg = err?.data?.message || err?.message || 'Falha ao disparar e-mail de redefinição.'
+      const msg = getErrorMessage(err, 'Falha ao disparar e-mail de redefinição de senha.')
       toast({
         title: 'Erro no envio',
         description: msg,
@@ -419,12 +440,16 @@ export const GestaoUsuariosPage: React.FC = () => {
     setCarregandoLogs(true)
     try {
       const res = await api.getLogsAcesso({ userId: u.id, limit: 50 })
-      setLogsAcesso(res.items)
+      setLogsAcesso(res?.items || [])
     } catch (err) {
       console.error('Erro ao consultar logs de acesso:', err)
+      const msg = getErrorMessage(
+        err,
+        'Não foi possível carregar o histórico de acessos deste usuário.',
+      )
       toast({
         title: 'Falha ao buscar logs',
-        description: 'Não foi possível carregar o histórico de acessos deste usuário.',
+        description: msg,
         variant: 'destructive',
       })
     } finally {
@@ -438,9 +463,15 @@ export const GestaoUsuariosPage: React.FC = () => {
     setCarregandoLogs(true)
     try {
       const res = await api.getLogsAcesso({ userId: usuarioLogs.id, limit: 50 })
-      setLogsAcesso(res.items)
+      setLogsAcesso(res?.items || [])
     } catch (err) {
       console.error('Erro ao recarregar logs:', err)
+      const msg = getErrorMessage(err, 'Falha ao recarregar os logs de acesso.')
+      toast({
+        title: 'Falha ao atualizar logs',
+        description: msg,
+        variant: 'destructive',
+      })
     } finally {
       setCarregandoLogs(false)
     }

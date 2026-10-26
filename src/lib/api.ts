@@ -1,4 +1,5 @@
 import pb from '@/lib/pocketbase/client'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import type { RecordModel } from 'pocketbase'
 
 export type UserRole = 'morador' | 'mesa' | 'admin'
@@ -514,7 +515,17 @@ export const api = {
   },
 
   async getUnidade(id: string) {
-    return pb.collection('unidades').getOne<UnidadeRecord>(id)
+    try {
+      if (!id || id === 'none') return null
+      return await pb.collection('unidades').getOne<UnidadeRecord>(id)
+    } catch (err: any) {
+      if (err?.status === 404 || err?.status === 400) {
+        return null
+      }
+      throw new Error(
+        getErrorMessage(err, `Não foi possível carregar a unidade vinculada (${id}).`),
+      )
+    }
   },
 
   // Deliberações
@@ -873,15 +884,24 @@ export const api = {
     ativo?: boolean
     enviarConvite?: boolean
   }) {
-    return pb.send<{
-      success: boolean
-      message: string
-      conviteEnviado?: boolean
-      user: UserRecord
-    }>('/backend/v1/admin/usuarios/criar', {
-      method: 'POST',
-      body: dados,
-    })
+    try {
+      return await pb.send<{
+        success: boolean
+        message: string
+        conviteEnviado?: boolean
+        user: UserRecord
+      }>('/backend/v1/admin/usuarios/criar', {
+        method: 'POST',
+        body: dados,
+      })
+    } catch (err: any) {
+      const msg = getErrorMessage(err, 'Falha ao cadastrar usuário na base do condomínio.')
+      const erroTratado = new Error(msg)
+      ;(erroTratado as any).originalError = err
+      ;(erroTratado as any).status = err?.status || 400
+      ;(erroTratado as any).data = err?.data || err?.response?.data
+      throw erroTratado
+    }
   },
 
   async atualizarUsuarioGestao(dados: {
@@ -892,24 +912,42 @@ export const api = {
     unidade?: string
     ativo?: boolean
   }) {
-    return pb.send<{
-      success: boolean
-      message: string
-      user: UserRecord
-    }>('/backend/v1/admin/usuarios/atualizar', {
-      method: 'POST',
-      body: dados,
-    })
+    try {
+      return await pb.send<{
+        success: boolean
+        message: string
+        user: UserRecord
+      }>('/backend/v1/admin/usuarios/atualizar', {
+        method: 'POST',
+        body: dados,
+      })
+    } catch (err: any) {
+      const msg = getErrorMessage(err, 'Falha ao atualizar dados e permissões do usuário.')
+      const erroTratado = new Error(msg)
+      ;(erroTratado as any).originalError = err
+      ;(erroTratado as any).status = err?.status || 400
+      ;(erroTratado as any).data = err?.data || err?.response?.data
+      throw erroTratado
+    }
   },
 
   async redefinirSenhaUsuarioGestao(id: string) {
-    return pb.send<{
-      success: boolean
-      message: string
-    }>('/backend/v1/admin/usuarios/redefinir-senha', {
-      method: 'POST',
-      body: { id },
-    })
+    try {
+      return await pb.send<{
+        success: boolean
+        message: string
+      }>('/backend/v1/admin/usuarios/redefinir-senha', {
+        method: 'POST',
+        body: { id },
+      })
+    } catch (err: any) {
+      const msg = getErrorMessage(err, 'Falha ao disparar e-mail de redefinição de senha.')
+      const erroTratado = new Error(msg)
+      ;(erroTratado as any).originalError = err
+      ;(erroTratado as any).status = err?.status || 400
+      ;(erroTratado as any).data = err?.data || err?.response?.data
+      throw erroTratado
+    }
   },
 
   async getLogsAcesso(filtros?: { userId?: string; email?: string; limit?: number }) {
