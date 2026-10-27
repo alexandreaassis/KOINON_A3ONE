@@ -98,7 +98,7 @@ export const VerificarEmailPage: React.FC = () => {
               Confirmação de E-mail
             </CardTitle>
             <CardDescription className="text-xs text-[#626A76]">
-              Plataforma Koinon — Verificação cadastral
+              Plataforma Virtual Koinon — Verificação cadastral
             </CardDescription>
           </CardHeader>
 

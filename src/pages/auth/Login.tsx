@@ -214,7 +214,7 @@ export const LoginPage: React.FC = () => {
         <div className="mx-auto flex max-w-5xl flex-col sm:flex-row items-center justify-between gap-3">
           <KoinonLogo size={24} variant="negative" />
           <p className="text-[#D1CFCD] text-center sm:text-right text-[11px]">
-            Plataforma Koinon — Governança assemblear com integridade e transparência
+            Plataforma Virtual Koinon — Governança assemblear com integridade e transparência
           </p>
         </div>
       </footer>

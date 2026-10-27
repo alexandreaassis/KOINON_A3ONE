@@ -92,8 +92,7 @@ export const EditalDocumentoPage: React.FC = () => {
         primeiraConvocacao: editalSalvo?.primeira_convocacao || '19:00',
         segundaConvocacao: editalSalvo?.segunda_convocacao || '19:30',
         localTexto:
-          editalSalvo?.local_texto ||
-          'Salão de Festas do Condomínio / Plataforma Virtual Koinon de Votação',
+          editalSalvo?.local_texto || 'Salão de Festas do Condomínio / Plataforma Virtual Koinon',
         itensPauta: itensPauta.map((it) => ({
           ordem: it.ordem,
           titulo: it.titulo,

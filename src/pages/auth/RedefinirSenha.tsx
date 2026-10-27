@@ -125,7 +125,7 @@ export const RedefinirSenhaPage: React.FC = () => {
               Nova Senha
             </CardTitle>
             <CardDescription className="text-xs text-[#626A76]">
-              Plataforma Koinon — Defina sua nova senha de acesso
+              Plataforma Virtual Koinon — Defina sua nova senha de acesso
             </CardDescription>
           </CardHeader>
 

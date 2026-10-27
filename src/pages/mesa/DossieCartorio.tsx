@@ -337,9 +337,7 @@ export const DossieCartorioPage: React.FC = () => {
 
           {/* Rodapé Capa */}
           <div className="border-t-2 border-slate-900 pt-4 text-center font-sans text-[11px] text-slate-600 space-y-1">
-            <p className="font-semibold text-slate-800">
-              Emitido via Plataforma Koinon de Votação e Governança Condominial
-            </p>
+            <p className="font-semibold text-slate-800">Emitido via Plataforma Virtual Koinon</p>
             <p className="text-[10px] text-slate-500">
               Assinaturas digitais conferidas por carimbo hash SHA-256. Registro para arquivamento e
               publicidade perante o Cartório Competente.

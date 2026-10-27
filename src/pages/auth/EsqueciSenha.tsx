@@ -56,7 +56,7 @@ export const EsqueciSenhaPage: React.FC = () => {
               Recuperação de Senha
             </CardTitle>
             <CardDescription className="text-xs text-[#626A76]">
-              Plataforma Koinon — Instruções para redefinição de acesso
+              Plataforma Virtual Koinon — Instruções para redefinição de acesso
             </CardDescription>
           </CardHeader>
 
