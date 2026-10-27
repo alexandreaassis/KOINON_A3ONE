@@ -33,25 +33,25 @@ const NotFound = () => {
   }, [location.pathname, navigate])
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F2F1ED] text-[#1C2331]">
-      <header className="border-b border-[#D9D4C8] bg-white px-6 py-4">
+    <div className="flex min-h-screen flex-col bg-[#F1F4F8] text-[#12314F]">
+      <header className="border-b border-[#D5DCE5] bg-white px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <KoinonLogo size={30} variant="color" />
-          <Link to="/" className="text-xs font-semibold text-[#216E75] hover:underline">
+          <Link to="/" className="text-xs font-semibold text-[#1F6B94] hover:underline">
             Início
           </Link>
         </div>
       </header>
 
       <main className="flex flex-1 items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-md border border-[#D9D4C8] bg-white shadow-[0_4px_24px_rgba(28,35,49,0.08)] rounded-[14px] p-6 text-center space-y-4">
+        <div className="w-full max-w-md border border-[#D5DCE5] bg-white shadow-[0_4px_24px_rgba(18,49,79,0.06)] rounded-[14px] p-6 text-center space-y-4">
           <div className="mx-auto flex items-center justify-center">
             <KoinonSymbol size={48} variant="color" />
           </div>
           <div className="space-y-1">
-            <p className="text-4xl font-bold tracking-tight text-[#1C2331]">404</p>
-            <h1 className="text-lg font-semibold text-[#1C2331]">Página não encontrada</h1>
-            <p className="text-xs text-[#626A76]">
+            <p className="text-4xl font-bold tracking-tight text-[#12314F]">404</p>
+            <h1 className="text-lg font-semibold text-[#12314F]">Página não encontrada</h1>
+            <p className="text-xs text-[#5C6B7A]">
               O endereço solicitado não existe ou foi modificado.
             </p>
           </div>
@@ -60,13 +60,13 @@ const NotFound = () => {
             <Link to="/login" className="w-full sm:w-auto">
               <Button
                 variant="outline"
-                className="w-full text-xs h-9 border-[#D9D4C8] bg-white text-[#1C2331] hover:bg-[#F2F1ED] rounded-[10px]"
+                className="w-full text-xs h-9 border-[#D5DCE5] bg-white text-[#12314F] hover:bg-[#F1F4F8] rounded-[10px]"
               >
                 <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Ir para o login
               </Button>
             </Link>
             <Link to="/" className="w-full sm:w-auto">
-              <Button className="w-full text-xs h-9 bg-[#216E75] hover:bg-[#1a585e] text-white font-semibold rounded-[10px] shadow-none border-0">
+              <Button className="w-full text-xs h-9 bg-[#1F6B94] hover:bg-[#185577] text-white font-semibold rounded-[10px] shadow-none border-0">
                 <Home className="mr-1.5 h-3.5 w-3.5" /> Página inicial
               </Button>
             </Link>
@@ -74,10 +74,10 @@ const NotFound = () => {
         </div>
       </main>
 
-      <footer className="border-t border-[#2C364A] bg-[#1C2331] py-4 px-6 text-white text-xs">
+      <footer className="border-t border-[#D5DCE5]/30 bg-[#12314F] py-4 px-6 text-white text-xs">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <KoinonLogo size={22} variant="negative" />
-          <p className="text-[#D1CFCD] text-[11px]">Segurança e integridade Koinon</p>
+          <p className="text-[#D5DCE5] text-[11px]">Segurança e integridade Koinon</p>
         </div>
       </footer>
     </div>

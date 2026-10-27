@@ -656,13 +656,13 @@ export const ListaPresencaPage: React.FC = () => {
       {/* Barra de Busca e Ações de Tabela (Oculto em impressão) */}
       <div className="print:hidden flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#6B6259]" />
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[#5C6B7A]" />
           <Input
             type="text"
             placeholder="Buscar por unidade, condômino ou procurador..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            className="pl-9 text-xs h-9 bg-[#FFFDFA] border-[#E8E1D6]"
+            className="pl-9 text-xs h-9 bg-white border-[#D5DCE5] text-[#12314F]"
           />
         </div>
 
@@ -672,23 +672,23 @@ export const ListaPresencaPage: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={restaurarLargurasPadrao}
-            className="text-[11px] h-8 px-2.5 border-[#D9D4C8] text-[#626A76] hover:text-[#1C2331] hover:bg-[#F2F1ED] rounded-[8px]"
+            className="text-[11px] h-8 px-2.5 border-[#D5DCE5] text-[#5C6B7A] hover:text-[#12314F] hover:bg-[#F1F4F8] rounded-[8px]"
             title="Restaurar a largura padrão de todas as colunas"
           >
-            <RotateCcw className="h-3.5 w-3.5 mr-1 text-[#216E75]" /> Restaurar larguras
+            <RotateCcw className="h-3.5 w-3.5 mr-1 text-[#1F6B94]" /> Restaurar larguras
           </Button>
 
-          <div className="p-2 rounded-[8px] bg-[#F2F1ED] border border-[#D9D4C8] text-[11px] text-[#626A76]">
-            <strong className="text-[#1C2331]">Dica:</strong> arraste a divisória dos cabeçalhos
+          <div className="p-2 rounded-[8px] bg-[#F1F4F8] border border-[#D5DCE5] text-[11px] text-[#5C6B7A]">
+            <strong className="text-[#12314F]">Dica:</strong> arraste a divisória dos cabeçalhos
             para ajustar as colunas (ou duplo clique para resetar).
           </div>
         </div>
       </div>
 
       {/* DOCUMENTO OFICIAL A4 IMPRIMÍVEL (Mesmo padrão do Boletim de Urna) */}
-      <article className="border border-[#D9D4C8] shadow-[0_4px_24px_rgba(28,35,49,0.08)] bg-white rounded-[14px] p-6 sm:p-8 max-w-[960px] mx-auto print:border-none print:shadow-none print:p-0 print:max-w-none text-[#1C2331] font-serif leading-normal">
+      <article className="border border-[#D5DCE5] shadow-[0_4px_24px_rgba(18,49,79,0.06)] bg-white rounded-[14px] p-6 sm:p-8 max-w-[960px] mx-auto print:border-none print:shadow-none print:p-0 print:max-w-none text-[#12314F] font-serif leading-normal">
         {/* Cabeçalho Institucional do Documento */}
-        <header className="border-b-2 border-[#1C2331] pb-4 mb-6 text-center font-sans">
+        <header className="border-b-2 border-[#12314F] pb-4 mb-6 text-center font-sans">
           <div className="flex items-center justify-between mb-2">
             {logoUrl && (
               <img
@@ -698,22 +698,22 @@ export const ListaPresencaPage: React.FC = () => {
               />
             )}
             <div className="flex-1 text-center px-4">
-              <span className="text-[10px] uppercase tracking-widest font-bold text-[#216E75] block">
+              <span className="text-[10px] uppercase tracking-widest font-bold text-[#1F6B94] block">
                 Plataforma Virtual Koinon
               </span>
-              <h1 className="text-lg font-bold text-[#1C2331] uppercase">{nomeCondominio}</h1>
-              <p className="text-xs text-[#626A76]">
+              <h1 className="text-lg font-bold text-[#12314F] uppercase">{nomeCondominio}</h1>
+              <p className="text-xs text-[#5C6B7A]">
                 Lista Oficial de Presença e Registro de Comparecimento em Assembleia
               </p>
             </div>
-            <div className="text-right text-[11px] font-mono text-[#626A76]">
+            <div className="text-right text-[11px] font-mono text-[#5C6B7A]">
               <span>Emissão:</span>
               <br />
-              <strong className="text-[#1C2331]">{new Date().toLocaleDateString('pt-BR')}</strong>
+              <strong className="text-[#12314F]">{new Date().toLocaleDateString('pt-BR')}</strong>
             </div>
           </div>
 
-          <div className="bg-[#F2F1ED] border border-[#D9D4C8] p-2.5 rounded text-xs font-semibold text-[#1C2331] flex items-center justify-between mt-2 font-mono">
+          <div className="bg-[#F1F4F8] border border-[#D5DCE5] p-2.5 rounded text-xs font-semibold text-[#12314F] flex items-center justify-between mt-2 font-mono">
             <span>Assembleia: {deliberacaoAtiva?.titulo || '—'}</span>
             <span>
               Quórum Presente: {totalPresentes} de {unidades.length} unidades (
@@ -724,7 +724,7 @@ export const ListaPresencaPage: React.FC = () => {
 
         {/* Tabela de Assinaturas e Presenças com Colunas Redimensionáveis */}
         <section className="font-sans text-xs">
-          <div className="overflow-x-auto w-full rounded-md border border-[#E8E1D6]">
+          <div className="overflow-x-auto w-full rounded-md border border-[#D5DCE5]">
             <table
               className="w-full text-left border-collapse"
               style={{
@@ -745,86 +745,86 @@ export const ListaPresencaPage: React.FC = () => {
                 <col style={{ width: `${largurasColunas.assinatura}px` }} />
               </colgroup>
               <thead>
-                <tr className="bg-[#F4EFE7] text-[#6B6259] font-semibold text-[11px] uppercase tracking-wider select-none border-b border-[#E8E1D6]">
+                <tr className="bg-[#F1F4F8] text-[#12314F] font-semibold text-[11px] uppercase tracking-wider select-none border-b border-[#D5DCE5]">
                   {/* Coluna 1: Unidade (apenas numeração) */}
                   <th
-                    className="p-2 border-r border-[#E8E1D6] text-center relative group"
+                    className="p-2 border-r border-[#D5DCE5] text-center relative group"
                     title="Unidade (exibindo apenas numeração; passe o mouse para detalhes da torre/bloco)"
                   >
-                    <span className="truncate block font-semibold text-[#6B6259]">Unidade</span>
+                    <span className="truncate block font-semibold text-[#12314F]">Unidade</span>
                     <span
                       role="separator"
                       aria-orientation="vertical"
                       title="Arrastar para redimensionar (duplo clique para restaurar)"
-                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#216E75]/40 active:bg-[#216E75] z-10 print:hidden flex items-center justify-center touch-none"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 print:hidden flex items-center justify-center touch-none"
                       onMouseDown={(e) => iniciarRedimensionamento('unidade', e)}
                       onTouchStart={(e) => iniciarRedimensionamento('unidade', e)}
                       onDoubleClick={() => salvarLarguraColuna('unidade', LARGURAS_PADRAO.unidade)}
                     >
-                      <span className="w-0.5 h-3.5 bg-[#626A76]/30 rounded-full group-hover:bg-[#216E75]" />
+                      <span className="w-0.5 h-3.5 bg-[#5C6B7A]/30 rounded-full group-hover:bg-[#1F6B94]" />
                     </span>
                   </th>
 
                   {/* Coluna 2: Nome Completo abreviado para Nome */}
                   <th
-                    className="p-2 border-r border-[#D9D4C8] relative group"
+                    className="p-2 border-r border-[#D5DCE5] relative group"
                     title="Nome Completo do Titular ou Representante"
                   >
-                    <span className="truncate block font-semibold text-[#626A76]">Nome</span>
+                    <span className="truncate block font-semibold text-[#5C6B7A]">Nome</span>
                     <span
                       role="separator"
                       aria-orientation="vertical"
                       title="Arrastar para redimensionar (duplo clique para restaurar)"
-                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#216E75]/40 active:bg-[#216E75] z-10 print:hidden flex items-center justify-center touch-none"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 print:hidden flex items-center justify-center touch-none"
                       onMouseDown={(e) => iniciarRedimensionamento('titular', e)}
                       onTouchStart={(e) => iniciarRedimensionamento('titular', e)}
                       onDoubleClick={() => salvarLarguraColuna('titular', LARGURAS_PADRAO.titular)}
                     >
-                      <span className="w-0.5 h-3.5 bg-[#626A76]/30 rounded-full group-hover:bg-[#216E75]" />
+                      <span className="w-0.5 h-3.5 bg-[#5C6B7A]/30 rounded-full group-hover:bg-[#1F6B94]" />
                     </span>
                   </th>
 
                   {/* Coluna 3: Situação de Presença abreviada para Situação */}
                   <th
-                    className="p-2 border-r border-[#D9D4C8] text-center relative group"
+                    className="p-2 border-r border-[#D5DCE5] text-center relative group"
                     title="Situação de Presença (Presencial, Remoto, Por Procuração ou Ausente)"
                   >
-                    <span className="truncate block font-semibold text-[#626A76]">Situação</span>
+                    <span className="truncate block font-semibold text-[#5C6B7A]">Situação</span>
                     <span
                       role="separator"
                       aria-orientation="vertical"
                       title="Arrastar para redimensionar (duplo clique para restaurar)"
-                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#216E75]/40 active:bg-[#216E75] z-10 print:hidden flex items-center justify-center touch-none"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 print:hidden flex items-center justify-center touch-none"
                       onMouseDown={(e) => iniciarRedimensionamento('situacao', e)}
                       onTouchStart={(e) => iniciarRedimensionamento('situacao', e)}
                       onDoubleClick={() =>
                         salvarLarguraColuna('situacao', LARGURAS_PADRAO.situacao)
                       }
                     >
-                      <span className="w-0.5 h-3.5 bg-[#626A76]/30 rounded-full group-hover:bg-[#216E75]" />
+                      <span className="w-0.5 h-3.5 bg-[#5C6B7A]/30 rounded-full group-hover:bg-[#1F6B94]" />
                     </span>
                   </th>
 
                   {/* Coluna 4: Poderes de Procuração / Representante */}
                   <th
-                    className="p-2 border-r border-[#D9D4C8] relative group"
+                    className="p-2 border-r border-[#D5DCE5] relative group"
                     title="Poderes de Procuração / Representante Legal com CPF e documento anexo"
                   >
-                    <span className="truncate block font-semibold text-[#626A76]">
+                    <span className="truncate block font-semibold text-[#5C6B7A]">
                       PROCURADOR(A)
                     </span>
                     <span
                       role="separator"
                       aria-orientation="vertical"
                       title="Arrastar para redimensionar (duplo clique para restaurar)"
-                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#216E75]/40 active:bg-[#216E75] z-10 print:hidden flex items-center justify-center touch-none"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 print:hidden flex items-center justify-center touch-none"
                       onMouseDown={(e) => iniciarRedimensionamento('procuracao', e)}
                       onTouchStart={(e) => iniciarRedimensionamento('procuracao', e)}
                       onDoubleClick={() =>
                         salvarLarguraColuna('procuracao', LARGURAS_PADRAO.procuracao)
                       }
                     >
-                      <span className="w-0.5 h-3.5 bg-[#626A76]/30 rounded-full group-hover:bg-[#216E75]" />
+                      <span className="w-0.5 h-3.5 bg-[#5C6B7A]/30 rounded-full group-hover:bg-[#1F6B94]" />
                     </span>
                   </th>
 
@@ -833,27 +833,27 @@ export const ListaPresencaPage: React.FC = () => {
                     className="p-2 text-center relative group"
                     title="Assinatura Eletrônica, Credenciado às (Data/Hora) e Carimbo Hash SHA-256"
                   >
-                    <span className="truncate block font-semibold text-[#626A76]">Assinatura</span>
+                    <span className="truncate block font-semibold text-[#5C6B7A]">Assinatura</span>
                     <span
                       role="separator"
                       aria-orientation="vertical"
                       title="Arrastar para redimensionar (duplo clique para restaurar)"
-                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#216E75]/40 active:bg-[#216E75] z-10 print:hidden flex items-center justify-center touch-none"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 print:hidden flex items-center justify-center touch-none"
                       onMouseDown={(e) => iniciarRedimensionamento('assinatura', e)}
                       onTouchStart={(e) => iniciarRedimensionamento('assinatura', e)}
                       onDoubleClick={() =>
                         salvarLarguraColuna('assinatura', LARGURAS_PADRAO.assinatura)
                       }
                     >
-                      <span className="w-0.5 h-3.5 bg-[#626A76]/30 rounded-full group-hover:bg-[#216E75]" />
+                      <span className="w-0.5 h-3.5 bg-[#5C6B7A]/30 rounded-full group-hover:bg-[#1F6B94]" />
                     </span>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E8E1D6]">
+              <tbody className="divide-y divide-[#D5DCE5]">
                 {unidadesFiltradas.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-6 text-center text-[#6B6259] italic bg-[#FFFDFA]">
+                    <td colSpan={5} className="p-6 text-center text-[#5C6B7A] italic bg-white">
                       Nenhuma unidade encontrada para os critérios selecionados.
                     </td>
                   </tr>
@@ -870,13 +870,13 @@ export const ListaPresencaPage: React.FC = () => {
                         key={u.id}
                         className={
                           estaPresente
-                            ? 'bg-[#FFFDFA] hover:bg-[#F4EFE7]/50'
-                            : 'bg-[#F4EFE7]/30 text-[#6B6259]/80'
+                            ? 'bg-white hover:bg-[#F1F4F8]/50'
+                            : 'bg-[#F1F4F8]/40 text-[#5C6B7A]'
                         }
                       >
                         {/* 1. Unidade: APENAS a numeração, com bloco em tooltip ou badge discreto */}
                         <td
-                          className="p-2 border-r border-[#D9D4C8] font-bold text-center text-[#1C2331]"
+                          className="p-2 border-r border-[#D5DCE5] font-bold text-center text-[#12314F]"
                           title={descricaoUnidade}
                         >
                           <span className="font-mono text-sm block tracking-tight">
@@ -884,7 +884,7 @@ export const ListaPresencaPage: React.FC = () => {
                           </span>
                           {u.bloco && (
                             <span
-                              className="inline-block text-[9px] font-normal text-[#626A76] bg-[#F2F1ED] border border-[#D9D4C8] px-1 rounded mt-0.5 truncate max-w-full"
+                              className="inline-block text-[9px] font-normal text-[#5C6B7A] bg-[#F1F4F8] border border-[#D5DCE5] px-1 rounded mt-0.5 truncate max-w-full"
                               title={`Bloco: ${u.bloco}`}
                             >
                               {u.bloco.replace(/^Bloco\s+/i, 'Bl. ')}
@@ -893,14 +893,14 @@ export const ListaPresencaPage: React.FC = () => {
                         </td>
 
                         {/* 2. Nome do Titular / Representante */}
-                        <td className="p-2 border-r border-[#D9D4C8] overflow-hidden">
+                        <td className="p-2 border-r border-[#D5DCE5] overflow-hidden">
                           {pres ? (
                             <div className="truncate">
-                              <strong className="text-[#1C2331] block truncate" title={pres.nome}>
+                              <strong className="text-[#12314F] block truncate" title={pres.nome}>
                                 {pres.nome}
                               </strong>
                               {pres.cpf && (
-                                <span className="text-[10px] text-[#626A76] font-mono block">
+                                <span className="text-[10px] text-[#5C6B7A] font-mono block">
                                   CPF: {formatarCpf(pres.cpf)}
                                 </span>
                               )}
@@ -908,33 +908,33 @@ export const ListaPresencaPage: React.FC = () => {
                           ) : u.responsavel_nome ? (
                             <div className="truncate">
                               <span
-                                className="text-[#1C2331] block truncate"
+                                className="text-[#12314F] block truncate"
                                 title={u.responsavel_nome}
                               >
                                 {u.responsavel_nome}
                               </span>
-                              <span className="text-[10px] text-[#626A76] italic block">
+                              <span className="text-[10px] text-[#5C6B7A] italic block">
                                 Cadastrado
                               </span>
                             </div>
                           ) : (
-                            <span className="text-[#626A76]/60 italic text-[11px]">
+                            <span className="text-[#5C6B7A]/60 italic text-[11px]">
                               Não registrado
                             </span>
                           )}
                         </td>
 
                         {/* 3. Situação de Presença */}
-                        <td className="p-2 border-r border-[#D9D4C8] text-center">
+                        <td className="p-2 border-r border-[#D5DCE5] text-center">
                           {pres ? (
                             <Badge
                               variant="outline"
                               className={`text-[9px] uppercase px-1.5 py-0.5 font-bold tracking-wider rounded-[6px] ${
                                 pres.forma === 'procuracao'
-                                  ? 'border-[#216E75]/30 text-[#1C2331] bg-[#216E75]/10'
+                                  ? 'border-[#1F6B94]/30 text-[#12314F] bg-[#1F6B94]/10'
                                   : pres.forma === 'remoto'
-                                    ? 'border-[#216E75]/30 text-[#216E75] bg-[#216E75]/10'
-                                    : 'border-[#7D8F72]/40 text-[#1C2331] bg-[#7D8F72]/15'
+                                    ? 'border-[#1F6B94]/30 text-[#1F6B94] bg-[#1F6B94]/10'
+                                    : 'border-[#4E8B7E]/40 text-[#12314F] bg-[#4E8B7E]/15'
                               }`}
                               title={`Presença via ${pres.forma}`}
                             >
@@ -947,30 +947,30 @@ export const ListaPresencaPage: React.FC = () => {
                           ) : presLegada ? (
                             <Badge
                               variant="outline"
-                              className="text-[9px] uppercase px-1.5 py-0.5 rounded-[6px] border-[#D9D4C8] bg-[#F2F1ED] text-[#1C2331]"
+                              className="text-[9px] uppercase px-1.5 py-0.5 rounded-[6px] border-[#D5DCE5] bg-[#F1F4F8] text-[#12314F]"
                               title={`Presença via ${presLegada.tipo}`}
                             >
                               {presLegada.tipo}
                             </Badge>
                           ) : (
-                            <span className="text-[10px] text-[#626A76]/70 font-medium">
+                            <span className="text-[10px] text-[#5C6B7A]/70 font-medium">
                               Ausente
                             </span>
                           )}
                         </td>
 
                         {/* 4. Procurador / Representante (Proc.) */}
-                        <td className="p-2 border-r border-[#D9D4C8] overflow-hidden">
+                        <td className="p-2 border-r border-[#D5DCE5] overflow-hidden">
                           {pres?.forma === 'procuracao' ? (
                             <div className="space-y-0.5 truncate">
                               <span
-                                className="font-semibold text-[#1C2331] block truncate"
+                                className="font-semibold text-[#12314F] block truncate"
                                 title={`Procurador: ${pres.nome_procurador}`}
                               >
                                 {pres.nome_procurador}
                               </span>
                               {pres.cpf_procurador && (
-                                <span className="text-[10px] text-[#626A76] font-mono block">
+                                <span className="text-[10px] text-[#5C6B7A] font-mono block">
                                   CPF: {formatarCpf(pres.cpf_procurador)}
                                 </span>
                               )}
@@ -979,7 +979,7 @@ export const ListaPresencaPage: React.FC = () => {
                                   href={pb.files.getURL(pres, pres.procuracao_arquivo)}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 text-[10px] text-[#216E75] hover:underline print:hidden font-medium"
+                                  className="inline-flex items-center gap-1 text-[10px] text-[#1F6B94] hover:underline print:hidden font-medium"
                                   title="Abrir arquivo da procuração anexado"
                                 >
                                   <ExternalLink className="h-3 w-3" /> Anexo
@@ -987,7 +987,7 @@ export const ListaPresencaPage: React.FC = () => {
                               )}
                             </div>
                           ) : (
-                            <span className="text-[#626A76]/50 text-[11px]">—</span>
+                            <span className="text-[#5C6B7A]/50 text-[11px]">—</span>
                           )}
                         </td>
 
@@ -1005,24 +1005,24 @@ export const ListaPresencaPage: React.FC = () => {
                               ) : pres.formato_assinatura === 'texto' && pres.assinatura_texto ? (
                                 <span
                                   style={{ fontFamily: '"Dancing Script", "Great Vibes", cursive' }}
-                                  className="text-sm text-[#1C2331] font-bold leading-none mb-0.5 block truncate max-w-[140px]"
+                                  className="text-sm text-[#12314F] font-bold leading-none mb-0.5 block truncate max-w-[140px]"
                                   title={pres.assinatura_texto}
                                 >
                                   {pres.assinatura_texto}
                                 </span>
                               ) : null}
 
-                              <div className="font-mono text-[9px] leading-tight text-[#1C2331]">
-                                <span className="font-bold text-[#7D8F72] block">✓ ASSINADO</span>
+                              <div className="font-mono text-[9px] leading-tight text-[#12314F]">
+                                <span className="font-bold text-[#4E8B7E] block">✓ ASSINADO</span>
                                 <span
-                                  className="break-all text-[8px] text-[#626A76] block"
+                                  className="break-all text-[8px] text-[#5C6B7A] block"
                                   title={`Carimbo SHA-256 completo: ${pres.assinatura_hash}`}
                                 >
                                   {pres.assinatura_hash.substring(0, 14)}...
                                 </span>
                                 {pres.data_hora_assinatura && (
                                   <span
-                                    className="text-[8px] text-[#626A76] block"
+                                    className="text-[8px] text-[#5C6B7A] block"
                                     title={`Credenciado às ${new Date(pres.data_hora_assinatura).toLocaleString('pt-BR')}`}
                                   >
                                     Credenciado às{' '}
@@ -1035,7 +1035,7 @@ export const ListaPresencaPage: React.FC = () => {
                               </div>
                             </div>
                           ) : (
-                            <div className="border-b border-dashed border-[#D9D4C8] h-6" />
+                            <div className="border-b border-dashed border-[#D5DCE5] h-6" />
                           )}
                         </td>
                       </tr>
