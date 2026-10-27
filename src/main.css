@@ -61,14 +61,14 @@
 
     --radius: 0.875rem; /* 14px padrão para cartões/modais */
 
-    /* Sidebar Koinon Ink */
-    --sidebar-background: 220 27% 15%; /* #1C2331 */
-    --sidebar-foreground: 48 10% 94%; /* #F2F1ED */
-    --sidebar-primary: 185 56% 29%; /* Aegean */
+    /* Sidebar — Escala monocromática Tom sobre Tom de Sálvia #7D8F72 (tom mais forte/escuro na base) */
+    --sidebar-background: 140 18% 13%; /* #1C251D - Sálvia escurecido profundo */
+    --sidebar-foreground: 100 20% 92%; /* #E9EEE7 - Sálvia tom claro */
+    --sidebar-primary: 185 56% 29%; /* Aegean #216E75 */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 25% 20%;
+    --sidebar-accent: 130 14% 20%; /* #28342A */
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 220 20% 24%;
+    --sidebar-border: 130 12% 23%; /* #313F33 */
     --sidebar-ring: 185 56% 29%;
 
     --chart-1: 185 56% 29%; /* Aegean */
