@@ -61,14 +61,14 @@
 
     --radius: 0.875rem; /* 14px padrão para cartões/modais */
 
-    /* Sidebar — Escala monocromática Tom sobre Tom de Sálvia #7D8F72 (tom mais forte/escuro na base) */
-    --sidebar-background: 140 18% 13%; /* #1C251D - Sálvia escurecido profundo */
-    --sidebar-foreground: 100 20% 92%; /* #E9EEE7 - Sálvia tom claro */
+    /* Sidebar — Escala monocromática Tom sobre Tom de Sálvia #7D8F72 (tom perceptivelmente mais claro na base) */
+    --sidebar-background: 130 11% 19%; /* #2A352C - Sálvia escuro moderado (mais claro que o anterior #1C251D) */
+    --sidebar-foreground: 105 16% 91%; /* #E7ECE5 - Sálvia tom claro de alto contraste */
     --sidebar-primary: 185 56% 29%; /* Aegean #216E75 */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 130 14% 20%; /* #28342A */
+    --sidebar-accent: 131 11% 27%; /* #3C4A3E - Item ativo / destaque tom sobre tom */
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 130 12% 23%; /* #313F33 */
+    --sidebar-border: 130 9% 30%; /* #455247 - Divisórias tom sobre tom */
     --sidebar-ring: 185 56% 29%;
 
     --chart-1: 185 56% 29%; /* Aegean */
