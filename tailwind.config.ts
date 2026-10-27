@@ -36,60 +36,64 @@ export default {
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
-        // Tokens oficiais da marca Koinon "Pedra e Tinta"
+        // Tokens oficiais da marca Koinon "Pedra e Azul"
         koinon: {
-          ink: '#1C2331',
-          aegean: '#216E75',
-          salvia: '#7D8F72',
-          marmore: '#F2F1ED',
-          pedra: '#D9D4C8',
-          grafite: '#626A76',
-          guia: '#D1CFCD',
+          navy: '#12314F',
+          azure: '#1F6B94',
+          verdigris: '#4E8B7E',
+          marmore: '#F1F4F8',
+          pedra: '#D5DCE5',
+          grafite: '#5C6B7A',
+          // Aliases para transição suave de código legado
+          ink: '#12314F',
+          aegean: '#1F6B94',
+          salvia: '#4E8B7E',
+          guia: '#D5DCE5',
         },
         primary: {
-          DEFAULT: '#216E75', // Aegean
+          DEFAULT: '#1F6B94', // Koinon Azure
           foreground: '#FFFFFF', // Branco em botões primários
         },
         secondary: {
           DEFAULT: 'transparent',
-          foreground: '#1C2331',
+          foreground: '#12314F', // Koinon Navy
         },
         destructive: {
           DEFAULT: '#DC2626',
           foreground: '#FFFFFF',
         },
         muted: {
-          DEFAULT: '#F2F1ED', // Mármore
-          foreground: '#626A76', // Grafite
+          DEFAULT: '#F1F4F8', // Mármore Azulado
+          foreground: '#5C6B7A', // Grafite
         },
         accent: {
-          DEFAULT: '#216E75',
+          DEFAULT: '#1F6B94', // Koinon Azure
           foreground: '#FFFFFF',
         },
         popover: {
           DEFAULT: '#FFFFFF',
-          foreground: '#1C2331',
+          foreground: '#12314F',
         },
         card: {
           DEFAULT: '#FFFFFF',
-          foreground: '#1C2331',
+          foreground: '#12314F',
         },
         sidebar: {
-          DEFAULT: '#1C2331', // Koinon Ink
-          foreground: '#F2F1ED',
-          primary: '#216E75',
+          DEFAULT: '#12314F', // Koinon Navy
+          foreground: '#D5DCE5', // Pedra
+          primary: '#1F6B94', // Koinon Azure
           'primary-foreground': '#FFFFFF',
-          accent: '#263042',
+          accent: 'rgba(255, 255, 255, 0.12)',
           'accent-foreground': '#FFFFFF',
-          border: '#2C364A',
-          ring: '#216E75',
+          border: 'rgba(213, 220, 229, 0.15)',
+          ring: '#1F6B94',
         },
         chart: {
-          1: '#216E75', // Aegean
-          2: '#7D8F72', // Sálvia
-          3: '#1C2331', // Ink
-          4: '#626A76', // Grafite
-          5: '#D9D4C8', // Pedra
+          1: '#1F6B94', // Koinon Azure
+          2: '#4E8B7E', // Verdigris
+          3: '#12314F', // Koinon Navy
+          4: '#5C6B7A', // Grafite
+          5: '#D5DCE5', // Pedra
         },
       },
       borderRadius: {
@@ -107,9 +111,9 @@ export default {
         height: 'height',
       },
       boxShadow: {
-        koinon: '0 4px 24px rgba(28, 35, 49, 0.08)',
-        subtle: '0 4px 24px rgba(28, 35, 49, 0.08)',
-        elevation: '0 4px 24px rgba(28, 35, 49, 0.08)',
+        koinon: '0 4px 24px rgba(18, 49, 79, 0.08)',
+        subtle: '0 4px 24px rgba(18, 49, 79, 0.08)',
+        elevation: '0 4px 24px rgba(18, 49, 79, 0.08)',
       },
       transitionTimingFunction: {
         apple: 'cubic-bezier(0.42, 0, 0.58, 1)',

@@ -9,11 +9,11 @@ export interface KoinonLogoProps {
    */
   size?: number
   /**
-   * Variante de cor:
-   * - 'color': Símbolo e arcos em #1C2331, ponto e 'i' em #216E75, letras em #1C2331.
-   * - 'negative': Símbolo com arcos em #FFFFFF, ponto em #216E75, letras em #FFFFFF (exceto 'i' em #216E75).
-   * - 'negative-solid': Mesmo padrão com letras em branco e 'i' em Aegean.
-   * - 'monochrome': Arcos e letras em #1C2331, ponto e 'i' em #216E75.
+   * Variante de cor (Paleta Pedra e Azul):
+   * - 'color': Símbolo e arcos em #12314F (Koinon Navy), ponto e 'i' em #1F6B94 (Koinon Azure), letras em #12314F.
+   * - 'negative': Símbolo com arcos em #FFFFFF, ponto em #1F6B94, letras em #FFFFFF (exceto 'i' em #1F6B94).
+   * - 'negative-solid': Mesmo padrão com letras em branco e 'i' em Koinon Azure.
+   * - 'monochrome': Arcos e letras em #12314F, ponto e 'i' em #1F6B94.
    */
   variant?: 'color' | 'negative' | 'negative-solid' | 'monochrome'
   /**
@@ -24,13 +24,13 @@ export interface KoinonLogoProps {
 }
 
 /**
- * Logotipo Completo Koinon (Regras Seções 1, 3, 4 e 6):
+ * Logotipo Completo Koinon (Paleta Pedra e Azul):
  * - Travamento horizontal: símbolo à esquerda, wordmark à direita.
  * - Respiro entre eles equivalente à altura da letra K (~size * 0.42).
  * - Wordmark montado como exatamente SEIS elementos separados (um por letra):
  *     <span class="wordmark"><span>K</span><span>o</span><span>i</span><span>n</span><span>o</span><span>n</span></span>
  * - Família Sora, peso 600, letter-spacing -0.02em.
- * - A terceira letra (i) sempre em Aegean #216E75; as demais em Koinon Ink #1C2331 (ou #FFFFFF em versão negativa).
+ * - A terceira letra (i) sempre em Koinon Azure #1F6B94; as demais em Koinon Navy #12314F (ou #FFFFFF em versão negativa).
  */
 export const KoinonLogo: React.FC<KoinonLogoProps> = ({
   size = 24,
@@ -39,9 +39,9 @@ export const KoinonLogo: React.FC<KoinonLogoProps> = ({
   className = '',
 }) => {
   const isNegative = variant === 'negative' || variant === 'negative-solid'
-  const defaultLetterColor = isNegative ? '#FFFFFF' : '#1C2331'
-  const aegeanColor = '#216E75'
-  const subtitleColor = isNegative ? 'text-[#D1CFCD]' : 'text-[#626A76]'
+  const defaultLetterColor = isNegative ? '#FFFFFF' : '#12314F'
+  const azureColor = '#1F6B94'
+  const subtitleColor = isNegative ? 'text-[#D5DCE5]' : 'text-[#5C6B7A]'
 
   // Altura da letra K proporcional ao símbolo (~0.72)
   const fontSizePx = Math.max(16, Math.round(size * 0.72))
@@ -68,7 +68,7 @@ export const KoinonLogo: React.FC<KoinonLogoProps> = ({
         >
           <span style={{ color: defaultLetterColor }}>K</span>
           <span style={{ color: defaultLetterColor }}>o</span>
-          <span style={{ color: aegeanColor }}>i</span>
+          <span style={{ color: azureColor }}>i</span>
           <span style={{ color: defaultLetterColor }}>n</span>
           <span style={{ color: defaultLetterColor }}>o</span>
           <span style={{ color: defaultLetterColor }}>n</span>

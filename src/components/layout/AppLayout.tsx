@@ -267,15 +267,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
           isCollapsed ? 'justify-center p-2.5 mx-auto' : 'gap-3 px-3 py-2'
         } ${
           isActive
-            ? `bg-[#3C4A3E] text-[#FFFFFF] font-semibold ${
-                isCollapsed
-                  ? 'border-l-[3px] border-l-[#216E75] rounded-l-none shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
-                  : 'border-l-[3px] border-l-[#216E75] rounded-l-none shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
-              }`
-            : 'text-[#E7ECE5] hover:bg-[#344036] hover:text-[#FFFFFF]'
+            ? `bg-white/12 text-[#FFFFFF] font-semibold border-l-[3px] border-l-[#1F6B94] rounded-l-none shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]`
+            : 'text-[#D5DCE5] hover:bg-white/8 hover:text-[#FFFFFF]'
         }`}
       >
-        <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#48B8C2]' : 'text-[#B4C2AF]'}`} />
+        <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-[#1F6B94]' : 'text-[#D5DCE5]'}`} />
         {!isCollapsed && <span className="truncate">{item.label}</span>}
       </Link>
     )
@@ -286,7 +282,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
           <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
           <TooltipContent
             side="right"
-            className="bg-[#2A352C] text-[#FFFFFF] border-[#455247] text-xs font-semibold px-2.5 py-1 rounded-[8px] shadow-[0_4px_24px_rgba(17,24,19,0.45)] z-50"
+            className="bg-[#12314F] text-[#FFFFFF] border-[#1F6B94]/30 text-xs font-semibold px-2.5 py-1 rounded-[8px] shadow-[0_4px_24px_rgba(18,49,79,0.45)] z-50"
           >
             {item.label}
           </TooltipContent>
@@ -316,11 +312,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     const mostrarAdmin = role === 'admin'
 
     return (
-      <div className="flex h-full flex-col justify-between bg-[#2A352C] text-[#E7ECE5] select-none">
+      <div className="flex h-full flex-col justify-between bg-[#12314F] text-[#D5DCE5] select-none">
         <div ref={navRef} onScroll={onScroll} className="overflow-y-auto overflow-x-hidden">
           {/* Brand Header com Logotipo Koinon Negativo no topo da Sidebar e Botão de Colapso */}
           <div
-            className={`border-b border-[#455247] flex items-center justify-between ${
+            className={`border-b border-white/10 flex items-center justify-between ${
               isCollapsed ? 'p-3 flex-col gap-2' : 'px-4 py-4'
             }`}
           >
@@ -336,7 +332,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                 </TooltipTrigger>
                 <TooltipContent
                   side="right"
-                  className="bg-[#2A352C] text-[#FFFFFF] border-[#455247] text-xs font-semibold px-2.5 py-1 rounded-[8px]"
+                  className="bg-[#12314F] text-[#FFFFFF] border-white/15 text-xs font-semibold px-2.5 py-1 rounded-[8px]"
                 >
                   Koinon — {nomeCondominio}
                 </TooltipContent>
@@ -354,7 +350,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                   type="button"
                   onClick={alternarCollapse}
                   aria-label={isCollapsed ? 'Expandir barra lateral' : 'Recolher barra lateral'}
-                  className="hidden lg:flex items-center justify-center h-7 w-7 rounded-[8px] text-[#B4C2AF] hover:text-[#FFFFFF] hover:bg-[#3C4A3E] transition-colors shrink-0"
+                  className="hidden lg:flex items-center justify-center h-7 w-7 rounded-[8px] text-[#D5DCE5] hover:text-[#FFFFFF] hover:bg-white/10 transition-colors shrink-0"
                 >
                   <svg
                     width="16"
@@ -404,7 +400,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
               </TooltipTrigger>
               <TooltipContent
                 side="right"
-                className="bg-[#2A352C] text-[#FFFFFF] border-[#455247] text-xs font-semibold px-2.5 py-1 rounded-[8px]"
+                className="bg-[#12314F] text-[#FFFFFF] border-white/15 text-xs font-semibold px-2.5 py-1 rounded-[8px]"
               >
                 {isCollapsed ? 'Expandir menu lateral' : 'Recolher para ícones'}
               </TooltipContent>
@@ -413,8 +409,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
 
           {/* Seletor de Unidade Ativa */}
           {unidadesDisponiveis.length > 0 && !isCollapsed && (
-            <div className="p-3 border-b border-[#455247] bg-[#222B24]">
-              <div className="text-[11px] uppercase tracking-[0.06em] font-medium text-[#B4C2AF] mb-1 px-1">
+            <div className="p-3 border-b border-white/10 bg-black/15">
+              <div className="text-[11px] uppercase tracking-[0.06em] font-medium text-[#D5DCE5] mb-1 px-1">
                 Unidade Ativa
               </div>
               <Select
@@ -424,15 +420,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                   if (u) selecionarUnidade(u)
                 }}
               >
-                <SelectTrigger className="w-full bg-[#2A352C] border-[#455247] text-xs text-[#E7ECE5] h-9 rounded-[10px] focus:ring-[#216E75]">
+                <SelectTrigger className="w-full bg-[#12314F] border-white/15 text-xs text-[#FFFFFF] h-9 rounded-[10px] focus:ring-[#1F6B94]">
                   <SelectValue placeholder="Selecione sua unidade" />
                 </SelectTrigger>
-                <SelectContent className="max-h-64 bg-[#2A352C] text-[#E7ECE5] border-[#455247]">
+                <SelectContent className="max-h-64 bg-[#12314F] text-[#FFFFFF] border-white/15">
                   {unidadesDisponiveis.map((u) => (
                     <SelectItem
                       key={u.id}
                       value={u.id}
-                      className="text-xs text-[#E7ECE5] focus:bg-[#3C4A3E] focus:text-[#FFFFFF]"
+                      className="text-xs text-[#FFFFFF] focus:bg-white/15 focus:text-[#FFFFFF]"
                     >
                       {u.tipo_unidade || rotuloUnidade} {u.identificador} (
                       {u.bloco || nomeCondominio})
@@ -449,7 +445,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
             {mostrarMorador && (
               <div>
                 {!isCollapsed && (
-                  <div className="px-3 text-[11px] font-medium uppercase tracking-[0.06em] text-[#B4C2AF] mb-2">
+                  <div className="px-3 text-[11px] font-medium uppercase tracking-[0.06em] text-[#D5DCE5]/80 mb-2">
                     Módulo do Morador
                   </div>
                 )}
@@ -465,10 +461,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
             {mostrarMesa && (
               <div>
                 {!isCollapsed && (
-                  <div className="px-3 flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.06em] text-[#B4C2AF] mb-2">
+                  <div className="px-3 flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.06em] text-[#D5DCE5]/80 mb-2">
                     <span>Módulo da Mesa</span>
                     {role === 'mesa' && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-[8px] bg-[#216E75]/25 text-[#48B8C2] font-semibold border border-[#216E75]/40">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-[8px] bg-[#1F6B94]/25 text-[#D5DCE5] font-semibold border border-[#1F6B94]/40">
                         Operador
                       </span>
                     )}
@@ -486,9 +482,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
             {mostrarAdmin && (
               <div>
                 {!isCollapsed && (
-                  <div className="px-3 flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.06em] text-[#B4C2AF] mb-2">
+                  <div className="px-3 flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.06em] text-[#D5DCE5]/80 mb-2">
                     <span>Administração</span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-[8px] bg-[#3C4A3E] text-[#E7ECE5] border border-[#455247] font-semibold">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-[8px] bg-white/12 text-[#FFFFFF] border border-white/20 font-semibold">
                       Admin
                     </span>
                   </div>
@@ -504,23 +500,23 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
         </div>
 
         {/* Bloco do usuário no rodapé da Sidebar: avatar circular de iniciais, nome, cargo */}
-        <div className="p-2.5 border-t border-[#455247] bg-[#222B24]">
+        <div className="p-2.5 border-t border-white/10 bg-black/15">
           {isCollapsed ? (
             <div className="flex flex-col items-center gap-2 py-1">
               <Tooltip delayDuration={150}>
                 <TooltipTrigger asChild>
-                  <div className="h-9 w-9 rounded-full bg-[#3C4A3E] border border-[#455247] flex items-center justify-center text-[#48B8C2] font-semibold text-xs cursor-pointer shadow-sm">
+                  <div className="h-9 w-9 rounded-full bg-white/12 border border-white/20 flex items-center justify-center text-[#FFFFFF] font-semibold text-xs cursor-pointer shadow-sm">
                     {getIniciais(user?.name || user?.email)}
                   </div>
                 </TooltipTrigger>
                 <TooltipContent
                   side="right"
-                  className="bg-[#2A352C] text-[#FFFFFF] border-[#455247] text-xs p-2 rounded-[8px] shadow-[0_4px_24px_rgba(17,24,19,0.45)]"
+                  className="bg-[#12314F] text-[#FFFFFF] border-white/15 text-xs p-2 rounded-[8px] shadow-[0_4px_24px_rgba(18,49,79,0.45)]"
                 >
                   <p className="font-semibold text-xs text-[#FFFFFF]">
                     {user?.name || user?.email}
                   </p>
-                  <p className="text-[10px] text-[#B4C2AF]">
+                  <p className="text-[10px] text-[#D5DCE5]">
                     {role === 'admin'
                       ? 'Administrador Geral'
                       : role === 'mesa'
@@ -536,7 +532,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                     type="button"
                     onClick={logout}
                     aria-label="Sair da plataforma"
-                    className="text-[#B4C2AF] hover:text-[#FFFFFF] hover:bg-[#3C4A3E] h-7 w-7 rounded-[8px] flex items-center justify-center transition-colors"
+                    className="text-[#D5DCE5] hover:text-[#FFFFFF] hover:bg-white/10 h-7 w-7 rounded-[8px] flex items-center justify-center transition-colors"
                   >
                     <svg
                       width="15"
@@ -573,7 +569,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                 </TooltipTrigger>
                 <TooltipContent
                   side="right"
-                  className="bg-[#2A352C] text-[#FFFFFF] border-[#455247] text-xs font-semibold px-2 py-1 rounded-[8px]"
+                  className="bg-[#12314F] text-[#FFFFFF] border-white/15 text-xs font-semibold px-2 py-1 rounded-[8px]"
                 >
                   Sair
                 </TooltipContent>
@@ -582,14 +578,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
           ) : (
             <div className="flex items-center justify-between gap-2.5 px-2 py-1.5">
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <div className="h-9 w-9 rounded-full bg-[#3C4A3E] border border-[#455247] flex items-center justify-center text-[#48B8C2] font-semibold text-xs shrink-0 shadow-sm">
+                <div className="h-9 w-9 rounded-full bg-white/12 border border-white/20 flex items-center justify-center text-[#FFFFFF] font-semibold text-xs shrink-0 shadow-sm">
                   {getIniciais(user?.name || user?.email)}
                 </div>
                 <div className="truncate">
                   <p className="text-xs font-semibold text-[#FFFFFF] truncate leading-tight">
                     {user?.name || user?.email}
                   </p>
-                  <p className="text-[10px] text-[#B4C2AF] truncate mt-0.5">
+                  <p className="text-[10px] text-[#D5DCE5] truncate mt-0.5">
                     {role === 'admin'
                       ? 'Administrador Geral'
                       : role === 'mesa'
@@ -603,7 +599,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                 onClick={logout}
                 title="Sair da plataforma"
                 aria-label="Sair da plataforma"
-                className="text-[#B4C2AF] hover:text-[#FFFFFF] hover:bg-[#3C4A3E] h-8 w-8 rounded-[10px] shrink-0 flex items-center justify-center transition-colors"
+                className="text-[#D5DCE5] hover:text-[#FFFFFF] hover:bg-white/10 h-8 w-8 rounded-[10px] shrink-0 flex items-center justify-center transition-colors"
               >
                 <svg
                   width="16"
@@ -645,7 +641,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
   }
 
   return (
-    <div className="min-h-screen flex bg-[#F2F1ED] text-[#1C2331]">
+    <div className="min-h-screen flex bg-[#F1F4F8] text-[#12314F]">
       {/* Alerta de Conexão Koinon */}
       {!isOnline && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-[#DC2626] text-[#FFFFFF] text-xs font-semibold py-2 px-4 text-center shadow-md flex items-center justify-center gap-2">
@@ -673,7 +669,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
 
       {/* Desktop Sidebar com largura dinâmica (w-64 expandida ou w-[68px] colapsada) */}
       <aside
-        className={`hidden lg:block shrink-0 border-r border-[#455247] h-screen sticky top-0 shadow-[0_4px_24px_rgba(28,35,49,0.08)] transition-[width] duration-200 ease-in-out ${
+        className={`hidden lg:block shrink-0 border-r border-[#12314F] h-screen sticky top-0 shadow-[0_4px_24px_rgba(18,49,79,0.08)] transition-[width] duration-200 ease-in-out ${
           collapsed ? 'w-[68px]' : 'w-64'
         }`}
       >
@@ -687,7 +683,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Barra Superior Institucional */}
-        <header className="sticky top-0 z-30 h-16 border-b border-[#D9D4C8] bg-white/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between shadow-[0_4px_24px_rgba(28,35,49,0.04)]">
+        <header className="sticky top-0 z-30 h-16 border-b border-[#D5DCE5] bg-white/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between shadow-[0_4px_24px_rgba(18,49,79,0.04)]">
           {/* Mobile Drawer Trigger & Breadcrumb */}
           <div className="flex items-center gap-3">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -695,12 +691,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="lg:hidden text-[#1C2331] hover:bg-[#F2F1ED]"
+                  className="lg:hidden text-[#12314F] hover:bg-[#F1F4F8]"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-72 bg-[#2A352C] border-r border-[#455247]">
+              <SheetContent side="left" className="p-0 w-72 bg-[#12314F] border-r border-white/10">
                 <SheetHeader className="sr-only">
                   <SheetTitle>Menu de Navegação {nomeCondominio}</SheetTitle>
                 </SheetHeader>
@@ -708,11 +704,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
               </SheetContent>
             </Sheet>
 
-            {/* Breadcrumb pequeno em Grafite com último item em Koinon Ink */}
-            <div className="flex items-center text-xs text-[#626A76] gap-1.5">
+            {/* Breadcrumb pequeno em Grafite com último item em Koinon Navy */}
+            <div className="flex items-center text-xs text-[#5C6B7A] gap-1.5">
               <span>{breadcrumbs[0]}</span>
-              <ChevronRight className="h-3 w-3 text-[#626A76]" />
-              <span className="font-semibold text-[#1C2331]">{breadcrumbs[1]}</span>
+              <ChevronRight className="h-3 w-3 text-[#5C6B7A]" />
+              <span className="font-semibold text-[#12314F]">{breadcrumbs[1]}</span>
             </div>
           </div>
 
@@ -722,14 +718,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
             <div
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] text-[11px] font-semibold border ${
                 isOnline
-                  ? 'bg-[#216E75]/10 text-[#1C2331] border-[#216E75]/25'
+                  ? 'bg-[#1F6B94]/10 text-[#12314F] border-[#1F6B94]/25'
                   : 'bg-red-50 text-red-700 border-red-200'
               }`}
               title={isOnline ? 'Conexão ativa com a plataforma' : 'Reconectando ao servidor...'}
             >
               {isOnline ? (
                 <>
-                  <span className="h-2 w-2 rounded-full bg-[#7D8F72]" />
+                  <span className="h-2 w-2 rounded-full bg-[#4E8B7E]" />
                   <span className="hidden sm:inline">Online</span>
                 </>
               ) : (
@@ -744,10 +740,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
             <Badge
               className={`text-[11px] font-semibold px-2 py-0.5 uppercase tracking-wider shrink-0 text-center rounded-[8px] border ${
                 role === 'admin'
-                  ? 'bg-[#1C2331] text-[#FFFFFF] border-[#2C364A]'
+                  ? 'bg-[#12314F] text-[#FFFFFF] border-[#12314F]'
                   : role === 'mesa'
-                    ? 'bg-[#216E75]/15 text-[#1C2331] border-[#216E75]/30'
-                    : 'bg-[#F2F1ED] text-[#1C2331] border-[#D9D4C8]'
+                    ? 'bg-[#1F6B94]/15 text-[#12314F] border-[#1F6B94]/30'
+                    : 'bg-[#F1F4F8] text-[#12314F] border-[#D5DCE5]'
               }`}
             >
               {role === 'admin' ? 'ADMIN' : role === 'mesa' ? 'MESA' : 'MORADOR'}
@@ -759,7 +755,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-2 border-[#D9D4C8] bg-white text-[#1C2331] hover:bg-[#F2F1ED] rounded-[10px]"
+                  className="gap-2 border-[#D5DCE5] bg-white text-[#12314F] hover:bg-[#F1F4F8] rounded-[10px]"
                 >
                   <span className="max-w-[120px] truncate text-xs font-semibold">
                     {user?.name || user?.email}
@@ -768,32 +764,32 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-56 bg-white border-[#D9D4C8] rounded-[14px] shadow-[0_4px_24px_rgba(28,35,49,0.08)] text-[#1C2331]"
+                className="w-56 bg-white border-[#D5DCE5] rounded-[14px] shadow-[0_4px_24px_rgba(18,49,79,0.08)] text-[#12314F]"
               >
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-xs font-semibold text-[#1C2331]">{user?.name}</p>
-                    <p className="text-[11px] text-[#626A76]">{user?.email}</p>
-                    <p className="text-[11px] font-medium text-[#216E75] mt-1">
+                    <p className="text-xs font-semibold text-[#12314F]">{user?.name}</p>
+                    <p className="text-[11px] text-[#5C6B7A]">{user?.email}</p>
+                    <p className="text-[11px] font-medium text-[#1F6B94] mt-1">
                       Unidade: {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
                       {unidadeSelecionada?.identificador || 'Não selecionada'}
                     </p>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-[#D9D4C8]" />
+                <DropdownMenuSeparator className="bg-[#D5DCE5]" />
                 <DropdownMenuItem
                   onClick={() => navigate('/credenciamento')}
-                  className="text-xs text-[#1C2331] focus:bg-[#F2F1ED] focus:text-[#1C2331]"
+                  className="text-xs text-[#12314F] focus:bg-[#F1F4F8] focus:text-[#12314F]"
                 >
-                  <UserCheck className="mr-2 h-4 w-4 text-[#626A76]" /> Situação Cadastral
+                  <UserCheck className="mr-2 h-4 w-4 text-[#5C6B7A]" /> Situação Cadastral
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => navigate('/recibo')}
-                  className="text-xs text-[#1C2331] focus:bg-[#F2F1ED] focus:text-[#1C2331]"
+                  className="text-xs text-[#12314F] focus:bg-[#F1F4F8] focus:text-[#12314F]"
                 >
-                  <Receipt className="mr-2 h-4 w-4 text-[#626A76]" /> Comprovantes de Voto
+                  <Receipt className="mr-2 h-4 w-4 text-[#5C6B7A]" /> Comprovantes de Voto
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-[#D9D4C8]" />
+                <DropdownMenuSeparator className="bg-[#D5DCE5]" />
                 <DropdownMenuItem
                   onClick={logout}
                   className="text-xs text-red-600 focus:bg-red-50 focus:text-red-700"
@@ -805,7 +801,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
           </div>
         </header>
 
-        {/* Corpo da Página (Fundo Mármore #F2F1ED com cartões em Branco) */}
+        {/* Corpo da Página (Fundo Mármore Azulado #F1F4F8 com cartões em Branco) */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <div className="mx-auto max-w-[1200px]">
             {/* Banner contextual de status da votação persistente */}
@@ -819,11 +815,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
             {(title || subtitle) && (
               <div className="mb-6">
                 {title && (
-                  <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#1C2331]">
+                  <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#12314F]">
                     {title}
                   </h1>
                 )}
-                {subtitle && <p className="text-sm text-[#626A76] mt-1">{subtitle}</p>}
+                {subtitle && <p className="text-sm text-[#5C6B7A] mt-1">{subtitle}</p>}
               </div>
             )}
 
@@ -833,15 +829,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
         </main>
 
         {/* Rodapé Institucional Koinon */}
-        <footer className="border-t border-[#2C364A] bg-[#1C2331] py-4 px-6 text-center text-xs text-[#F2F1ED]">
+        <footer className="border-t border-[#12314F] bg-[#12314F] py-4 px-6 text-center text-xs text-[#F1F4F8]">
           <div className="mx-auto max-w-[1200px] flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="flex items-center gap-3">
               <KoinonLogo size={20} variant="negative" />
-              <p className="text-[#D1CFCD] text-[11px] text-left">
+              <p className="text-[#D5DCE5] text-[11px] text-left">
                 Assembleia {nomeCondominio} — apuração conferida e auditada pela mesa diretora.
               </p>
             </div>
-            <p className="text-[#D1CFCD]/80 text-[11px]">
+            <p className="text-[#D5DCE5]/80 text-[11px]">
               Sigilo criptográfico SHA-256 • Conformidade com a LGPD (Lei nº 13.709/2018).
             </p>
           </div>

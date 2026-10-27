@@ -22,8 +22,8 @@ export interface KoinonSymbolProps {
  * no eixo de 12 horas ligeiramente sobreposto ao arco superior.
  *
  * Cores exatas:
- * - Arcos: #1C2331 (Koinon Ink) ou #FFFFFF (versão negativa)
- * - Ponto: #216E75 (Aegean)
+ * - Arcos: #12314F (Koinon Navy) ou #FFFFFF (versão negativa)
+ * - Ponto: #1F6B94 (Koinon Azure)
  */
 export const KoinonSymbol: React.FC<KoinonSymbolProps> = ({
   size = 24,
@@ -31,8 +31,8 @@ export const KoinonSymbol: React.FC<KoinonSymbolProps> = ({
   className = '',
 }) => {
   const isNegative = variant === 'negative' || variant === 'negative-solid'
-  const strokeColor = isNegative ? '#FFFFFF' : '#1C2331'
-  const dotColor = '#216E75'
+  const strokeColor = isNegative ? '#FFFFFF' : '#12314F'
+  const dotColor = '#1F6B94'
 
   return (
     <svg
@@ -87,7 +87,7 @@ export const KoinonSymbol: React.FC<KoinonSymbolProps> = ({
         strokeWidth="22"
         strokeLinecap="round"
       />
-      {/* Ponto sólido em Aegean sobre o arco superior no eixo de 12 horas */}
+      {/* Ponto sólido em Koinon Azure sobre o arco superior no eixo de 12 horas */}
       <circle cx="120" cy="42" r="13" fill={dotColor} />
     </svg>
   )

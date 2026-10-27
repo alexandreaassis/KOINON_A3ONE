@@ -1,6 +1,6 @@
 /* Global styles - Theme, font, utilities, animations and global components */
 
-/* Identidade Visual Koinon — Paleta "Pedra e Tinta" */
+/* Identidade Visual Koinon — Paleta "Pedra e Azul" */
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap');
 
 @tailwind base;
@@ -9,77 +9,78 @@
 
 @layer base {
   :root {
-    /* Paleta Oficial Koinon "Pedra e Tinta" (Tokens exatos):
-       - Koinon Ink: #1C2331
-       - Aegean: #216E75 (assinatura / acento)
-       - Sálvia: #7D8F72 (estados positivos / aprovação)
-       - Mármore: #F2F1ED (fundo geral das páginas)
-       - Pedra: #D9D4C8 (bordas 1px, divisores, contornos)
-       - Grafite: #626A76 (texto de apoio, legendas, placeholders)
-       - Guia: #D1CFCD (linhas-guia gráficas auxiliares)
+    /* Paleta Oficial Koinon "Pedra e Azul" (Tokens exatos):
+       - Koinon Navy: #12314F (cor primária)
+       - Koinon Azure: #1F6B94 (cor de assinatura / botões primários)
+       - Verdigris: #4E8B7E (cor semântica positiva / aprovação)
+       - Mármore Azulado: #F1F4F8 (fundo geral das páginas)
+       - Pedra: #D5DCE5 (bordas 1px, divisores, contornos)
+       - Grafite: #5C6B7A (texto de apoio, legendas, placeholders)
     */
 
-    --koinon-ink: #1c2331;
-    --koinon-aegean: #216e75;
-    --koinon-salvia: #7d8f72;
-    --koinon-marmore: #f2f1ed;
-    --koinon-pedra: #d9d4c8;
-    --koinon-grafite: #626a76;
-    --koinon-guia: #d1cfcd;
+    --koinon-navy: #12314f;
+    --koinon-azure: #1f6b94;
+    --koinon-verdigris: #4e8b7e;
+    --koinon-marmore: #f1f4f8;
+    --koinon-pedra: #d5dce5;
+    --koinon-grafite: #5c6b7a;
 
-    /* Mapeamento Shadcn para tokens Koinon */
-    --background: 48 10% 94%; /* Mármore #F2F1ED */
-    --foreground: 220 27% 15%; /* Koinon Ink #1C2331 */
+    /* Mapeamento Shadcn para tokens Koinon Pedra e Azul */
+    /* HSL de #F1F4F8: 214 31% 96% */
+    --background: 214 31% 96%; /* Mármore Azulado #F1F4F8 */
+    /* HSL de #12314F: 209 63% 19% */
+    --foreground: 209 63% 19%; /* Koinon Navy #12314F */
 
     --card: 0 0% 100%; /* Branco */
-    --card-foreground: 220 27% 15%; /* Koinon Ink #1C2331 */
+    --card-foreground: 209 63% 19%; /* Koinon Navy #12314F */
 
     --popover: 0 0% 100%; /* Branco */
-    --popover-foreground: 220 27% 15%; /* Koinon Ink #1C2331 */
+    --popover-foreground: 209 63% 19%; /* Koinon Navy #12314F */
 
-    /* Botão primário Aegean #216E75 com texto branco */
-    --primary: 185 56% 29%; /* #216E75 */
+    /* Botão primário Koinon Azure #1F6B94 (HSL: 201 65% 35%) com texto branco */
+    --primary: 201 65% 35%; /* #1F6B94 */
     --primary-foreground: 0 0% 100%; /* Branco */
 
-    /* Secundário: transparente com borda Pedra #D9D4C8 e texto Koinon Ink */
-    --secondary: 48 10% 94%; /* Mármore #F2F1ED */
-    --secondary-foreground: 220 27% 15%; /* Koinon Ink #1C2331 */
+    /* Secundário: fundo transparente / mármore azulado com texto Koinon Navy */
+    --secondary: 214 31% 96%; /* #F1F4F8 */
+    --secondary-foreground: 209 63% 19%; /* #12314F */
 
-    --muted: 48 10% 94%; /* Mármore */
-    --muted-foreground: 216 9% 42%; /* Grafite #626A76 */
+    --muted: 214 31% 96%; /* #F1F4F8 */
+    --muted-foreground: 211 14% 42%; /* Grafite #5C6B7A */
 
-    --accent: 185 56% 29%; /* Aegean */
+    --accent: 201 65% 35%; /* Koinon Azure #1F6B94 */
     --accent-foreground: 0 0% 100%;
 
     /* Alertas / destrutivo */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 41 18% 82%; /* Pedra #D9D4C8 */
-    --input: 41 18% 82%; /* Pedra #D9D4C8 */
-    --ring: 185 56% 29%; /* Aegean #216E75 */
+    /* HSL de #D5DCE5: 214 26% 87% */
+    --border: 214 26% 87%; /* Pedra #D5DCE5 */
+    --input: 214 26% 87%; /* Pedra #D5DCE5 */
+    --ring: 201 65% 35%; /* Koinon Azure #1F6B94 */
 
     --radius: 0.875rem; /* 14px padrão para cartões/modais */
 
-    /* Sidebar — Escala monocromática Tom sobre Tom de Sálvia #7D8F72 (tom perceptivelmente mais claro na base) */
-    --sidebar-background: 130 11% 19%; /* #2A352C - Sálvia escuro moderado (mais claro que o anterior #1C251D) */
-    --sidebar-foreground: 105 16% 91%; /* #E7ECE5 - Sálvia tom claro de alto contraste */
-    --sidebar-primary: 185 56% 29%; /* Aegean #216E75 */
+    /* Barra lateral: fundo Koinon Navy #12314F, texto cinza-claro, item ativo com variação por opacidade */
+    --sidebar-background: 209 63% 19%; /* #12314F */
+    --sidebar-foreground: 214 26% 87%; /* #D5DCE5 */
+    --sidebar-primary: 201 65% 35%; /* Koinon Azure #1F6B94 */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 131 11% 27%; /* #3C4A3E - Item ativo / destaque tom sobre tom */
+    --sidebar-accent: 209 63% 24%; /* Koinon Navy com opacidade/levemente mais claro */
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 130 9% 30%; /* #455247 - Divisórias tom sobre tom */
-    --sidebar-ring: 185 56% 29%;
+    --sidebar-border: 209 50% 26%; /* divisor sutil sobre Navy */
+    --sidebar-ring: 201 65% 35%;
 
-    --chart-1: 185 56% 29%; /* Aegean */
-    --chart-2: 97 12% 51%; /* Sálvia #7D8F72 */
-    --chart-3: 220 27% 15%; /* Koinon Ink */
-    --chart-4: 216 9% 42%; /* Grafite */
-    --chart-5: 41 18% 82%; /* Pedra */
+    --chart-1: 201 65% 35%; /* Koinon Azure */
+    --chart-2: 168 28% 42%; /* Verdigris #4E8B7E */
+    --chart-3: 209 63% 19%; /* Koinon Navy */
+    --chart-4: 211 14% 42%; /* Grafite */
+    --chart-5: 214 26% 87%; /* Pedra */
   }
 
   * {
-    border-color: #d9d4c8;
+    border-color: #d5dce5;
   }
 
   html {
@@ -89,8 +90,8 @@
   }
 
   body {
-    background-color: #f2f1ed;
-    color: #1c2331;
+    background-color: #f1f4f8;
+    color: #12314f;
     font-family:
       'Sora',
       -apple-system,
@@ -115,7 +116,7 @@
   .text-label {
     font-family: 'Sora', sans-serif;
     font-weight: 500;
-    color: #626a76;
+    color: #5c6b7a;
   }
 
   h1,
@@ -125,7 +126,7 @@
   h5,
   h6 {
     font-family: 'Sora', sans-serif;
-    color: #1c2331;
+    color: #12314f;
     font-weight: 600;
     letter-spacing: -0.02em;
     font-style: normal !important;
@@ -372,64 +373,75 @@
   }
 }
 
-/* Harmonização com o Design System Koinon */
+/* Harmonização com o Design System Koinon "Pedra e Azul" */
 .bg-cyan-700,
 .bg-cyan-600,
 .bg-cyan-800,
 .bg-blue-600,
-.bg-blue-700 {
-  background-color: #216e75 !important;
+.bg-blue-700,
+.bg-purple-700,
+.bg-purple-800 {
+  background-color: #1f6b94 !important;
   color: #ffffff !important;
   border-color: transparent !important;
 }
 .bg-cyan-700:hover,
 .bg-cyan-800:hover,
 .bg-blue-600:hover,
-.bg-blue-700:hover {
-  background-color: #1a585e !important;
+.bg-blue-700:hover,
+.bg-purple-700:hover,
+.bg-purple-800:hover {
+  background-color: #185577 !important;
   color: #ffffff !important;
 }
 .bg-cyan-50,
-.bg-blue-50 {
-  background-color: rgba(33, 110, 117, 0.08) !important;
+.bg-blue-50,
+.bg-purple-50 {
+  background-color: rgba(31, 107, 148, 0.1) !important;
 }
 .text-cyan-600,
 .text-cyan-700,
 .text-cyan-800,
 .text-blue-600,
-.text-blue-700 {
-  color: #216e75 !important;
+.text-blue-700,
+.text-purple-600,
+.text-purple-700,
+.text-purple-800,
+.text-purple-900 {
+  color: #1f6b94 !important;
 }
 .text-cyan-500 {
-  color: #216e75 !important;
+  color: #1f6b94 !important;
 }
 .border-cyan-200,
 .border-cyan-300,
 .border-cyan-100,
 .border-blue-200,
-.border-blue-300 {
-  border-color: #d9d4c8 !important;
+.border-blue-300,
+.border-purple-200,
+.border-purple-300 {
+  border-color: #d5dce5 !important;
 }
 
 /* Tabelas conforme especificação Koinon:
-   Cabeçalho com fundo Mármore #F2F1ED, texto Grafite #626A76 peso 600 caixa alta pequena;
-   linhas separadas por 1px #D9D4C8; sem zebra colorida.
+   Cabeçalho em Mármore Azulado #F1F4F8 com texto em Grafite #5C6B7A, peso 600, caixa alta pequena;
+   linhas separadas por 1px em Pedra #D5DCE5; sem zebra colorida.
 */
 table thead th {
-  background-color: #f2f1ed !important;
-  color: #626a76 !important;
+  background-color: #f1f4f8 !important;
+  color: #5c6b7a !important;
   font-weight: 600 !important;
   font-size: 0.75rem !important;
   text-transform: uppercase !important;
   letter-spacing: 0.06em !important;
-  border-bottom: 1px solid #d9d4c8 !important;
+  border-bottom: 1px solid #d5dce5 !important;
 }
 table tbody tr {
-  border-bottom: 1px solid #d9d4c8 !important;
+  border-bottom: 1px solid #d5dce5 !important;
   background-color: #ffffff !important;
 }
 table tbody tr:hover {
-  background-color: rgba(242, 241, 237, 0.5) !important;
+  background-color: rgba(241, 244, 248, 0.6) !important;
 } /* Rich Text Editor Content & Rendered HTML */
 .rich-editor-content .ProseMirror,
 .rendered-document-html {

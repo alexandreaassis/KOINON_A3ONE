@@ -502,7 +502,7 @@ export const ConfiguracoesPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-purple-700" /> Configurações do Condomínio
+            <Building2 className="h-6 w-6 text-[#12314F]" /> Configurações do Condomínio
           </h2>
           <p className="text-xs text-slate-600 mt-1">
             Identidade institucional, parametrização avançada da malha de unidades (vertical,
@@ -512,10 +512,10 @@ export const ConfiguracoesPage: React.FC = () => {
         <Link to="/admin/usuarios">
           <Button
             variant="outline"
-            className="border-[#D9D4C8] hover:bg-[#F2F1ED] text-[#1C2331] font-semibold text-xs h-9 px-3.5 rounded-[10px] shadow-xs"
+            className="border-[#D5DCE5] hover:bg-[#F1F4F8] text-[#12314F] font-semibold text-xs h-9 px-3.5 rounded-[10px] shadow-xs"
           >
-            <Users className="mr-2 h-4 w-4 text-[#216E75]" /> Gestão de Usuários e Permissões
-            <ChevronRight className="ml-1.5 h-3.5 w-3.5 text-[#626A76]" />
+            <Users className="mr-2 h-4 w-4 text-[#1F6B94]" /> Gestão de Usuários e Permissões
+            <ChevronRight className="ml-1.5 h-3.5 w-3.5 text-[#5C6B7A]" />
           </Button>
         </Link>
       </div>
@@ -610,7 +610,7 @@ export const ConfiguracoesPage: React.FC = () => {
                     variant="ghost"
                     size="sm"
                     onClick={handleTestarSomAtualOuNovo}
-                    className="h-7 text-xs text-purple-700 hover:text-purple-900 hover:bg-purple-50 px-2"
+                    className="h-7 text-xs text-[#1F6B94] hover:text-[#12314F] hover:bg-[#1F6B94]/10 px-2"
                   >
                     <Play className="h-3 w-3 mr-1" /> Testar Reprodução
                   </Button>
@@ -618,7 +618,7 @@ export const ConfiguracoesPage: React.FC = () => {
 
                 <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-xl border border-slate-200 bg-slate-50/50">
                   <div className="h-16 w-16 rounded-xl border border-slate-300 bg-white flex items-center justify-center overflow-hidden shadow-xs shrink-0">
-                    <Music className="h-7 w-7 text-purple-600" />
+                    <Music className="h-7 w-7 text-[#1F6B94]" />
                   </div>
 
                   <div className="space-y-2 flex-1 text-center sm:text-left">
@@ -654,7 +654,7 @@ export const ConfiguracoesPage: React.FC = () => {
 
                       {!somVotoFile && somVotoUrl && !removerSomVoto && (
                         <div className="inline-flex items-center gap-2">
-                          <span className="text-xs text-purple-700 font-medium">
+                          <span className="text-xs text-[#1F6B94] font-medium">
                             Áudio personalizado ativo
                           </span>
                           <Button
@@ -684,7 +684,7 @@ export const ConfiguracoesPage: React.FC = () => {
               <Button
                 type="submit"
                 disabled={salvandoGeral}
-                className="bg-purple-700 hover:bg-purple-800 text-white font-semibold text-xs"
+                className="bg-[#1F6B94] hover:bg-[#185577] text-white font-semibold text-xs rounded-[10px]"
               >
                 <Save className="mr-1.5 h-3.5 w-3.5" />
                 {salvandoGeral ? 'Salvando...' : 'Salvar Identidade'}
@@ -699,7 +699,7 @@ export const ConfiguracoesPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Layers className="h-4 w-4 text-purple-700" /> Configuração Avançada de Unidades
+                  <Layers className="h-4 w-4 text-[#1F6B94]" /> Configuração Avançada de Unidades
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-500">
                   Condomínios verticais, horizontais ou mistos com rótulos customizados, frações de
@@ -712,11 +712,11 @@ export const ConfiguracoesPage: React.FC = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setModalAvulsaAberto(true)}
-                  className="h-8 text-xs border-purple-300 text-purple-700 hover:bg-purple-50"
+                  className="h-8 text-xs border-[#D5DCE5] text-[#12314F] hover:bg-[#F1F4F8]"
                 >
-                  <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Nova Unidade Avulsa
+                  <PlusCircle className="mr-1.5 h-3.5 w-3.5 text-[#1F6B94]" /> Nova Unidade Avulsa
                 </Button>
-                <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs px-2.5 py-1">
+                <Badge className="bg-[#1F6B94]/12 text-[#12314F] border-transparent text-xs px-2.5 py-1">
                   {totalAtualUnidades} unidades ativas
                 </Badge>{' '}
               </div>
@@ -740,7 +740,7 @@ export const ConfiguracoesPage: React.FC = () => {
             {/* PASSO 1: TIPO DO CONDOMÍNIO E RÓTULO GLOBAL */}
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-4">
               <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-700 text-white text-[10px]">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#12314F] text-white text-[10px]">
                   1
                 </span>
                 Tipo de Condomínio e Nomenclatura Global
@@ -828,7 +828,7 @@ export const ConfiguracoesPage: React.FC = () => {
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-700 text-white text-[10px]">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#12314F] text-white text-[10px]">
                     2
                   </span>
                   Grupos de Unidades ({grupos.length})
@@ -841,9 +841,9 @@ export const ConfiguracoesPage: React.FC = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => handleAdicionarGrupo('vertical')}
-                      className="h-8 text-xs bg-white border-purple-200 text-purple-700 hover:bg-purple-50"
+                      className="h-8 text-xs bg-white border-[#D5DCE5] text-[#12314F] hover:bg-[#F1F4F8]"
                     >
-                      <Plus className="h-3 w-3 mr-1" /> Adicionar Grupo Vertical
+                      <Plus className="h-3 w-3 mr-1 text-[#1F6B94]" /> Adicionar Grupo Vertical
                     </Button>
                   )}
                   {(tipoCondominio === 'horizontal' || tipoCondominio === 'misto') && (
@@ -852,9 +852,9 @@ export const ConfiguracoesPage: React.FC = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => handleAdicionarGrupo('horizontal')}
-                      className="h-8 text-xs bg-white border-cyan-200 text-cyan-800 hover:bg-cyan-50"
+                      className="h-8 text-xs bg-white border-[#D5DCE5] text-[#12314F] hover:bg-[#F1F4F8]"
                     >
-                      <Plus className="h-3 w-3 mr-1" /> Adicionar Grupo Horizontal
+                      <Plus className="h-3 w-3 mr-1 text-[#1F6B94]" /> Adicionar Grupo Horizontal
                     </Button>
                   )}
                 </div>
@@ -871,11 +871,7 @@ export const ConfiguracoesPage: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <Badge
                           variant="outline"
-                          className={
-                            grupo.tipo === 'vertical'
-                              ? 'border-purple-300 bg-purple-50 text-purple-800 text-[10px]'
-                              : 'border-cyan-300 bg-cyan-50 text-cyan-800 text-[10px]'
-                          }
+                          className="border-[#D5DCE5] bg-[#F1F4F8] text-[#12314F] text-[10px]"
                         >
                           {grupo.tipo === 'vertical' ? 'Vertical' : 'Horizontal'}
                         </Badge>
