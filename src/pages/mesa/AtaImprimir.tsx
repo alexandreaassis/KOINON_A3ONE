@@ -201,7 +201,7 @@ export const AtaImprimirPage: React.FC = () => {
           </div>
 
           <div className="mt-8 pt-4 border-t border-slate-200 text-center text-[9px] text-slate-500 font-sans">
-            Documento emitido eletronicamente pela Plataforma Indaba de Governança Condominial sob
+            Documento emitido eletronicamente pela Plataforma Koinon de Governança Condominial sob
             os rigores do Código Civil Brasileiro.
           </div>
         </footer>

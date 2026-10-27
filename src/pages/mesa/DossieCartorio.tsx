@@ -338,7 +338,7 @@ export const DossieCartorioPage: React.FC = () => {
           {/* Rodapé Capa */}
           <div className="border-t-2 border-slate-900 pt-4 text-center font-sans text-[11px] text-slate-600 space-y-1">
             <p className="font-semibold text-slate-800">
-              Emitido via Plataforma Indaba de Votação e Governança Condominial
+              Emitido via Plataforma Koinon de Votação e Governança Condominial
             </p>
             <p className="text-[10px] text-slate-500">
               Assinaturas digitais conferidas por carimbo hash SHA-256. Registro para arquivamento e
@@ -790,7 +790,7 @@ export const DossieCartorioPage: React.FC = () => {
           </div>
 
           <footer className="border-t border-slate-200 pt-3 text-center text-[10px] text-slate-500 font-sans">
-            Documento gerado eletronicamente em {new Date().toLocaleString('pt-BR')}. Indaba —
+            Documento gerado eletronicamente em {new Date().toLocaleString('pt-BR')}. Koinon —
             Governança e Assembleias Condominiais.
           </footer>
         </section>

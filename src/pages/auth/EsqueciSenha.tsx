@@ -13,8 +13,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { IndabaLogo } from '@/components/brand/IndabaLogo'
-import { IndabaSymbol } from '@/components/brand/IndabaSymbol'
+import { KoinonLogo } from '@/components/brand/KoinonLogo'
+import { KoinonSymbol } from '@/components/brand/KoinonSymbol'
 import { Mail, CheckCircle2, ArrowLeft } from 'lucide-react'
 
 export const EsqueciSenhaPage: React.FC = () => {
@@ -36,38 +36,38 @@ export const EsqueciSenhaPage: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F4EFE7] text-[#1E1B18]">
-      <header className="border-b border-[#E8E1D6] bg-[#FFFDFA] px-6 py-4">
+    <div className="flex min-h-screen flex-col bg-[#F2F1ED] text-[#1C2331]">
+      <header className="border-b border-[#D9D4C8] bg-white px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <IndabaLogo size={30} variant="color" />
-          <Link to="/login" className="text-xs font-semibold text-[#E39A2B] hover:underline">
+          <KoinonLogo size={30} variant="color" />
+          <Link to="/login" className="text-xs font-semibold text-[#216E75] hover:underline">
             Voltar para o Login
           </Link>
         </div>
       </header>
 
       <main className="flex flex-1 items-center justify-center p-4 sm:p-6">
-        <Card className="w-full max-w-md border border-[#E8E1D6] bg-[#FFFDFA] shadow-[0_4px_24px_rgba(30,27,24,0.06)] rounded-[12px]">
+        <Card className="w-full max-w-md border border-[#D9D4C8] bg-white shadow-[0_4px_24px_rgba(28,35,49,0.08)] rounded-[14px]">
           <CardHeader className="text-center pb-2 pt-6">
             <div className="mx-auto mb-3 flex items-center justify-center">
-              <IndabaSymbol size={44} variant="color" />
+              <KoinonSymbol size={44} variant="color" />
             </div>
-            <CardTitle className="text-2xl font-semibold tracking-[-0.02em] text-[#1E1B18]">
+            <CardTitle className="text-2xl font-semibold tracking-[-0.02em] text-[#1C2331]">
               Recuperação de Senha
             </CardTitle>
-            <CardDescription className="text-xs text-[#6B6259]">
-              Plataforma Indaba — Instruções para redefinição de acesso
+            <CardDescription className="text-xs text-[#626A76]">
+              Plataforma Koinon — Instruções para redefinição de acesso
             </CardDescription>
           </CardHeader>
 
           <CardContent className="pt-4 space-y-4">
             {enviado ? (
-              <Alert className="border border-[#E39A2B]/40 bg-[#E39A2B]/10 text-[#1E1B18] rounded-[10px]">
-                <CheckCircle2 className="h-5 w-5 text-[#E39A2B]" />
-                <AlertTitle className="font-semibold text-[#1E1B18]">
+              <Alert className="border border-[#7D8F72]/40 bg-[#7D8F72]/10 text-[#1C2331] rounded-[10px]">
+                <CheckCircle2 className="h-5 w-5 text-[#7D8F72]" />
+                <AlertTitle className="font-semibold text-[#1C2331]">
                   Solicitação enviada
                 </AlertTitle>
-                <AlertDescription className="text-xs text-[#1E1B18] mt-1">
+                <AlertDescription className="text-xs text-[#1C2331] mt-1">
                   Se houver uma conta para este e-mail ({email}), você receberá um link com
                   instruções para redefinição de senha. Verifique também sua caixa de spam.
                 </AlertDescription>
@@ -75,11 +75,11 @@ export const EsqueciSenhaPage: React.FC = () => {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-xs font-medium text-[#1E1B18]">
+                  <Label htmlFor="email" className="text-xs font-medium text-[#1C2331]">
                     E-mail cadastrado
                   </Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-[#6B6259]" />
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-[#626A76]" />
                     <Input
                       id="email"
                       type="email"
@@ -87,7 +87,7 @@ export const EsqueciSenhaPage: React.FC = () => {
                       placeholder="ex: morador@lagoazul.com.br"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 h-10 border-[#E8E1D6] bg-[#FFFDFA] text-[#1E1B18] placeholder:text-[#6B6259] rounded-[10px]"
+                      className="pl-10 h-10 border-[#D9D4C8] bg-white text-[#1C2331] placeholder:text-[#626A76] rounded-[10px] focus-visible:ring-[#216E75]"
                     />
                   </div>
                 </div>
@@ -95,7 +95,7 @@ export const EsqueciSenhaPage: React.FC = () => {
                 <Button
                   type="submit"
                   disabled={carregando}
-                  className="w-full h-10 bg-[#E39A2B] text-[#1E1B18] font-semibold hover:bg-[#d48c20] rounded-[10px] shadow-none border-0"
+                  className="w-full h-10 bg-[#216E75] text-white font-semibold hover:bg-[#1a585e] rounded-[10px] shadow-none border-0"
                 >
                   {carregando ? 'Enviando...' : 'Enviar link de redefinição'}
                 </Button>
@@ -103,10 +103,10 @@ export const EsqueciSenhaPage: React.FC = () => {
             )}
           </CardContent>
 
-          <CardFooter className="flex justify-center border-t border-[#E8E1D6] pt-4">
+          <CardFooter className="flex justify-center border-t border-[#D9D4C8] pt-4">
             <Link
               to="/login"
-              className="inline-flex items-center text-xs font-semibold text-[#1E1B18] hover:text-[#E39A2B]"
+              className="inline-flex items-center text-xs font-semibold text-[#1C2331] hover:text-[#216E75]"
             >
               <ArrowLeft className="mr-1.5 h-4 w-4" /> Voltar para o Login
             </Link>
@@ -114,10 +114,10 @@ export const EsqueciSenhaPage: React.FC = () => {
         </Card>
       </main>
 
-      <footer className="border-t border-[#E8E1D6] bg-[#1E1B18] py-4 px-6 text-white text-xs">
+      <footer className="border-t border-[#2C364A] bg-[#1C2331] py-4 px-6 text-white text-xs">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <IndabaLogo size={22} variant="negative" />
-          <p className="text-[#E8E1D6]/70 text-[11px]">Segurança e integridade Indaba</p>
+          <KoinonLogo size={22} variant="negative" />
+          <p className="text-[#D1CFCD] text-[11px]">Segurança e integridade Koinon</p>
         </div>
       </footer>
     </div>

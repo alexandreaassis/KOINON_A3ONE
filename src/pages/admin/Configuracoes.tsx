@@ -512,10 +512,10 @@ export const ConfiguracoesPage: React.FC = () => {
         <Link to="/admin/usuarios">
           <Button
             variant="outline"
-            className="border-[#E8E1D6] hover:bg-[#F4EFE7] text-[#1E1B18] font-semibold text-xs h-9 px-3.5 rounded-[10px] shadow-xs"
+            className="border-[#D9D4C8] hover:bg-[#F2F1ED] text-[#1C2331] font-semibold text-xs h-9 px-3.5 rounded-[10px] shadow-xs"
           >
-            <Users className="mr-2 h-4 w-4 text-[#E39A2B]" /> Gestão de Usuários e Permissões
-            <ChevronRight className="ml-1.5 h-3.5 w-3.5 text-[#6B6259]" />
+            <Users className="mr-2 h-4 w-4 text-[#216E75]" /> Gestão de Usuários e Permissões
+            <ChevronRight className="ml-1.5 h-3.5 w-3.5 text-[#626A76]" />
           </Button>
         </Link>
       </div>

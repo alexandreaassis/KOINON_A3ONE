@@ -415,7 +415,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
     </div>
 
     <div class="footer-note">
-      Documento lavrado e homologado através da Plataforma Indaba de Governança Condominial.<br>
+      Documento lavrado e homologado através da Plataforma Koinon de Governança Condominial.<br>
       A autenticidade e validade jurídica deste documento podem ser conferidas por meio do hash criptográfico SHA-256 e da trilha de auditoria da assembleia.
     </div>
   </div>

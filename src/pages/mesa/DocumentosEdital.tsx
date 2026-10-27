@@ -93,7 +93,7 @@ export const DocumentosEditalPage: React.FC = () => {
     primeiraConvocacao: '19:00',
     segundaConvocacao: '19:30',
     dataAssembleia: '',
-    localTexto: 'Salão de Festas do Condomínio / Plataforma Virtual Indaba',
+    localTexto: 'Salão de Festas do Condomínio / Plataforma Virtual Koinon',
     ordemDiaCustom: '',
     disposicoesGerais:
       'Os condôminos poderão votar presencialmente ou por meio da plataforma eletrônica. É admitida representação por procuração com firma reconhecida ou assinatura eletrônica idônea.',
@@ -250,7 +250,7 @@ export const DocumentosEditalPage: React.FC = () => {
             segundaConvocacao: editalSalvo.segunda_convocacao || '19:30',
             localTexto:
               editalSalvo.local_texto ||
-              'Salão de Festas do Condomínio / Plataforma Virtual Indaba',
+              'Salão de Festas do Condomínio / Plataforma Virtual Koinon',
             ordemDiaCustom: editalSalvo.ordem_dia_custom || '',
             disposicoesGerais:
               editalSalvo.disposicoes_gerais ||
@@ -296,7 +296,7 @@ export const DocumentosEditalPage: React.FC = () => {
             dataAssembleia: '',
             primeiraConvocacao: '19:00',
             segundaConvocacao: '19:30',
-            localTexto: 'Salão de Festas do Condomínio / Plataforma Virtual Indaba',
+            localTexto: 'Salão de Festas do Condomínio / Plataforma Virtual Koinon',
             ordemDiaCustom: '',
             disposicoesGerais:
               'Os condôminos poderão votar presencialmente ou por meio da plataforma eletrônica. É admitida representação por procuração com firma reconhecida ou assinatura eletrônica idônea.',

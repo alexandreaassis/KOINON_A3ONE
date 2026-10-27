@@ -27,8 +27,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Manrope', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['Manrope', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Sora', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Sora', 'system-ui', '-apple-system', 'sans-serif'],
       },
       colors: {
         border: 'hsl(var(--border))',
@@ -36,69 +36,69 @@ export default {
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
-        // Tokens oficiais da marca Indaba
-        indaba: {
-          deep: '#1E1B18',
-          ocre: '#E39A2B',
-          terracota: '#C75B39',
-          areia: '#F4EFE7',
-          papel: '#FFFDFA',
-          grafite: '#6B6259',
-          borda: '#E8E1D6',
+        // Tokens oficiais da marca Koinon "Pedra e Tinta"
+        koinon: {
+          ink: '#1C2331',
+          aegean: '#216E75',
+          salvia: '#7D8F72',
+          marmore: '#F2F1ED',
+          pedra: '#D9D4C8',
+          grafite: '#626A76',
+          guia: '#D1CFCD',
         },
         primary: {
-          DEFAULT: '#E39A2B', // Ocre
-          foreground: '#1E1B18', // Indaba Deep (contraste obrigatório)
+          DEFAULT: '#216E75', // Aegean
+          foreground: '#FFFFFF', // Branco em botões primários
         },
         secondary: {
           DEFAULT: 'transparent',
-          foreground: '#1E1B18',
+          foreground: '#1C2331',
         },
         destructive: {
-          DEFAULT: '#C75B39', // Terracota
-          foreground: '#FFFDFA',
+          DEFAULT: '#DC2626',
+          foreground: '#FFFFFF',
         },
         muted: {
-          DEFAULT: '#F4EFE7',
-          foreground: '#6B6259',
+          DEFAULT: '#F2F1ED', // Mármore
+          foreground: '#626A76', // Grafite
         },
         accent: {
-          DEFAULT: '#E39A2B',
-          foreground: '#1E1B18',
+          DEFAULT: '#216E75',
+          foreground: '#FFFFFF',
         },
         popover: {
-          DEFAULT: '#FFFDFA',
-          foreground: '#1E1B18',
+          DEFAULT: '#FFFFFF',
+          foreground: '#1C2331',
         },
         card: {
-          DEFAULT: '#FFFDFA',
-          foreground: '#1E1B18',
+          DEFAULT: '#FFFFFF',
+          foreground: '#1C2331',
         },
         sidebar: {
-          DEFAULT: '#1E1B18',
-          foreground: '#E8E1D6',
-          primary: '#E39A2B',
-          'primary-foreground': '#1E1B18',
-          accent: '#2A2622',
-          'accent-foreground': '#FFFDFA',
-          border: '#2E2A26',
-          ring: '#E39A2B',
+          DEFAULT: '#1C2331', // Koinon Ink
+          foreground: '#F2F1ED',
+          primary: '#216E75',
+          'primary-foreground': '#FFFFFF',
+          accent: '#263042',
+          'accent-foreground': '#FFFFFF',
+          border: '#2C364A',
+          ring: '#216E75',
         },
         chart: {
-          1: '#E39A2B',
-          2: '#1E1B18',
-          3: '#C75B39',
-          4: '#6B6259',
-          5: '#E8E1D6',
+          1: '#216E75', // Aegean
+          2: '#7D8F72', // Sálvia
+          3: '#1C2331', // Ink
+          4: '#626A76', // Grafite
+          5: '#D9D4C8', // Pedra
         },
       },
       borderRadius: {
-        card: '12px',
-        modal: '12px',
+        card: '14px',
+        modal: '14px',
         btn: '10px',
         field: '10px',
         badge: '8px',
-        lg: '12px',
+        lg: '14px',
         md: '10px',
         sm: '8px',
       },
@@ -107,9 +107,9 @@ export default {
         height: 'height',
       },
       boxShadow: {
-        indaba: '0 4px 24px rgba(30, 27, 24, 0.06)',
-        subtle: '0 4px 24px rgba(30, 27, 24, 0.06)',
-        elevation: '0 4px 24px rgba(30, 27, 24, 0.06)',
+        koinon: '0 4px 24px rgba(28, 35, 49, 0.08)',
+        subtle: '0 4px 24px rgba(28, 35, 49, 0.08)',
+        elevation: '0 4px 24px rgba(28, 35, 49, 0.08)',
       },
       transitionTimingFunction: {
         apple: 'cubic-bezier(0.42, 0, 0.58, 1)',

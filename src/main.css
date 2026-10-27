@@ -1,7 +1,7 @@
 /* Global styles - Theme, font, utilities, animations and global components */
 
-/* Identidade Visual Indaba — Design System Oficial */
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
+/* Identidade Visual Koinon — Paleta "Pedra e Tinta" */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -9,76 +9,77 @@
 
 @layer base {
   :root {
-    /* Paleta Oficial Indaba */
-    /* Indaba Deep: #1E1B18 => hsl(30, 11%, 11%) */
-    /* Ocre: #E39A2B => hsl(36, 76%, 53%) */
-    /* Terracota: #C75B39 => hsl(14, 57%, 50%) */
-    /* Areia: #F4EFE7 => hsl(36, 36%, 93%) */
-    /* Papel: #FFFDFA => hsl(40, 100%, 99%) */
-    /* Grafite: #6B6259 => hsl(33, 9%, 38%) */
-    /* Borda: #E8E1D6 => hsl(38, 28%, 88%) */
+    /* Paleta Oficial Koinon "Pedra e Tinta" (Tokens exatos):
+       - Koinon Ink: #1C2331
+       - Aegean: #216E75 (assinatura / acento)
+       - Sálvia: #7D8F72 (estados positivos / aprovação)
+       - Mármore: #F2F1ED (fundo geral das páginas)
+       - Pedra: #D9D4C8 (bordas 1px, divisores, contornos)
+       - Grafite: #626A76 (texto de apoio, legendas, placeholders)
+       - Guia: #D1CFCD (linhas-guia gráficas auxiliares)
+    */
 
-    --indaba-deep: #1e1b18;
-    --indaba-ocre: #e39a2b;
-    --indaba-terracota: #c75b39;
-    --indaba-areia: #f4efe7;
-    --indaba-papel: #fffdfa;
-    --indaba-grafite: #6b6259;
-    --indaba-borda: #e8e1d6;
+    --koinon-ink: #1c2331;
+    --koinon-aegean: #216e75;
+    --koinon-salvia: #7d8f72;
+    --koinon-marmore: #f2f1ed;
+    --koinon-pedra: #d9d4c8;
+    --koinon-grafite: #626a76;
+    --koinon-guia: #d1cfcd;
 
-    /* Mapeamento Shadcn para tokens Indaba */
-    --background: 36 36% 93%; /* Areia */
-    --foreground: 30 11% 11%; /* Indaba Deep */
+    /* Mapeamento Shadcn para tokens Koinon */
+    --background: 48 10% 94%; /* Mármore #F2F1ED */
+    --foreground: 220 27% 15%; /* Koinon Ink #1C2331 */
 
-    --card: 40 100% 99%; /* Papel */
-    --card-foreground: 30 11% 11%; /* Indaba Deep */
+    --card: 0 0% 100%; /* Branco */
+    --card-foreground: 220 27% 15%; /* Koinon Ink #1C2331 */
 
-    --popover: 40 100% 99%; /* Papel */
-    --popover-foreground: 30 11% 11%; /* Indaba Deep */
+    --popover: 0 0% 100%; /* Branco */
+    --popover-foreground: 220 27% 15%; /* Koinon Ink #1C2331 */
 
-    /* Botão primário Ocre #E39A2B com texto Indaba Deep #1E1B18 */
-    --primary: 36 76% 53%;
-    --primary-foreground: 30 11% 11%;
+    /* Botão primário Aegean #216E75 com texto branco */
+    --primary: 185 56% 29%; /* #216E75 */
+    --primary-foreground: 0 0% 100%; /* Branco */
 
-    /* Secundário: fundo transparente / papel com borda e texto Indaba Deep */
-    --secondary: 36 36% 93%;
-    --secondary-foreground: 30 11% 11%;
+    /* Secundário: transparente com borda Pedra #D9D4C8 e texto Koinon Ink */
+    --secondary: 48 10% 94%; /* Mármore #F2F1ED */
+    --secondary-foreground: 220 27% 15%; /* Koinon Ink #1C2331 */
 
-    --muted: 36 30% 91%;
-    --muted-foreground: 33 9% 38%; /* Grafite */
+    --muted: 48 10% 94%; /* Mármore */
+    --muted-foreground: 216 9% 42%; /* Grafite #626A76 */
 
-    --accent: 36 76% 53%;
-    --accent-foreground: 30 11% 11%;
+    --accent: 185 56% 29%; /* Aegean */
+    --accent-foreground: 0 0% 100%;
 
-    /* Terracota para alertas e indicadores negativos */
-    --destructive: 14 57% 50%;
-    --destructive-foreground: 40 100% 99%;
+    /* Alertas / destrutivo */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 38 28% 88%; /* #E8E1D6 */
-    --input: 38 28% 88%; /* #E8E1D6 */
-    --ring: 36 76% 53%; /* Ocre #E39A2B */
+    --border: 41 18% 82%; /* Pedra #D9D4C8 */
+    --input: 41 18% 82%; /* Pedra #D9D4C8 */
+    --ring: 185 56% 29%; /* Aegean #216E75 */
 
-    --radius: 0.75rem; /* 12px padrão para cartões */
+    --radius: 0.875rem; /* 14px padrão para cartões/modais */
 
-    /* Sidebar Indaba Deep */
-    --sidebar-background: 30 11% 11%;
-    --sidebar-foreground: 36 30% 91%;
-    --sidebar-primary: 36 76% 53%;
-    --sidebar-primary-foreground: 30 11% 11%;
-    --sidebar-accent: 30 11% 15%;
-    --sidebar-accent-foreground: 40 100% 99%;
-    --sidebar-border: 30 11% 18%;
-    --sidebar-ring: 36 76% 53%;
+    /* Sidebar Koinon Ink */
+    --sidebar-background: 220 27% 15%; /* #1C2331 */
+    --sidebar-foreground: 48 10% 94%; /* #F2F1ED */
+    --sidebar-primary: 185 56% 29%; /* Aegean */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 25% 20%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 20% 24%;
+    --sidebar-ring: 185 56% 29%;
 
-    --chart-1: 36 76% 53%; /* Ocre */
-    --chart-2: 30 11% 11%; /* Indaba Deep */
-    --chart-3: 14 57% 50%; /* Terracota */
-    --chart-4: 33 9% 38%; /* Grafite */
-    --chart-5: 38 28% 88%; /* Borda */
+    --chart-1: 185 56% 29%; /* Aegean */
+    --chart-2: 97 12% 51%; /* Sálvia #7D8F72 */
+    --chart-3: 220 27% 15%; /* Koinon Ink */
+    --chart-4: 216 9% 42%; /* Grafite */
+    --chart-5: 41 18% 82%; /* Pedra */
   }
 
   * {
-    border-color: #e8e1d6;
+    border-color: #d9d4c8;
   }
 
   html {
@@ -88,10 +89,10 @@
   }
 
   body {
-    background-color: #f4efe7;
-    color: #1e1b18;
+    background-color: #f2f1ed;
+    color: #1c2331;
     font-family:
-      'Manrope',
+      'Sora',
       -apple-system,
       BlinkMacSystemFont,
       'Segoe UI',
@@ -109,10 +110,12 @@
     text-rendering: geometricPrecision;
   }
 
-  /* Pesos de fonte adequados: corpo 400, rótulos 500, títulos 600 conforme identidade */
+  /* Pesos de fonte adequados: corpo 400, rótulos 500, títulos 600 conforme identidade Koinon */
   label,
   .text-label {
+    font-family: 'Sora', sans-serif;
     font-weight: 500;
+    color: #626a76;
   }
 
   h1,
@@ -121,7 +124,8 @@
   h4,
   h5,
   h6 {
-    color: #1e1b18;
+    font-family: 'Sora', sans-serif;
+    color: #1c2331;
     font-weight: 600;
     letter-spacing: -0.02em;
     font-style: normal !important;
@@ -368,65 +372,64 @@
   }
 }
 
-/* Classes utilitárias do Design System Indaba para substituição rápida */
-/* Harmonização com o Design System Indaba */
+/* Harmonização com o Design System Koinon */
 .bg-cyan-700,
 .bg-cyan-600,
 .bg-cyan-800,
 .bg-blue-600,
 .bg-blue-700 {
-  background-color: #e39a2b !important;
-  color: #1e1b18 !important;
+  background-color: #216e75 !important;
+  color: #ffffff !important;
   border-color: transparent !important;
 }
 .bg-cyan-700:hover,
 .bg-cyan-800:hover,
 .bg-blue-600:hover,
 .bg-blue-700:hover {
-  background-color: #d48c20 !important;
-  color: #1e1b18 !important;
+  background-color: #1a585e !important;
+  color: #ffffff !important;
 }
 .bg-cyan-50,
 .bg-blue-50 {
-  background-color: rgba(227, 154, 43, 0.12) !important;
+  background-color: rgba(33, 110, 117, 0.08) !important;
 }
 .text-cyan-600,
 .text-cyan-700,
 .text-cyan-800,
 .text-blue-600,
 .text-blue-700 {
-  color: #1e1b18 !important;
+  color: #216e75 !important;
 }
 .text-cyan-500 {
-  color: #e39a2b !important;
+  color: #216e75 !important;
 }
 .border-cyan-200,
 .border-cyan-300,
 .border-cyan-100,
 .border-blue-200,
 .border-blue-300 {
-  border-color: #e8e1d6 !important;
+  border-color: #d9d4c8 !important;
 }
 
-/* Tabelas conforme especificação:
-   Cabeçalho com fundo Areia #F4EFE7, texto Grafite #6B6259 peso 600 caixa alta pequena;
-   linhas separadas por 1px #E8E1D6; sem zebra colorida.
+/* Tabelas conforme especificação Koinon:
+   Cabeçalho com fundo Mármore #F2F1ED, texto Grafite #626A76 peso 600 caixa alta pequena;
+   linhas separadas por 1px #D9D4C8; sem zebra colorida.
 */
 table thead th {
-  background-color: #f4efe7 !important;
-  color: #6b6259 !important;
+  background-color: #f2f1ed !important;
+  color: #626a76 !important;
   font-weight: 600 !important;
   font-size: 0.75rem !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.04em !important;
-  border-bottom: 1px solid #e8e1d6 !important;
+  letter-spacing: 0.06em !important;
+  border-bottom: 1px solid #d9d4c8 !important;
 }
 table tbody tr {
-  border-bottom: 1px solid #e8e1d6 !important;
-  background-color: #fffdfa !important;
+  border-bottom: 1px solid #d9d4c8 !important;
+  background-color: #ffffff !important;
 }
 table tbody tr:hover {
-  background-color: rgba(244, 239, 231, 0.4) !important;
+  background-color: rgba(242, 241, 237, 0.5) !important;
 } /* Rich Text Editor Content & Rendered HTML */
 .rich-editor-content .ProseMirror,
 .rendered-document-html {

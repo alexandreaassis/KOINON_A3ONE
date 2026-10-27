@@ -149,17 +149,17 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
 
   return (
     <Dialog open={aberto} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[92vh] overflow-y-auto bg-[#FFFDFA] border-[#E8E1D6] rounded-[12px] shadow-[0_4px_24px_rgba(30,27,24,0.06)] text-[#1E1B18]">
+      <DialogContent className="sm:max-w-lg max-h-[92vh] overflow-y-auto bg-white border-[#D9D4C8] rounded-[14px] shadow-[0_4px_24px_rgba(28,35,49,0.08)] text-[#1C2331]">
         <DialogHeader>
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-[8px] bg-[#E39A2B]/15 border border-[#E39A2B]/30 flex items-center justify-center text-[#1E1B18]">
-              <ShieldCheck className="h-5 w-5 text-[#E39A2B]" />
+            <div className="h-8 w-8 rounded-[8px] bg-[#216E75]/10 border border-[#216E75]/25 flex items-center justify-center text-[#1C2331]">
+              <ShieldCheck className="h-5 w-5 text-[#216E75]" />
             </div>
             <div>
-              <DialogTitle className="text-base font-semibold text-[#1E1B18] tracking-[-0.02em]">
+              <DialogTitle className="text-base font-semibold text-[#1C2331] tracking-[-0.02em]">
                 Assinatura Eletrônica
               </DialogTitle>
-              <DialogDescription className="text-xs text-[#6B6259]">
+              <DialogDescription className="text-xs text-[#626A76]">
                 {subtitulo || `Autenticação do documento "${tituloDocumento}" com carimbo SHA-256`}
               </DialogDescription>
             </div>
@@ -171,7 +171,7 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
           {permitirEditarIdentificacao ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <div className="space-y-1">
-                <Label className="text-xs text-[#1E1B18] font-medium">Nome Completo</Label>
+                <Label className="text-xs text-[#1C2331] font-medium">Nome Completo</Label>
                 <Input
                   type="text"
                   placeholder="Seu nome"
@@ -179,12 +179,12 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
                   onChange={(e) => setNome(e.target.value)}
                   required
                   disabled={salvando}
-                  className="text-xs h-8 bg-[#FFFDFA] border-[#E8E1D6] rounded-[10px]"
+                  className="text-xs h-8 bg-white border-[#D9D4C8] rounded-[10px]"
                 />
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs text-[#1E1B18] font-medium">CPF</Label>
+                <Label className="text-xs text-[#1C2331] font-medium">CPF</Label>
                 <Input
                   type="text"
                   placeholder="000.000.000-00"
@@ -194,34 +194,34 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
                     setCpfErro(null)
                   }}
                   disabled={salvando}
-                  className={`text-xs h-8 bg-[#FFFDFA] border-[#E8E1D6] rounded-[10px] ${cpfErro ? 'border-[#C75B39]' : ''}`}
+                  className={`text-xs h-8 bg-white border-[#D9D4C8] rounded-[10px] ${cpfErro ? 'border-red-600' : ''}`}
                 />
-                {cpfErro && <p className="text-[10px] text-[#C75B39]">{cpfErro}</p>}
+                {cpfErro && <p className="text-[10px] text-red-600">{cpfErro}</p>}
               </div>
 
               {cargoInicial !== undefined && (
                 <div className="space-y-1 sm:col-span-2">
-                  <Label className="text-xs text-[#6B6259]">Cargo / Representação</Label>
+                  <Label className="text-xs text-[#626A76]">Cargo / Representação</Label>
                   <Input
                     type="text"
                     placeholder="Ex: Síndico, Presidente da Mesa..."
                     value={cargo}
                     onChange={(e) => setCargo(e.target.value)}
                     disabled={salvando}
-                    className="text-xs h-8 bg-[#FFFDFA] border-[#E8E1D6] rounded-[10px]"
+                    className="text-xs h-8 bg-white border-[#D9D4C8] rounded-[10px]"
                   />
                 </div>
               )}
             </div>
           ) : (
-            <div className="p-2.5 rounded-[10px] bg-[#F4EFE7] border border-[#E8E1D6] text-xs flex justify-between items-center">
+            <div className="p-2.5 rounded-[10px] bg-[#F2F1ED] border border-[#D9D4C8] text-xs flex justify-between items-center">
               <div>
-                <p className="font-semibold text-[#1E1B18]">{nome}</p>
+                <p className="font-semibold text-[#1C2331]">{nome}</p>
                 {cpf && (
-                  <p className="text-[10px] text-[#6B6259] font-mono">CPF: {formatarCpf(cpf)}</p>
+                  <p className="text-[10px] text-[#626A76] font-mono">CPF: {formatarCpf(cpf)}</p>
                 )}
               </div>
-              {cargo && <span className="text-[11px] text-[#6B6259]">{cargo}</span>}
+              {cargo && <span className="text-[11px] text-[#626A76]">{cargo}</span>}
             </div>
           )}
 
@@ -234,17 +234,17 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
           />
 
           {erroEnvio && (
-            <div className="p-3 bg-[#C75B39]/10 border border-[#C75B39]/30 rounded-[10px] text-xs text-[#1E1B18] space-y-1">
-              <p className="font-semibold flex items-center gap-1.5 text-[#C75B39]">
-                <span className="inline-block w-2 h-2 rounded-full bg-[#C75B39]" />
+            <div className="p-3 bg-red-50 border border-red-200 rounded-[10px] text-xs text-red-900 space-y-1">
+              <p className="font-semibold flex items-center gap-1.5 text-red-700">
+                <span className="inline-block w-2 h-2 rounded-full bg-red-600" />
                 Erro ao gravar assinatura
               </p>
               <p className="text-[11px] leading-relaxed">{erroEnvio}</p>
             </div>
           )}
 
-          <div className="p-2.5 bg-[#F4EFE7] border border-[#E8E1D6] rounded-[10px] text-[11px] text-[#6B6259] leading-relaxed">
-            <span className="font-semibold text-[#1E1B18] block">Integridade Criptográfica:</span>
+          <div className="p-2.5 bg-[#F2F1ED] border border-[#D9D4C8] rounded-[10px] text-[11px] text-[#626A76] leading-relaxed">
+            <span className="font-semibold text-[#1C2331] block">Integridade Criptográfica:</span>
             A confirmação gerará um hash SHA-256 do documento vinculado aos seus dados.
           </div>
 
@@ -255,7 +255,7 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={salvando}
-              className="text-xs border-[#E8E1D6] text-[#1E1B18] rounded-[10px]"
+              className="text-xs border-[#D9D4C8] text-[#1C2331] rounded-[10px]"
             >
               Cancelar
             </Button>
@@ -263,7 +263,7 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
               type="submit"
               size="sm"
               disabled={salvando || !nome.trim()}
-              className="bg-[#E39A2B] hover:bg-[#d48c20] text-[#1E1B18] text-xs font-semibold gap-1.5 rounded-[10px] border-0"
+              className="bg-[#216E75] hover:bg-[#1a585e] text-white text-xs font-semibold gap-1.5 rounded-[10px] border-0"
             >
               {salvando ? (
                 <>

@@ -432,7 +432,7 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
     </div>
 
     <div class="footer-note">
-      Documento gerado eletronicamente pela Plataforma Indaba de Governança Condominial.<br>
+      Documento gerado eletronicamente pela Plataforma Koinon de Governança Condominial.<br>
       A autenticidade deste edital pode ser confirmada por meio do hash SHA-256 e da chave de assinatura criptográfica.
     </div>
   </div>

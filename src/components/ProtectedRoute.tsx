@@ -36,19 +36,19 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (requireAdmin && !isAdmin) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4EFE7] p-4 text-[#1E1B18]">
-        <Card className="max-w-md border-[#E8E1D6] bg-[#FFFDFA] shadow-[0_4px_24px_rgba(30,27,24,0.06)] rounded-[12px]">
+      <div className="flex min-h-screen items-center justify-center bg-[#F2F1ED] p-4 text-[#1C2331]">
+        <Card className="max-w-md border-[#D9D4C8] bg-white shadow-[0_4px_24px_rgba(28,35,49,0.08)] rounded-[14px]">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-[#E39A2B]/15 text-[#E39A2B]">
+            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-[#216E75]/10 text-[#216E75]">
               <ShieldAlert className="h-7 w-7" />
             </div>
-            <CardTitle className="text-xl font-semibold tracking-[-0.02em] text-[#1E1B18]">
+            <CardTitle className="text-xl font-semibold tracking-[-0.02em] text-[#1C2331]">
               Acesso Restrito à Administração
             </CardTitle>
-            <CardDescription className="text-xs text-[#6B6259]">
+            <CardDescription className="text-xs text-[#626A76]">
               Esta seção é restrita aos administradores do condomínio. Seu perfil atual está
               classificado como{' '}
-              <strong className="text-[#1E1B18] font-semibold">
+              <strong className="text-[#1C2331] font-semibold">
                 {role || 'Morador'} ({user.name || user.email})
               </strong>
               .
@@ -57,7 +57,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           <CardContent className="flex flex-col gap-2 pt-2">
             <Button
               variant="default"
-              className="bg-[#E39A2B] hover:bg-[#d48c20] text-[#1E1B18] font-semibold rounded-[10px] shadow-none border-0"
+              className="bg-[#216E75] hover:bg-[#1a585e] text-white font-semibold rounded-[10px] shadow-none border-0"
               onClick={() => {
                 window.location.href = '/'
               }}
@@ -66,7 +66,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             </Button>
             <Button
               variant="outline"
-              className="border-[#E8E1D6] hover:bg-[#F4EFE7] rounded-[10px]"
+              className="border-[#D9D4C8] hover:bg-[#F2F1ED] rounded-[10px]"
               onClick={logout}
             >
               <LogOut className="mr-2 h-4 w-4" /> Trocar de Conta
@@ -79,19 +79,19 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (requireMesa && !isMesaOuAdmin) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4EFE7] p-4 text-[#1E1B18]">
-        <Card className="max-w-md border-[#E8E1D6] bg-[#FFFDFA] shadow-[0_4px_24px_rgba(30,27,24,0.06)] rounded-[12px]">
+      <div className="flex min-h-screen items-center justify-center bg-[#F2F1ED] p-4 text-[#1C2331]">
+        <Card className="max-w-md border-[#D9D4C8] bg-white shadow-[0_4px_24px_rgba(28,35,49,0.08)] rounded-[14px]">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-[#E39A2B]/15 text-[#E39A2B]">
+            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-[#216E75]/10 text-[#216E75]">
               <ShieldAlert className="h-7 w-7" />
             </div>
-            <CardTitle className="text-xl font-semibold tracking-[-0.02em] text-[#1E1B18]">
+            <CardTitle className="text-xl font-semibold tracking-[-0.02em] text-[#1C2331]">
               Acesso Restrito à Mesa e Administração
             </CardTitle>
-            <CardDescription className="text-xs text-[#6B6259]">
+            <CardDescription className="text-xs text-[#626A76]">
               Esta seção é restrita aos membros da mesa diretora e administradores da assembleia.
               Seu perfil atual está classificado como{' '}
-              <strong className="text-[#1E1B18] font-semibold">
+              <strong className="text-[#1C2331] font-semibold">
                 Morador ({user.name || user.email})
               </strong>
               .
@@ -100,7 +100,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           <CardContent className="flex flex-col gap-2 pt-2">
             <Button
               variant="default"
-              className="bg-[#E39A2B] hover:bg-[#d48c20] text-[#1E1B18] font-semibold rounded-[10px] shadow-none border-0"
+              className="bg-[#216E75] hover:bg-[#1a585e] text-white font-semibold rounded-[10px] shadow-none border-0"
               onClick={() => {
                 window.location.href = '/'
               }}
@@ -109,7 +109,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             </Button>
             <Button
               variant="outline"
-              className="border-[#E8E1D6] hover:bg-[#F4EFE7] rounded-[10px]"
+              className="border-[#D9D4C8] hover:bg-[#F2F1ED] rounded-[10px]"
               onClick={logout}
             >
               <LogOut className="mr-2 h-4 w-4" /> Trocar de Conta

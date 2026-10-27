@@ -511,74 +511,73 @@ export const GestaoUsuariosPage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
-      {/* Cabeçalho Institucional Indaba */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8E1D6] pb-5">
+      {/* Cabeçalho Institucional Koinon */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D9D4C8] pb-5">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[8px] bg-[#E39A2B]/15 text-[#1E1B18] border border-[#E39A2B]/30 text-[11px] font-semibold mb-2">
-            <Shield className="h-3.5 w-3.5 text-[#E39A2B]" /> Controle de Acesso e Governança
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[8px] bg-[#216E75]/10 text-[#1C2331] border border-[#216E75]/25 text-[11px] font-semibold mb-2">
+            <Shield className="h-3.5 w-3.5 text-[#216E75]" /> Controle de Acesso e Governança
           </div>
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#1E1B18] flex items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#1C2331] flex items-center gap-2">
             Gestão de Usuários e Permissões
           </h1>
-          <p className="text-xs text-[#6B6259] mt-1 max-w-2xl">
-            Cadastro unificado de condôminos, comissões eleitorais e operadores da mesa do
-            condomínio <strong className="text-[#1E1B18]">{nomeCondominio}</strong>. Toda alteração
-            de acesso é auditada e registrada de forma encadeada.
+          <p className="text-xs text-[#626A76] mt-1 max-w-2xl">
+            Gerencie os operadores da mesa, membros da administração e condôminos habilitados no
+            condomínio <strong className="text-[#1C2331]">{nomeCondominio}</strong>. Toda alteração
+            de perfil é registrada para auditoria.
           </p>
         </div>
 
         <Button
-          onClick={abrirNovoUsuario}
-          className="bg-[#E39A2B] hover:bg-[#d48c20] text-[#1E1B18] font-semibold text-xs h-9 px-3.5 rounded-[10px] shadow-none border-0 self-start sm:self-center"
+          onClick={abrirModalNovo}
+          className="bg-[#216E75] hover:bg-[#1a585e] text-white font-semibold text-xs h-9 px-3.5 rounded-[10px] shadow-none border-0 self-start sm:self-center"
         >
-          <UserPlus className="mr-2 h-4 w-4" /> Criar usuário
+          <UserPlus className="mr-1.5 h-4 w-4" /> Novo Usuário
         </Button>
       </div>
-
       {/* Cartão de Resumo e Métricas Operacionais */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Card className="border-[#E8E1D6] bg-[#FFFDFA] rounded-[12px] shadow-[0_4px_24px_rgba(30,27,24,0.04)]">
+        <Card className="border-[#D9D4C8] bg-white rounded-[14px] shadow-[0_4px_24px_rgba(28,35,49,0.08)]">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.04em] text-[#6B6259]">
+              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[#626A76]">
                 Total de Usuários
               </p>
-              <p className="text-xl font-bold text-[#1E1B18] mt-0.5">{usuarios.length}</p>
+              <p className="text-xl font-bold text-[#1C2331] mt-0.5">{usuarios.length}</p>
             </div>
-            <div className="h-9 w-9 rounded-full bg-[#F4EFE7] flex items-center justify-center text-[#1E1B18]">
+            <div className="h-9 w-9 rounded-full bg-[#F2F1ED] flex items-center justify-center text-[#1C2331]">
               <Users className="h-4 w-4" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-[#E8E1D6] bg-[#FFFDFA] rounded-[12px] shadow-[0_4px_24px_rgba(30,27,24,0.04)]">
+        <Card className="border-[#D9D4C8] bg-white rounded-[14px] shadow-[0_4px_24px_rgba(28,35,49,0.08)]">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.04em] text-[#6B6259]">
+              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[#626A76]">
                 Usuários Ativos
               </p>
-              <p className="text-xl font-bold text-[#2A6E3F] mt-0.5">
+              <p className="text-xl font-bold text-[#7D8F72] mt-0.5">
                 {usuarios.filter((u) => u.ativo !== false).length}
               </p>
             </div>
-            <div className="h-9 w-9 rounded-full bg-[#2A6E3F]/10 flex items-center justify-center text-[#2A6E3F]">
+            <div className="h-9 w-9 rounded-full bg-[#7D8F72]/15 flex items-center justify-center text-[#7D8F72]">
               <CheckCircle2 className="h-4 w-4" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-[#E8E1D6] bg-[#FFFDFA] rounded-[12px] shadow-[0_4px_24px_rgba(30,27,24,0.04)]">
+        <Card className="border-[#D9D4C8] bg-white rounded-[14px] shadow-[0_4px_24px_rgba(28,35,49,0.08)]">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.04em] text-[#6B6259]">
+              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[#626A76]">
                 Gestores / Operadores
               </p>
-              <p className="text-xl font-bold text-[#E39A2B] mt-0.5">
+              <p className="text-xl font-bold text-[#216E75] mt-0.5">
                 {totalGestoresAtivos}{' '}
-                <span className="text-[11px] font-normal text-[#6B6259]">ativos</span>
+                <span className="text-[11px] font-normal text-[#626A76]">ativos</span>
               </p>
             </div>
-            <div className="h-9 w-9 rounded-full bg-[#E39A2B]/15 flex items-center justify-center text-[#E39A2B]">
+            <div className="h-9 w-9 rounded-full bg-[#216E75]/10 flex items-center justify-center text-[#216E75]">
               <Shield className="h-4 w-4" />
             </div>
           </CardContent>
@@ -678,7 +677,7 @@ export const GestaoUsuariosPage: React.FC = () => {
         <CardContent className="p-0">
           {carregando ? (
             <div className="py-12 flex flex-col items-center justify-center text-[#6B6259] gap-2">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#E39A2B] border-t-transparent" />
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#216E75] border-t-transparent" />
               <p className="text-xs">Consultando base de usuários...</p>
             </div>
           ) : usuariosFiltrados.length === 0 ? (
@@ -691,10 +690,11 @@ export const GestaoUsuariosPage: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* VISÃO DESKTOP (Tabela padrão Indaba com Cabeçalho Areia) */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F4EFE7] border-y border-[#E8E1D6] text-[#6B6259] font-semibold uppercase text-[10px] tracking-wider">
+              {/* VISÃO DESKTOP (Tabela padrão Koinon com Cabeçalho Mármore) */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-[#F2F1ED] border-y border-[#D9D4C8] text-[#626A76] font-semibold uppercase text-[10px] tracking-wider">
+                    {' '}
                     <tr>
                       <th className="py-3 px-4">Nome / Identificação</th>
                       <th className="py-3 px-4">E-mail</th>
@@ -750,10 +750,10 @@ export const GestaoUsuariosPage: React.FC = () => {
                             <Badge
                               className={`text-[10px] uppercase font-bold tracking-wider shrink-0 text-center leading-normal border rounded-[6px] ${
                                 u.role === 'admin'
-                                  ? 'bg-[#1E1B18] text-[#FFFDFA] border-[#2E2A26]'
+                                  ? 'bg-[#1C2331] text-[#FFFFFF] border-[#2C364A]'
                                   : u.role === 'mesa'
-                                    ? 'bg-[#E39A2B]/15 text-[#1E1B18] border-[#E39A2B]/40'
-                                    : 'bg-[#F4EFE7] text-[#1E1B18] border-[#E8E1D6]'
+                                    ? 'bg-[#216E75]/15 text-[#1C2331] border-[#216E75]/30'
+                                    : 'bg-[#F2F1ED] text-[#1C2331] border-[#D9D4C8]'
                               }`}
                             >
                               {u.role === 'admin'
