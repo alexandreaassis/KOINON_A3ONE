@@ -5,6 +5,8 @@ import {
   type ItemPautaRecord,
   type DeliberacaoStatus,
 } from '@/lib/api'
+import pb from '@/lib/pocketbase/client'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
 import {
   Card,
@@ -303,6 +305,30 @@ export const DeliberacoesPage: React.FC = () => {
 
   const excluirItem = async (itemId: string) => {
     if (!confirm('Deseja excluir este item de pauta?')) return
+
+    // 1. Verificação prévia de cédulas vinculadas ao item
+    try {
+      const cedulasVinculadas = await pb.collection('cedulas').getList(1, 1, {
+        filter: pb.filter('item = {:itemId}', { itemId }),
+      })
+
+      if (
+        cedulasVinculadas.totalItems > 0 ||
+        (cedulasVinculadas.items && cedulasVinculadas.items.length > 0)
+      ) {
+        toast({
+          title: 'Não é possível excluir o item',
+          description:
+            'Este item possui votação registrada e não pode ser excluído. O histórico das cédulas preserva a auditoria da assembleia.',
+          variant: 'destructive',
+        })
+        return
+      }
+    } catch (checkErr) {
+      console.warn('Erro ao verificar cédulas do item antes da exclusão:', checkErr)
+    }
+
+    // 2. Chamada de exclusão com tratamento de erro
     try {
       await api.deleteItemPauta(itemId)
       toast({ title: 'Item Excluído' })
@@ -311,9 +337,18 @@ export const DeliberacoesPage: React.FC = () => {
         setItensPauta(itens)
       }
     } catch (err: any) {
+      const msg = getErrorMessage(err)
+      const isRelationError =
+        msg.includes('part of a required relation reference') ||
+        msg.includes('vinculado a outros dados do sistema') ||
+        err?.message?.includes('required relation reference') ||
+        err?.response?.message?.includes('required relation reference')
+
       toast({
         title: 'Erro ao excluir',
-        description: err?.message,
+        description: isRelationError
+          ? 'Este item possui votação registrada e não pode ser excluído. O histórico das cédulas preserva a auditoria da assembleia.'
+          : msg || err?.message || 'Falha ao excluir item de pauta.',
         variant: 'destructive',
       })
     }

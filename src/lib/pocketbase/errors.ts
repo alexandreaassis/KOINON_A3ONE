@@ -20,14 +20,34 @@ export function extractFieldErrors(error: unknown): FieldErrors {
   return errors
 }
 
-export function getErrorMessage(error: unknown, fallbackMessage?: string): string {
+export function getErrorMessage(error: unknown, fallback?: string): string {
   if (!(error instanceof ClientResponseError)) {
-    return error instanceof Error
-      ? error.message
-      : fallbackMessage || 'An unexpected error occurred.'
+    if (error instanceof Error) {
+      if (
+        error.message.includes(
+          'Failed to delete record. Make sure that the record is not part of a required relation reference.',
+        )
+      ) {
+        return 'Este registro está vinculado a outros dados do sistema e não pode ser excluído.'
+      }
+      return error.message
+    }
+    return fallback || 'An unexpected error occurred.'
   }
+
+  // Tratamento específico para erro de relação obrigatória do PocketBase
+  if (
+    error.message?.includes(
+      'Failed to delete record. Make sure that the record is not part of a required relation reference.',
+    )
+  ) {
+    return 'Este registro está vinculado a outros dados do sistema e não pode ser excluído.'
+  }
+
   const msgs = Object.values(extractFieldErrors(error))
-  return msgs.length > 0
-    ? msgs.join(' ')
-    : error.message || fallbackMessage || 'An unexpected error occurred.'
+  if (msgs.length > 0) {
+    return msgs.join(' ')
+  }
+
+  return error.message || fallback || 'An unexpected error occurred.'
 }
