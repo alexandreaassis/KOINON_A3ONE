@@ -805,12 +805,14 @@ export const ListaPresencaPage: React.FC = () => {
                     </span>
                   </th>
 
-                  {/* Coluna 4: Poderes de Procuração / Representante abreviado para Proc. */}
+                  {/* Coluna 4: Poderes de Procuração / Representante */}
                   <th
                     className="p-2 border-r border-[#E8E1D6] relative group"
                     title="Poderes de Procuração / Representante Legal com CPF e documento anexo"
                   >
-                    <span className="truncate block font-semibold text-[#6B6259]">Proc.</span>
+                    <span className="truncate block font-semibold text-[#6B6259]">
+                      PROCURADOR(A)
+                    </span>
                     <span
                       role="separator"
                       aria-orientation="vertical"
