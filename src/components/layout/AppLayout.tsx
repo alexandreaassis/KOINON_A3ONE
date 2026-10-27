@@ -50,6 +50,16 @@ interface AppLayoutProps {
   subtitle?: string
 }
 
+// Chave e memória persistente para a rolagem do menu lateral
+const SIDEBAR_SCROLL_STORAGE_KEY = 'indaba_sidebar_scroll_top'
+let memoriaSidebarScrollTop = 0
+try {
+  const salvo = sessionStorage.getItem(SIDEBAR_SCROLL_STORAGE_KEY)
+  if (salvo) memoriaSidebarScrollTop = Number(salvo) || 0
+} catch {
+  /* ignore */
+}
+
 export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle }) => {
   const {
     user,
@@ -78,6 +88,32 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
       return false
     }
   })
+
+  // Ref e persistência de rolagem do menu lateral para evitar qualquer salto/auto-scroll
+  const desktopNavRef = React.useRef<HTMLDivElement | null>(null)
+
+  const handleSidebarScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    memoriaSidebarScrollTop = e.currentTarget.scrollTop
+    try {
+      sessionStorage.setItem(SIDEBAR_SCROLL_STORAGE_KEY, String(memoriaSidebarScrollTop))
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const setDesktopNavRef = React.useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      node.scrollTop = memoriaSidebarScrollTop
+    }
+    desktopNavRef.current = node
+  }, [])
+
+  // Preserva a posição de rolagem do menu lateral na troca de rotas sem qualquer animação ou salto
+  React.useLayoutEffect(() => {
+    if (desktopNavRef.current) {
+      desktopNavRef.current.scrollTop = memoriaSidebarScrollTop
+    }
+  }, [location.pathname, collapsed])
 
   const alternarCollapse = () => {
     setCollapsed((prev) => {
@@ -225,6 +261,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
       <Link
         key={item.path}
         to={item.path}
+        preventScrollReset={true}
         onClick={onNavigate}
         className={`relative flex items-center rounded-[10px] text-xs font-medium transition-colors ${
           isCollapsed ? 'justify-center p-2.5 mx-auto' : 'gap-3 px-3 py-2'
@@ -261,7 +298,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
   }
 
   // Componente de Conteúdo da Sidebar (compartilhado entre desktop e mobile)
-  const SidebarContent = ({ isCollapsed = false }: { isCollapsed?: boolean }) => {
+  const SidebarContent = ({
+    isCollapsed = false,
+    navRef,
+    onScroll,
+  }: {
+    isCollapsed?: boolean
+    navRef?: (node: HTMLDivElement | null) => void
+    onScroll?: (e: React.UIEvent<HTMLDivElement>) => void
+  }) => {
     // Regras de visibilidade por perfil:
     // - morador vê Módulo do Morador
     // - mesa vê Módulo da Mesa
@@ -272,7 +317,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
 
     return (
       <div className="flex h-full flex-col justify-between bg-[#1E1B18] text-[#E8E1D6] select-none">
-        <div className="overflow-y-auto overflow-x-hidden">
+        <div ref={navRef} onScroll={onScroll} className="overflow-y-auto overflow-x-hidden">
           {/* Brand Header com Logotipo Indaba Negativo no topo da Sidebar e Botão de Colapso */}
           <div
             className={`border-b border-[#2E2A26] flex items-center justify-between ${
@@ -632,7 +677,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
           collapsed ? 'w-[68px]' : 'w-64'
         }`}
       >
-        <SidebarContent isCollapsed={collapsed} />
+        <SidebarContent
+          isCollapsed={collapsed}
+          navRef={setDesktopNavRef}
+          onScroll={handleSidebarScroll}
+        />
       </aside>
 
       {/* Main Content Area */}

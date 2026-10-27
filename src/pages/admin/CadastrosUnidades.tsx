@@ -44,6 +44,7 @@ import {
   Mail,
   ShieldAlert,
   Info,
+  RotateCcw,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
@@ -64,6 +65,127 @@ interface LinhaPlanilhaImportada {
 export const CadastrosUnidadesPage: React.FC = () => {
   const { rotuloUnidade, nomeCondominio } = useCondoConfig()
   const { user } = useAuth()
+
+  // Definição e Larguras padrão das Colunas da Tabela (mesmo padrão da Lista de Presença)
+  const STORAGE_KEY_LARGURAS = 'indaba_cadastros_unidades_colunas_v1'
+  const LARGURAS_PADRAO: Record<string, number> = {
+    unidade: 140,
+    nome: 260,
+    cpf: 140,
+    vinculo: 180,
+    contatos: 220,
+    status: 100,
+    acoes: 90,
+  }
+  const LARGURAS_MINIMAS: Record<string, number> = {
+    unidade: 80,
+    nome: 140,
+    cpf: 110,
+    vinculo: 120,
+    contatos: 140,
+    status: 80,
+    acoes: 80,
+  }
+
+  const [largurasColunas, setLargurasColunas] = useState<Record<string, number>>(() => {
+    try {
+      const salvo = localStorage.getItem(STORAGE_KEY_LARGURAS)
+      if (salvo) {
+        const parsed = JSON.parse(salvo)
+        return { ...LARGURAS_PADRAO, ...parsed }
+      }
+    } catch {
+      /* ignore */
+    }
+    return LARGURAS_PADRAO
+  })
+
+  // Salvar larguras ao alterar
+  const salvarLarguraColuna = (colKey: string, novaLargura: number) => {
+    setLargurasColunas((antigas) => {
+      const min = LARGURAS_MINIMAS[colKey] || 60
+      const ajustada = Math.max(min, Math.round(novaLargura))
+      const novo = { ...antigas, [colKey]: ajustada }
+      try {
+        localStorage.setItem(STORAGE_KEY_LARGURAS, JSON.stringify(novo))
+      } catch {
+        /* ignore */
+      }
+      return novo
+    })
+  }
+
+  // Restaurar larguras ao padrão
+  const restaurarLargurasPadrao = () => {
+    setLargurasColunas(LARGURAS_PADRAO)
+    try {
+      localStorage.removeItem(STORAGE_KEY_LARGURAS)
+    } catch {
+      /* ignore */
+    }
+    toast({
+      title: 'Larguras restauradas',
+      description: 'As colunas da tabela de cadastros voltaram à largura padrão.',
+    })
+  }
+
+  // Iniciar arraste de redimensionamento (Mouse ou Touch)
+  const iniciarRedimensionamento = (
+    colKey: string,
+    eventoInicial: React.MouseEvent | React.TouchEvent,
+  ) => {
+    eventoInicial.preventDefault()
+    eventoInicial.stopPropagation()
+
+    const clientXInicial =
+      'touches' in eventoInicial ? eventoInicial.touches[0].clientX : eventoInicial.clientX
+    const larguraInicial = largurasColunas[colKey] || LARGURAS_PADRAO[colKey] || 100
+    const min = LARGURAS_MINIMAS[colKey] || 60
+
+    let larguraAtual = larguraInicial
+
+    const onPointerMove = (e: MouseEvent | TouchEvent) => {
+      const currentX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX
+      const deltaX = currentX - clientXInicial
+      larguraAtual = Math.max(min, Math.round(larguraInicial + deltaX))
+
+      setLargurasColunas((prev) => ({
+        ...prev,
+        [colKey]: larguraAtual,
+      }))
+    }
+
+    const onPointerUp = () => {
+      window.removeEventListener('mousemove', onPointerMove)
+      window.removeEventListener('mouseup', onPointerUp)
+      window.removeEventListener('touchmove', onPointerMove)
+      window.removeEventListener('touchend', onPointerUp)
+      window.removeEventListener('touchcancel', onPointerUp)
+
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+
+      // Persistir valor final
+      setLargurasColunas((prev) => {
+        const finalObj = { ...prev, [colKey]: larguraAtual }
+        try {
+          localStorage.setItem(STORAGE_KEY_LARGURAS, JSON.stringify(finalObj))
+        } catch {
+          /* ignore */
+        }
+        return finalObj
+      })
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    window.addEventListener('mousemove', onPointerMove, { passive: true })
+    window.addEventListener('mouseup', onPointerUp)
+    window.addEventListener('touchmove', onPointerMove, { passive: true })
+    window.addEventListener('touchend', onPointerUp)
+    window.addEventListener('touchcancel', onPointerUp)
+  }
 
   // Estados principais
   const [cadastros, setCadastros] = useState<CadastroUnidadeRecord[]>([])
@@ -808,6 +930,16 @@ export const CadastrosUnidadesPage: React.FC = () => {
           >
             <UserPlus className="mr-1.5 h-3.5 w-3.5" /> Novo Cadastro
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={restaurarLargurasPadrao}
+            className="text-[11px] h-9 px-2.5 border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-[10px]"
+            title="Restaurar a largura padrão de todas as colunas"
+          >
+            <RotateCcw className="h-3.5 w-3.5 mr-1 text-[#E39A2B]" /> Restaurar larguras
+          </Button>
         </div>
       </div>
 
@@ -910,20 +1042,148 @@ export const CadastrosUnidadesPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Tabela de Cadastros */}
+      {/* Tabela de Cadastros com Colunas Redimensionáveis */}
       <Card className="border-slate-200 shadow-xs">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
+          <div className="overflow-x-auto w-full">
+            <table
+              className="w-full text-xs text-left border-collapse"
+              style={{
+                tableLayout: 'fixed',
+                minWidth:
+                  largurasColunas.unidade +
+                  largurasColunas.nome +
+                  largurasColunas.cpf +
+                  largurasColunas.vinculo +
+                  largurasColunas.contatos +
+                  largurasColunas.status +
+                  largurasColunas.acoes,
+              }}
+            >
+              <colgroup>
+                <col style={{ width: `${largurasColunas.unidade}px` }} />
+                <col style={{ width: `${largurasColunas.nome}px` }} />
+                <col style={{ width: `${largurasColunas.cpf}px` }} />
+                <col style={{ width: `${largurasColunas.vinculo}px` }} />
+                <col style={{ width: `${largurasColunas.contatos}px` }} />
+                <col style={{ width: `${largurasColunas.status}px` }} />
+                <col style={{ width: `${largurasColunas.acoes}px` }} />
+              </colgroup>
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[10px] select-none">
                 <tr>
-                  <th className="py-3 px-4">Unidade</th>
-                  <th className="py-3 px-4">Nome Completo</th>
-                  <th className="py-3 px-4">CPF</th>
-                  <th className="py-3 px-4">Classificação / Vínculo</th>
-                  <th className="py-3 px-4">Contatos</th>
-                  <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-4 text-right">Ações</th>
+                  {/* Coluna 1: Unidade */}
+                  <th className="py-3 px-4 relative group">
+                    <span className="truncate block">Unidade</span>
+                    <span
+                      role="separator"
+                      aria-orientation="vertical"
+                      title="Arrastar para redimensionar (duplo clique para restaurar)"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#E39A2B]/40 active:bg-[#E39A2B] z-10 flex items-center justify-center touch-none"
+                      onMouseDown={(e) => iniciarRedimensionamento('unidade', e)}
+                      onTouchStart={(e) => iniciarRedimensionamento('unidade', e)}
+                      onDoubleClick={() => salvarLarguraColuna('unidade', LARGURAS_PADRAO.unidade)}
+                    >
+                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#E39A2B]" />
+                    </span>
+                  </th>
+
+                  {/* Coluna 2: Nome Completo */}
+                  <th className="py-3 px-4 relative group">
+                    <span className="truncate block">Nome Completo</span>
+                    <span
+                      role="separator"
+                      aria-orientation="vertical"
+                      title="Arrastar para redimensionar (duplo clique para restaurar)"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#E39A2B]/40 active:bg-[#E39A2B] z-10 flex items-center justify-center touch-none"
+                      onMouseDown={(e) => iniciarRedimensionamento('nome', e)}
+                      onTouchStart={(e) => iniciarRedimensionamento('nome', e)}
+                      onDoubleClick={() => salvarLarguraColuna('nome', LARGURAS_PADRAO.nome)}
+                    >
+                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#E39A2B]" />
+                    </span>
+                  </th>
+
+                  {/* Coluna 3: CPF */}
+                  <th className="py-3 px-4 relative group">
+                    <span className="truncate block">CPF</span>
+                    <span
+                      role="separator"
+                      aria-orientation="vertical"
+                      title="Arrastar para redimensionar (duplo clique para restaurar)"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#E39A2B]/40 active:bg-[#E39A2B] z-10 flex items-center justify-center touch-none"
+                      onMouseDown={(e) => iniciarRedimensionamento('cpf', e)}
+                      onTouchStart={(e) => iniciarRedimensionamento('cpf', e)}
+                      onDoubleClick={() => salvarLarguraColuna('cpf', LARGURAS_PADRAO.cpf)}
+                    >
+                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#E39A2B]" />
+                    </span>
+                  </th>
+
+                  {/* Coluna 4: VÍNCULO (exatamente VÍNCULO) */}
+                  <th className="py-3 px-4 relative group">
+                    <span className="truncate block">VÍNCULO</span>
+                    <span
+                      role="separator"
+                      aria-orientation="vertical"
+                      title="Arrastar para redimensionar (duplo clique para restaurar)"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#E39A2B]/40 active:bg-[#E39A2B] z-10 flex items-center justify-center touch-none"
+                      onMouseDown={(e) => iniciarRedimensionamento('vinculo', e)}
+                      onTouchStart={(e) => iniciarRedimensionamento('vinculo', e)}
+                      onDoubleClick={() => salvarLarguraColuna('vinculo', LARGURAS_PADRAO.vinculo)}
+                    >
+                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#E39A2B]" />
+                    </span>
+                  </th>
+
+                  {/* Coluna 5: Contatos */}
+                  <th className="py-3 px-4 relative group">
+                    <span className="truncate block">Contatos</span>
+                    <span
+                      role="separator"
+                      aria-orientation="vertical"
+                      title="Arrastar para redimensionar (duplo clique para restaurar)"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#E39A2B]/40 active:bg-[#E39A2B] z-10 flex items-center justify-center touch-none"
+                      onMouseDown={(e) => iniciarRedimensionamento('contatos', e)}
+                      onTouchStart={(e) => iniciarRedimensionamento('contatos', e)}
+                      onDoubleClick={() =>
+                        salvarLarguraColuna('contatos', LARGURAS_PADRAO.contatos)
+                      }
+                    >
+                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#E39A2B]" />
+                    </span>
+                  </th>
+
+                  {/* Coluna 6: Status */}
+                  <th className="py-3 px-4 text-center relative group">
+                    <span className="truncate block">Status</span>
+                    <span
+                      role="separator"
+                      aria-orientation="vertical"
+                      title="Arrastar para redimensionar (duplo clique para restaurar)"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#E39A2B]/40 active:bg-[#E39A2B] z-10 flex items-center justify-center touch-none"
+                      onMouseDown={(e) => iniciarRedimensionamento('status', e)}
+                      onTouchStart={(e) => iniciarRedimensionamento('status', e)}
+                      onDoubleClick={() => salvarLarguraColuna('status', LARGURAS_PADRAO.status)}
+                    >
+                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#E39A2B]" />
+                    </span>
+                  </th>
+
+                  {/* Coluna 7: Ações */}
+                  <th className="py-3 px-4 text-right relative group">
+                    <span className="truncate block">Ações</span>
+                    <span
+                      role="separator"
+                      aria-orientation="vertical"
+                      title="Arrastar para redimensionar (duplo clique para restaurar)"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#E39A2B]/40 active:bg-[#E39A2B] z-10 flex items-center justify-center touch-none"
+                      onMouseDown={(e) => iniciarRedimensionamento('acoes', e)}
+                      onTouchStart={(e) => iniciarRedimensionamento('acoes', e)}
+                      onDoubleClick={() => salvarLarguraColuna('acoes', LARGURAS_PADRAO.acoes)}
+                    >
+                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#E39A2B]" />
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
