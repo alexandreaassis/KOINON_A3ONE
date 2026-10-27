@@ -16,14 +16,14 @@ export interface KoinonSymbolProps {
 }
 
 /**
- * Símbolo Oficial Koinon (Regra Seção 5):
- * Anel de SEIS ARCOS de igual comprimento e espessura, separados por SEIS INTERVALOS iguais,
- * simetria radial de 60 graus, centro completamente vazio, e um PONTO sólido em Aegean repousando
- * sobre o arco superior, no eixo de 12 horas.
+ * Símbolo Oficial Koinon (Fiel à marca e imagem de referência):
+ * Anel de SEIS ARCOS espessos com extremidades arredondadas (strokeLinecap="round"),
+ * simetria radial de 60 graus, centro vazio e PONTO sólido maior em Aegean #216E75
+ * no eixo de 12 horas ligeiramente sobreposto ao arco superior.
  *
- * Duas variantes:
- * - Variante ÓPTICA (< 48px): Espessura 12, arco 44 graus, intervalo 16 graus
- * - Variante MASTER (>= 48px): Espessura 16, arco 46 graus, intervalo 14 graus
+ * Cores exatas:
+ * - Arcos: #1C2331 (Koinon Ink) ou #FFFFFF (versão negativa)
+ * - Ponto: #216E75 (Aegean)
  */
 export const KoinonSymbol: React.FC<KoinonSymbolProps> = ({
   size = 24,
@@ -32,67 +32,7 @@ export const KoinonSymbol: React.FC<KoinonSymbolProps> = ({
 }) => {
   const isNegative = variant === 'negative' || variant === 'negative-solid'
   const strokeColor = isNegative ? '#FFFFFF' : '#1C2331'
-  const dotColor = '#216E75' // Aegean mantido conforme especificação
-
-  const isMaster = size >= 48
-
-  if (isMaster) {
-    return (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 240 240"
-        width={size}
-        height={size}
-        role="img"
-        aria-label="Símbolo com seis arcos e um ponto no topo"
-        className={`shrink-0 select-none ${className}`}
-      >
-        <path
-          d="M 89.53 48.20 A 78 78 0 0 1 150.47 48.20"
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth="16"
-          strokeLinecap="round"
-        />
-        <path
-          d="M 166.94 57.71 A 78 78 0 0 1 197.42 110.49"
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth="16"
-          strokeLinecap="round"
-        />
-        <path
-          d="M 197.42 129.51 A 78 78 0 0 1 166.94 182.29"
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth="16"
-          strokeLinecap="round"
-        />
-        <path
-          d="M 150.47 191.80 A 78 78 0 0 1 89.53 191.80"
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth="16"
-          strokeLinecap="round"
-        />
-        <path
-          d="M 73.06 182.29 A 78 78 0 0 1 42.58 129.51"
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth="16"
-          strokeLinecap="round"
-        />
-        <path
-          d="M 42.58 110.49 A 78 78 0 0 1 73.06 57.71"
-          fill="none"
-          stroke={strokeColor}
-          strokeWidth="16"
-          strokeLinecap="round"
-        />
-        <circle cx="120" cy="42" r="8" fill={dotColor} />
-      </svg>
-    )
-  }
+  const dotColor = '#216E75'
 
   return (
     <svg
@@ -101,52 +41,54 @@ export const KoinonSymbol: React.FC<KoinonSymbolProps> = ({
       width={size}
       height={size}
       role="img"
-      aria-label="Símbolo com seis arcos e um ponto no topo"
+      aria-label="Símbolo Koinon: seis arcos e um ponto no topo"
       className={`shrink-0 select-none ${className}`}
     >
+      {/* 6 Arcos com 43.2 graus cada e espessura 22, centro (120, 120), raio 78 */}
       <path
-        d="M 90.78 47.68 A 78 78 0 0 1 149.22 47.68"
+        d="M 91.31 52.88 A 78 78 0 0 1 148.69 52.88"
         fill="none"
         stroke={strokeColor}
-        strokeWidth="12"
+        strokeWidth="22"
         strokeLinecap="round"
       />
       <path
-        d="M 168.02 58.54 A 78 78 0 0 1 197.24 109.14"
+        d="M 167.31 63.63 A 78 78 0 0 1 196.00 113.32"
         fill="none"
         stroke={strokeColor}
-        strokeWidth="12"
+        strokeWidth="22"
         strokeLinecap="round"
       />
       <path
-        d="M 197.24 130.86 A 78 78 0 0 1 168.02 181.46"
+        d="M 196.00 126.68 A 78 78 0 0 1 167.31 176.37"
         fill="none"
         stroke={strokeColor}
-        strokeWidth="12"
+        strokeWidth="22"
         strokeLinecap="round"
       />
       <path
-        d="M 149.22 192.32 A 78 78 0 0 1 90.78 192.32"
+        d="M 148.69 187.12 A 78 78 0 0 1 91.31 187.12"
         fill="none"
         stroke={strokeColor}
-        strokeWidth="12"
+        strokeWidth="22"
         strokeLinecap="round"
       />
       <path
-        d="M 71.98 181.46 A 78 78 0 0 1 42.76 130.86"
+        d="M 72.69 176.37 A 78 78 0 0 1 44.00 126.68"
         fill="none"
         stroke={strokeColor}
-        strokeWidth="12"
+        strokeWidth="22"
         strokeLinecap="round"
       />
       <path
-        d="M 42.76 109.14 A 78 78 0 0 1 71.98 58.54"
+        d="M 44.00 113.32 A 78 78 0 0 1 72.69 63.63"
         fill="none"
         stroke={strokeColor}
-        strokeWidth="12"
+        strokeWidth="22"
         strokeLinecap="round"
       />
-      <circle cx="120" cy="42" r="6" fill={dotColor} />
+      {/* Ponto sólido em Aegean sobre o arco superior no eixo de 12 horas */}
+      <circle cx="120" cy="42" r="13" fill={dotColor} />
     </svg>
   )
 }

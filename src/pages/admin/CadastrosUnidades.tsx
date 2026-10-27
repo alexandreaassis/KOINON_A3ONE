@@ -67,7 +67,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
   const { user } = useAuth()
 
   // Definição e Larguras padrão das Colunas da Tabela (mesmo padrão da Lista de Presença)
-  const STORAGE_KEY_LARGURAS = 'indaba_cadastros_unidades_colunas_v1'
+  const STORAGE_KEY_LARGURAS = 'koinon_cadastros_unidades_colunas_v1'
   const LARGURAS_PADRAO: Record<string, number> = {
     unidade: 140,
     nome: 260,

@@ -399,7 +399,7 @@ export const ListaPresencaPage: React.FC = () => {
   }
 
   // Definição e Larguras padrão das Colunas da Tabela
-  const STORAGE_KEY_LARGURAS = 'indaba_lista_presenca_colunas_v1'
+  const STORAGE_KEY_LARGURAS = 'koinon_lista_presenca_colunas_v1'
   const LARGURAS_PADRAO: Record<string, number> = {
     unidade: 80, // min 64
     titular: 240, // min 140
@@ -987,7 +987,7 @@ export const ListaPresencaPage: React.FC = () => {
                               )}
                             </div>
                           ) : (
-                            <span className="text-[#6B6259]/50 text-[11px]">—</span>
+                            <span className="text-[#626A76]/50 text-[11px]">—</span>
                           )}
                         </td>
 

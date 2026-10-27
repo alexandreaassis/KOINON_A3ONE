@@ -20,17 +20,13 @@ export function extractFieldErrors(error: unknown): FieldErrors {
   return errors
 }
 
-export function getErrorMessage(error: unknown, fallback?: string): string {
-  const defaultFallback = fallback || 'An unexpected error occurred.'
+export function getErrorMessage(
+  error: unknown,
+  fallbackMessage = 'An unexpected error occurred.',
+): string {
   if (!(error instanceof ClientResponseError)) {
-    if (error instanceof Error && error.message) {
-      return error.message
-    }
-    return defaultFallback
+    return error instanceof Error ? error.message : fallbackMessage
   }
   const msgs = Object.values(extractFieldErrors(error))
-  if (msgs.length > 0) {
-    return msgs.join(' ')
-  }
-  return error.message || defaultFallback
+  return msgs.length > 0 ? msgs.join(' ') : error.message || fallbackMessage
 }
