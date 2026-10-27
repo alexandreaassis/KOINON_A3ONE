@@ -42,6 +42,7 @@ import AuditoriaPage from '@/pages/mesa/Auditoria'
 import ConfiguracoesPage from '@/pages/admin/Configuracoes'
 import GestaoUsuariosPage from '@/pages/admin/Usuarios'
 import ParametrosConvencaoPage from '@/pages/admin/ParametrosConvencao'
+import CadastrosUnidadesPage from '@/pages/admin/CadastrosUnidades'
 
 import NotFound from '@/pages/NotFound'
 
@@ -365,6 +366,16 @@ const App = () => (
                 <ProtectedRoute requireAdmin>
                   <AppLayout>
                     <ConfiguracoesPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/cadastros"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <CadastrosUnidadesPage />
                   </AppLayout>
                 </ProtectedRoute>
               }

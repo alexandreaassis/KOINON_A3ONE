@@ -4,6 +4,7 @@ import {
   type DeliberacaoRecord,
   type ItemPautaRecord,
   type DeliberacaoStatus,
+  type RegraLocatario,
 } from '@/lib/api'
 import pb from '@/lib/pocketbase/client'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
@@ -77,10 +78,13 @@ export const DeliberacoesPage: React.FC = () => {
 
   // Modal Item de Pauta
   const [modalItemAberto, setModalItemAberto] = useState(false)
+  const [itemEditandoId, setItemEditandoId] = useState<string | null>(null)
   const [itemOrdem, setItemOrdem] = useState(1)
   const [itemTitulo, setItemTitulo] = useState('')
   const [itemTexto, setItemTexto] = useState('')
   const [itemQuorum, setItemQuorum] = useState('Maioria simples dos presentes')
+  const [itemRegraLocatario, setItemRegraLocatario] =
+    useState<RegraLocatario>('somente_proprietario')
   const [salvandoItem, setSalvandoItem] = useState(false)
 
   const carregar = async () => {
@@ -268,10 +272,29 @@ export const DeliberacoesPage: React.FC = () => {
   }
 
   const abrirNovoItem = () => {
+    setItemEditandoId(null)
     setItemOrdem(itensPauta.length + 1)
     setItemTitulo('')
     setItemTexto('')
     setItemQuorum('Maioria simples dos presentes')
+    // Herança da regra padrão da assembleia
+    const defaultRegra: RegraLocatario = deliberacaoSelecionada?.locatario_pode_votar
+      ? 'morador_vota_sempre'
+      : 'somente_proprietario'
+    setItemRegraLocatario(defaultRegra)
+    setModalItemAberto(true)
+  }
+
+  const abrirEditarItem = (item: ItemPautaRecord) => {
+    setItemEditandoId(item.id)
+    setItemOrdem(item.ordem)
+    setItemTitulo(item.titulo)
+    setItemTexto(item.texto || '')
+    setItemQuorum(item.quorum_aplicavel || 'Maioria simples dos presentes')
+    const fallbackRegra: RegraLocatario = deliberacaoSelecionada?.locatario_pode_votar
+      ? 'morador_vota_sempre'
+      : 'somente_proprietario'
+    setItemRegraLocatario(item.regra_locatario || fallbackRegra)
     setModalItemAberto(true)
   }
 
@@ -281,14 +304,26 @@ export const DeliberacoesPage: React.FC = () => {
 
     setSalvandoItem(true)
     try {
-      await api.createItemPauta({
-        deliberacao: deliberacaoSelecionada.id,
-        ordem: itemOrdem,
-        titulo: itemTitulo,
-        texto: itemTexto,
-        quorum_aplicavel: itemQuorum,
-      })
-      toast({ title: 'Item de Pauta Adicionado' })
+      if (itemEditandoId) {
+        await api.updateItemPauta(itemEditandoId, {
+          ordem: itemOrdem,
+          titulo: itemTitulo,
+          texto: itemTexto,
+          quorum_aplicavel: itemQuorum,
+          regra_locatario: itemRegraLocatario,
+        })
+        toast({ title: 'Item de Pauta Atualizado' })
+      } else {
+        await api.createItemPauta({
+          deliberacao: deliberacaoSelecionada.id,
+          ordem: itemOrdem,
+          titulo: itemTitulo,
+          texto: itemTexto,
+          quorum_aplicavel: itemQuorum,
+          regra_locatario: itemRegraLocatario,
+        })
+        toast({ title: 'Item de Pauta Adicionado' })
+      }
       setModalItemAberto(false)
       const itens = await api.getItensPauta(deliberacaoSelecionada.id)
       setItensPauta(itens)
@@ -586,6 +621,32 @@ export const DeliberacoesPage: React.FC = () => {
                               Item {item.ordem}
                             </span>
                             <span className="font-bold text-slate-900">{item.titulo}</span>
+                            {/* Badge da Regra do Locatário */}
+                            {(!item.regra_locatario ||
+                              item.regra_locatario === 'somente_proprietario') && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] text-amber-700 border-amber-300 bg-amber-50"
+                              >
+                                Somente Proprietário
+                              </Badge>
+                            )}
+                            {item.regra_locatario === 'morador_substitui_ausente' && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] text-blue-700 border-blue-300 bg-blue-50"
+                              >
+                                Morador substitui ausente
+                              </Badge>
+                            )}
+                            {item.regra_locatario === 'morador_vota_sempre' && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] text-purple-700 border-purple-300 bg-purple-50"
+                              >
+                                Morador vota sempre (Despesas correntes)
+                              </Badge>
+                            )}
                           </div>
                           {item.texto && <p className="text-slate-600 text-xs">{item.texto}</p>}
                           {item.quorum_aplicavel && (
@@ -595,15 +656,26 @@ export const DeliberacoesPage: React.FC = () => {
                           )}
                         </div>
 
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => excluirItem(item.id)}
-                          className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-7 w-7 shrink-0"
-                          title="Excluir item"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => abrirEditarItem(item)}
+                            className="text-slate-400 hover:text-cyan-700 hover:bg-cyan-50 h-7 w-7"
+                            title="Editar item"
+                          >
+                            <Edit3 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => excluirItem(item.id)}
+                            className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-7 w-7"
+                            title="Excluir item"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     ))
                   )}
@@ -862,10 +934,10 @@ export const DeliberacoesPage: React.FC = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-slate-900">
-              Adicionar Matéria à Pauta
+              {itemEditandoId ? 'Editar Matéria da Pauta' : 'Adicionar Matéria à Pauta'}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-600">
-              Cadastre o texto a ser deliberado e votado pelos condôminos.
+              Cadastre o texto a ser deliberado e a chave de votação do locatário.
             </DialogDescription>
           </DialogHeader>
 
@@ -914,6 +986,41 @@ export const DeliberacoesPage: React.FC = () => {
               />
             </div>
 
+            <div className="p-2.5 rounded bg-amber-50/70 border border-amber-200 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-amber-950">
+                  Chave de Locatário deste Item
+                </Label>
+                <span className="text-[10px] text-amber-700 font-semibold">Regra da Convenção</span>
+              </div>
+              <Select
+                value={itemRegraLocatario}
+                onValueChange={(val) => setItemRegraLocatario(val as RegraLocatario)}
+              >
+                <SelectTrigger className="text-xs h-9 bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="text-xs">
+                  <SelectItem value="somente_proprietario">
+                    (a) Somente Proprietário — matérias extraordinárias
+                  </SelectItem>
+                  <SelectItem value="morador_substitui_ausente">
+                    (b) Morador substitui ausente — vota se o proprietário não participou
+                  </SelectItem>
+                  <SelectItem value="morador_vota_sempre">
+                    (c) Morador vota sempre — despesas ordinárias/correntes
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-slate-500">
+                Padrão herdado da assembleia (
+                {deliberacaoSelecionada?.locatario_pode_votar
+                  ? 'Morador vota sempre'
+                  : 'Somente proprietário'}
+                ). A mesa pode flexibilizar por item.
+              </p>
+            </div>
+
             <DialogFooter className="pt-2">
               <Button
                 type="button"
@@ -929,7 +1036,11 @@ export const DeliberacoesPage: React.FC = () => {
                 size="sm"
                 className="bg-cyan-700 hover:bg-cyan-800 text-white font-semibold"
               >
-                {salvandoItem ? 'Gravando...' : 'Adicionar Item'}
+                {salvandoItem
+                  ? 'Gravando...'
+                  : itemEditandoId
+                    ? 'Salvar Alterações'
+                    : 'Adicionar Item'}
               </Button>
             </DialogFooter>
           </form>

@@ -289,6 +289,19 @@ routerAdd('POST', '/backend/v1/notificacoes/disparar-edital', (e) => {
     console.log('Erro ao buscar emails de unidades:', err)
   }
 
+  // Notificar ambos os cadastros da unidade (proprietário e morador/locatário) quando existirem
+  try {
+    const cadastros = e.app.findRecordsByFilter('cadastros_unidade', 'ativo = true', '', 2000, 0)
+    for (let c of cadastros) {
+      const email = (c.getString('email') || '').trim()
+      if (email && email.includes('@')) {
+        emailsDest.add(email)
+      }
+    }
+  } catch (err) {
+    console.log('Erro ao buscar emails de cadastros_unidade:', err)
+  }
+
   try {
     const moradores = e.app.findRecordsByFilter('users', 'ativo = true', '', 1000, 0)
     for (let m of moradores) {

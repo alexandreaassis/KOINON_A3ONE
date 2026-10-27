@@ -749,10 +749,36 @@ export const VotacaoPage: React.FC = () => {
                   }`}
                 >
                   <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded">
-                        Item {item.ordem}
-                      </span>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded">
+                          Item {item.ordem}
+                        </span>
+                        {item.regra_locatario === 'somente_proprietario' && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] text-amber-700 border-amber-300 bg-amber-50"
+                          >
+                            Somente Proprietário
+                          </Badge>
+                        )}
+                        {item.regra_locatario === 'morador_substitui_ausente' && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] text-blue-700 border-blue-300 bg-blue-50"
+                          >
+                            Morador substitui ausente
+                          </Badge>
+                        )}
+                        {item.regra_locatario === 'morador_vota_sempre' && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] text-purple-700 border-purple-300 bg-purple-50"
+                          >
+                            Despesas correntes (Morador vota)
+                          </Badge>
+                        )}
+                      </div>
                       {item.quorum_aplicavel && (
                         <span className="text-[11px] text-slate-500">
                           Quórum exigido: <strong>{item.quorum_aplicavel}</strong>

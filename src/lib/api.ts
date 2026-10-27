@@ -97,19 +97,46 @@ export interface DeliberacaoRecord extends RecordModel {
   mesa_secretario_cpf?: string
 }
 
+export type RegraLocatario =
+  | 'somente_proprietario'
+  | 'morador_substitui_ausente'
+  | 'morador_vota_sempre'
+
 export interface ItemPautaRecord extends RecordModel {
   deliberacao: string
   ordem: number
   titulo: string
   texto?: string
   quorum_aplicavel?: string
+  regra_locatario?: RegraLocatario
 }
+
+export interface CedulaRecord extends RecordModel {
+  deliberacao: string
+  item: string
+  unidade_hash: string
+  opcao: 'favoravel' | 'contrario' | 'abstencao'
+  timestamp: string
+  hash_anterior: string
+  hash_cedula: string
+  recibo_codigo: string
+  vinculo_votante?: 'proprietario' | 'condomino' | 'locatario'
+  regra_aplicada?: string
+}
+
+export type TipoVinculo =
+  | 'proprietario'
+  | 'condomino'
+  | 'locatario'
+  | 'promitente'
+  | 'usufrutuario'
+  | 'procurador'
 
 export interface CredenciamentoRecord extends RecordModel {
   unidade: string
   cpf: string
   titular_nome: string
-  tipo_vinculo: 'proprietario' | 'promitente' | 'usufrutuario' | 'locatario' | 'procurador'
+  tipo_vinculo: TipoVinculo
   status: 'pendente' | 'aprovado' | 'rejeitado'
   motivo_rejeicao?: string
   documentos?: string[]
@@ -167,6 +194,22 @@ export interface ComprovanteRecord extends RecordModel {
   }
 }
 
+export type VinculoCadastro = 'proprietario' | 'condomino' | 'locatario'
+
+export interface CadastroUnidadeRecord extends RecordModel {
+  unidade: string
+  nome: string
+  cpf: string
+  email?: string
+  telefone?: string
+  vinculo: VinculoCadastro
+  ativo?: boolean
+  observacoes?: string
+  expand?: {
+    unidade?: UnidadeRecord
+  }
+}
+
 export interface AuditoriaEventRecord extends RecordModel {
   evento:
     | 'credenciamento_submetido'
@@ -193,6 +236,11 @@ export interface AuditoriaEventRecord extends RecordModel {
     | 'dossie_gerado'
     | 'notificacao_criada'
     | 'notificacao_enviada'
+    | 'ata_gerada_ia'
+    | 'ata_assinada_mesa'
+    | 'ata_publicada'
+    | 'audio_transcricao'
+    | 'documento_extracao'
   data_hora?: string
   unidade?: string
   fator?: string
@@ -597,6 +645,59 @@ export const api = {
 
   async updateItemPauta(id: string, data: Partial<ItemPautaRecord>) {
     return pb.collection('itens_pauta').update<ItemPautaRecord>(id, data)
+  },
+
+  // 4. Cadastros de Moradores e Proprietários por Unidade
+  async getCadastrosUnidades(filtros?: {
+    unidadeId?: string
+    vinculo?: VinculoCadastro
+    ativo?: boolean
+    busca?: string
+  }) {
+    const filterParts: string[] = []
+    if (filtros?.unidadeId) {
+      filterParts.push(pb.filter('unidade = {:unid}', { unid: filtros.unidadeId }))
+    }
+    if (filtros?.vinculo) {
+      filterParts.push(pb.filter('vinculo = {:vinc}', { vinc: filtros.vinculo }))
+    }
+    if (filtros?.ativo !== undefined) {
+      filterParts.push(pb.filter('ativo = {:atv}', { atv: filtros.ativo }))
+    }
+    if (filtros?.busca) {
+      const b = filtros.busca.trim()
+      filterParts.push(
+        pb.filter('nome ~ {:b} || cpf ~ {:b} || email ~ {:b} || telefone ~ {:b}', { b }),
+      )
+    }
+
+    return pb.collection('cadastros_unidade').getFullList<CadastroUnidadeRecord>({
+      filter: filterParts.length > 0 ? filterParts.join(' && ') : undefined,
+      sort: 'unidade.identificador,vinculo,nome',
+      expand: 'unidade',
+    })
+  },
+
+  async getCadastroUnidade(id: string) {
+    return pb.collection('cadastros_unidade').getOne<CadastroUnidadeRecord>(id, {
+      expand: 'unidade',
+    })
+  },
+
+  async criarCadastroUnidade(dados: Partial<CadastroUnidadeRecord>) {
+    return pb.collection('cadastros_unidade').create<CadastroUnidadeRecord>(dados, {
+      expand: 'unidade',
+    })
+  },
+
+  async atualizarCadastroUnidade(id: string, dados: Partial<CadastroUnidadeRecord>) {
+    return pb.collection('cadastros_unidade').update<CadastroUnidadeRecord>(id, dados, {
+      expand: 'unidade',
+    })
+  },
+
+  async excluirCadastroUnidade(id: string) {
+    return pb.collection('cadastros_unidade').delete(id)
   },
 
   async deleteItemPauta(id: string) {

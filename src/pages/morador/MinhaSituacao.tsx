@@ -132,8 +132,17 @@ export const MinhaSituacaoPage: React.FC = () => {
                 </Badge>
               </div>
               <p className="text-xs text-emerald-800 mt-0.5">
-                Titular: <strong>{credenciamento.titular_nome}</strong> (
-                {credenciamento.tipo_vinculo}) • CPF: {credenciamento.cpf}
+                Titular: <strong>{credenciamento.titular_nome}</strong> • Vínculo:{' '}
+                <strong className="uppercase">
+                  {credenciamento.tipo_vinculo === 'proprietario'
+                    ? 'Proprietário (Não Residente)'
+                    : credenciamento.tipo_vinculo === 'condomino'
+                      ? 'Condômino (Residente)'
+                      : credenciamento.tipo_vinculo === 'locatario'
+                        ? 'Locatário (Inquilino)'
+                        : credenciamento.tipo_vinculo}
+                </strong>{' '}
+                • CPF: {credenciamento.cpf}
               </p>
             </div>
           </div>

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T02:43:44.669Z",
+  "generatedAt": "2026-10-27T03:33:02.283Z",
   "collections": [
     {
       "name": "users",
@@ -327,7 +327,14 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["proprietario", "promitente", "usufrutuario", "locatario", "procurador"]
+          "selectValues": [
+            "proprietario",
+            "promitente",
+            "usufrutuario",
+            "locatario",
+            "procurador",
+            "condomino"
+          ]
         },
         {
           "name": "status",
@@ -436,6 +443,17 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "regra_locatario",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "somente_proprietario",
+            "morador_substitui_ausente",
+            "morador_vota_sempre"
+          ]
         }
       ],
       "indexes": ["CREATE INDEX idx_itens_pauta_deliberacao ON itens_pauta (deliberacao, ordem)"]
@@ -572,6 +590,19 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "vinculo_votante",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["proprietario", "condomino", "locatario"]
+        },
+        {
+          "name": "regra_aplicada",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -1945,6 +1976,88 @@
         "CREATE INDEX idx_logs_acesso_email ON logs_acesso (email)",
         "CREATE INDEX idx_logs_acesso_data_hora ON logs_acesso (data_hora DESC)",
         "CREATE INDEX idx_logs_acesso_status ON logs_acesso (status)"
+      ]
+    },
+    {
+      "name": "cadastros_unidade",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.role = 'admin' || @request.auth.role = 'mesa'",
+        "update": "@request.auth.role = 'admin' || @request.auth.role = 'mesa'",
+        "delete": "@request.auth.role = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "unidade",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "unidades"
+        },
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cpf",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "vinculo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["proprietario", "condomino", "locatario"]
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_cadastros_unidade ON cadastros_unidade (unidade)",
+        "CREATE INDEX idx_cadastros_cpf ON cadastros_unidade (cpf)",
+        "CREATE INDEX idx_cadastros_vinculo ON cadastros_unidade (vinculo)"
       ]
     }
   ]

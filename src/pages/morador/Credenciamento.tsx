@@ -237,8 +237,15 @@ export const CredenciamentoPage: React.FC = () => {
               <strong>CPF:</strong> {credExistente.cpf}
             </p>
             <p>
-              <strong>Tipo de Vínculo:</strong> {credExistente.tipo_vinculo.toUpperCase()} •{' '}
-              <strong>Unidade:</strong> {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
+              <strong>Tipo de Vínculo:</strong>{' '}
+              {credExistente.tipo_vinculo === 'proprietario'
+                ? 'PROPRIETÁRIO (NÃO RESIDENTE)'
+                : credExistente.tipo_vinculo === 'condomino'
+                  ? 'CONDÔMINO (RESIDENTE)'
+                  : credExistente.tipo_vinculo === 'locatario'
+                    ? 'LOCATÁRIO (INQUILINO)'
+                    : credExistente.tipo_vinculo.toUpperCase()}{' '}
+              • <strong>Unidade:</strong> {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
               {unidadeSelecionada?.identificador}
             </p>
             {credExistente.motivo_rejeicao && (
@@ -292,10 +299,13 @@ export const CredenciamentoPage: React.FC = () => {
                     <SelectValue placeholder="Selecione o vínculo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="proprietario">Proprietário Titular</SelectItem>
+                    <SelectItem value="proprietario">
+                      Proprietário (Não Residente na Unidade)
+                    </SelectItem>
+                    <SelectItem value="condomino">Condômino (Proprietário Residente)</SelectItem>
+                    <SelectItem value="locatario">Locatário (Inquilino)</SelectItem>
                     <SelectItem value="promitente">Promitente Comprador</SelectItem>
                     <SelectItem value="usufrutuario">Usufrutuário</SelectItem>
-                    <SelectItem value="locatario">Locatário (Conforme Convenção)</SelectItem>
                     <SelectItem value="procurador">Procurador com Poderes Específicos</SelectItem>
                   </SelectContent>
                 </Select>

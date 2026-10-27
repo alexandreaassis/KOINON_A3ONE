@@ -230,10 +230,32 @@ export const CredenciaisPendentesPage: React.FC = () => {
                       </Badge>
                     </div>
 
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
-                      <span>
-                        <strong>Vínculo:</strong> {cred.tipo_vinculo.toUpperCase()}
-                      </span>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-600">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-slate-700">Vínculo Declarado:</span>
+                        {cred.tipo_vinculo === 'proprietario' && (
+                          <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[10px]">
+                            PROPRIETÁRIO (NÃO RESIDENTE)
+                          </Badge>
+                        )}
+                        {cred.tipo_vinculo === 'condomino' && (
+                          <Badge className="bg-cyan-100 text-cyan-900 border-cyan-300 text-[10px]">
+                            CONDÔMINO (RESIDENTE)
+                          </Badge>
+                        )}
+                        {cred.tipo_vinculo === 'locatario' && (
+                          <Badge className="bg-purple-100 text-purple-900 border-purple-300 text-[10px]">
+                            LOCATÁRIO (INQUILINO)
+                          </Badge>
+                        )}
+                        {cred.tipo_vinculo !== 'proprietario' &&
+                          cred.tipo_vinculo !== 'condomino' &&
+                          cred.tipo_vinculo !== 'locatario' && (
+                            <Badge variant="outline" className="text-[10px] uppercase">
+                              {cred.tipo_vinculo}
+                            </Badge>
+                          )}
+                      </div>
                       <span>
                         <strong>CPF:</strong> {cred.cpf}
                       </span>

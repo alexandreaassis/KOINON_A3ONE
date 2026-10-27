@@ -38,6 +38,7 @@ import {
   ChevronRight,
   Settings,
   SlidersHorizontal,
+  Contact,
   FileText,
   FolderArchive,
 } from 'lucide-react'
@@ -165,12 +166,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     { label: 'Documentos & Edital', path: '/mesa/documentos', icon: FolderArchive },
     { label: 'Lista de Presença', path: '/mesa/presenca', icon: UserCheck },
     { label: 'Credenciais Pendentes', path: '/mesa/credenciamentos', icon: Users },
+    { label: 'Cadastros da Unidade', path: '/admin/cadastros', icon: Contact },
     { label: 'Deliberações e Pautas', path: '/mesa/deliberacoes', icon: FileSpreadsheet },
     { label: 'Auditoria e Urna', path: '/mesa/auditoria', icon: History },
   ]
 
   const navAdmin = [
     { label: 'Configurações do Condomínio', path: '/admin/configuracoes', icon: Settings },
+    { label: 'Cadastros da Unidade', path: '/admin/cadastros', icon: Contact },
     { label: 'Gestão de Usuários', path: '/admin/usuarios', icon: Users },
     { label: 'Parâmetros da Convenção', path: '/admin/parametros', icon: SlidersHorizontal },
   ]
@@ -192,6 +195,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     if (p === '/mesa/deliberacoes') return ['Mesa Diretora', 'Deliberações']
     if (p === '/mesa/auditoria') return ['Mesa Diretora', 'Auditoria & Boletim']
     if (p === '/admin/configuracoes') return ['Administração', 'Configurações']
+    if (p === '/admin/cadastros') return ['Administração', 'Cadastros da Unidade']
     if (p === '/admin/usuarios') return ['Administração', 'Usuários']
     if (p === '/admin/parametros') return ['Administração', 'Parâmetros Globais']
     return ['Sistema', nomeCondominio]

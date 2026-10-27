@@ -176,6 +176,117 @@ routerAdd('POST', '/backend/v1/votos/registrar', (e) => {
     }
   }
 
+  // Determinar o vínculo da pessoa que está votando a partir do credenciamento aprovado ou cadastro
+  let vinculoVotante = 'proprietario' // default seguro
+  try {
+    const creds = e.app.findRecordsByFilter(
+      'credenciamentos',
+      "unidade = {:unidade} && status = 'aprovado'",
+      '-created',
+      10,
+      0,
+      { unidade: unidadeId },
+    )
+    // Tentar localizar credenciamento pelo usuário autenticado ou pelo CPF associado
+    const userCpf = (authRecord.getString('cpf') || '').replace(/[.\-\s]/g, '')
+    let credMatch = null
+    for (let c of creds) {
+      const cCpf = (c.getString('cpf') || '').replace(/[.\-\s]/g, '')
+      if (userCpf && cCpf === userCpf) {
+        credMatch = c
+        break
+      }
+    }
+    if (!credMatch && creds.length > 0) {
+      credMatch = creds[0]
+    }
+    if (credMatch) {
+      const tv = credMatch.getString('tipo_vinculo')
+      if (tv === 'locatario') vinculoVotante = 'locatario'
+      else if (tv === 'condomino') vinculoVotante = 'condomino'
+      else vinculoVotante = 'proprietario'
+    } else {
+      // Buscar nos cadastros_unidade
+      const cads = e.app.findRecordsByFilter(
+        'cadastros_unidade',
+        'unidade = {:unidade} && ativo = true',
+        '-created',
+        5,
+        0,
+        { unidade: unidadeId },
+      )
+      for (let cad of cads) {
+        const cadCpf = (cad.getString('cpf') || '').replace(/[.\-\s]/g, '')
+        if (userCpf && cadCpf === userCpf) {
+          const cv = cad.getString('vinculo')
+          if (cv === 'locatario') vinculoVotante = 'locatario'
+          else if (cv === 'condomino') vinculoVotante = 'condomino'
+          else vinculoVotante = 'proprietario'
+          break
+        }
+      }
+    }
+  } catch (err) {
+    console.log('Aviso ao determinar vínculo do votante:', err)
+  }
+
+  const isMorador = vinculoVotante === 'condomino' || vinculoVotante === 'locatario'
+
+  // Validar regra_locatario para cada item de pauta antes da gravação
+  const delibDefaultLocatario = delib.getBool('locatario_pode_votar')
+  const defaultRegraDelib = delibDefaultLocatario ? 'morador_vota_sempre' : 'somente_proprietario'
+
+  for (let v of votos) {
+    let itemRec
+    try {
+      itemRec = e.app.findRecordById('itens_pauta', v.itemId)
+    } catch (_) {
+      return e.json(400, { success: false, message: 'Item de pauta não encontrado: ' + v.itemId })
+    }
+
+    const regraItem = itemRec.getString('regra_locatario') || defaultRegraDelib
+
+    if (vinculoVotante === 'locatario') {
+      if (regraItem === 'somente_proprietario') {
+        return e.json(400, {
+          success: false,
+          message: `O item "${itemRec.getString('titulo')}" permite apenas o voto de proprietários. Voto de locatário não admitido para esta matéria.`,
+        })
+      }
+
+      if (regraItem === 'morador_substitui_ausente') {
+        // Verificar se o proprietário daquela unidade credenciou e está presente/votou
+        // 1. Verificar se há credenciamento de proprietário aprovado
+        const credsProp = e.app.findRecordsByFilter(
+          'credenciamentos',
+          "unidade = {:unidade} && status = 'aprovado' && (tipo_vinculo = 'proprietario' || tipo_vinculo = 'promitente' || tipo_vinculo = 'usufrutuario')",
+          '',
+          5,
+          0,
+          { unidade: unidadeId },
+        )
+        // Se houver presença registrada ou credenciamento com sessão do proprietário, morador não substitui
+        if (credsProp && credsProp.length > 0) {
+          // Checar se o proprietário participou de alguma forma
+          const sessoesProp = e.app.findRecordsByFilter(
+            'sessoes',
+            "unidade = {:unidade} && deliberacao = {:delib} && status = 'consumida'",
+            '',
+            1,
+            0,
+            { unidade: unidadeId, delib: deliberacaoId },
+          )
+          if (sessoesProp && sessoesProp.length > 0) {
+            return e.json(400, {
+              success: false,
+              message: `O proprietário desta unidade já participou desta assembleia. Na regra "morador substitui ausente", o locatário não pode votar caso o proprietário tenha participado.`,
+            })
+          }
+        }
+      }
+    }
+  }
+
   // Obter hash anônimo da unidade (salteado com a deliberação para sigilo de voto em cédula secreta)
   const isNominal = delib.getString('tipo_cedula') === 'nominal'
   const unidadeHash = isNominal
@@ -260,6 +371,13 @@ routerAdd('POST', '/backend/v1/votos/registrar', (e) => {
       ultimoHashCedula = hashCedula
       hashesCedulas.push(hashCedula)
 
+      // Obter regra do item para auditoria da cédula
+      let regraAplicadaItem = defaultRegraDelib
+      try {
+        const itemRecord = txApp.findRecordById('itens_pauta', v.itemId)
+        regraAplicadaItem = itemRecord.getString('regra_locatario') || defaultRegraDelib
+      } catch (_) {}
+
       const cedRec = new Record(cedulasCol)
       cedRec.set('deliberacao', deliberacaoId)
       cedRec.set('item', v.itemId)
@@ -269,6 +387,8 @@ routerAdd('POST', '/backend/v1/votos/registrar', (e) => {
       cedRec.set('hash_anterior', ultimoHashCedula)
       cedRec.set('hash_cedula', hashCedula)
       cedRec.set('recibo_codigo', reciboCodigo)
+      cedRec.set('vinculo_votante', vinculoVotante)
+      cedRec.set('regra_aplicada', regraAplicadaItem)
       txApp.save(cedRec)
     }
 

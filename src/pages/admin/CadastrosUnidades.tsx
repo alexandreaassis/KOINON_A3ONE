@@ -1,0 +1,1358 @@
+import React, { useState, useEffect, useMemo, useRef } from 'react'
+import * as XLSX from 'xlsx'
+import { api, CadastroUnidadeRecord, UnidadeRecord, VinculoCadastro } from '@/lib/api'
+import { useCondoConfig } from '@/context/CondoConfigContext'
+import { useAuth } from '@/context/AuthContext'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { formatarCpf, validarCpf, limparCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Users,
+  UserPlus,
+  FileSpreadsheet,
+  Upload,
+  Download,
+  Search,
+  Filter,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Building,
+  Edit2,
+  Trash2,
+  Phone,
+  Mail,
+  ShieldAlert,
+  Info,
+} from 'lucide-react'
+import { toast } from '@/hooks/use-toast'
+
+interface LinhaPlanilhaImportada {
+  linha: number
+  identificador: string
+  bloco?: string
+  nome: string
+  cpf: string
+  email?: string
+  telefone?: string
+  vinculo: VinculoCadastro
+  status: 'valido' | 'invalido'
+  motivosInvalido: string[]
+  unidadeIdEncontrada?: string
+}
+
+export const CadastrosUnidadesPage: React.FC = () => {
+  const { rotuloUnidade, nomeCondominio } = useCondoConfig()
+  const { user } = useAuth()
+
+  // Estados principais
+  const [cadastros, setCadastros] = useState<CadastroUnidadeRecord[]>([])
+  const [unidades, setUnidades] = useState<UnidadeRecord[]>([])
+  const [carregando, setCarregando] = useState(true)
+
+  // Filtros
+  const [filtroBusca, setFiltroBusca] = useState('')
+  const [filtroVinculo, setFiltroVinculo] = useState<string>('todos')
+  const [filtroUnidade, setFiltroUnidade] = useState<string>('todas')
+  const [filtroStatus, setFiltroStatus] = useState<string>('todos')
+
+  // Modal de Criação / Edição
+  const [modalAberto, setModalAberto] = useState(false)
+  const [salvando, setSalvando] = useState(false)
+  const [itemEditando, setItemEditando] = useState<CadastroUnidadeRecord | null>(null)
+
+  // Campos do formulário
+  const [formUnidadeId, setFormUnidadeId] = useState('')
+  const [formNome, setFormNome] = useState('')
+  const [formCpf, setFormCpf] = useState('')
+  const [formCpfErro, setFormCpfErro] = useState<string | null>(null)
+  const [formEmail, setFormEmail] = useState('')
+  const [formTelefone, setFormTelefone] = useState('')
+  const [formVinculo, setFormVinculo] = useState<VinculoCadastro>('condomino')
+  const [formAtivo, setFormAtivo] = useState(true)
+  const [formObservacoes, setFormObservacoes] = useState('')
+
+  // Modal e Processo de Importação Excel
+  const [modalImportarAberto, setModalImportarAberto] = useState(false)
+  const [linhasImportadas, setLinhasImportadas] = useState<LinhaPlanilhaImportada[]>([])
+  const [processandoArquivo, setProcessandoArquivo] = useState(false)
+  const [confirmandoImportacao, setConfirmandoImportacao] = useState(false)
+  const [resumoImportacao, setResumoImportacao] = useState<{
+    total: number
+    validos: number
+    invalidos: number
+  } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Carregar dados
+  const carregarDados = async () => {
+    setCarregando(true)
+    try {
+      const [cads, unids] = await Promise.all([api.getCadastrosUnidades(), api.getUnidades()])
+      setCadastros(cads)
+      setUnidades(unids)
+    } catch (err) {
+      console.error('Erro ao carregar cadastros:', err)
+      toast({
+        title: 'Erro ao carregar cadastros',
+        description: getErrorMessage(err, 'Falha ao buscar registros de pessoas por unidade.'),
+        variant: 'destructive',
+      })
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => {
+    carregarDados()
+  }, [])
+
+  // Mapa de unidades por id e por identificador (normalizado)
+  const mapaUnidadesPorId = useMemo(() => {
+    const map = new Map<string, UnidadeRecord>()
+    for (const u of unidades) {
+      map.set(u.id, u)
+    }
+    return map
+  }, [unidades])
+
+  const mapaUnidadesPorIdentificador = useMemo(() => {
+    const map = new Map<string, UnidadeRecord>()
+    for (const u of unidades) {
+      const chaveSimples = (u.identificador || '').trim().toUpperCase()
+      const chaveComposta = `${(u.identificador || '').trim().toUpperCase()}#${(u.bloco || '').trim().toUpperCase()}`
+      map.set(chaveSimples, u)
+      map.set(chaveComposta, u)
+    }
+    return map
+  }, [unidades])
+
+  // Contagem de vínculos ativos por unidade:
+  // PROPRIETÁRIO (proprietário que NÃO mora)
+  // MORADOR (condômino OU locatário)
+  const vinculosPorUnidade = useMemo(() => {
+    const contagem = new Map<
+      string,
+      { proprietario?: CadastroUnidadeRecord; morador?: CadastroUnidadeRecord }
+    >()
+    for (const cad of cadastros) {
+      if (!cad.ativo) continue
+      const atual = contagem.get(cad.unidade) || {}
+      if (cad.vinculo === 'proprietario') {
+        atual.proprietario = cad
+      } else {
+        // condomino ou locatario é MORADOR
+        atual.morador = cad
+      }
+      contagem.set(cad.unidade, atual)
+    }
+    return contagem
+  }, [cadastros])
+
+  // Abrir modal para novo cadastro
+  const abrirNovoCadastro = (preUnidadeId?: string) => {
+    setItemEditando(null)
+    setFormUnidadeId(preUnidadeId || unidades[0]?.id || '')
+    setFormNome('')
+    setFormCpf('')
+    setFormCpfErro(null)
+    setFormEmail('')
+    setFormTelefone('')
+    setFormVinculo('condomino')
+    setFormAtivo(true)
+    setFormObservacoes('')
+    setModalAberto(true)
+  }
+
+  // Abrir modal para editar cadastro
+  const abrirEditarCadastro = (cad: CadastroUnidadeRecord) => {
+    setItemEditando(cad)
+    setFormUnidadeId(cad.unidade)
+    setFormNome(cad.nome || '')
+    setFormCpf(formatarCpf(cad.cpf || ''))
+    setFormCpfErro(null)
+    setFormEmail(cad.email || '')
+    setFormTelefone(cad.telefone || '')
+    setFormVinculo(cad.vinculo)
+    setFormAtivo(cad.ativo ?? true)
+    setFormObservacoes(cad.observacoes || '')
+    setModalAberto(true)
+  }
+
+  // Validação CPF no formulário
+  const handleCpfChange = (val: string) => {
+    const formatado = formatarCpf(val)
+    setFormCpf(formatado)
+    const raw = formatado.replace(/\D/g, '')
+    if (raw.length === 11) {
+      if (!validarCpf(formatado)) {
+        setFormCpfErro(MSG_CPF_INVALIDO)
+      } else {
+        setFormCpfErro(null)
+      }
+    } else {
+      setFormCpfErro(null)
+    }
+  }
+
+  // Salvar cadastro individual
+  const handleSalvarCadastro = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const cpfLimpo = limparCpf(formCpf)
+
+    if (!formUnidadeId) {
+      toast({
+        title: 'Unidade obrigatória',
+        description: 'Selecione a unidade.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!formNome.trim()) {
+      toast({
+        title: 'Nome obrigatório',
+        description: 'Informe o nome completo.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!validarCpf(formCpf)) {
+      setFormCpfErro(MSG_CPF_INVALIDO)
+      toast({ title: 'CPF Inválido', description: MSG_CPF_INVALIDO, variant: 'destructive' })
+      return
+    }
+
+    // Regra de Unidade: máximo de 1 PROPRIETÁRIO e 1 MORADOR ativo por unidade
+    if (formAtivo) {
+      const vinculosAtuais = vinculosPorUnidade.get(formUnidadeId)
+      const eGrupoMorador = formVinculo === 'condomino' || formVinculo === 'locatario'
+      const eGrupoProprietario = formVinculo === 'proprietario'
+
+      if (
+        eGrupoProprietario &&
+        vinculosAtuais?.proprietario &&
+        vinculosAtuais.proprietario.id !== itemEditando?.id
+      ) {
+        toast({
+          title: 'Vínculo de Proprietário já preenchido',
+          description: `A unidade já possui o(a) proprietário(a) "${vinculosAtuais.proprietario.nome}" ativo(a). Desative-o(a) antes de cadastrar outro.`,
+          variant: 'destructive',
+        })
+        return
+      }
+
+      if (
+        eGrupoMorador &&
+        vinculosAtuais?.morador &&
+        vinculosAtuais.morador.id !== itemEditando?.id
+      ) {
+        toast({
+          title: 'Vínculo de Morador já preenchido',
+          description: `A unidade já possui o(a) morador(a) (${vinculosAtuais.morador.vinculo.toUpperCase()}) "${vinculosAtuais.morador.nome}" ativo(a). Desative-o(a) antes de cadastrar outro.`,
+          variant: 'destructive',
+        })
+        return
+      }
+    }
+
+    // Validação de CPF duplicado na mesma unidade
+    const cpfDuplicadoNaUnidade = cadastros.find(
+      (c) =>
+        c.unidade === formUnidadeId && limparCpf(c.cpf) === cpfLimpo && c.id !== itemEditando?.id,
+    )
+    if (cpfDuplicadoNaUnidade) {
+      toast({
+        title: 'CPF já cadastrado nesta unidade',
+        description: `O CPF informado já está vinculado a esta unidade como "${cpfDuplicadoNaUnidade.vinculo.toUpperCase()}".`,
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setSalvando(true)
+    try {
+      const payload: Partial<CadastroUnidadeRecord> = {
+        unidade: formUnidadeId,
+        nome: formNome.trim(),
+        cpf: cpfLimpo,
+        email: formEmail.trim().toLowerCase() || undefined,
+        telefone: formTelefone.trim() || undefined,
+        vinculo: formVinculo,
+        ativo: formAtivo,
+        observacoes: formObservacoes.trim() || undefined,
+      }
+
+      if (itemEditando) {
+        await api.atualizarCadastroUnidade(itemEditando.id, payload)
+        toast({ title: 'Cadastro atualizado', description: 'Dados gravados com sucesso.' })
+      } else {
+        await api.criarCadastroUnidade(payload)
+        toast({ title: 'Cadastro criado', description: 'Pessoa vinculada à unidade com sucesso.' })
+      }
+
+      setModalAberto(false)
+      await carregarDados()
+    } catch (err) {
+      console.error('Erro ao salvar cadastro:', err)
+      toast({
+        title: 'Erro ao gravar',
+        description: getErrorMessage(err, 'Falha ao salvar registro.'),
+        variant: 'destructive',
+      })
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  // Alternar ativo/inativo
+  const alternarAtivo = async (cad: CadastroUnidadeRecord) => {
+    const novoStatus = !cad.ativo
+
+    if (novoStatus) {
+      const vinculosAtuais = vinculosPorUnidade.get(cad.unidade)
+      const eGrupoMorador = cad.vinculo === 'condomino' || cad.vinculo === 'locatario'
+      const eGrupoProprietario = cad.vinculo === 'proprietario'
+
+      if (
+        eGrupoProprietario &&
+        vinculosAtuais?.proprietario &&
+        vinculosAtuais.proprietario.id !== cad.id
+      ) {
+        toast({
+          title: 'Limite atingido',
+          description: `A unidade já possui o proprietário "${vinculosAtuais.proprietario.nome}" ativo.`,
+          variant: 'destructive',
+        })
+        return
+      }
+
+      if (eGrupoMorador && vinculosAtuais?.morador && vinculosAtuais.morador.id !== cad.id) {
+        toast({
+          title: 'Limite atingido',
+          description: `A unidade já possui o morador (${vinculosAtuais.morador.vinculo.toUpperCase()}) "${vinculosAtuais.morador.nome}" ativo.`,
+          variant: 'destructive',
+        })
+        return
+      }
+    }
+
+    try {
+      await api.atualizarCadastroUnidade(cad.id, { ativo: novoStatus })
+      toast({
+        title: novoStatus ? 'Vínculo Ativado' : 'Vínculo Desativado',
+      })
+      await carregarDados()
+    } catch (err) {
+      toast({
+        title: 'Erro ao alterar status',
+        description: getErrorMessage(err),
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Excluir cadastro
+  const excluirCadastro = async (cad: CadastroUnidadeRecord) => {
+    if (!confirm(`Deseja excluir definitivamente o cadastro de "${cad.nome}"?`)) return
+    try {
+      await api.excluirCadastroUnidade(cad.id)
+      toast({ title: 'Cadastro excluído' })
+      await carregarDados()
+    } catch (err) {
+      toast({
+        title: 'Erro ao excluir',
+        description: getErrorMessage(err),
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // ================= EXPORTAR EXCEL =================
+  const handleExportarExcel = () => {
+    try {
+      // Montar dados no formato exato que o importador aceita
+      const dadosPlanilha = cadastros.map((cad) => {
+        const unid = mapaUnidadesPorId.get(cad.unidade)
+        return {
+          Unidade: unid?.identificador || '',
+          Bloco: unid?.bloco || '',
+          'Nome Completo': cad.nome || '',
+          CPF: formatarCpf(cad.cpf || ''),
+          Vínculo:
+            cad.vinculo === 'proprietario'
+              ? 'PROPRIETÁRIO'
+              : cad.vinculo === 'condomino'
+                ? 'CONDÔMINO'
+                : 'LOCATÁRIO',
+          'E-mail': cad.email || '',
+          Telefone: cad.telefone || '',
+          Ativo: cad.ativo ? 'SIM' : 'NÃO',
+          Observações: cad.observacoes || '',
+        }
+      })
+
+      // Se estiver vazio, incluir ao menos 1 linha de exemplo guiada
+      if (dadosPlanilha.length === 0) {
+        const unidExemplo = unidades[0]
+        dadosPlanilha.push({
+          Unidade: unidExemplo?.identificador || '101',
+          Bloco: unidExemplo?.bloco || 'Bloco A',
+          'Nome Completo': 'Exemplo Silva',
+          CPF: '000.000.000-00',
+          Vínculo: 'CONDÔMINO',
+          'E-mail': 'exemplo@condominio.com',
+          Telefone: '(11) 99999-9999',
+          Ativo: 'SIM',
+          Observações: 'Modelo de importação',
+        })
+      }
+
+      const ws = XLSX.utils.json_to_sheet(dadosPlanilha)
+      // Ajustar larguras de colunas
+      ws['!cols'] = [
+        { wch: 12 }, // Unidade
+        { wch: 14 }, // Bloco
+        { wch: 32 }, // Nome Completo
+        { wch: 16 }, // CPF
+        { wch: 16 }, // Vínculo
+        { wch: 28 }, // E-mail
+        { wch: 18 }, // Telefone
+        { wch: 8 }, // Ativo
+        { wch: 25 }, // Observações
+      ]
+
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Cadastros')
+
+      const dataHoje = new Date().toISOString().slice(0, 10)
+      XLSX.writeFile(wb, `cadastros_lago_azul_${dataHoje}.xlsx`)
+      toast({ title: 'Planilha exportada', description: 'Download concluído com sucesso.' })
+    } catch (err) {
+      console.error('Erro ao exportar excel:', err)
+      toast({
+        title: 'Erro na exportação',
+        description: 'Não foi possível gerar a planilha.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // ================= IMPORTAR EXCEL =================
+  const abrirModalImportacao = () => {
+    setLinhasImportadas([])
+    setResumoImportacao(null)
+    setModalImportarAberto(true)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const normalizarVinculoTexto = (txt: string): VinculoCadastro | null => {
+    const t = (txt || '').trim().toUpperCase()
+    if (t.includes('PROP')) return 'proprietario'
+    if (t.includes('COND')) return 'condomino'
+    if (t.includes('LOC') || t.includes('INQ')) return 'locatario'
+    return null
+  }
+
+  const handleArquivoSelecionado = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setProcessandoArquivo(true)
+    try {
+      const arrayBuffer = await file.arrayBuffer()
+      const wb = XLSX.read(arrayBuffer, { type: 'array' })
+      const primeiraAba = wb.SheetNames[0]
+      if (!primeiraAba) throw new Error('A planilha está vazia.')
+
+      const ws = wb.Sheets[primeiraAba]
+      const rawRows: Record<string, any>[] = XLSX.utils.sheet_to_json(ws, { defval: '' })
+
+      if (rawRows.length === 0) {
+        throw new Error('Nenhuma linha de dados encontrada na planilha.')
+      }
+
+      // Validação linha a linha
+      const linhasProcessadas: LinhaPlanilhaImportada[] = []
+      const cpfsVistosNoArquivo = new Set<string>()
+      const vinculosAtivosNoArquivoPorUnidade = new Map<
+        string,
+        { proprietario?: number; morador?: number }
+      >()
+
+      rawRows.forEach((row, idx) => {
+        const linhaNum = idx + 2 // Linha 1 = cabeçalho no excel
+        const motivos: string[] = []
+
+        // Campos com suporte a variações de cabeçalho
+        const identificadorRaw = String(
+          row['Unidade'] || row['unidade'] || row['UNIDADE'] || row['Identificador'] || '',
+        ).trim()
+        const blocoRaw = String(row['Bloco'] || row['bloco'] || row['BLOCO'] || '').trim()
+        const nomeRaw = String(
+          row['Nome Completo'] || row['Nome'] || row['nome'] || row['NOME'] || '',
+        ).trim()
+        const cpfRaw = String(row['CPF'] || row['cpf'] || row['Cpf'] || '').trim()
+        const emailRaw = String(
+          row['E-mail'] || row['Email'] || row['email'] || row['EMAIL'] || '',
+        ).trim()
+        const telefoneRaw = String(
+          row['Telefone'] || row['telefone'] || row['TELEFONE'] || row['Celular'] || '',
+        ).trim()
+        const vinculoRaw = String(
+          row['Vínculo'] || row['Vinculo'] || row['vinculo'] || row['Tipo'] || '',
+        ).trim()
+        const ativoRaw = String(row['Ativo'] || row['ativo'] || '')
+          .trim()
+          .toUpperCase()
+
+        const ativoBool =
+          ativoRaw !== 'NÃO' && ativoRaw !== 'NAO' && ativoRaw !== 'FALSE' && ativoRaw !== '0'
+
+        // 1. Identificar Unidade no Banco
+        let unidadeEncontrada: UnidadeRecord | undefined
+        if (identificadorRaw) {
+          if (blocoRaw) {
+            unidadeEncontrada = mapaUnidadesPorIdentificador.get(
+              `${identificadorRaw.toUpperCase()}#${blocoRaw.toUpperCase()}`,
+            )
+          }
+          if (!unidadeEncontrada) {
+            unidadeEncontrada = mapaUnidadesPorIdentificador.get(identificadorRaw.toUpperCase())
+          }
+        }
+
+        if (!unidadeEncontrada) {
+          motivos.push(`Unidade "${identificadorRaw || '—'}" não cadastrada no condomínio.`)
+        }
+
+        // 2. Validar Nome
+        if (!nomeRaw || nomeRaw.length < 2) {
+          motivos.push('Nome completo ausente ou inválido.')
+        }
+
+        // 3. Validar CPF
+        const cpfLimpo = limparCpf(cpfRaw)
+        if (!cpfLimpo || cpfLimpo.length !== 11 || !validarCpf(cpfRaw)) {
+          motivos.push('CPF inválido ou não informado.')
+        } else {
+          // Checar duplicidade no mesmo arquivo
+          if (cpfsVistosNoArquivo.has(cpfLimpo)) {
+            motivos.push('CPF duplicado dentro do próprio arquivo.')
+          }
+          cpfsVistosNoArquivo.add(cpfLimpo)
+        }
+
+        // 4. Validar Vínculo
+        const vinculoNormalizado = normalizarVinculoTexto(vinculoRaw)
+        if (!vinculoNormalizado) {
+          motivos.push(
+            `Vínculo "${vinculoRaw}" inválido. Permitidos: PROPRIETÁRIO, CONDÔMINO ou LOCATÁRIO.`,
+          )
+        }
+
+        // 5. Validar Regra de Unidade (max 1 proprietário e max 1 morador)
+        if (unidadeEncontrada && vinculoNormalizado && ativoBool) {
+          const uId = unidadeEncontrada.id
+          const vinculosExistentes = vinculosPorUnidade.get(uId)
+          const vinculosPlanilha = vinculosAtivosNoArquivoPorUnidade.get(uId) || {}
+
+          const eProprietario = vinculoNormalizado === 'proprietario'
+          const eMorador = vinculoNormalizado === 'condomino' || vinculoNormalizado === 'locatario'
+
+          if (eProprietario) {
+            if (vinculosPlanilha.proprietario) {
+              motivos.push(
+                `A planilha já possui outro proprietário ativo para a unidade ${identificadorRaw} na linha ${vinculosPlanilha.proprietario}.`,
+              )
+            } else if (vinculosExistentes?.proprietario) {
+              motivos.push(
+                `A unidade já possui proprietário ativo no banco ("${vinculosExistentes.proprietario.nome}").`,
+              )
+            } else {
+              vinculosPlanilha.proprietario = linhaNum
+            }
+          }
+
+          if (eMorador) {
+            if (vinculosPlanilha.morador) {
+              motivos.push(
+                `A planilha já possui outro morador ativo para a unidade ${identificadorRaw} na linha ${vinculosPlanilha.morador}.`,
+              )
+            } else if (vinculosExistentes?.morador) {
+              motivos.push(
+                `A unidade já possui morador ativo no banco ("${vinculosExistentes.morador.nome}").`,
+              )
+            } else {
+              vinculosPlanilha.morador = linhaNum
+            }
+          }
+
+          vinculosAtivosNoArquivoPorUnidade.set(uId, vinculosPlanilha)
+        }
+
+        linhasProcessadas.push({
+          linha: linhaNum,
+          identificador: identificadorRaw,
+          bloco: blocoRaw,
+          nome: nomeRaw,
+          cpf: cpfLimpo,
+          email: emailRaw,
+          telefone: telefoneRaw,
+          vinculo: vinculoNormalizado || 'condomino',
+          status: motivos.length === 0 ? 'valido' : 'invalido',
+          motivosInvalido: motivos,
+          unidadeIdEncontrada: unidadeEncontrada?.id,
+        })
+      })
+
+      const totalValidos = linhasProcessadas.filter((l) => l.status === 'valido').length
+      const totalInvalidos = linhasProcessadas.length - totalValidos
+
+      setLinhasImportadas(linhasProcessadas)
+      setResumoImportacao({
+        total: linhasProcessadas.length,
+        validos: totalValidos,
+        invalidos: totalInvalidos,
+      })
+    } catch (err: any) {
+      console.error('Erro ao processar planilha:', err)
+      toast({
+        title: 'Falha ao ler arquivo',
+        description: err?.message || 'Verifique se o arquivo é um .xlsx válido.',
+        variant: 'destructive',
+      })
+    } finally {
+      setProcessandoArquivo(false)
+    }
+  }
+
+  // Confirmar Importação dos Registros Válidos
+  const handleConfirmarImportacao = async () => {
+    const validos = linhasImportadas.filter((l) => l.status === 'valido')
+    if (validos.length === 0) {
+      toast({
+        title: 'Nenhum registro válido',
+        description: 'Corrija os erros na planilha antes de importar.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setConfirmandoImportacao(true)
+    let criados = 0
+    let falhas = 0
+
+    try {
+      for (const item of validos) {
+        if (!item.unidadeIdEncontrada) continue
+        try {
+          await api.criarCadastroUnidade({
+            unidade: item.unidadeIdEncontrada,
+            nome: item.nome,
+            cpf: item.cpf,
+            email: item.email || undefined,
+            telefone: item.telefone || undefined,
+            vinculo: item.vinculo,
+            ativo: true,
+            observacoes: 'Importado em massa via planilha Excel',
+          })
+          criados++
+        } catch (itemErr) {
+          console.warn('Erro ao importar linha', item.linha, itemErr)
+          falhas++
+        }
+      }
+
+      // Registrar auditoria
+      try {
+        await api.registrarEventoAuditoria({
+          evento: 'usuario_gerenciado',
+          fator: `Importação em massa via Excel: ${criados} pessoas cadastradas por ${user?.name || user?.email}`,
+        })
+      } catch {
+        /* auditoria silenciosa */
+      }
+
+      toast({
+        title: 'Importação Concluída',
+        description: `${criados} cadastros importados com sucesso! ${falhas > 0 ? `(${falhas} falhas)` : ''}`,
+      })
+
+      setModalImportarAberto(false)
+      await carregarDados()
+    } catch (err: any) {
+      toast({
+        title: 'Erro durante a importação',
+        description: getErrorMessage(err, 'Falha ao processar lotes.'),
+        variant: 'destructive',
+      })
+    } finally {
+      setConfirmandoImportacao(false)
+    }
+  }
+
+  // Filtragem da tabela principal
+  const cadastrosFiltrados = useMemo(() => {
+    return cadastros.filter((cad) => {
+      // Filtro de Busca
+      if (filtroBusca.trim()) {
+        const termo = filtroBusca.toLowerCase().trim()
+        const termoCpf = termo.replace(/\D/g, '')
+        const unid = mapaUnidadesPorId.get(cad.unidade)
+        const matchNome = (cad.nome || '').toLowerCase().includes(termo)
+        const matchCpf = (cad.cpf || '').includes(termoCpf || termo)
+        const matchEmail = (cad.email || '').toLowerCase().includes(termo)
+        const matchUnid =
+          (unid?.identificador || '').toLowerCase().includes(termo) ||
+          (unid?.bloco || '').toLowerCase().includes(termo)
+        if (!matchNome && !matchCpf && !matchEmail && !matchUnid) return false
+      }
+
+      // Filtro de Vínculo
+      if (filtroVinculo !== 'todos' && cad.vinculo !== filtroVinculo) {
+        return false
+      }
+
+      // Filtro de Unidade
+      if (filtroUnidade !== 'todas' && cad.unidade !== filtroUnidade) {
+        return false
+      }
+
+      // Filtro de Status Ativo
+      if (filtroStatus === 'ativos' && !cad.ativo) return false
+      if (filtroStatus === 'inativos' && cad.ativo) return false
+
+      return true
+    })
+  }, [cadastros, filtroBusca, filtroVinculo, filtroUnidade, filtroStatus, mapaUnidadesPorId])
+
+  // Estatísticas do cabeçalho
+  const stats = useMemo(() => {
+    let prop = 0
+    let cond = 0
+    let loc = 0
+    let ativos = 0
+    for (const c of cadastros) {
+      if (c.ativo) ativos++
+      if (c.vinculo === 'proprietario') prop++
+      else if (c.vinculo === 'condomino') cond++
+      else if (c.vinculo === 'locatario') loc++
+    }
+    return { total: cadastros.length, ativos, prop, cond, loc }
+  }, [cadastros])
+
+  return (
+    <div className="space-y-6">
+      {/* Cabeçalho */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+              <Users className="h-5 w-5 text-amber-600" /> Cadastros por Unidade
+            </h2>
+            <Badge variant="outline" className="text-xs">
+              {stats.total} pessoas cadastradas
+            </Badge>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Gestão de vínculos do condomínio: Proprietário (não residente), Condômino (residente) e
+            Locatário. Cada unidade comporta até 2 vínculos ativos (1 Proprietário e 1 Morador).
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExportarExcel}
+            className="text-xs h-9 border-slate-300 hover:bg-slate-50"
+          >
+            <Download className="mr-1.5 h-3.5 w-3.5 text-emerald-600" /> Baixar Planilha (.xlsx)
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={abrirModalImportacao}
+            className="text-xs h-9 border-slate-300 hover:bg-slate-50"
+          >
+            <Upload className="mr-1.5 h-3.5 w-3.5 text-cyan-600" /> Importar Excel (.xlsx)
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={() => abrirNovoCadastro()}
+            className="bg-amber-600 hover:bg-amber-700 text-white text-xs h-9 font-semibold"
+          >
+            <UserPlus className="mr-1.5 h-3.5 w-3.5" /> Novo Cadastro
+          </Button>
+        </div>
+      </div>
+
+      {/* Cards de Resumo */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div className="p-3 rounded-lg border border-slate-200 bg-white shadow-xs">
+          <span className="text-[10px] text-slate-400 uppercase font-semibold block">
+            Total Ativos
+          </span>
+          <span className="text-lg font-bold text-slate-900">{stats.ativos}</span>
+          <span className="text-[11px] text-slate-500 block">habilitados para convocação</span>
+        </div>
+
+        <div className="p-3 rounded-lg border border-slate-200 bg-white shadow-xs">
+          <span className="text-[10px] text-slate-400 uppercase font-semibold block">
+            Proprietários (Não Res.)
+          </span>
+          <span className="text-lg font-bold text-amber-700">{stats.prop}</span>
+          <span className="text-[11px] text-slate-500 block">titulares patrimoniais</span>
+        </div>
+
+        <div className="p-3 rounded-lg border border-slate-200 bg-white shadow-xs">
+          <span className="text-[10px] text-slate-400 uppercase font-semibold block">
+            Condôminos (Residentes)
+          </span>
+          <span className="text-lg font-bold text-cyan-700">{stats.cond}</span>
+          <span className="text-[11px] text-slate-500 block">proprietários que moram</span>
+        </div>
+
+        <div className="p-3 rounded-lg border border-slate-200 bg-white shadow-xs">
+          <span className="text-[10px] text-slate-400 uppercase font-semibold block">
+            Locatários (Inquilinos)
+          </span>
+          <span className="text-lg font-bold text-purple-700">{stats.loc}</span>
+          <span className="text-[11px] text-slate-500 block">votam conforme pauta</span>
+        </div>
+      </div>
+
+      {/* Barra de Filtros */}
+      <Card className="border-slate-200 shadow-xs">
+        <CardContent className="p-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            {/* Campo Busca */}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Buscar por nome, CPF ou unidade..."
+                value={filtroBusca}
+                onChange={(e) => setFiltroBusca(e.target.value)}
+                className="pl-8 text-xs h-9"
+              />
+            </div>
+
+            {/* Filtro Vínculo */}
+            <div>
+              <Select value={filtroVinculo} onValueChange={setFiltroVinculo}>
+                <SelectTrigger className="text-xs h-9">
+                  <SelectValue placeholder="Vínculo: Todos" />
+                </SelectTrigger>
+                <SelectContent className="text-xs">
+                  <SelectItem value="todos">Todos os Vínculos</SelectItem>
+                  <SelectItem value="proprietario">Proprietário (Não Mora)</SelectItem>
+                  <SelectItem value="condomino">Condômino (Mora)</SelectItem>
+                  <SelectItem value="locatario">Locatário (Inquilino)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtro Unidade */}
+            <div>
+              <Select value={filtroUnidade} onValueChange={setFiltroUnidade}>
+                <SelectTrigger className="text-xs h-9">
+                  <SelectValue placeholder="Unidade: Todas" />
+                </SelectTrigger>
+                <SelectContent className="text-xs max-h-56">
+                  <SelectItem value="todas">Todas as Unidades</SelectItem>
+                  {unidades.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.identificador} {u.bloco ? `(${u.bloco})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtro Status */}
+            <div>
+              <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                <SelectTrigger className="text-xs h-9">
+                  <SelectValue placeholder="Status: Todos" />
+                </SelectTrigger>
+                <SelectContent className="text-xs">
+                  <SelectItem value="todos">Todos os Status</SelectItem>
+                  <SelectItem value="ativos">Apenas Ativos</SelectItem>
+                  <SelectItem value="inativos">Apenas Inativos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabela de Cadastros */}
+      <Card className="border-slate-200 shadow-xs">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th className="py-3 px-4">Unidade</th>
+                  <th className="py-3 px-4">Nome Completo</th>
+                  <th className="py-3 px-4">CPF</th>
+                  <th className="py-3 px-4">Classificação / Vínculo</th>
+                  <th className="py-3 px-4">Contatos</th>
+                  <th className="py-3 px-4 text-center">Status</th>
+                  <th className="py-3 px-4 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {carregando ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-10 text-slate-400">
+                      Carregando cadastros...
+                    </td>
+                  </tr>
+                ) : cadastrosFiltrados.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-10 text-slate-400">
+                      Nenhum cadastro encontrado com os filtros aplicados.
+                    </td>
+                  </tr>
+                ) : (
+                  cadastrosFiltrados.map((cad) => {
+                    const unid = mapaUnidadesPorId.get(cad.unidade)
+
+                    return (
+                      <tr key={cad.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3 px-4 font-semibold text-slate-900 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <Building className="h-3.5 w-3.5 text-slate-400" />
+                            <span>{unid?.identificador || '—'}</span>
+                            {unid?.bloco && (
+                              <span className="text-[10px] text-slate-400 font-normal">
+                                ({unid.bloco})
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-4 font-medium text-slate-900">
+                          {cad.nome}
+                          {cad.observacoes && (
+                            <span className="block text-[10px] text-slate-400 truncate max-w-xs">
+                              {cad.observacoes}
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="py-3 px-4 font-mono text-slate-700 whitespace-nowrap">
+                          {formatarCpf(cad.cpf)}
+                        </td>
+
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          {cad.vinculo === 'proprietario' && (
+                            <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px]">
+                              PROPRIETÁRIO (NÃO RES.)
+                            </Badge>
+                          )}
+                          {cad.vinculo === 'condomino' && (
+                            <Badge className="bg-cyan-100 text-cyan-800 border-cyan-300 text-[10px]">
+                              CONDÔMINO (RESIDENTE)
+                            </Badge>
+                          )}
+                          {cad.vinculo === 'locatario' && (
+                            <Badge className="bg-purple-100 text-purple-800 border-purple-300 text-[10px]">
+                              LOCATÁRIO (INQUILINO)
+                            </Badge>
+                          )}
+                        </td>
+
+                        <td className="py-3 px-4 text-slate-600">
+                          <div className="space-y-0.5">
+                            {cad.email && (
+                              <div className="flex items-center gap-1 text-[11px] truncate max-w-[190px]">
+                                <Mail className="h-3 w-3 text-slate-400 shrink-0" />
+                                <span>{cad.email}</span>
+                              </div>
+                            )}
+                            {cad.telefone && (
+                              <div className="flex items-center gap-1 text-[11px]">
+                                <Phone className="h-3 w-3 text-slate-400 shrink-0" />
+                                <span className="font-mono">{cad.telefone}</span>
+                              </div>
+                            )}
+                            {!cad.email && !cad.telefone && (
+                              <span className="text-slate-400 text-[11px]">Sem contato</span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => alternarAtivo(cad)}
+                            className="inline-flex items-center gap-1 cursor-pointer"
+                            title={cad.ativo ? 'Clique para desativar' : 'Clique para ativar'}
+                          >
+                            {cad.ativo ? (
+                              <Badge className="bg-emerald-600 text-white text-[10px]">ATIVO</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-slate-400 text-[10px]">
+                                INATIVO
+                              </Badge>
+                            )}
+                          </button>
+                        </td>
+
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => abrirEditarCadastro(cad)}
+                              className="h-7 w-7 text-slate-500 hover:text-cyan-700"
+                              title="Editar cadastro"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => excluirCadastro(cad)}
+                              className="h-7 w-7 text-slate-400 hover:text-red-600"
+                              title="Excluir cadastro"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* MODAL CRIAR / EDITAR */}
+      <Dialog open={modalAberto} onOpenChange={setModalAberto}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Users className="h-5 w-5 text-amber-600" />
+              {itemEditando ? 'Editar Vínculo da Unidade' : 'Novo Vínculo Cadastral'}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600">
+              Associe uma pessoa a uma unidade respeitando as regras condominiais do Lago Azul.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSalvarCadastro} className="space-y-3 py-2 text-xs">
+            {/* Unidade */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Unidade *</Label>
+              <Select value={formUnidadeId} onValueChange={setFormUnidadeId}>
+                <SelectTrigger className="text-xs h-9">
+                  <SelectValue placeholder="Selecione a unidade..." />
+                </SelectTrigger>
+                <SelectContent className="text-xs max-h-56">
+                  {unidades.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.tipo_unidade || rotuloUnidade} {u.identificador}{' '}
+                      {u.bloco ? `(${u.bloco})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Nome Completo */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Nome Completo *</Label>
+              <Input
+                required
+                placeholder="Ex: Maria Aparecida da Silva"
+                value={formNome}
+                onChange={(e) => setFormNome(e.target.value)}
+                className="text-xs h-9"
+              />
+            </div>
+
+            {/* Grid CPF e Vínculo */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">CPF *</Label>
+                <Input
+                  required
+                  placeholder="000.000.000-00"
+                  maxLength={14}
+                  value={formCpf}
+                  onChange={(e) => handleCpfChange(e.target.value)}
+                  className={`text-xs h-9 font-mono ${formCpfErro ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                />
+                {formCpfErro && <p className="text-[10px] text-red-600">{formCpfErro}</p>}
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Classificação do Vínculo *</Label>
+                <Select
+                  value={formVinculo}
+                  onValueChange={(val) => setFormVinculo(val as VinculoCadastro)}
+                >
+                  <SelectTrigger className="text-xs h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="text-xs">
+                    <SelectItem value="proprietario">PROPRIETÁRIO (Não Mora)</SelectItem>
+                    <SelectItem value="condomino">CONDÔMINO (Mora)</SelectItem>
+                    <SelectItem value="locatario">LOCATÁRIO (Inquilino)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Grid Contatos */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">E-mail (para convocações)</Label>
+                <Input
+                  type="email"
+                  placeholder="exemplo@email.com"
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
+                  className="text-xs h-9"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Telefone / WhatsApp</Label>
+                <Input
+                  placeholder="(00) 00000-0000"
+                  value={formTelefone}
+                  onChange={(e) => setFormTelefone(e.target.value)}
+                  className="text-xs h-9 font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Observações */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Observações internas</Label>
+              <Input
+                placeholder="Ex: Contrato de locação até Dez/2025"
+                value={formObservacoes}
+                onChange={(e) => setFormObservacoes(e.target.value)}
+                className="text-xs h-9"
+              />
+            </div>
+
+            {/* Switch Ativo */}
+            <div className="flex items-center justify-between p-2.5 rounded bg-slate-50 border border-slate-200">
+              <div>
+                <span className="font-semibold text-xs text-slate-800 block">Vínculo Ativo</span>
+                <span className="text-[10px] text-slate-500">
+                  Apenas cadastros ativos podem votar e receber convocações oficiais.
+                </span>
+              </div>
+              <Switch checked={formAtivo} onCheckedChange={setFormAtivo} />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setModalAberto(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={salvando}
+                size="sm"
+                className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+              >
+                {salvando ? 'Gravando...' : 'Salvar Cadastro'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL IMPORTAÇÃO EM MASSA EXCEL */}
+      <Dialog open={modalImportarAberto} onOpenChange={setModalImportarAberto}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
+              Importação em Massa via Planilha Excel (.xlsx)
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600">
+              Faça o upload da planilha com as colunas:{' '}
+              <strong>Unidade, Bloco, Nome Completo, CPF, Vínculo, E-mail, Telefone</strong>. A
+              validação é feita linha a linha antes de qualquer gravação no banco.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs flex-1 overflow-y-auto">
+            {/* Área de Seleção de Arquivo */}
+            <div className="border-2 border-dashed border-slate-300 rounded-lg p-5 text-center bg-slate-50/50 hover:bg-slate-50 transition-colors">
+              <Upload className="h-8 w-8 text-cyan-600 mx-auto mb-2" />
+              <label
+                htmlFor="planilhaExcel"
+                className="font-semibold text-cyan-700 hover:text-cyan-800 cursor-pointer underline text-xs"
+              >
+                Clique para selecionar o arquivo .xlsx
+              </label>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Formatos aceitos: Microsoft Excel (.xlsx). A importação NÃO cria contas de login no
+                sistema.
+              </p>
+              <input
+                ref={fileInputRef}
+                id="planilhaExcel"
+                type="file"
+                accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                onChange={handleArquivoSelecionado}
+                className="hidden"
+              />
+            </div>
+
+            {processandoArquivo && (
+              <div className="text-center py-4 text-xs text-slate-500">
+                Processando e validando planilha...
+              </div>
+            )}
+
+            {/* Resumo da Validação Prévia */}
+            {resumoImportacao && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-2.5 rounded bg-slate-100 border text-center">
+                    <span className="text-[10px] text-slate-500 uppercase font-semibold block">
+                      Linhas Lidas
+                    </span>
+                    <strong className="text-sm text-slate-900">{resumoImportacao.total}</strong>
+                  </div>
+                  <div className="p-2.5 rounded bg-emerald-50 border border-emerald-200 text-center">
+                    <span className="text-[10px] text-emerald-700 uppercase font-semibold block">
+                      Prontos p/ Importar
+                    </span>
+                    <strong className="text-sm text-emerald-800">{resumoImportacao.validos}</strong>
+                  </div>
+                  <div className="p-2.5 rounded bg-red-50 border border-red-200 text-center">
+                    <span className="text-[10px] text-red-700 uppercase font-semibold block">
+                      Rejeitados / Falhas
+                    </span>
+                    <strong className="text-sm text-red-800">{resumoImportacao.invalidos}</strong>
+                  </div>
+                </div>
+
+                {/* Lista de Registros Analisados */}
+                <div className="border border-slate-200 rounded-lg overflow-hidden max-h-60 overflow-y-auto">
+                  <table className="w-full text-[11px] text-left">
+                    <thead className="bg-slate-100 border-b text-slate-600 font-semibold sticky top-0">
+                      <tr>
+                        <th className="py-2 px-3">Linha</th>
+                        <th className="py-2 px-3">Unid</th>
+                        <th className="py-2 px-3">Nome</th>
+                        <th className="py-2 px-3">CPF</th>
+                        <th className="py-2 px-3">Vínculo</th>
+                        <th className="py-2 px-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {linhasImportadas.map((l) => (
+                        <tr
+                          key={l.linha}
+                          className={l.status === 'valido' ? 'bg-emerald-50/30' : 'bg-red-50/40'}
+                        >
+                          <td className="py-1.5 px-3 font-mono">{l.linha}</td>
+                          <td className="py-1.5 px-3 font-semibold">{l.identificador}</td>
+                          <td className="py-1.5 px-3 truncate max-w-[120px]">{l.nome}</td>
+                          <td className="py-1.5 px-3 font-mono">{formatarCpf(l.cpf)}</td>
+                          <td className="py-1.5 px-3 uppercase text-[10px]">{l.vinculo}</td>
+                          <td className="py-1.5 px-3">
+                            {l.status === 'valido' ? (
+                              <span className="inline-flex items-center text-emerald-700 font-semibold text-[10px] gap-1">
+                                <CheckCircle2 className="h-3 w-3" /> Válido
+                              </span>
+                            ) : (
+                              <div className="text-red-700 font-semibold text-[10px]">
+                                <span className="inline-flex items-center gap-1">
+                                  <XCircle className="h-3 w-3" /> Rejeitado
+                                </span>
+                                <span className="block text-[9px] text-red-600 font-normal">
+                                  {l.motivosInvalido.join(' ')}
+                                </span>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="border-t pt-3 flex items-center justify-between">
+            <span className="text-[11px] text-slate-500">
+              {resumoImportacao
+                ? `${resumoImportacao.validos} registros serão gravados.`
+                : 'Selecione a planilha para validar.'}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setModalImportarAberto(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                disabled={
+                  !resumoImportacao || resumoImportacao.validos === 0 || confirmandoImportacao
+                }
+                onClick={handleConfirmarImportacao}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+              >
+                {confirmandoImportacao
+                  ? 'Importando...'
+                  : `Confirmar e Importar (${resumoImportacao?.validos || 0})`}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+export default CadastrosUnidadesPage
