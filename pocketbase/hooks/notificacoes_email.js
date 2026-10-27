@@ -46,7 +46,7 @@ onRecordCreate((e) => {
               <table role="presentation" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                 <tr>
                   <td style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 24px 30px; text-align: left; border-bottom: 3px solid #0284c7;">
-                    <span style="display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #38bdf8; font-weight: 700; margin-bottom: 4px;">Plataforma Oficial de Assembleias</span>
+                    <span style="display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #38bdf8; font-weight: 700; margin-bottom: 4px;">Plataforma Virtual Koinon</span>
                     <h1 style="margin: 0; font-size: 20px; color: #ffffff; font-weight: 700;">${nomeCondo}</h1>
                   </td>
                 </tr>
@@ -151,7 +151,7 @@ onRecordCreate((e) => {
             `• Titular: ${nomeTitular}\n` +
             `• CPF: ${cpf}\n` +
             `• Unidade: ${identUnidade}\n\n` +
-            `Acesse a plataforma de votação no módulo da mesa para analisar a documentação comprobatória.`,
+            `Acesse a Plataforma Virtual Koinon no módulo da mesa para analisar a documentação comprobatória.`,
         )
         notif.set('status', 'pendente')
         e.app.save(notif)

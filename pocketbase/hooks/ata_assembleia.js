@@ -60,7 +60,7 @@ routerAdd('POST', '/backend/v1/atas/gerar-ia', (e) => {
         `Data da Assembleia indicada no Edital: ${ed.getString('data_assembleia') || 'Não especificada'}\n` +
         `Primeira Convocação: ${ed.getString('primeira_convocacao') || '19:00'}\n` +
         `Segunda Convocação: ${ed.getString('segunda_convocacao') || '19:30'}\n` +
-        `Local indicado: ${ed.getString('local_texto') || 'Salão de Festas / Plataforma Koinon'}\n` +
+        `Local indicado: ${ed.getString('local_texto') || 'Salão de Festas / Plataforma Virtual Koinon'}\n` +
         `Convocante: ${ed.getString('sindico_nome') || 'Síndico(a)'} (CPF: ${ed.getString('sindico_cpf') || '—'})\n`
     }
   } catch (_) {}
@@ -195,7 +195,7 @@ routerAdd('POST', '/backend/v1/atas/gerar-ia', (e) => {
     `QUÓRUM E PRESENÇAS APURADAS:\n` +
     `• Total Geral de Unidades Presentes: ${totalPresencas}\n` +
     `• Presenças Físicas (Presencial no Salão): ${totalPresencial}\n` +
-    `• Presenças Virtuais (Plataforma Remota Koinon): ${totalRemoto}\n` +
+    `• Presenças Virtuais (Plataforma Virtual Koinon): ${totalRemoto}\n` +
     `• Representações por Procuração Cadastradas: ${totalProcuracao}\n\n` +
     `ITENS DA ORDEM DO DIA E APURAÇÃO DOS VOTOS:\n${itensPautaTexto || 'Nenhum item com votação registrada até o momento.'}\n\n` +
     `INTEGRIDADE CRIPTOGRÁFICA DA URNA ELETRÔNICA KOINON:\n` +

@@ -94,7 +94,7 @@ export const LoginPage: React.FC = () => {
               <KoinonSymbol size={44} variant="color" />
             </div>
             <div className="inline-block self-center text-[11px] font-semibold tracking-wider text-[#1C2331] bg-[#216E75]/10 border border-[#216E75]/25 px-2.5 py-0.5 rounded-[8px] mb-2">
-              Plataforma de Votação
+              Plataforma Virtual Koinon
             </div>
             <CardTitle className="text-2xl font-semibold tracking-[-0.02em] text-[#1C2331]">
               {nomeCondominio}

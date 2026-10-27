@@ -96,7 +96,7 @@ export const DocumentosEditalPage: React.FC = () => {
     localTexto: 'Salão de Festas do Condomínio / Plataforma Virtual Koinon',
     ordemDiaCustom: '',
     disposicoesGerais:
-      'Os condôminos poderão votar presencialmente ou por meio da plataforma eletrônica. É admitida representação por procuração com firma reconhecida ou assinatura eletrônica idônea.',
+      'Os condôminos poderão votar presencialmente ou por meio da Plataforma Virtual Koinon. É admitida representação por procuração com firma reconhecida ou assinatura eletrônica idônea.',
     regrasParticipacao: '',
     sindicoNome: '',
     sindicoCpf: '',
@@ -254,7 +254,7 @@ export const DocumentosEditalPage: React.FC = () => {
             ordemDiaCustom: editalSalvo.ordem_dia_custom || '',
             disposicoesGerais:
               editalSalvo.disposicoes_gerais ||
-              'Os condôminos poderão votar presencialmente ou por meio da plataforma eletrônica. É admitida representação por procuração com firma reconhecida ou assinatura eletrônica idônea.',
+              'Os condôminos poderão votar presencialmente ou por meio da Plataforma Virtual Koinon. É admitida representação por procuração com firma reconhecida ou assinatura eletrônica idônea.',
             regrasParticipacao: editalSalvo.regras_participacao || defaultRegras,
             sindicoNome:
               editalSalvo.sindico_nome ||
@@ -299,7 +299,7 @@ export const DocumentosEditalPage: React.FC = () => {
             localTexto: 'Salão de Festas do Condomínio / Plataforma Virtual Koinon',
             ordemDiaCustom: '',
             disposicoesGerais:
-              'Os condôminos poderão votar presencialmente ou por meio da plataforma eletrônica. É admitida representação por procuração com firma reconhecida ou assinatura eletrônica idônea.',
+              'Os condôminos poderão votar presencialmente ou por meio da Plataforma Virtual Koinon. É admitida representação por procuração com firma reconhecida ou assinatura eletrônica idônea.',
             regrasParticipacao: defaultRegras,
             sindicoNome: assEdital?.assinante_nome || delibAtual.mesa_presidente_nome || '',
             sindicoCpf: formatarCpf(

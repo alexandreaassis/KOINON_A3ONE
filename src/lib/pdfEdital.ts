@@ -395,7 +395,7 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
       <div><strong>• Data da Assembleia:</strong> ${dados.dataAssembleia || 'Conforme cronograma da assembleia'}</div>
       <div><strong>• 1ª Convocação:</strong> às ${dados.primeiraConvocacao || '19:00'} horas (com quórum regimental da Convenção).</div>
       <div><strong>• 2ª Convocação:</strong> às ${dados.segundaConvocacao || '19:30'} horas (com qualquer número de condôminos presentes).</div>
-      <div><strong>• Local e Plataforma:</strong> ${dados.localTexto || 'Salão de Festas / Plataforma Virtual'}</div>
+      <div><strong>• Local e Plataforma:</strong> ${dados.localTexto || 'Salão de Festas / Plataforma Virtual Koinon'}</div>
     </div>
 
     <div class="section-title">Ordem do Dia / Pauta de Deliberações</div>

@@ -699,7 +699,7 @@ export const ListaPresencaPage: React.FC = () => {
             )}
             <div className="flex-1 text-center px-4">
               <span className="text-[10px] uppercase tracking-widest font-bold text-[#216E75] block">
-                Plataforma Oficial de Governança Condominial
+                Plataforma Virtual Koinon
               </span>
               <h1 className="text-lg font-bold text-[#1C2331] uppercase">{nomeCondominio}</h1>
               <p className="text-xs text-[#626A76]">
@@ -1200,7 +1200,7 @@ export const ListaPresencaPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="presencial">Presencial (No local da assembleia)</SelectItem>
-                  <SelectItem value="remoto">Remoto (Plataforma online)</SelectItem>
+                  <SelectItem value="remoto">Remoto (Plataforma Virtual Koinon)</SelectItem>
                   <SelectItem value="procuracao">Por Procuração / Representante Legal</SelectItem>
                 </SelectContent>
               </Select>

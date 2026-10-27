@@ -102,7 +102,7 @@ export const EditalDocumentoPage: React.FC = () => {
         ordemDiaCustom: editalSalvo?.ordem_dia_custom || '',
         disposicoesGerais:
           editalSalvo?.disposicoes_gerais ||
-          'Os condôminos poderão votar presencialmente ou por meio da plataforma eletrônica. É admitida representação por procuração com firma reconhecida ou assinatura eletrônica idônea.',
+          'Os condôminos poderão votar presencialmente ou por meio da Plataforma Virtual Koinon. É admitida representação por procuração com firma reconhecida ou assinatura eletrônica idônea.',
         regrasParticipacao:
           editalSalvo?.regras_participacao ||
           `• Quórum de aprovação por matéria: ${deliberacao.quorum_materia || 'Maioria simples'}.\n• Voto de condômino inadimplente: ${deliberacao.inadimplente_pode_votar ? 'Permitido' : 'Vedado'} (conforme convenção).\n• Voto de locatário: ${deliberacao.locatario_pode_votar ? 'Permitido' : 'Vedado'}.\n• Modalidade de voto: ${deliberacao.tipo_cedula === 'secreta' ? 'Cédula Secreta com criptografia SHA-256' : 'Votação Aberta Nominal'}.`,
