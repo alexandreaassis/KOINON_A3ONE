@@ -512,72 +512,72 @@ export const GestaoUsuariosPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Cabeçalho Institucional Koinon */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D9D4C8] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D5DCE5] pb-5">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[8px] bg-[#216E75]/10 text-[#1C2331] border border-[#216E75]/25 text-[11px] font-semibold mb-2">
-            <Shield className="h-3.5 w-3.5 text-[#216E75]" /> Controle de Acesso e Governança
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[8px] bg-[#1F6B94]/10 text-[#12314F] border border-[#1F6B94]/25 text-[11px] font-semibold mb-2">
+            <Shield className="h-3.5 w-3.5 text-[#1F6B94]" /> Controle de Acesso e Governança
           </div>
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#1C2331] flex items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[#12314F] flex items-center gap-2">
             Gestão de Usuários e Permissões
           </h1>
-          <p className="text-xs text-[#626A76] mt-1 max-w-2xl">
+          <p className="text-xs text-[#5C6B7A] mt-1 max-w-2xl">
             Gerencie os operadores da mesa, membros da administração e condôminos habilitados no
-            condomínio <strong className="text-[#1C2331]">{nomeCondominio}</strong>. Toda alteração
+            condomínio <strong className="text-[#12314F]">{nomeCondominio}</strong>. Toda alteração
             de perfil é registrada para auditoria.
           </p>
         </div>
 
         <Button
           onClick={abrirNovoUsuario}
-          className="bg-[#216E75] hover:bg-[#1a585e] text-white font-semibold text-xs h-9 px-3.5 rounded-[10px] shadow-none border-0 self-start sm:self-center"
+          className="bg-[#1F6B94] hover:bg-[#185577] text-white font-semibold text-xs h-9 px-3.5 rounded-[10px] shadow-none border-0 self-start sm:self-center"
         >
           <UserPlus className="mr-1.5 h-4 w-4" /> Novo Usuário
         </Button>
       </div>
       {/* Cartão de Resumo e Métricas Operacionais */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Card className="border-[#D9D4C8] bg-white rounded-[14px] shadow-[0_4px_24px_rgba(28,35,49,0.08)]">
+        <Card className="border-[#D5DCE5] bg-white rounded-[14px] shadow-[0_4px_24px_rgba(18,49,79,0.06)]">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[#626A76]">
+              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[#5C6B7A]">
                 Total de Usuários
               </p>
-              <p className="text-xl font-bold text-[#1C2331] mt-0.5">{usuarios.length}</p>
+              <p className="text-xl font-bold text-[#12314F] mt-0.5">{usuarios.length}</p>
             </div>
-            <div className="h-9 w-9 rounded-full bg-[#F2F1ED] flex items-center justify-center text-[#1C2331]">
+            <div className="h-9 w-9 rounded-full bg-[#F1F4F8] flex items-center justify-center text-[#12314F]">
               <Users className="h-4 w-4" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-[#D9D4C8] bg-white rounded-[14px] shadow-[0_4px_24px_rgba(28,35,49,0.08)]">
+        <Card className="border-[#D5DCE5] bg-white rounded-[14px] shadow-[0_4px_24px_rgba(18,49,79,0.06)]">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[#626A76]">
+              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[#5C6B7A]">
                 Usuários Ativos
               </p>
-              <p className="text-xl font-bold text-[#7D8F72] mt-0.5">
+              <p className="text-xl font-bold text-[#4E8B7E] mt-0.5">
                 {usuarios.filter((u) => u.ativo !== false).length}
               </p>
             </div>
-            <div className="h-9 w-9 rounded-full bg-[#7D8F72]/15 flex items-center justify-center text-[#7D8F72]">
+            <div className="h-9 w-9 rounded-full bg-[#4E8B7E]/15 flex items-center justify-center text-[#4E8B7E]">
               <CheckCircle2 className="h-4 w-4" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-[#D9D4C8] bg-white rounded-[14px] shadow-[0_4px_24px_rgba(28,35,49,0.08)]">
+        <Card className="border-[#D5DCE5] bg-white rounded-[14px] shadow-[0_4px_24px_rgba(18,49,79,0.06)]">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[#626A76]">
+              <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-[#5C6B7A]">
                 Gestores / Operadores
               </p>
-              <p className="text-xl font-bold text-[#216E75] mt-0.5">
+              <p className="text-xl font-bold text-[#1F6B94] mt-0.5">
                 {totalGestoresAtivos}{' '}
-                <span className="text-[11px] font-normal text-[#626A76]">ativos</span>
+                <span className="text-[11px] font-normal text-[#5C6B7A]">ativos</span>
               </p>
             </div>
-            <div className="h-9 w-9 rounded-full bg-[#216E75]/10 flex items-center justify-center text-[#216E75]">
+            <div className="h-9 w-9 rounded-full bg-[#1F6B94]/10 flex items-center justify-center text-[#1F6B94]">
               <Shield className="h-4 w-4" />
             </div>
           </CardContent>
@@ -585,12 +585,12 @@ export const GestaoUsuariosPage: React.FC = () => {
       </div>
 
       {/* Barra de Filtros e Busca */}
-      <Card className="border-[#D9D4C8] bg-white rounded-[12px] shadow-[0_4px_24px_rgba(28,35,49,0.04)]">
+      <Card className="border-[#D5DCE5] bg-white rounded-[12px] shadow-[0_4px_24px_rgba(18,49,79,0.04)]">
         <CardContent className="p-3.5">
           <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
             {/* Campo de Busca */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#626A76]" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#5C6B7A]" />
               <Input
                 placeholder="Buscar por nome, e-mail, CPF ou unidade..."
                 value={busca}
@@ -598,13 +598,13 @@ export const GestaoUsuariosPage: React.FC = () => {
                   setBusca(e.target.value)
                   setPaginaAtual(1)
                 }}
-                className="pl-9 h-9 text-xs border-[#D9D4C8] bg-white text-[#1C2331] placeholder:text-[#626A76] rounded-[10px]"
+                className="pl-9 h-9 text-xs border-[#D5DCE5] bg-white text-[#12314F] placeholder:text-[#5C6B7A] rounded-[10px]"
               />
             </div>
 
             {/* Filtro por Perfil */}
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-[#626A76] hidden sm:block shrink-0" />
+              <Filter className="h-4 w-4 text-[#5C6B7A] hidden sm:block shrink-0" />
               <Select
                 value={filtroRole}
                 onValueChange={(val) => {
@@ -612,10 +612,10 @@ export const GestaoUsuariosPage: React.FC = () => {
                   setPaginaAtual(1)
                 }}
               >
-                <SelectTrigger className="w-full sm:w-44 h-9 text-xs border-[#D9D4C8] bg-white text-[#1C2331] rounded-[10px]">
+                <SelectTrigger className="w-full sm:w-44 h-9 text-xs border-[#D5DCE5] bg-white text-[#12314F] rounded-[10px]">
                   <SelectValue placeholder="Perfil" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-[#D9D4C8] text-[#1C2331]">
+                <SelectContent className="bg-white border-[#D5DCE5] text-[#12314F]">
                   <SelectItem value="todos">Todos os perfis</SelectItem>
                   <SelectItem value="morador">Morador (Votante)</SelectItem>
                   <SelectItem value="mesa">Mesa Diretora</SelectItem>
@@ -632,10 +632,10 @@ export const GestaoUsuariosPage: React.FC = () => {
                   setPaginaAtual(1)
                 }}
               >
-                <SelectTrigger className="w-full sm:w-36 h-9 text-xs border-[#D9D4C8] bg-white text-[#1C2331] rounded-[10px]">
+                <SelectTrigger className="w-full sm:w-36 h-9 text-xs border-[#D5DCE5] bg-white text-[#12314F] rounded-[10px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-[#D9D4C8] text-[#1C2331]">
+                <SelectContent className="bg-white border-[#D5DCE5] text-[#12314F]">
                   <SelectItem value="todos">Todos status</SelectItem>
                   <SelectItem value="ativo">Apenas Ativos</SelectItem>
                   <SelectItem value="inativo">Apenas Inativos</SelectItem>
@@ -647,13 +647,13 @@ export const GestaoUsuariosPage: React.FC = () => {
       </Card>
 
       {/* Lista de Usuários - Tabela Desktop com Cabeçalho Mármore / Cartões Mobile */}
-      <Card className="border-[#D9D4C8] bg-white rounded-[12px] shadow-[0_4px_24px_rgba(28,35,49,0.06)] overflow-hidden">
-        <CardHeader className="p-4 sm:p-5 border-b border-[#D9D4C8] flex flex-row items-center justify-between">
+      <Card className="border-[#D5DCE5] bg-white rounded-[12px] shadow-[0_4px_24px_rgba(18,49,79,0.06)] overflow-hidden">
+        <CardHeader className="p-4 sm:p-5 border-b border-[#D5DCE5] flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-sm font-semibold text-[#1C2331]">
+            <CardTitle className="text-sm font-semibold text-[#12314F]">
               Usuários Registrados ({usuariosFiltrados.length})
             </CardTitle>
-            <CardDescription className="text-xs text-[#626A76]">
+            <CardDescription className="text-xs text-[#5C6B7A]">
               Credenciais individuais vinculadas a chaves de voto e trilhas de auditoria.
             </CardDescription>
           </div>
@@ -667,7 +667,7 @@ export const GestaoUsuariosPage: React.FC = () => {
                 setFiltroStatus('todos')
                 setPaginaAtual(1)
               }}
-              className="text-xs text-[#626A76] hover:text-[#1C2331]"
+              className="text-xs text-[#5C6B7A] hover:text-[#12314F]"
             >
               Limpar filtros
             </Button>
@@ -676,14 +676,14 @@ export const GestaoUsuariosPage: React.FC = () => {
 
         <CardContent className="p-0">
           {carregando ? (
-            <div className="py-12 flex flex-col items-center justify-center text-[#626A76] gap-2">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#216E75] border-t-transparent" />
+            <div className="py-12 flex flex-col items-center justify-center text-[#5C6B7A] gap-2">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#1F6B94] border-t-transparent" />
               <p className="text-xs">Consultando base de usuários...</p>
             </div>
           ) : usuariosFiltrados.length === 0 ? (
-            <div className="py-12 px-4 text-center text-[#626A76]">
-              <Users className="h-8 w-8 mx-auto mb-2 text-[#626A76]/50" />
-              <p className="text-sm font-medium text-[#1C2331]">Nenhum usuário localizado</p>
+            <div className="py-12 px-4 text-center text-[#5C6B7A]">
+              <Users className="h-8 w-8 mx-auto mb-2 text-[#5C6B7A]/50" />
+              <p className="text-sm font-medium text-[#12314F]">Nenhum usuário localizado</p>
               <p className="text-xs mt-1">
                 Ajuste os filtros de busca ou cadastre um novo condômino no sistema.
               </p>
@@ -693,7 +693,7 @@ export const GestaoUsuariosPage: React.FC = () => {
               {/* VISÃO DESKTOP (Tabela padrão Koinon com Cabeçalho Mármore) */}
               <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-[#F2F1ED] border-y border-[#D9D4C8] text-[#626A76] font-semibold uppercase text-[10px] tracking-wider">
+                  <thead className="bg-[#F1F4F8] border-y border-[#D5DCE5] text-[#5C6B7A] font-semibold uppercase text-[10px] tracking-wider">
                     {' '}
                     <tr>
                       <th className="py-3 px-4">Nome / Identificação</th>
@@ -706,43 +706,43 @@ export const GestaoUsuariosPage: React.FC = () => {
                       <th className="py-3 px-4 text-right">Ações</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#D9D4C8]/60">
+                  <tbody className="divide-y divide-[#D5DCE5]/60">
                     {usuariosPaginados.map((u) => {
                       const unidadeVinc = unidades.find((item) => item.id === u.unidade)
                       const isAtivo = u.ativo !== false
                       const isSelf = currentUser?.id === u.id
 
                       return (
-                        <tr key={u.id} className="hover:bg-[#F2F1ED]/50 transition-colors">
+                        <tr key={u.id} className="hover:bg-[#F1F4F8]/50 transition-colors">
                           <td className="py-3 px-4">
-                            <span className="font-semibold text-[#1C2331] block">
+                            <span className="font-semibold text-[#12314F] block">
                               {u.name || 'Sem nome'}
                               {isSelf && (
-                                <span className="ml-1.5 text-[10px] font-normal text-[#216E75] bg-[#216E75]/15 px-1.5 py-0.2 rounded">
+                                <span className="ml-1.5 text-[10px] font-normal text-[#1F6B94] bg-[#1F6B94]/15 px-1.5 py-0.2 rounded">
                                   você
                                 </span>
                               )}
                             </span>
-                            <span className="text-[10px] text-[#626A76] font-mono">ID: {u.id}</span>
+                            <span className="text-[10px] text-[#5C6B7A] font-mono">ID: {u.id}</span>
                           </td>
 
-                          <td className="py-3 px-4 font-mono text-[11px] text-[#1C2331]">
+                          <td className="py-3 px-4 font-mono text-[11px] text-[#12314F]">
                             {u.email}
                           </td>
 
-                          <td className="py-3 px-4 font-mono text-[11px] text-[#626A76]">
+                          <td className="py-3 px-4 font-mono text-[11px] text-[#5C6B7A]">
                             {u.cpf ? mascararCpf(u.cpf) : <span className="italic">Não inf.</span>}
                           </td>
 
-                          <td className="py-3 px-4 text-[#1C2331]">
+                          <td className="py-3 px-4 text-[#12314F]">
                             {unidadeVinc ? (
                               <span className="font-mono text-xs inline-flex items-center gap-1">
-                                <Building className="h-3 w-3 text-[#626A76]" />
+                                <Building className="h-3 w-3 text-[#5C6B7A]" />
                                 {unidadeVinc.tipo_unidade || rotuloUnidade}{' '}
                                 {unidadeVinc.identificador} ({unidadeVinc.bloco || 'Lago Azul'})
                               </span>
                             ) : (
-                              <span className="text-[#626A76] italic">Sem unidade</span>
+                              <span className="text-[#5C6B7A] italic">Sem unidade</span>
                             )}
                           </td>
 
@@ -750,10 +750,10 @@ export const GestaoUsuariosPage: React.FC = () => {
                             <Badge
                               className={`text-[10px] uppercase font-bold tracking-wider shrink-0 text-center leading-normal border rounded-[6px] ${
                                 u.role === 'admin'
-                                  ? 'bg-[#1C2331] text-[#FFFFFF] border-[#2C364A]'
+                                  ? 'bg-[#12314F] text-[#FFFFFF] border-[#12314F]'
                                   : u.role === 'mesa'
-                                    ? 'bg-[#216E75]/15 text-[#1C2331] border-[#216E75]/30'
-                                    : 'bg-[#F2F1ED] text-[#1C2331] border-[#D9D4C8]'
+                                    ? 'bg-[#1F6B94]/15 text-[#12314F] border-[#1F6B94]/30'
+                                    : 'bg-[#F1F4F8] text-[#12314F] border-[#D5DCE5]'
                               }`}
                             >
                               {u.role === 'admin'
@@ -792,7 +792,7 @@ export const GestaoUsuariosPage: React.FC = () => {
                             </button>
                           </td>
 
-                          <td className="py-3 px-4 text-[#626A76] text-[11px]">
+                          <td className="py-3 px-4 text-[#5C6B7A] text-[11px]">
                             {formatarData(u.created)}
                           </td>
 
@@ -801,7 +801,7 @@ export const GestaoUsuariosPage: React.FC = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-xs h-7 px-2.5 border-[#D9D4C8] hover:bg-[#F2F1ED] rounded-[8px]"
+                                className="text-xs h-7 px-2.5 border-[#D5DCE5] hover:bg-[#F1F4F8] rounded-[8px]"
                                 onClick={() => abrirEditarUsuario(u)}
                               >
                                 Editar
@@ -809,16 +809,16 @@ export const GestaoUsuariosPage: React.FC = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-xs h-7 px-2 border-[#D9D4C8] text-[#626A76] hover:text-[#1C2331] hover:bg-[#F2F1ED] rounded-[8px]"
+                                className="text-xs h-7 px-2 border-[#D5DCE5] text-[#5C6B7A] hover:text-[#12314F] hover:bg-[#F1F4F8] rounded-[8px]"
                                 title="Visualizar histórico e logs de acesso"
                                 onClick={() => abrirLogsAcesso(u)}
                               >
-                                <History className="h-3.5 w-3.5 mr-1 text-[#216E75]" /> Logs
+                                <History className="h-3.5 w-3.5 mr-1 text-[#1F6B94]" /> Logs
                               </Button>
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="text-xs h-7 px-2 text-[#626A76] hover:text-[#1C2331] hover:bg-[#F2F1ED] rounded-[8px]"
+                                className="text-xs h-7 px-2 text-[#5C6B7A] hover:text-[#12314F] hover:bg-[#F1F4F8] rounded-[8px]"
                                 title="Enviar redefinição de senha por e-mail"
                                 onClick={() => {
                                   setUsuarioReset(u)
@@ -837,7 +837,7 @@ export const GestaoUsuariosPage: React.FC = () => {
               </div>
 
               {/* VISÃO MOBILE: Cartões Empilhados */}
-              <div className="md:hidden divide-y divide-[#D9D4C8]/70">
+              <div className="md:hidden divide-y divide-[#D5DCE5]/70">
                 {usuariosPaginados.map((u) => {
                   const unidadeVinc = unidades.find((item) => item.id === u.unidade)
                   const isAtivo = u.ativo !== false
@@ -848,45 +848,45 @@ export const GestaoUsuariosPage: React.FC = () => {
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <div className="flex items-center gap-1.5">
-                            <span className="font-semibold text-[#1C2331] text-sm">
+                            <span className="font-semibold text-[#12314F] text-sm">
                               {u.name || 'Sem nome'}
                             </span>
                             {isSelf && (
-                              <span className="text-[10px] font-normal text-[#216E75] bg-[#216E75]/15 px-1.5 py-0.2 rounded">
+                              <span className="text-[10px] font-normal text-[#1F6B94] bg-[#1F6B94]/15 px-1.5 py-0.2 rounded">
                                 você
                               </span>
                             )}
                           </div>
-                          <p className="font-mono text-[11px] text-[#626A76] mt-0.5">{u.email}</p>
+                          <p className="font-mono text-[11px] text-[#5C6B7A] mt-0.5">{u.email}</p>
                         </div>
 
                         <Badge
                           className={`text-[9px] uppercase font-bold tracking-wider shrink-0 border rounded-[6px] ${
                             u.role === 'admin'
-                              ? 'bg-[#1C2331] text-white border-[#2C364A]'
+                              ? 'bg-[#12314F] text-white border-[#12314F]'
                               : u.role === 'mesa'
-                                ? 'bg-[#216E75]/15 text-[#1C2331] border-[#216E75]/30'
-                                : 'bg-[#F2F1ED] text-[#1C2331] border-[#D9D4C8]'
+                                ? 'bg-[#1F6B94]/15 text-[#12314F] border-[#1F6B94]/30'
+                                : 'bg-[#F1F4F8] text-[#12314F] border-[#D5DCE5]'
                           }`}
                         >
                           {u.role === 'admin' ? 'Admin' : u.role === 'mesa' ? 'Mesa' : 'Morador'}
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 text-[11px] text-[#626A76] pt-1">
+                      <div className="grid grid-cols-2 gap-2 text-[11px] text-[#5C6B7A] pt-1">
                         <div>
-                          <span className="block text-[10px] uppercase font-semibold text-[#626A76]/80">
+                          <span className="block text-[10px] uppercase font-semibold text-[#5C6B7A]/80">
                             CPF:
                           </span>
-                          <span className="font-mono text-[#1C2331]">
+                          <span className="font-mono text-[#12314F]">
                             {u.cpf ? mascararCpf(u.cpf) : 'Não informado'}
                           </span>
                         </div>
                         <div>
-                          <span className="block text-[10px] uppercase font-semibold text-[#626A76]/80">
+                          <span className="block text-[10px] uppercase font-semibold text-[#5C6B7A]/80">
                             Unidade:
                           </span>
-                          <span className="text-[#1C2331]">
+                          <span className="text-[#12314F]">
                             {unidadeVinc
                               ? `${unidadeVinc.tipo_unidade || rotuloUnidade} ${unidadeVinc.identificador}`
                               : 'Sem vínculo'}
@@ -894,20 +894,20 @@ export const GestaoUsuariosPage: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-[#D9D4C8]/50">
+                      <div className="flex items-center justify-between pt-2 border-t border-[#D5DCE5]/50">
                         <button
                           type="button"
                           onClick={() => handleAlternarStatusAtivo(u)}
                           disabled={isSelf && isAtivo}
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors border ${
                             isAtivo
-                              ? 'bg-[#2A6E3F]/10 text-[#2A6E3F] border-[#2A6E3F]/30'
+                              ? 'bg-[#4E8B7E]/10 text-[#4E8B7E] border-[#4E8B7E]/30'
                               : 'bg-[#C75B39]/10 text-[#C75B39] border-[#C75B39]/30'
                           }`}
                         >
                           {isAtivo ? (
                             <>
-                              <CheckCircle2 className="h-3 w-3 text-[#2A6E3F]" /> Ativo
+                              <CheckCircle2 className="h-3 w-3 text-[#4E8B7E]" /> Ativo
                             </>
                           ) : (
                             <>
@@ -920,7 +920,7 @@ export const GestaoUsuariosPage: React.FC = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-xs h-7 px-2.5 border-[#D9D4C8] rounded-[8px]"
+                            className="text-xs h-7 px-2.5 border-[#D5DCE5] rounded-[8px]"
                             onClick={() => abrirEditarUsuario(u)}
                           >
                             Editar
@@ -928,15 +928,15 @@ export const GestaoUsuariosPage: React.FC = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-xs h-7 px-2 border-[#D9D4C8] text-[#626A76] rounded-[8px]"
+                            className="text-xs h-7 px-2 border-[#D5DCE5] text-[#5C6B7A] rounded-[8px]"
                             onClick={() => abrirLogsAcesso(u)}
                           >
-                            <History className="h-3.5 w-3.5 mr-1 text-[#216E75]" /> Logs
+                            <History className="h-3.5 w-3.5 mr-1 text-[#1F6B94]" /> Logs
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-xs h-7 px-2 text-[#626A76]"
+                            className="text-xs h-7 px-2 text-[#5C6B7A]"
                             onClick={() => {
                               setUsuarioReset(u)
                               setModalResetAberto(true)
@@ -955,17 +955,17 @@ export const GestaoUsuariosPage: React.FC = () => {
 
           {/* Paginação */}
           {totalPaginas > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-[#D9D4C8] bg-white">
-              <p className="text-xs text-[#626A76]">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-[#D5DCE5] bg-white">
+              <p className="text-xs text-[#5C6B7A]">
                 Mostrando{' '}
-                <strong className="text-[#1C2331]">
+                <strong className="text-[#12314F]">
                   {(paginaAtual - 1) * ITENS_POR_PAGINA + 1}
                 </strong>{' '}
                 a{' '}
-                <strong className="text-[#1C2331]">
+                <strong className="text-[#12314F]">
                   {Math.min(paginaAtual * ITENS_POR_PAGINA, usuariosFiltrados.length)}
                 </strong>{' '}
-                de <strong className="text-[#1C2331]">{usuariosFiltrados.length}</strong> usuários
+                de <strong className="text-[#12314F]">{usuariosFiltrados.length}</strong> usuários
               </p>
               <div className="flex items-center gap-1">
                 <Button
@@ -973,11 +973,11 @@ export const GestaoUsuariosPage: React.FC = () => {
                   variant="outline"
                   disabled={paginaAtual <= 1}
                   onClick={() => setPaginaAtual((p) => Math.max(1, p - 1))}
-                  className="h-8 w-8 p-0 border-[#D9D4C8] rounded-[8px]"
+                  className="h-8 w-8 p-0 border-[#D5DCE5] rounded-[8px]"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-xs font-medium px-2 text-[#1C2331]">
+                <span className="text-xs font-medium px-2 text-[#12314F]">
                   {paginaAtual} / {totalPaginas}
                 </span>
                 <Button
@@ -985,7 +985,7 @@ export const GestaoUsuariosPage: React.FC = () => {
                   variant="outline"
                   disabled={paginaAtual >= totalPaginas}
                   onClick={() => setPaginaAtual((p) => Math.min(totalPaginas, p + 1))}
-                  className="h-8 w-8 p-0 border-[#D9D4C8] rounded-[8px]"
+                  className="h-8 w-8 p-0 border-[#D5DCE5] rounded-[8px]"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -996,12 +996,12 @@ export const GestaoUsuariosPage: React.FC = () => {
       </Card>
       {/* MODAL 1: Criar Usuário */}
       <Dialog open={modalNovoAberto} onOpenChange={setModalNovoAberto}>
-        <DialogContent className="max-w-md bg-white border-[#D9D4C8] rounded-[12px] text-[#1C2331]">
+        <DialogContent className="max-w-md bg-white border-[#D5DCE5] rounded-[12px] text-[#12314F]">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold text-[#1C2331] flex items-center gap-2">
-              <UserPlus className="h-4 w-4 text-[#216E75]" /> Criar usuário
+            <DialogTitle className="text-base font-semibold text-[#12314F] flex items-center gap-2">
+              <UserPlus className="h-4 w-4 text-[#1F6B94]" /> Criar usuário
             </DialogTitle>
-            <DialogDescription className="text-xs text-[#626A76]">
+            <DialogDescription className="text-xs text-[#5C6B7A]">
               Cadastre um novo condômino ou membro da mesa. Um convite de primeiro acesso pode ser
               enviado automaticamente.
             </DialogDescription>
@@ -1009,50 +1009,50 @@ export const GestaoUsuariosPage: React.FC = () => {
 
           <form onSubmit={handleCriarUsuario} className="space-y-3.5 py-1 text-xs">
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-[#1C2331]">Nome Completo</Label>
+              <Label className="text-xs font-medium text-[#12314F]">Nome Completo</Label>
               <Input
                 required
                 value={novoNome}
                 onChange={(e) => setNovoNome(e.target.value)}
                 placeholder="Ex: Carlos Alberto Souza"
-                className="text-xs h-9 border-[#D9D4C8] bg-white rounded-[10px]"
+                className="text-xs h-9 border-[#D5DCE5] bg-white rounded-[10px]"
               />
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-[#1C2331]">E-mail</Label>
+              <Label className="text-xs font-medium text-[#12314F]">E-mail</Label>
               <Input
                 type="email"
                 required
                 value={novoEmail}
                 onChange={(e) => setNovoEmail(e.target.value)}
                 placeholder="usuario@lagoazul.com.br"
-                className="text-xs h-9 border-[#D9D4C8] bg-white rounded-[10px]"
+                className="text-xs h-9 border-[#D5DCE5] bg-white rounded-[10px]"
               />
             </div>
 
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium text-[#1C2331]">
+                <Label className="text-xs font-medium text-[#12314F]">
                   Senha Inicial (Opcional)
                 </Label>
-                <span className="text-[10px] text-[#626A76]">Mínimo 8 caracteres</span>
+                <span className="text-[10px] text-[#5C6B7A]">Mínimo 8 caracteres</span>
               </div>
               <Input
                 type="password"
                 value={novoSenha}
                 onChange={(e) => setNovoSenha(e.target.value)}
                 placeholder="Deixe em branco para gerar senha temporária segura"
-                className="text-xs h-9 border-[#D9D4C8] bg-white rounded-[10px]"
+                className="text-xs h-9 border-[#D5DCE5] bg-white rounded-[10px]"
               />
-              <p className="text-[10px] text-[#626A76]">
+              <p className="text-[10px] text-[#5C6B7A]">
                 Se deixada em branco, uma senha forte aleatória será gerada e enviada via convite.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-[#1C2331]">CPF</Label>
+                <Label className="text-xs font-medium text-[#12314F]">CPF</Label>
                 <Input
                   value={novoCpf}
                   onChange={(e) => {
@@ -1060,7 +1060,7 @@ export const GestaoUsuariosPage: React.FC = () => {
                     setNovoCpfErro(null)
                   }}
                   placeholder="000.000.000-00"
-                  className={`text-xs h-9 font-mono border-[#D9D4C8] bg-white rounded-[10px] ${
+                  className={`text-xs h-9 font-mono border-[#D5DCE5] bg-white rounded-[10px] ${
                     novoCpfErro ? 'border-[#C75B39]' : ''
                   }`}
                 />
@@ -1070,12 +1070,12 @@ export const GestaoUsuariosPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-[#1C2331]">Perfil de Acesso</Label>
+                <Label className="text-xs font-medium text-[#12314F]">Perfil de Acesso</Label>
                 <Select value={novoRole} onValueChange={(val: UserRole) => setNovoRole(val)}>
-                  <SelectTrigger className="text-xs h-9 border-[#D9D4C8] bg-white rounded-[10px]">
+                  <SelectTrigger className="text-xs h-9 border-[#D5DCE5] bg-white rounded-[10px]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-[#D9D4C8] text-[#1C2331]">
+                  <SelectContent className="bg-white border-[#D5DCE5] text-[#12314F]">
                     <SelectItem value="morador">Morador (Votante)</SelectItem>
                     <SelectItem value="mesa">Mesa Diretora</SelectItem>
                     <SelectItem value="admin">Administrador Geral</SelectItem>
@@ -1085,12 +1085,12 @@ export const GestaoUsuariosPage: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-[#1C2331]">Unidade Vinculada</Label>
+              <Label className="text-xs font-medium text-[#12314F]">Unidade Vinculada</Label>
               <Select value={novoUnidadeId} onValueChange={setNovoUnidadeId}>
-                <SelectTrigger className="text-xs h-9 border-[#D9D4C8] bg-white rounded-[10px]">
+                <SelectTrigger className="text-xs h-9 border-[#D5DCE5] bg-white rounded-[10px]">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
-                <SelectContent className="max-h-56 bg-white border-[#D9D4C8] text-[#1C2331]">
+                <SelectContent className="max-h-56 bg-white border-[#D5DCE5] text-[#12314F]">
                   <SelectItem value="none">Nenhuma unidade (operador avulso)</SelectItem>
                   {unidades.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
@@ -1103,20 +1103,20 @@ export const GestaoUsuariosPage: React.FC = () => {
 
             {/* Configurações de convite e ativação */}
             <div className="space-y-2 pt-1">
-              <div className="flex items-center justify-between p-2.5 rounded-[10px] border border-[#D9D4C8] bg-[#F2F1ED]/40">
+              <div className="flex items-center justify-between p-2.5 rounded-[10px] border border-[#D5DCE5] bg-[#F1F4F8]/40">
                 <div>
-                  <p className="font-semibold text-[#1C2331] text-xs">Enviar convite por e-mail</p>
-                  <p className="text-[10px] text-[#626A76]">
+                  <p className="font-semibold text-[#12314F] text-xs">Enviar convite por e-mail</p>
+                  <p className="text-[10px] text-[#5C6B7A]">
                     O usuário receberá link para definir sua própria senha de acesso.
                   </p>
                 </div>
                 <Switch checked={novoEnviarConvite} onCheckedChange={setNovoEnviarConvite} />
               </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-[10px] border border-[#D9D4C8] bg-[#F2F1ED]/40">
+              <div className="flex items-center justify-between p-2.5 rounded-[10px] border border-[#D5DCE5] bg-[#F1F4F8]/40">
                 <div>
-                  <p className="font-semibold text-[#1C2331] text-xs">Usuário Ativo</p>
-                  <p className="text-[10px] text-[#626A76]">
+                  <p className="font-semibold text-[#12314F] text-xs">Usuário Ativo</p>
+                  <p className="text-[10px] text-[#5C6B7A]">
                     Se inativo, o usuário fica impedido de autenticar na assembleia.
                   </p>
                 </div>
@@ -1124,13 +1124,13 @@ export const GestaoUsuariosPage: React.FC = () => {
               </div>
             </div>
 
-            <DialogFooter className="pt-3 border-t border-[#D9D4C8]">
+            <DialogFooter className="pt-3 border-t border-[#D5DCE5]">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setModalNovoAberto(false)}
-                className="border-[#D9D4C8] rounded-[10px]"
+                className="border-[#D5DCE5] rounded-[10px]"
               >
                 Cancelar
               </Button>
@@ -1138,7 +1138,7 @@ export const GestaoUsuariosPage: React.FC = () => {
                 type="submit"
                 disabled={salvandoNovo}
                 size="sm"
-                className="bg-[#216E75] hover:bg-[#1a585e] text-white font-semibold rounded-[10px] shadow-none border-0"
+                className="bg-[#1F6B94] hover:bg-[#185577] text-white font-semibold rounded-[10px] shadow-none border-0"
               >
                 {salvandoNovo ? 'Salvando...' : 'Criar usuário'}
               </Button>
@@ -1149,39 +1149,39 @@ export const GestaoUsuariosPage: React.FC = () => {
 
       {/* MODAL 2: Editar Usuário */}
       <Dialog open={modalEditarAberto} onOpenChange={setModalEditarAberto}>
-        <DialogContent className="max-w-md bg-white border-[#D9D4C8] rounded-[12px] text-[#1C2331]">
+        <DialogContent className="max-w-md bg-white border-[#D5DCE5] rounded-[12px] text-[#12314F]">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold text-[#1C2331]">
+            <DialogTitle className="text-base font-semibold text-[#12314F]">
               Editar Usuário
             </DialogTitle>
-            <DialogDescription className="text-xs text-[#626A76]">
+            <DialogDescription className="text-xs text-[#5C6B7A]">
               Atualize os dados cadastrais, unidade associada ou perfil de autoridade.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleEditarUsuario} className="space-y-3.5 py-1 text-xs">
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-[#1C2331]">Nome Completo</Label>
+              <Label className="text-xs font-medium text-[#12314F]">Nome Completo</Label>
               <Input
                 required
                 value={editNome}
                 onChange={(e) => setEditNome(e.target.value)}
-                className="text-xs h-9 border-[#D9D4C8] bg-white rounded-[10px]"
+                className="text-xs h-9 border-[#D5DCE5] bg-white rounded-[10px]"
               />
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-[#1C2331]">E-mail (fixo)</Label>
+              <Label className="text-xs font-medium text-[#12314F]">E-mail (fixo)</Label>
               <Input
                 disabled
                 value={usuarioEditando?.email || ''}
-                className="text-xs h-9 border-[#D9D4C8] bg-[#F2F1ED]/50 text-[#626A76] rounded-[10px] cursor-not-allowed"
+                className="text-xs h-9 border-[#D5DCE5] bg-[#F1F4F8]/50 text-[#5C6B7A] rounded-[10px] cursor-not-allowed"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-[#1C2331]">CPF</Label>
+                <Label className="text-xs font-medium text-[#12314F]">CPF</Label>
                 <Input
                   value={editCpf}
                   onChange={(e) => {
@@ -1189,7 +1189,7 @@ export const GestaoUsuariosPage: React.FC = () => {
                     setEditCpfErro(null)
                   }}
                   placeholder="000.000.000-00"
-                  className={`text-xs h-9 font-mono border-[#D9D4C8] bg-white rounded-[10px] ${
+                  className={`text-xs h-9 font-mono border-[#D5DCE5] bg-white rounded-[10px] ${
                     editCpfErro ? 'border-[#C75B39]' : ''
                   }`}
                 />
@@ -1199,12 +1199,12 @@ export const GestaoUsuariosPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-[#1C2331]">Perfil</Label>
+                <Label className="text-xs font-medium text-[#12314F]">Perfil</Label>
                 <Select value={editRole} onValueChange={(val: UserRole) => setEditRole(val)}>
-                  <SelectTrigger className="text-xs h-9 border-[#D9D4C8] bg-white rounded-[10px]">
+                  <SelectTrigger className="text-xs h-9 border-[#D5DCE5] bg-white rounded-[10px]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-[#D9D4C8] text-[#1C2331]">
+                  <SelectContent className="bg-white border-[#D5DCE5] text-[#12314F]">
                     <SelectItem value="morador">Morador (Votante)</SelectItem>
                     <SelectItem value="mesa">Mesa Diretora</SelectItem>
                     <SelectItem value="admin">Administrador Geral</SelectItem>
@@ -1214,12 +1214,12 @@ export const GestaoUsuariosPage: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-[#1C2331]">Unidade Vinculada</Label>
+              <Label className="text-xs font-medium text-[#12314F]">Unidade Vinculada</Label>
               <Select value={editUnidadeId} onValueChange={setEditUnidadeId}>
-                <SelectTrigger className="text-xs h-9 border-[#D9D4C8] bg-white rounded-[10px]">
+                <SelectTrigger className="text-xs h-9 border-[#D5DCE5] bg-white rounded-[10px]">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
-                <SelectContent className="max-h-56 bg-white border-[#D9D4C8] text-[#1C2331]">
+                <SelectContent className="max-h-56 bg-white border-[#D5DCE5] text-[#12314F]">
                   <SelectItem value="none">Nenhuma unidade (operador avulso)</SelectItem>
                   {unidades.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
@@ -1231,23 +1231,23 @@ export const GestaoUsuariosPage: React.FC = () => {
             </div>
 
             {/* Ativação */}
-            <div className="flex items-center justify-between p-2.5 rounded-[10px] border border-[#D9D4C8] bg-[#F2F1ED]/40">
+            <div className="flex items-center justify-between p-2.5 rounded-[10px] border border-[#D5DCE5] bg-[#F1F4F8]/40">
               <div>
-                <p className="font-semibold text-[#1C2331] text-xs">Usuário Ativo</p>
-                <p className="text-[10px] text-[#626A76]">
+                <p className="font-semibold text-[#12314F] text-xs">Usuário Ativo</p>
+                <p className="text-[10px] text-[#5C6B7A]">
                   Desative para bloquear imediatamente o acesso à assembleia.
                 </p>
               </div>
               <Switch checked={editAtivo} onCheckedChange={setEditAtivo} />
             </div>
 
-            <DialogFooter className="pt-3 border-t border-[#D9D4C8]">
+            <DialogFooter className="pt-3 border-t border-[#D5DCE5]">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setModalEditarAberto(false)}
-                className="border-[#D9D4C8] rounded-[10px]"
+                className="border-[#D5DCE5] rounded-[10px]"
               >
                 Cancelar
               </Button>
@@ -1255,7 +1255,7 @@ export const GestaoUsuariosPage: React.FC = () => {
                 type="submit"
                 disabled={salvandoEdit}
                 size="sm"
-                className="bg-[#216E75] hover:bg-[#1a585e] text-white font-semibold rounded-[10px] shadow-none border-0"
+                className="bg-[#1F6B94] hover:bg-[#185577] text-white font-semibold rounded-[10px] shadow-none border-0"
               >
                 {salvandoEdit ? 'Salvando...' : 'Salvar alterações'}
               </Button>
@@ -1266,37 +1266,37 @@ export const GestaoUsuariosPage: React.FC = () => {
 
       {/* MODAL 3: Redefinir Senha */}
       <Dialog open={modalResetAberto} onOpenChange={setModalResetAberto}>
-        <DialogContent className="max-w-md bg-white border-[#D9D4C8] rounded-[12px] text-[#1C2331]">
+        <DialogContent className="max-w-md bg-white border-[#D5DCE5] rounded-[12px] text-[#12314F]">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold text-[#1C2331] flex items-center gap-2">
-              <KeyRound className="h-4 w-4 text-[#216E75]" /> Redefinir senha de acesso
+            <DialogTitle className="text-base font-semibold text-[#12314F] flex items-center gap-2">
+              <KeyRound className="h-4 w-4 text-[#1F6B94]" /> Redefinir senha de acesso
             </DialogTitle>
-            <DialogDescription className="text-xs text-[#626A76]">
+            <DialogDescription className="text-xs text-[#5C6B7A]">
               Será enviado um e-mail com instruções e link seguro para que o usuário redefina sua
               própria senha.
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-3 space-y-3">
-            <div className="p-3 rounded-[10px] border border-[#D9D4C8] bg-[#F2F1ED]/50 space-y-1">
-              <p className="text-xs font-semibold text-[#1C2331]">
+            <div className="p-3 rounded-[10px] border border-[#D5DCE5] bg-[#F1F4F8]/50 space-y-1">
+              <p className="text-xs font-semibold text-[#12314F]">
                 {usuarioReset?.name || 'Sem nome'}
               </p>
-              <p className="text-xs font-mono text-[#626A76]">{usuarioReset?.email}</p>
+              <p className="text-xs font-mono text-[#5C6B7A]">{usuarioReset?.email}</p>
             </div>
-            <p className="text-xs text-[#626A76]">
+            <p className="text-xs text-[#5C6B7A]">
               Por motivos de sigilo e integridade criptográfica, novas senhas nunca são exibidas ou
               armazenadas em texto puro pelos operadores.
             </p>
           </div>
 
-          <DialogFooter className="pt-2 border-t border-[#D9D4C8]">
+          <DialogFooter className="pt-2 border-t border-[#D5DCE5]">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => setModalResetAberto(false)}
-              className="border-[#D9D4C8] rounded-[10px]"
+              className="border-[#D5DCE5] rounded-[10px]"
             >
               Cancelar
             </Button>
@@ -1305,7 +1305,7 @@ export const GestaoUsuariosPage: React.FC = () => {
               disabled={enviandoReset}
               size="sm"
               onClick={handleDispararResetSenha}
-              className="bg-[#216E75] hover:bg-[#1a585e] text-white font-semibold rounded-[10px] shadow-none border-0"
+              className="bg-[#1F6B94] hover:bg-[#185577] text-white font-semibold rounded-[10px] shadow-none border-0"
             >
               {enviandoReset ? 'Enviando...' : 'Enviar redefinição'}
             </Button>
@@ -1315,27 +1315,27 @@ export const GestaoUsuariosPage: React.FC = () => {
 
       {/* MODAL 4: Logs de Acesso por Usuário */}
       <Dialog open={modalLogsAberto} onOpenChange={setModalLogsAberto}>
-        <DialogContent className="max-w-2xl bg-white border-[#D9D4C8] rounded-[12px] text-[#1C2331]">
-          <DialogHeader className="border-b border-[#D9D4C8] pb-3">
+        <DialogContent className="max-w-2xl bg-white border-[#D5DCE5] rounded-[12px] text-[#12314F]">
+          <DialogHeader className="border-b border-[#D5DCE5] pb-3">
             <div className="flex items-center justify-between">
-              <DialogTitle className="text-base font-semibold text-[#1C2331] flex items-center gap-2">
-                <History className="h-4 w-4 text-[#216E75]" /> Histórico de Logs de Acesso
+              <DialogTitle className="text-base font-semibold text-[#12314F] flex items-center gap-2">
+                <History className="h-4 w-4 text-[#1F6B94]" /> Histórico de Logs de Acesso
               </DialogTitle>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={recarregarLogs}
                 disabled={carregandoLogs}
-                className="h-7 px-2 text-xs text-[#626A76] hover:text-[#1C2331]"
+                className="h-7 px-2 text-xs text-[#5C6B7A] hover:text-[#12314F]"
                 title="Atualizar lista de logs"
               >
                 <RotateCw className={`h-3.5 w-3.5 mr-1 ${carregandoLogs ? 'animate-spin' : ''}`} />
                 Atualizar
               </Button>
             </div>
-            <DialogDescription className="text-xs text-[#626A76]">
+            <DialogDescription className="text-xs text-[#5C6B7A]">
               Registro cronológico de autenticações e tentativas de acesso de{' '}
-              <strong className="text-[#1C2331]">
+              <strong className="text-[#12314F]">
                 {usuarioLogs?.name || usuarioLogs?.email}
               </strong>{' '}
               ({usuarioLogs?.email}).
@@ -1344,23 +1344,23 @@ export const GestaoUsuariosPage: React.FC = () => {
 
           <div className="py-2">
             {carregandoLogs ? (
-              <div className="py-12 flex flex-col items-center justify-center text-[#626A76] gap-2">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#216E75] border-t-transparent" />
+              <div className="py-12 flex flex-col items-center justify-center text-[#5C6B7A] gap-2">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#1F6B94] border-t-transparent" />
                 <p className="text-xs">Carregando eventos de autenticação...</p>
               </div>
             ) : logsAcesso.length === 0 ? (
-              <div className="py-10 text-center text-[#626A76] space-y-1">
-                <Clock className="h-8 w-8 mx-auto text-[#626A76]/40 mb-1" />
-                <p className="text-sm font-medium text-[#1C2331]">Nenhum acesso registrado ainda</p>
+              <div className="py-10 text-center text-[#5C6B7A] space-y-1">
+                <Clock className="h-8 w-8 mx-auto text-[#5C6B7A]/40 mb-1" />
+                <p className="text-sm font-medium text-[#12314F]">Nenhum acesso registrado ainda</p>
                 <p className="text-xs">
                   Eventos de login deste usuário serão registrados automaticamente nesta trilha
                   operacional.
                 </p>
               </div>
             ) : (
-              <div className="max-h-80 overflow-y-auto border border-[#D9D4C8] rounded-[10px]">
+              <div className="max-h-80 overflow-y-auto border border-[#D5DCE5] rounded-[10px]">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F2F1ED] border-b border-[#D9D4C8] text-[#626A76] font-semibold uppercase text-[10px] tracking-wider sticky top-0">
+                  <thead className="bg-[#F1F4F8] border-b border-[#D5DCE5] text-[#5C6B7A] font-semibold uppercase text-[10px] tracking-wider sticky top-0">
                     <tr>
                       <th className="py-2.5 px-3">Data e Hora</th>
                       <th className="py-2.5 px-3">Status</th>
@@ -1369,19 +1369,19 @@ export const GestaoUsuariosPage: React.FC = () => {
                       <th className="py-2.5 px-3">Detalhes</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#D9D4C8]/60">
+                  <tbody className="divide-y divide-[#D5DCE5]/60">
                     {logsAcesso.map((log) => {
                       const isSucesso = log.status === 'sucesso'
                       return (
-                        <tr key={log.id} className="hover:bg-[#F2F1ED]/40 transition-colors">
-                          <td className="py-2 px-3 font-mono text-[11px] text-[#1C2331] whitespace-nowrap">
+                        <tr key={log.id} className="hover:bg-[#F1F4F8]/40 transition-colors">
+                          <td className="py-2 px-3 font-mono text-[11px] text-[#12314F] whitespace-nowrap">
                             {formatarDataHoraCompleta(log.data_hora || log.created)}
                           </td>
                           <td className="py-2 px-3">
                             <span
                               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
                                 isSucesso
-                                  ? 'bg-[#2A6E3F]/10 text-[#2A6E3F] border-[#2A6E3F]/30'
+                                  ? 'bg-[#4E8B7E]/10 text-[#4E8B7E] border-[#4E8B7E]/30'
                                   : 'bg-[#C75B39]/10 text-[#C75B39] border-[#C75B39]/30'
                               }`}
                             >
@@ -1396,20 +1396,20 @@ export const GestaoUsuariosPage: React.FC = () => {
                               )}
                             </span>
                           </td>
-                          <td className="py-2 px-3 uppercase text-[10px] font-mono text-[#626A76]">
+                          <td className="py-2 px-3 uppercase text-[10px] font-mono text-[#5C6B7A]">
                             {log.metodo || 'senha'}
                           </td>
-                          <td className="py-2 px-3 font-mono text-[11px] text-[#626A76]">
+                          <td className="py-2 px-3 font-mono text-[11px] text-[#5C6B7A]">
                             {log.ip || '—'}
                           </td>
                           <td
-                            className="py-2 px-3 text-[11px] text-[#626A76] max-w-[200px] truncate"
+                            className="py-2 px-3 text-[11px] text-[#5C6B7A] max-w-[200px] truncate"
                             title={log.motivo_falha || log.user_agent || ''}
                           >
                             {log.motivo_falha ? (
                               <span className="text-[#C75B39]">{log.motivo_falha}</span>
                             ) : log.user_agent ? (
-                              <span className="truncate block font-mono text-[10px] text-[#626A76]/80">
+                              <span className="truncate block font-mono text-[10px] text-[#5C6B7A]/80">
                                 {log.user_agent}
                               </span>
                             ) : (
@@ -1425,13 +1425,13 @@ export const GestaoUsuariosPage: React.FC = () => {
             )}
           </div>
 
-          <DialogFooter className="pt-2 border-t border-[#D9D4C8]">
+          <DialogFooter className="pt-2 border-t border-[#D5DCE5]">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => setModalLogsAberto(false)}
-              className="border-[#D9D4C8] rounded-[10px]"
+              className="border-[#D5DCE5] rounded-[10px]"
             >
               Fechar
             </Button>

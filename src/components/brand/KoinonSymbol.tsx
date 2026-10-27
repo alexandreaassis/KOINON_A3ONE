@@ -8,8 +8,8 @@ export interface KoinonSymbolProps {
   size?: number
   /**
    * Variante de cor:
-   * - 'color' / 'monochrome': arcos em Koinon Ink #1C2331, ponto em Aegean #216E75.
-   * - 'negative' / 'negative-solid': arcos em branco puro #FFFFFF, ponto em Aegean #216E75.
+   * - 'color' / 'monochrome': arcos em Koinon Navy #12314F, ponto em Koinon Azure #1F6B94.
+   * - 'negative' / 'negative-solid': arcos em branco puro #FFFFFF, ponto em Koinon Azure #1F6B94.
    */
   variant?: 'color' | 'negative' | 'negative-solid' | 'monochrome'
   className?: string
@@ -18,7 +18,7 @@ export interface KoinonSymbolProps {
 /**
  * Símbolo Oficial Koinon (Fiel à marca e imagem de referência):
  * Anel de SEIS ARCOS espessos com extremidades arredondadas (strokeLinecap="round"),
- * simetria radial de 60 graus, centro vazio e PONTO sólido maior em Aegean #216E75
+ * simetria radial de 60 graus, centro vazio e PONTO sólido maior em Koinon Azure #1F6B94
  * no eixo de 12 horas ligeiramente sobreposto ao arco superior.
  *
  * Cores exatas:

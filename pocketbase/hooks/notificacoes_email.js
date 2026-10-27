@@ -39,28 +39,28 @@ onRecordCreate((e) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${titulo}</title>
       </head>
-      <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.6;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 30px 10px;">
+      <body style="margin: 0; padding: 0; background-color: #F1F4F8; font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #12314F; line-height: 1.6;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #F1F4F8; padding: 30px 10px;">
           <tr>
             <td align="center">
-              <table role="presentation" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+              <table role="presentation" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 14px; overflow: hidden; border: 1px solid #D5DCE5; box-shadow: 0 4px 24px rgba(18,49,79,0.06);">
                 <tr>
-                  <td style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 24px 30px; text-align: left; border-bottom: 3px solid #0284c7;">
-                    <span style="display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #38bdf8; font-weight: 700; margin-bottom: 4px;">Plataforma Virtual Koinon</span>
+                  <td style="background-color: #12314F; padding: 24px 30px; text-align: left; border-bottom: 3px solid #1F6B94;">
+                    <span style="display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #D5DCE5; font-weight: 700; margin-bottom: 4px;">Plataforma Virtual Koinon</span>
                     <h1 style="margin: 0; font-size: 20px; color: #ffffff; font-weight: 700;">${nomeCondo}</h1>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 32px 30px; background-color: #ffffff;">
-                    <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #0f172a; font-weight: 700;">${titulo}</h2>
-                    <div style="font-size: 14px; color: #334155; line-height: 1.7; white-space: pre-line;">
+                    <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #12314F; font-weight: 700;">${titulo}</h2>
+                    <div style="font-size: 14px; color: #12314F; line-height: 1.7; white-space: pre-line;">
                       ${corpo}
                     </div>
                   </td>
                 </tr>
                 <tr>
-                  <td style="background-color: #f8fafc; padding: 20px 30px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; text-align: center;">
-                    <p style="margin: 0 0 6px 0; font-weight: 600; color: #1C2331;">${nomeCondo} — Koinon</p>
+                  <td style="background-color: #F1F4F8; padding: 20px 30px; border-top: 1px solid #D5DCE5; font-size: 11px; color: #5C6B7A; text-align: center;">
+                    <p style="margin: 0 0 6px 0; font-weight: 600; color: #12314F;">${nomeCondo} — Koinon</p>
                     <p style="margin: 0; line-height: 1.4;">
                       Esta é uma notificação oficial da assembleia condominial. Não responda diretamente a este e-mail.<br>
                       Em conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei 13.709/2018).
@@ -432,11 +432,11 @@ routerAdd('POST', '/backend/v1/notificacoes/reenviar', (e) => {
     <!DOCTYPE html>
     <html lang="pt-BR">
     <head><meta charset="utf-8"><title>${titulo}</title></head>
-    <body style="font-family: sans-serif; background: #f8fafc; padding: 20px;">
-      <div style="max-width: 600px; margin: auto; background: #fff; padding: 24px; border-radius: 8px;">
-        <h2 style="color: #0f172a; margin-top: 0;">${nomeCondo}</h2>
-        <h3 style="color: #0284c7;">${titulo}</h3>
-        <p style="white-space: pre-line; color: #334155;">${corpo}</p>
+    <body style="font-family: 'Sora', sans-serif; background: #F1F4F8; padding: 20px; color: #12314F;">
+      <div style="max-width: 600px; margin: auto; background: #fff; padding: 24px; border-radius: 14px; border: 1px solid #D5DCE5;">
+        <h2 style="color: #12314F; margin-top: 0;">${nomeCondo}</h2>
+        <h3 style="color: #1F6B94;">${titulo}</h3>
+        <p style="white-space: pre-line; color: #12314F;">${corpo}</p>
       </div>
     </body>
     </html>

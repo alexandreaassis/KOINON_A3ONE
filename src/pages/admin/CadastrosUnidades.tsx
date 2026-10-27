@@ -938,7 +938,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
             className="text-[11px] h-9 px-2.5 border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-[10px]"
             title="Restaurar a largura padrão de todas as colunas"
           >
-            <RotateCcw className="h-3.5 w-3.5 mr-1 text-[#216E75]" /> Restaurar larguras
+            <RotateCcw className="h-3.5 w-3.5 mr-1 text-[#1F6B94]" /> Restaurar larguras
           </Button>
         </div>
       </div>
@@ -1078,12 +1078,12 @@ export const CadastrosUnidadesPage: React.FC = () => {
                       role="separator"
                       aria-orientation="vertical"
                       title="Arrastar para redimensionar (duplo clique para restaurar)"
-                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#216E75]/40 active:bg-[#216E75] z-10 flex items-center justify-center touch-none"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 flex items-center justify-center touch-none"
                       onMouseDown={(e) => iniciarRedimensionamento('unidade', e)}
                       onTouchStart={(e) => iniciarRedimensionamento('unidade', e)}
                       onDoubleClick={() => salvarLarguraColuna('unidade', LARGURAS_PADRAO.unidade)}
                     >
-                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#216E75]" />
+                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#1F6B94]" />
                     </span>
                   </th>
 
@@ -1094,12 +1094,12 @@ export const CadastrosUnidadesPage: React.FC = () => {
                       role="separator"
                       aria-orientation="vertical"
                       title="Arrastar para redimensionar (duplo clique para restaurar)"
-                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#216E75]/40 active:bg-[#216E75] z-10 flex items-center justify-center touch-none"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 flex items-center justify-center touch-none"
                       onMouseDown={(e) => iniciarRedimensionamento('nome', e)}
                       onTouchStart={(e) => iniciarRedimensionamento('nome', e)}
                       onDoubleClick={() => salvarLarguraColuna('nome', LARGURAS_PADRAO.nome)}
                     >
-                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#216E75]" />
+                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#1F6B94]" />
                     </span>
                   </th>
 
@@ -1110,12 +1110,12 @@ export const CadastrosUnidadesPage: React.FC = () => {
                       role="separator"
                       aria-orientation="vertical"
                       title="Arrastar para redimensionar (duplo clique para restaurar)"
-                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#216E75]/40 active:bg-[#216E75] z-10 flex items-center justify-center touch-none"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 flex items-center justify-center touch-none"
                       onMouseDown={(e) => iniciarRedimensionamento('cpf', e)}
                       onTouchStart={(e) => iniciarRedimensionamento('cpf', e)}
                       onDoubleClick={() => salvarLarguraColuna('cpf', LARGURAS_PADRAO.cpf)}
                     >
-                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#216E75]" />
+                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#1F6B94]" />
                     </span>
                   </th>
 
@@ -1126,12 +1126,12 @@ export const CadastrosUnidadesPage: React.FC = () => {
                       role="separator"
                       aria-orientation="vertical"
                       title="Arrastar para redimensionar (duplo clique para restaurar)"
-                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#216E75]/40 active:bg-[#216E75] z-10 flex items-center justify-center touch-none"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 flex items-center justify-center touch-none"
                       onMouseDown={(e) => iniciarRedimensionamento('vinculo', e)}
                       onTouchStart={(e) => iniciarRedimensionamento('vinculo', e)}
                       onDoubleClick={() => salvarLarguraColuna('vinculo', LARGURAS_PADRAO.vinculo)}
                     >
-                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#216E75]" />
+                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#1F6B94]" />
                     </span>
                   </th>
 
@@ -1142,14 +1142,14 @@ export const CadastrosUnidadesPage: React.FC = () => {
                       role="separator"
                       aria-orientation="vertical"
                       title="Arrastar para redimensionar (duplo clique para restaurar)"
-                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#216E75]/40 active:bg-[#216E75] z-10 flex items-center justify-center touch-none"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 flex items-center justify-center touch-none"
                       onMouseDown={(e) => iniciarRedimensionamento('contatos', e)}
                       onTouchStart={(e) => iniciarRedimensionamento('contatos', e)}
                       onDoubleClick={() =>
                         salvarLarguraColuna('contatos', LARGURAS_PADRAO.contatos)
                       }
                     >
-                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#216E75]" />
+                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#1F6B94]" />
                     </span>
                   </th>
 
@@ -1160,12 +1160,12 @@ export const CadastrosUnidadesPage: React.FC = () => {
                       role="separator"
                       aria-orientation="vertical"
                       title="Arrastar para redimensionar (duplo clique para restaurar)"
-                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#216E75]/40 active:bg-[#216E75] z-10 flex items-center justify-center touch-none"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 flex items-center justify-center touch-none"
                       onMouseDown={(e) => iniciarRedimensionamento('status', e)}
                       onTouchStart={(e) => iniciarRedimensionamento('status', e)}
                       onDoubleClick={() => salvarLarguraColuna('status', LARGURAS_PADRAO.status)}
                     >
-                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#216E75]" />
+                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#1F6B94]" />
                     </span>
                   </th>
 
@@ -1176,12 +1176,12 @@ export const CadastrosUnidadesPage: React.FC = () => {
                       role="separator"
                       aria-orientation="vertical"
                       title="Arrastar para redimensionar (duplo clique para restaurar)"
-                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#216E75]/40 active:bg-[#216E75] z-10 flex items-center justify-center touch-none"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 flex items-center justify-center touch-none"
                       onMouseDown={(e) => iniciarRedimensionamento('acoes', e)}
                       onTouchStart={(e) => iniciarRedimensionamento('acoes', e)}
                       onDoubleClick={() => salvarLarguraColuna('acoes', LARGURAS_PADRAO.acoes)}
                     >
-                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#216E75]" />
+                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#1F6B94]" />
                     </span>
                   </th>
                 </tr>
