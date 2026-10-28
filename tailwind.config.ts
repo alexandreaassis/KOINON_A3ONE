@@ -27,8 +27,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Sora', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['Sora', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Poppins', 'system-ui', '-apple-system', 'Segoe UI', 'Arial', 'sans-serif'],
+        display: ['Poppins', 'system-ui', '-apple-system', 'Segoe UI', 'Arial', 'sans-serif'],
       },
       colors: {
         border: 'hsl(var(--border))',
@@ -36,64 +36,64 @@ export default {
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
-        // Tokens oficiais da marca Koinon "Pedra e Azul"
+        // Tokens oficiais da marca Koinon (Manual v1.0 herdado da A3ONE)
         koinon: {
-          navy: '#12314F',
-          azure: '#1F6B94',
-          verdigris: '#4E8B7E',
-          marmore: '#F1F4F8',
-          pedra: '#D5DCE5',
-          grafite: '#5C6B7A',
-          // Aliases para transição suave de código legado
-          ink: '#12314F',
-          aegean: '#1F6B94',
-          salvia: '#4E8B7E',
-          guia: '#D5DCE5',
+          blue: '#0066FF', // Azul Koinon (botões primários, destaques, pontos)
+          navy: '#002B5E', // Marinho Koinon (títulos, sidebar, ponto central)
+          lightBlue: '#8EC0FF', // Azul claro (apoio sobre marinho)
+          darkBluePoint: '#3D8BFF', // Azul para fundo escuro (pontos sobre marinho)
+          gelo: '#F3F7FC', // Gelo (fundo geral de páginas, seções, cartões de apoio)
+          cinzaTexto: '#5A6B82', // Cinza de texto (secundário, legendas, placeholders)
+          // Aliases semânticos
+          primary: '#0066FF',
+          dark: '#002B5E',
+          ice: '#F3F7FC',
+          muted: '#5A6B82',
         },
         primary: {
-          DEFAULT: '#1F6B94', // Koinon Azure
+          DEFAULT: '#0066FF', // Azul Koinon #0066FF
           foreground: '#FFFFFF', // Branco em botões primários
         },
         secondary: {
           DEFAULT: 'transparent',
-          foreground: '#12314F', // Koinon Navy
+          foreground: '#002B5E', // Marinho Koinon
         },
         destructive: {
           DEFAULT: '#DC2626',
           foreground: '#FFFFFF',
         },
         muted: {
-          DEFAULT: '#F1F4F8', // Mármore Azulado
-          foreground: '#5C6B7A', // Grafite
+          DEFAULT: '#F3F7FC', // Gelo
+          foreground: '#5A6B82', // Cinza de texto
         },
         accent: {
-          DEFAULT: '#1F6B94', // Koinon Azure
+          DEFAULT: '#0066FF', // Azul Koinon
           foreground: '#FFFFFF',
         },
         popover: {
           DEFAULT: '#FFFFFF',
-          foreground: '#12314F',
+          foreground: '#002B5E',
         },
         card: {
           DEFAULT: '#FFFFFF',
-          foreground: '#12314F',
+          foreground: '#002B5E',
         },
         sidebar: {
-          DEFAULT: '#12314F', // Koinon Navy
-          foreground: '#D5DCE5', // Pedra
-          primary: '#1F6B94', // Koinon Azure
+          DEFAULT: '#002B5E', // Marinho Koinon
+          foreground: '#8EC0FF', // Azul claro
+          primary: '#0066FF', // Azul Koinon
           'primary-foreground': '#FFFFFF',
           accent: 'rgba(255, 255, 255, 0.12)',
           'accent-foreground': '#FFFFFF',
-          border: 'rgba(213, 220, 229, 0.15)',
-          ring: '#1F6B94',
+          border: 'rgba(255, 255, 255, 0.12)',
+          ring: '#0066FF',
         },
         chart: {
-          1: '#1F6B94', // Koinon Azure
-          2: '#4E8B7E', // Verdigris
-          3: '#12314F', // Koinon Navy
-          4: '#5C6B7A', // Grafite
-          5: '#D5DCE5', // Pedra
+          1: '#0066FF', // Azul Koinon
+          2: '#3D8BFF', // Azul apoio
+          3: '#002B5E', // Marinho Koinon
+          4: '#5A6B82', // Cinza de texto
+          5: '#8EC0FF', // Azul claro
         },
       },
       borderRadius: {
@@ -111,9 +111,9 @@ export default {
         height: 'height',
       },
       boxShadow: {
-        koinon: '0 4px 24px rgba(18, 49, 79, 0.08)',
-        subtle: '0 4px 24px rgba(18, 49, 79, 0.08)',
-        elevation: '0 4px 24px rgba(18, 49, 79, 0.08)',
+        koinon: '0 4px 24px rgba(0, 43, 94, 0.08)',
+        subtle: '0 4px 24px rgba(0, 43, 94, 0.08)',
+        elevation: '0 4px 24px rgba(0, 43, 94, 0.08)',
       },
       transitionTimingFunction: {
         apple: 'cubic-bezier(0.42, 0, 0.58, 1)',

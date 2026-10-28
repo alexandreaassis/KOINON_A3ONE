@@ -11,15 +11,15 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-[#1F6B94] text-white font-semibold rounded-[10px] hover:bg-[#185577] focus-visible:ring-2 focus-visible:ring-[#1F6B94] focus-visible:ring-offset-2 border-0',
+          'bg-[#0066FF] text-white font-medium rounded-[10px] hover:bg-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2 border-0',
         destructive:
-          'bg-[#DC2626] text-white font-semibold rounded-[10px] hover:bg-[#B91C1C] focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2 border-0',
+          'bg-destructive text-destructive-foreground font-semibold rounded-[10px] hover:bg-destructive/90 focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2 border-0',
         outline:
-          'border border-[#D5DCE5] bg-transparent text-[#12314F] font-medium rounded-[10px] hover:bg-[#F1F4F8] hover:text-[#12314F] focus-visible:ring-2 focus-visible:ring-[#1F6B94] focus-visible:ring-offset-2',
+          'border border-[#5A6B82]/25 bg-transparent text-[#002B5E] font-medium rounded-[10px] hover:bg-[#F3F7FC] hover:text-[#002B5E] focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2',
         secondary:
-          'border border-[#D5DCE5] bg-transparent text-[#12314F] font-medium rounded-[10px] hover:bg-[#F1F4F8] hover:text-[#12314F]',
-        ghost: 'text-[#12314F] hover:bg-[#F1F4F8] hover:text-[#12314F] rounded-[10px]',
-        link: 'text-[#1F6B94] font-semibold underline-offset-4 hover:underline p-0 h-auto',
+          'border border-[#5A6B82]/25 bg-transparent text-[#002B5E] font-medium rounded-[10px] hover:bg-[#F3F7FC] hover:text-[#002B5E]',
+        ghost: 'text-[#002B5E] hover:bg-[#F3F7FC] hover:text-[#002B5E] rounded-[10px]',
+        link: 'text-[#0066FF] font-semibold underline-offset-4 hover:underline p-0 h-auto',
       },
       size: {
         default: 'h-10 px-4 py-2 text-sm',

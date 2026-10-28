@@ -1,15 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <!-- Fundo Koinon Navy #12314F com cantos arredondados proporcionais -->
-  <rect width="64" height="64" rx="14" fill="#12314F"/>
-  <!-- Seis arcos em branco com stroke-width 5.86, raio 20.8, centro 32, 32 -->
-  <g fill="none" stroke="#FFFFFF" stroke-width="5.86" stroke-linecap="round">
-    <path d="M 24.35 14.10 A 20.8 20.8 0 0 1 39.65 14.10"/>
-    <path d="M 44.61 16.97 A 20.8 20.8 0 0 1 52.27 30.22"/>
-    <path d="M 52.27 33.78 A 20.8 20.8 0 0 1 44.61 47.03"/>
-    <path d="M 39.65 49.90 A 20.8 20.8 0 0 1 24.35 49.90"/>
-    <path d="M 19.38 47.03 A 20.8 20.8 0 0 1 11.73 33.78"/>
-    <path d="M 11.73 30.22 A 20.8 20.8 0 0 1 19.38 16.97"/>
-  </g>
-  <!-- Ponto Koinon Azure no topo sobre o arco superior com maior destaque -->
-  <circle cx="32" cy="11.2" r="5.05" fill="#1F6B94"/>
+  <!-- Fundo Marinho Koinon #002B5E com cantos arredondados ~20% -->
+  <rect width="64" height="64" rx="14" fill="#002B5E"/>
+
+  <!-- Símbolo Koinon Compacto (8 pontos) para 16–32px (Manual da Marca v1.0, págs. 4 e 9) -->
+  <!-- Centro (32, 32), raio do anel 21 -->
+  <!-- Ponto Central branco Ø10 (r=5) -->
+  <circle cx="32" cy="32" r="5" fill="#FFFFFF"/>
+
+  <!-- 4 Pontos Sólidos à Esquerda (Presencial) em Azul para fundo escuro #3D8BFF Ø8.8 (r=4.4) -->
+  <!-- Ângulos: -112.5°, -157.5°, -202.5°, -247.5° a partir do centro (32, 32) -->
+  <circle cx="23.97" cy="12.60" r="4.4" fill="#3D8BFF"/>
+  <circle cx="12.60" cy="23.97" r="4.4" fill="#3D8BFF"/>
+  <circle cx="12.60" cy="40.03" r="4.4" fill="#3D8BFF"/>
+  <circle cx="23.97" cy="51.40" r="4.4" fill="#3D8BFF"/>
+
+  <!-- 4 Pontos Vazados à Direita (Remoto) em Azul #3D8BFF Ø8.8 (r=4.4, traço 1.9, raio do centro 3.4) -->
+  <!-- Ângulos: -67.5°, -22.5°, 22.5°, 67.5° a partir do centro (32, 32) -->
+  <circle cx="40.03" cy="12.60" r="3.4" fill="none" stroke="#3D8BFF" stroke-width="2"/>
+  <circle cx="51.40" cy="23.97" r="3.4" fill="none" stroke="#3D8BFF" stroke-width="2"/>
+  <circle cx="51.40" cy="40.03" r="3.4" fill="none" stroke="#3D8BFF" stroke-width="2"/>
+  <circle cx="40.03" cy="51.40" r="3.4" fill="none" stroke="#3D8BFF" stroke-width="2"/>
 </svg>

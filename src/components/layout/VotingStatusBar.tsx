@@ -31,7 +31,7 @@ export const VotingStatusBar: React.FC<VotingStatusBarProps> = ({
     switch (status) {
       case 'AGUARDANDO_ABERTURA':
         return {
-          badgeBg: 'bg-[#F1F4F8] text-[#5C6B7A] border border-[#D5DCE5]',
+          badgeBg: 'bg-[#F3F7FC] text-[#5A6B82] border border-[#5A6B82]/25',
           icon: Clock,
           label: 'Aguardando Abertura',
           desc: 'A assembleia ainda não foi aberta pela Mesa Diretora.',
@@ -39,7 +39,7 @@ export const VotingStatusBar: React.FC<VotingStatusBarProps> = ({
         }
       case 'ABERTA':
         return {
-          badgeBg: 'bg-[#1F6B94]/10 text-[#12314F] border border-[#1F6B94]/25',
+          badgeBg: 'bg-[#0066FF]/10 text-[#002B5E] border border-[#0066FF]/25',
           icon: Radio,
           label: 'Assembleia Aberta',
           desc: 'Pauta em discussão. Aguarde a mesa iniciar a votação.',
@@ -47,7 +47,7 @@ export const VotingStatusBar: React.FC<VotingStatusBarProps> = ({
         }
       case 'EM_VOTACAO':
         return {
-          badgeBg: 'bg-[#1F6B94] text-[#FFFFFF] font-semibold border-0',
+          badgeBg: 'bg-[#0066FF] text-[#FFFFFF] font-semibold border-0',
           icon: Vote,
           label: 'Votação em Andamento',
           desc: 'Urna digital liberada para os condôminos credenciados.',
@@ -55,7 +55,7 @@ export const VotingStatusBar: React.FC<VotingStatusBarProps> = ({
         }
       case 'ENCERRADA':
         return {
-          badgeBg: 'bg-[#F1F4F8] text-[#5C6B7A] border border-[#D5DCE5]',
+          badgeBg: 'bg-[#F3F7FC] text-[#5A6B82] border border-[#5A6B82]/25',
           icon: CheckCircle,
           label: 'Votação Encerrada',
           desc: 'Urna fechada. Mesa em processo de apuração e conferência.',
@@ -63,7 +63,7 @@ export const VotingStatusBar: React.FC<VotingStatusBarProps> = ({
         }
       case 'APURADA':
         return {
-          badgeBg: 'bg-[#12314F] text-[#FFFFFF] border border-[#12314F]',
+          badgeBg: 'bg-[#002B5E] text-[#FFFFFF] border border-[#002B5E]',
           icon: FileCheck2,
           label: 'Apuração Concluída',
           desc: 'Boletim de urna conferido com integridade matemática.',
@@ -71,7 +71,7 @@ export const VotingStatusBar: React.FC<VotingStatusBarProps> = ({
         }
       case 'PUBLICADA':
         return {
-          badgeBg: 'bg-[#4E8B7E]/20 text-[#12314F] border border-[#4E8B7E]/40',
+          badgeBg: 'bg-[#0066FF]/20 text-[#002B5E] border border-[#0066FF]/40',
           icon: Share2,
           label: 'Resultado Oficial Publicado',
           desc: 'Ata e resultado final disponibilizados a todos os condôminos.',
@@ -79,7 +79,7 @@ export const VotingStatusBar: React.FC<VotingStatusBarProps> = ({
         }
       default:
         return {
-          badgeBg: 'bg-[#F1F4F8] text-[#12314F] border border-[#D5DCE5]',
+          badgeBg: 'bg-[#F3F7FC] text-[#002B5E] border border-[#5A6B82]/25',
           icon: Clock,
           label: status,
           desc: '',
@@ -92,14 +92,14 @@ export const VotingStatusBar: React.FC<VotingStatusBarProps> = ({
   const IconComponent = config.icon
 
   return (
-    <div className="w-full rounded-[14px] border border-[#D5DCE5] bg-white p-4 mb-6 shadow-[0_4px_24px_rgba(18,49,79,0.06)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[#12314F]">
+    <div className="w-full rounded-[14px] border border-[#5A6B82]/25 bg-white p-4 mb-6 shadow-[0_4px_24px_rgba(0,43,94,0.06)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[#002B5E]">
       <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
-        <div className="rounded-[10px] bg-[#F1F4F8] p-2.5 border border-[#D5DCE5] text-[#12314F] shrink-0">
-          <IconComponent className="h-5 w-5 text-[#1F6B94]" />
+        <div className="rounded-[10px] bg-[#F3F7FC] p-2.5 border border-[#5A6B82]/25 text-[#002B5E] shrink-0">
+          <IconComponent className="h-5 w-5 text-[#0066FF]" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-sm leading-snug text-[#12314F]">
+            <span className="font-semibold text-sm leading-snug text-[#002B5E]">
               {deliberacao.titulo}
             </span>
             <span
@@ -108,24 +108,24 @@ export const VotingStatusBar: React.FC<VotingStatusBarProps> = ({
               {config.label}
             </span>
           </div>
-          <p className="text-xs text-[#5C6B7A] mt-0.5">{config.desc}</p>
+          <p className="text-xs text-[#5A6B82] mt-0.5">{config.desc}</p>
         </div>
       </div>
 
       <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
         {isPresencial ? (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-[#F1F4F8] text-red-700 text-xs font-semibold border border-[#D5DCE5]">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-[#F3F7FC] text-red-700 text-xs font-semibold border border-[#5A6B82]/25">
             <ShieldAlert className="h-4 w-4 text-red-600" /> Presença física na assembleia
           </div>
         ) : jaVotou ? (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-[#4E8B7E]/15 text-[#12314F] text-xs font-semibold border border-[#4E8B7E]/30">
-            <CheckCircle className="h-4 w-4 text-[#4E8B7E]" /> Voto Registrado
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-[#0066FF]/12 text-[#002B5E] text-xs font-semibold border border-[#0066FF]/30">
+            <CheckCircle className="h-4 w-4 text-[#0066FF]" /> Voto Registrado
           </div>
         ) : config.canVote ? (
           <Link to="/votacao">
             <Button
               size="sm"
-              className="bg-[#1F6B94] text-white font-semibold hover:bg-[#185577] rounded-[10px] border-0"
+              className="bg-[#0066FF] text-white font-medium hover:bg-[#0052CC] rounded-[10px] border-0"
             >
               <Vote className="mr-1.5 h-4 w-4" /> Cabine de Votação{' '}
               <ArrowRight className="ml-1 h-3.5 w-3.5" />
