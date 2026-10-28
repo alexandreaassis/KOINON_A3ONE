@@ -33,7 +33,7 @@ export interface KoinonLogoProps {
  * - A terceira letra (i) sempre em Koinon Azure #1F6B94; as demais em Koinon Navy #12314F (ou #FFFFFF em versão negativa).
  */
 export const KoinonLogo: React.FC<KoinonLogoProps> = ({
-  size = 24,
+  size = 30,
   variant = 'color',
   subtitle,
   className = '',

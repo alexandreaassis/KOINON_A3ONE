@@ -15,7 +15,7 @@ export interface KoinonAppIconProps {
  * - Quadrado arredondado com cantos proporcionais e fundo Koinon Navy #12314F
  * - Símbolo Koinon negativo (arcos brancos, ponto Koinon Azure #1F6B94)
  */
-export const KoinonAppIcon: React.FC<KoinonAppIconProps> = ({ size = 48, className = '' }) => {
+export const KoinonAppIcon: React.FC<KoinonAppIconProps> = ({ size = 60, className = '' }) => {
   const borderRadius = Math.round(size * 0.22)
   const symbolSize = Math.round(size * 0.64)
 

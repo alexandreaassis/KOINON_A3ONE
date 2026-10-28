@@ -65,6 +65,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { urnaAudio } from '@/lib/urnaAudio'
+import { KoinonSymbol } from '@/components/brand/KoinonSymbol'
 
 const ROTULOS_SUGERIDOS = [
   'Apartamento',
@@ -564,8 +565,10 @@ export const ConfiguracoesPage: React.FC = () => {
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-slate-400">
-                        <ImageIcon className="h-8 w-8 text-slate-300" />
-                        <span className="text-[9px] mt-1 text-slate-400">Padrão Gota</span>
+                        <KoinonSymbol size={52} variant="color" />
+                        <span className="text-[9px] mt-1 text-slate-500 font-medium">
+                          Símbolo Koinon
+                        </span>
                       </div>
                     )}
                   </div>

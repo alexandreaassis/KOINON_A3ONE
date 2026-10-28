@@ -108,7 +108,7 @@ export const RedefinirSenhaPage: React.FC = () => {
     <div className="flex min-h-screen flex-col bg-[#F1F4F8] text-[#12314F]">
       <header className="border-b border-[#D5DCE5] bg-white px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <KoinonLogo size={30} variant="color" />
+          <KoinonLogo size={38} variant="color" />
           <Link to="/login" className="text-xs font-semibold text-[#1F6B94] hover:underline">
             Voltar para o Login
           </Link>
@@ -119,7 +119,7 @@ export const RedefinirSenhaPage: React.FC = () => {
         <Card className="w-full max-w-md border border-[#D5DCE5] bg-white shadow-[0_4px_24px_rgba(18,49,79,0.06)] rounded-[14px]">
           <CardHeader className="text-center pb-2 pt-6">
             <div className="mx-auto mb-3 flex items-center justify-center">
-              <KoinonSymbol size={44} variant="color" />
+              <KoinonSymbol size={56} variant="color" />
             </div>
             <CardTitle className="text-2xl font-semibold tracking-[-0.02em] text-[#12314F]">
               Nova Senha
@@ -223,7 +223,7 @@ export const RedefinirSenhaPage: React.FC = () => {
 
       <footer className="border-t border-[#D5DCE5]/30 bg-[#12314F] py-4 px-6 text-white text-xs">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <KoinonLogo size={22} variant="negative" />
+          <KoinonLogo size={26} variant="negative" />
           <p className="text-[#D5DCE5] text-[11px]">Segurança e integridade Koinon</p>
         </div>
       </footer>

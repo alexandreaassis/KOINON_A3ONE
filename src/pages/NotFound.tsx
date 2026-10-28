@@ -36,17 +36,16 @@ const NotFound = () => {
     <div className="flex min-h-screen flex-col bg-[#F1F4F8] text-[#12314F]">
       <header className="border-b border-[#D5DCE5] bg-white px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <KoinonLogo size={30} variant="color" />
+          <KoinonLogo size={38} variant="color" />
           <Link to="/" className="text-xs font-semibold text-[#1F6B94] hover:underline">
             Início
           </Link>
         </div>
       </header>
-
       <main className="flex flex-1 items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-md border border-[#D5DCE5] bg-white shadow-[0_4px_24px_rgba(18,49,79,0.06)] rounded-[14px] p-6 text-center space-y-4">
           <div className="mx-auto flex items-center justify-center">
-            <KoinonSymbol size={48} variant="color" />
+            <KoinonSymbol size={60} variant="color" />
           </div>
           <div className="space-y-1">
             <p className="text-4xl font-bold tracking-tight text-[#12314F]">404</p>
@@ -73,13 +72,12 @@ const NotFound = () => {
           </div>
         </div>
       </main>
-
       <footer className="border-t border-[#D5DCE5]/30 bg-[#12314F] py-4 px-6 text-white text-xs">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <KoinonLogo size={22} variant="negative" />
-          <p className="text-[#D5DCE5] text-[11px]">Segurança e integridade Koinon</p>
+          <KoinonLogo size={26} variant="negative" />
+          <p className="text-[#D5DCE5] text-[11px]">Plataforma Virtual Koinon</p>
         </div>
-      </footer>
+      </footer>{' '}
     </div>
   )
 }
