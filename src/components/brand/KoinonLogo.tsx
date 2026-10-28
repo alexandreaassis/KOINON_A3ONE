@@ -5,7 +5,7 @@ export interface KoinonLogoProps {
   /**
    * Altura do símbolo e proporção do logotipo completo.
    * Mínimo do símbolo: 24px.
-   * @default 24
+   * @default 42
    */
   size?: number
   /**
@@ -16,6 +16,11 @@ export interface KoinonLogoProps {
    * - 'monochrome': Arcos e letras em #12314F, ponto e 'i' em #1F6B94.
    */
   variant?: 'color' | 'negative' | 'negative-solid' | 'monochrome'
+  /**
+   * Ajuste de renderização do símbolo embutido:
+   * - 'master' (r=17), 'optical' (r=13) ou 'auto'.
+   */
+  scaleMode?: 'master' | 'optical' | 'auto'
   /**
    * Opcional: subtítulo institucional (ex: nome do condomínio).
    */
@@ -35,6 +40,7 @@ export interface KoinonLogoProps {
 export const KoinonLogo: React.FC<KoinonLogoProps> = ({
   size = 42,
   variant = 'color',
+  scaleMode,
   subtitle,
   className = '',
 }) => {
@@ -52,7 +58,7 @@ export const KoinonLogo: React.FC<KoinonLogoProps> = ({
       className={`inline-flex items-center select-none ${className}`}
       style={{ gap: `${gapPx}px` }}
     >
-      <KoinonSymbol size={size} variant={variant} />
+      <KoinonSymbol size={size} variant={variant} scaleMode={scaleMode} />
 
       <div className="flex flex-col justify-center leading-none">
         <span

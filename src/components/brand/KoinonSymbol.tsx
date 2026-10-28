@@ -3,7 +3,7 @@ import React from 'react'
 export interface KoinonSymbolProps {
   /**
    * Tamanho em pixels (largura e altura numéricos). Mínimo recomendado: 24px.
-   * @default 24
+   * @default 42
    */
   size?: number
   /**
@@ -12,13 +12,21 @@ export interface KoinonSymbolProps {
    * - 'negative' / 'negative-solid': arcos em branco puro #FFFFFF, ponto em Koinon Azure #1F6B94.
    */
   variant?: 'color' | 'negative' | 'negative-solid' | 'monochrome'
+  /**
+   * Ajuste de renderização:
+   * - 'master': ponto com maior destaque (r=17, cy=42 no viewBox 240x240) para tamanhos a partir de 48px.
+   * - 'optical': compensação óptica (r=13, cy=42 no viewBox 240x240) para tamanhos reduzidos (24–32px).
+   * - 'auto': seleciona automaticamente com base na prop `size` (< 48px usa optical, >= 48px usa master).
+   * @default 'auto'
+   */
+  scaleMode?: 'master' | 'optical' | 'auto'
   className?: string
 }
 
 /**
  * Símbolo Oficial Koinon (Fiel à marca e imagem de referência):
  * Anel de SEIS ARCOS espessos com extremidades arredondadas (strokeLinecap="round"),
- * simetria radial de 60 graus, centro vazio e PONTO sólido maior em Koinon Azure #1F6B94
+ * simetria radial de 60 graus, centro vazio e PONTO sólido proeminente em Koinon Azure #1F6B94
  * no eixo de 12 horas ligeiramente sobreposto ao arco superior.
  *
  * Cores exatas:
@@ -28,11 +36,21 @@ export interface KoinonSymbolProps {
 export const KoinonSymbol: React.FC<KoinonSymbolProps> = ({
   size = 42,
   variant = 'color',
+  scaleMode = 'auto',
   className = '',
 }) => {
   const isNegative = variant === 'negative' || variant === 'negative-solid'
   const strokeColor = isNegative ? '#FFFFFF' : '#12314F'
   const dotColor = '#1F6B94'
+
+  // Determina se aplica a variante óptica ou master
+  const isOptical =
+    scaleMode === 'optical' || (scaleMode === 'auto' && typeof size === 'number' && size < 48)
+
+  // Variante Master: r=17 (cy=42) para maior destaque e presença visual no arco superior
+  // Variante Óptica (24-32px): r=13 (cy=42) preservando clareza e proporção harmônica
+  const dotRadius = isOptical ? 13 : 17
+  const dotCy = 42
 
   return (
     <svg
@@ -88,7 +106,7 @@ export const KoinonSymbol: React.FC<KoinonSymbolProps> = ({
         strokeLinecap="round"
       />
       {/* Ponto sólido em Koinon Azure sobre o arco superior no eixo de 12 horas */}
-      <circle cx="120" cy="42" r="13" fill={dotColor} />
+      <circle cx="120" cy={dotCy} r={dotRadius} fill={dotColor} />
     </svg>
   )
 }
