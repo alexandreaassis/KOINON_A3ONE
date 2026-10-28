@@ -341,7 +341,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                 </TooltipContent>
               </Tooltip>
             ) : (
-              <div className="truncate flex-1 min-w-0">
+              <div className="flex-1 min-w-0 pr-2">
                 <KoinonLogo size={44} variant="on-navy" subtitle={nomeCondominio} />
               </div>
             )}

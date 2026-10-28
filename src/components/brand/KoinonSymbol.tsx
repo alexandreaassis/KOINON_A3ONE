@@ -48,13 +48,16 @@ export const KoinonSymbol: React.FC<KoinonSymbolProps> = ({
   let centerColor = '#002B5E' // Marinho Koinon
 
   if (variant === 'on-navy') {
-    ringPointColor = '#3D8BFF' // Azul para fundo escuro
-    ringHollowColor = '#3D8BFF'
-    centerColor = '#FFFFFF'
-  } else if (variant === 'negative' || variant === 'negative-solid') {
+    // Versão negativa da sidebar/fundo escuro conforme Manual da Marca:
+    // arcos/pontos em branco (#FFFFFF), ponto central em Azul #0066FF
     ringPointColor = '#FFFFFF'
     ringHollowColor = '#FFFFFF'
-    centerColor = '#FFFFFF'
+    centerColor = '#0066FF'
+  } else if (variant === 'negative' || variant === 'negative-solid') {
+    // Versão negativa do Manual: arcos/pontos brancos, ponto central em Azul #0066FF
+    ringPointColor = '#FFFFFF'
+    ringHollowColor = '#FFFFFF'
+    centerColor = '#0066FF'
   } else if (variant === 'monochrome') {
     ringPointColor = '#000000'
     ringHollowColor = '#000000'

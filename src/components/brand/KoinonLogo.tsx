@@ -54,67 +54,60 @@ export const KoinonLogo: React.FC<KoinonLogoProps> = ({
   const isDark = variant === 'on-navy' || variant === 'negative' || variant === 'negative-solid'
   const isBlack = variant === 'monochrome'
 
-  // Cor do wordmark KOINON em formas geométricas
+  // Cor do wordmark Koinon
   const wordmarkColor = isDark ? '#FFFFFF' : isBlack ? '#000000' : '#002B5E'
   const subtitleColor = variant === 'on-navy' ? '#8EC0FF' : isDark ? '#E2E8F0' : '#5A6B82'
 
-  // Proporção harmônica da altura das letras KOINON em relação ao símbolo
-  const wordmarkHeight = Math.max(16, Math.round(size * 0.62))
-  const gapPx = Math.max(8, Math.round(size * 0.36))
+  // No Manual da Marca Koinon (A3ONE):
+  // - Wordmark "Koinon" (Capital K, minúsculas o-i-n-o-n)
+  // - Tipografia: Poppins, peso 600 (SemiBold), letter-spacing: -0.02em
+  // - Cores:
+  //   * Variante colorida ('color'): letra "i" em Azul #0066FF, demais letras em Marinho #002B5E
+  //   * Variante negativa / on-navy: arcos/pontos em branco, ponto central em #0066FF,
+  //     wordmark todo em Branco #FFFFFF
+  //   * Monocromática: todo em Preto #000000
+  // - Travamento horizontal: símbolo à esquerda, wordmark à direita.
+  //   Altura do wordmark alinhada com a do símbolo;
+  //   Respiro entre símbolo e wordmark rigorosamente equivalente à altura da letra K.
+  //   Na fonte Poppins, a caixa-alta da letra K tem cap-height = 0.70 do font-size.
+  //   Calibramos a escala visual para harmonizar a altura total do K com a do símbolo,
+  //   e o respiro horizontal (gap) exatamente igual à altura do K.
+  const fontSizePx = Math.max(14, Math.round(size * 0.58))
+  const kCapHeightPx = Math.round(fontSizePx * 0.7)
+  const gapPx = Math.max(8, kCapHeightPx)
 
-  // Render do wordmark KOINON em SVG geométrico (não texto editável / sujeito a font swaps incorretos)
-  // Grade do wordmark: viewBox 0 0 280 44
-  const wordmarkSvg = (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 280 44"
-      height={wordmarkHeight}
-      role="img"
-      aria-label="KOINON"
-      className="shrink-0 select-none inline-block align-middle"
+  const letterIColor = isDark ? '#FFFFFF' : isBlack ? '#000000' : '#0066FF'
+
+  const wordmarkNode = (
+    <span
+      className="inline-flex items-baseline font-semibold select-none leading-none tracking-[-0.02em] whitespace-nowrap"
+      style={{
+        fontFamily: "'Poppins', sans-serif",
+        fontSize: `${fontSizePx}px`,
+        fontWeight: 600,
+        color: wordmarkColor,
+        letterSpacing: '-0.02em',
+      }}
+      aria-label="Koinon"
     >
-      <g fill={wordmarkColor}>
-        {/* K: haste vertical + diagonais geométricas */}
-        <path d="M 6 4 L 14 4 L 14 40 L 6 40 Z" />
-        <path d="M 14 24 L 33 4 L 44 4 L 23 24 L 45 40 L 34 40 Z" />
-
-        {/* O: círculo externo e interno perfeitos */}
-        <path
-          fillRule="evenodd"
-          d="M 72 4 C 83.05 4 92 12.95 92 24 C 92 35.05 83.05 44 72 44 C 60.95 44 52 35.05 52 24 C 52 12.95 60.95 4 72 4 Z M 72 12 C 65.37 12 60 17.37 60 24 C 60 30.63 65.37 36 72 36 C 78.63 36 84 30.63 84 24 C 84 17.37 78.63 12 72 12 Z"
-        />
-
-        {/* I: haste simples limpa */}
-        <path d="M 103 4 L 111 4 L 111 40 L 103 40 Z" />
-
-        {/* N: hastes verticais + diagonal */}
-        <path d="M 122 4 L 130 4 L 130 40 L 122 40 Z" />
-        <path d="M 124 4 L 152 38 L 152 4 L 160 4 L 160 40 L 152 40 L 124 6 Z" />
-        <path d="M 152 4 L 160 4 L 160 40 L 152 40 Z" />
-
-        {/* O: segundo círculo */}
-        <path
-          fillRule="evenodd"
-          d="M 191 4 C 202.05 4 211 12.95 211 24 C 211 35.05 202.05 44 191 44 C 179.95 44 171 35.05 171 24 C 171 12.95 179.95 4 191 4 Z M 191 12 C 184.37 12 179 17.37 179 24 C 179 30.63 184.37 36 191 36 C 197.63 36 203 30.63 203 24 C 203 17.37 197.63 12 191 12 Z"
-        />
-
-        {/* N: segundo N */}
-        <path d="M 222 4 L 230 4 L 230 40 L 222 40 Z" />
-        <path d="M 224 4 L 252 38 L 252 4 L 260 4 L 260 40 L 252 40 L 224 6 Z" />
-        <path d="M 252 4 L 260 4 L 260 40 L 252 40 Z" />
-      </g>
-    </svg>
+      <span>K</span>
+      <span>o</span>
+      <span style={{ color: letterIColor }}>i</span>
+      <span>n</span>
+      <span>o</span>
+      <span>n</span>
+    </span>
   )
 
   if (orientation === 'vertical') {
     return (
       <div
         className={`inline-flex flex-col items-center justify-center select-none ${className}`}
-        style={{ gap: `${Math.round(size * 0.25)}px` }}
+        style={{ gap: `${Math.round(size * 0.22)}px` }}
       >
         <KoinonSymbol size={size} variant={variant} />
         <div className="flex flex-col items-center text-center">
-          {wordmarkSvg}
+          {wordmarkNode}
           {subtitle && (
             <span
               className="text-[10px] font-medium tracking-wide uppercase mt-1 truncate max-w-[200px]"
@@ -136,7 +129,7 @@ export const KoinonLogo: React.FC<KoinonLogoProps> = ({
       <KoinonSymbol size={size} variant={variant} />
 
       <div className="flex flex-col justify-center leading-none">
-        {wordmarkSvg}
+        {wordmarkNode}
         {subtitle && (
           <span
             className="text-[10px] font-medium tracking-wide uppercase mt-1 truncate max-w-[260px]"
