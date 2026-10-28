@@ -63,6 +63,8 @@ import {
   Sparkles,
   Users,
   ChevronRight,
+  Eraser,
+  CheckCircle,
 } from 'lucide-react'
 import { urnaAudio } from '@/lib/urnaAudio'
 import { KoinonSymbol } from '@/components/brand/KoinonSymbol'
@@ -135,6 +137,16 @@ export const ConfiguracoesPage: React.FC = () => {
   const [avulsaPeso, setAvulsaPeso] = useState('1')
   const [avulsaAndar, setAvulsaAndar] = useState('')
   const [avulsaNome, setAvulsaNome] = useState('')
+
+  // Limpeza de Dados do Ambiente (Dois Passos)
+  const [modalLimpezaAberto, setModalLimpezaAberto] = useState(false)
+  const [passoLimpeza, setPassoLimpeza] = useState<1 | 2>(1)
+  const [fraseDigitada, setFraseDigitada] = useState('')
+  const [executandoLimpeza, setExecutandoLimpeza] = useState(false)
+  const [resultadoLimpeza, setResultadoLimpeza] = useState<{
+    totalRemovidos: number
+    detalhes: Array<{ collection: string; label: string; removidos: number }>
+  } | null>(null)
 
   // Sincroniza estados iniciais a partir da config salva
   useEffect(() => {
@@ -356,6 +368,55 @@ export const ConfiguracoesPage: React.FC = () => {
       })
     } finally {
       setRegenerando(false)
+    }
+  }
+
+  // Executar limpeza geral de dados de teste (dois passos)
+  const handleAbrirModalLimpeza = () => {
+    setPassoLimpeza(1)
+    setFraseDigitada('')
+    setModalLimpezaAberto(true)
+  }
+
+  const handleConfirmarLimpeza = async () => {
+    if (fraseDigitada.trim() !== 'APAGAR DADOS') {
+      toast({
+        title: 'Frase incorreta',
+        description: 'Digite exatamente "APAGAR DADOS" para autorizar a limpeza.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setExecutandoLimpeza(true)
+    try {
+      const resp = await api.limparDadosAmbiente()
+      setResultadoLimpeza({
+        totalRemovidos: resp.totalRemovidos,
+        detalhes: resp.detalhes || [],
+      })
+      setModalLimpezaAberto(false)
+      setFraseDigitada('')
+      setPassoLimpeza(1)
+
+      await recarregarConfig()
+      await carregarUnidades()
+
+      toast({
+        title: 'Limpeza de Dados Concluída',
+        description: `${resp.totalRemovidos} registros de teste foram removidos. Usuários preservados.`,
+      })
+    } catch (err: any) {
+      console.error('Erro ao executar limpeza de dados:', err)
+      toast({
+        title: 'Não foi possível concluir a limpeza',
+        description:
+          err?.message ||
+          'Ocorreu uma instabilidade no servidor. Verifique suas permissões de administrador e tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setExecutandoLimpeza(false)
     }
   }
 
@@ -1497,6 +1558,238 @@ export const ConfiguracoesPage: React.FC = () => {
       </Dialog>
 
       {/* MODAL DE CADASTRO DE UNIDADE AVULSA */}
+      {/* CARD 3: LIMPEZA DE DADOS DO AMBIENTE (EXCLUSIVO ADMINISTRADOR) */}
+      {user?.role === 'admin' && (
+        <Card className="border-[#D5DCE5] shadow-[0_4px_24px_rgba(18,49,79,0.08)] rounded-[14px] bg-white overflow-hidden">
+          <CardHeader className="pb-3 border-b border-[#F1F4F8] bg-[#F1F4F8]/40">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-base font-bold text-[#12314F] flex items-center gap-2">
+                  <Eraser className="h-4 w-4 text-[#1F6B94]" /> Limpeza de Dados do Ambiente
+                </CardTitle>
+                <CardDescription className="text-xs text-[#5C6B7A] mt-0.5">
+                  Redefinição controlada para início de novas assembleias e testes homologados.
+                  Apaga lançamentos, votações, presenças, deliberações e documentos, mantendo
+                  intactos exclusivamente os usuários e as credenciais de infraestrutura.
+                </CardDescription>
+              </div>
+              <Badge className="bg-[#12314F]/10 text-[#12314F] border-transparent text-xs px-2.5 py-1 font-semibold shrink-0 self-start sm:self-auto">
+                Área Restrita do Administrador
+              </Badge>
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-4 pt-4">
+            <div className="p-4 rounded-[14px] border border-amber-200 bg-amber-50/70 text-[#12314F] space-y-2">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+                <div className="text-xs space-y-1">
+                  <p className="font-bold text-amber-950">
+                    Ação destrutiva e irreversível sobre os dados de negócio
+                  </p>
+                  <p className="text-slate-700 leading-relaxed">
+                    Esta rotina remove todas as assembleias, itens de pauta, votos e cédulas da
+                    urna, comprovantes, presenças, assinaturas de mesa e atas geradas, cadastros de
+                    unidades e trilha de auditoria prévia.
+                  </p>
+                  <p className="text-[#12314F] font-semibold pt-1">
+                    Preservação garantida: A conta dos condôminos e administradores (collection{' '}
+                    <code className="px-1 py-0.5 bg-white/80 rounded border border-amber-200 font-mono text-[11px]">
+                      users
+                    </code>
+                    ) e as configurações de envio de e-mail e provedores externos (
+                    <code className="px-1 py-0.5 bg-white/80 rounded border border-amber-200 font-mono text-[11px]">
+                      configuracoes_backend
+                    </code>
+                    ) permanecerão 100% inalteradas.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {resultadoLimpeza && (
+              <div className="p-4 rounded-[14px] border border-[#4E8B7E]/40 bg-[#4E8B7E]/10 text-[#12314F] space-y-3">
+                <div className="flex items-center gap-2 font-bold text-xs text-[#12314F]">
+                  <CheckCircle className="h-4 w-4 text-[#4E8B7E]" />
+                  Última limpeza executada: {resultadoLimpeza.totalRemovidos} registros removidos
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                  {resultadoLimpeza.detalhes.map((item) => (
+                    <div
+                      key={item.collection}
+                      className="p-2 rounded-[10px] bg-white border border-[#D5DCE5] flex items-center justify-between shadow-xs"
+                    >
+                      <span className="text-slate-700 truncate pr-2" title={item.label}>
+                        {item.label}
+                      </span>
+                      <Badge
+                        variant="secondary"
+                        className={
+                          item.removidos > 0
+                            ? 'bg-[#1F6B94] text-white font-mono text-[11px]'
+                            : 'bg-slate-100 text-slate-500 font-mono text-[11px]'
+                        }
+                      >
+                        {item.removidos}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
+              <span className="text-xs text-[#5C6B7A]">
+                Exige confirmação formal em duas etapas com digitação de frase de segurança.
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAbrirModalLimpeza}
+                className="h-10 px-4 text-xs font-semibold text-[#12314F] hover:text-white hover:bg-[#12314F] border-[#12314F]/40 hover:border-[#12314F] rounded-[10px] transition-colors"
+              >
+                <Eraser className="mr-1.5 h-3.5 w-3.5 text-[#1F6B94]" /> Iniciar Limpeza de Dados
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* MODAL DE CONFIRMAÇÃO DE DOIS PASSOS - LIMPEZA DE DADOS */}
+      <Dialog open={modalLimpezaAberto} onOpenChange={setModalLimpezaAberto}>
+        <DialogContent className="max-w-lg rounded-[14px] border border-[#D5DCE5] shadow-[0_4px_24px_rgba(18,49,79,0.12)]">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-[#12314F] flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-700" />
+              {passoLimpeza === 1
+                ? 'Confirmação de Limpeza de Dados (Passo 1 de 2)'
+                : 'Autorização Definitiva (Passo 2 de 2)'}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[#5C6B7A] mt-1">
+              {passoLimpeza === 1
+                ? 'Leia atentamente as consequências da exclusão antes de prosseguir.'
+                : 'Digite a frase de segurança exigida para habilitar o comando de exclusão.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {passoLimpeza === 1 ? (
+            <div className="py-2 text-xs space-y-3">
+              <div className="p-3.5 rounded-[10px] bg-[#F1F4F8] border border-[#D5DCE5] space-y-2">
+                <p className="font-semibold text-[#12314F]">O que será permanentemente apagado:</p>
+                <ul className="list-disc list-inside space-y-1 text-slate-700 pl-1">
+                  <li>Todas as assembleias, deliberações e itens de pauta</li>
+                  <li>Todas as votações, cédulas e boletins de urna emitidos</li>
+                  <li>Lista de presenças, assinaturas de participantes e procurações</li>
+                  <li>Editais convocatórios, minutas de ata e atas publicadas</li>
+                  <li>Documentos anexos, extrações de texto e transcrições</li>
+                  <li>Histórico da trilha de auditoria e logs de acesso</li>
+                  <li>Malha de unidades e seus cadastros vinculados</li>
+                </ul>
+              </div>
+
+              <div className="p-3.5 rounded-[10px] bg-emerald-50 border border-emerald-200 text-emerald-950 space-y-1">
+                <p className="font-bold flex items-center gap-1.5 text-[#12314F]">
+                  <CheckCircle2 className="h-4 w-4 text-[#4E8B7E]" /> O que será integralmente
+                  preservado:
+                </p>
+                <p className="text-xs leading-relaxed text-slate-700">
+                  <strong>Todos os usuários cadastrados</strong> (síndico, mesa diretora, moradores,
+                  e-mails e senhas) permanecem ativos. Nenhuma credencial de acesso ou configuração
+                  de infraestrutura de servidor será afetada.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="py-2 text-xs space-y-3">
+              <div className="p-3 rounded-[10px] bg-amber-50/80 border border-amber-200 text-amber-950 space-y-1.5">
+                <p className="font-bold text-xs">Atenção máxima: esta ação não tem volta.</p>
+                <p className="text-[11px] text-slate-700">
+                  Para confirmar a execução imediata da limpeza no banco de dados, digite exatamente
+                  a frase em maiúsculas abaixo:
+                </p>
+                <div className="p-2 bg-white rounded border border-amber-300 text-center font-mono font-bold text-sm text-[#12314F] tracking-wider select-all">
+                  APAGAR DADOS
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="frase-confirmacao" className="text-xs font-semibold text-[#12314F]">
+                  Digite a frase de confirmação:
+                </Label>
+                <Input
+                  id="frase-confirmacao"
+                  value={fraseDigitada}
+                  onChange={(e) => setFraseDigitada(e.target.value)}
+                  placeholder="APAGAR DADOS"
+                  disabled={executandoLimpeza}
+                  autoFocus
+                  className="h-10 text-xs font-mono tracking-wider border-[#D5DCE5] focus:border-[#12314F] rounded-[10px]"
+                />
+                <span className="text-[11px] text-[#5C6B7A]">
+                  O botão de exclusão só será desbloqueado quando o texto for idêntico.
+                </span>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-100">
+            {passoLimpeza === 1 ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setModalLimpezaAberto(false)}
+                  className="rounded-[10px] border-[#D5DCE5] text-[#12314F]"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setPassoLimpeza(2)}
+                  className="bg-[#12314F] hover:bg-[#1C2331] text-white font-semibold rounded-[10px]"
+                >
+                  Entendi, Avançar para Confirmação
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={executandoLimpeza}
+                  onClick={() => {
+                    setPassoLimpeza(1)
+                    setFraseDigitada('')
+                  }}
+                  className="rounded-[10px] border-[#D5DCE5] text-[#12314F]"
+                >
+                  Voltar
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={executandoLimpeza || fraseDigitada.trim() !== 'APAGAR DADOS'}
+                  onClick={handleConfirmarLimpeza}
+                  className="bg-[#12314F] hover:bg-[#1C2331] text-white font-semibold rounded-[10px] disabled:opacity-50"
+                >
+                  {executandoLimpeza ? (
+                    <>
+                      <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Executando
+                      Limpeza...
+                    </>
+                  ) : (
+                    'Confirmar e Apagar Dados'
+                  )}
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={modalAvulsaAberto} onOpenChange={setModalAvulsaAberto}>
         <DialogContent className="max-w-md">
           <form onSubmit={handleSalvarAvulsa}>

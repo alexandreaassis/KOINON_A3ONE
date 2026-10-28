@@ -1465,4 +1465,20 @@ export const api = {
       body: formData,
     })
   },
+
+  // 14. Limpeza de Dados de Teste (Exclusivo Administradores)
+  async limparDadosAmbiente() {
+    return pb.send<{
+      success: boolean
+      message: string
+      totalRemovidos: number
+      detalhes: Array<{
+        collection: string
+        label: string
+        removidos: number
+      }>
+    }>('/backend/v1/admin/limpar-dados', {
+      method: 'POST',
+    })
+  },
 }
