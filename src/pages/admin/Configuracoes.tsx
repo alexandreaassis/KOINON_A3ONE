@@ -565,7 +565,7 @@ export const ConfiguracoesPage: React.FC = () => {
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-slate-400">
-                        <KoinonSymbol size={62} variant="color" />
+                        <KoinonSymbol size={68} variant="color" />
                         <span className="text-[9px] mt-1 text-slate-500 font-medium">
                           Símbolo Koinon
                         </span>

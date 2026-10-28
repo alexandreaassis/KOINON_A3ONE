@@ -73,7 +73,7 @@ export const LoginPage: React.FC = () => {
       {/* Cabeçalho Público Koinon */}
       <header className="border-b border-[#D5DCE5] bg-white px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <KoinonLogo size={44} variant="color" />
+          <KoinonLogo size={50} variant="color" />
           <nav className="hidden sm:flex items-center gap-6 text-xs text-[#5C6B7A]">
             <span>Assembleias</span>
             <span>Deliberações</span>
@@ -91,7 +91,7 @@ export const LoginPage: React.FC = () => {
         <Card className="w-full max-w-md border border-[#D5DCE5] bg-white shadow-[0_4px_24px_rgba(18,49,79,0.06)] rounded-[14px]">
           <CardHeader className="text-center pb-2 pt-6">
             <div className="mx-auto mb-3 flex items-center justify-center">
-              <KoinonSymbol size={66} variant="color" />
+              <KoinonSymbol size={72} variant="color" />
             </div>
             <div className="inline-block self-center text-[11px] font-semibold tracking-wider text-[#12314F] bg-[#1F6B94]/10 border border-[#1F6B94]/25 px-2.5 py-0.5 rounded-[8px] mb-2">
               Plataforma Virtual Koinon
@@ -212,7 +212,7 @@ export const LoginPage: React.FC = () => {
       {/* Rodapé Institucional Koinon */}
       <footer className="border-t border-[#D5DCE5]/30 bg-[#12314F] py-5 px-6 text-white text-xs">
         <div className="mx-auto flex max-w-5xl flex-col sm:flex-row items-center justify-between gap-3">
-          <KoinonLogo size={32} variant="negative" />
+          <KoinonLogo size={38} variant="negative" />
           <p className="text-[#D5DCE5] text-center sm:text-right text-[11px]">
             Plataforma Virtual Koinon — Governança assemblear com integridade e transparência
           </p>

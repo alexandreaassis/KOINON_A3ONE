@@ -26,7 +26,7 @@ export interface KoinonSymbolProps {
  * - Ponto: #1F6B94 (Koinon Azure)
  */
 export const KoinonSymbol: React.FC<KoinonSymbolProps> = ({
-  size = 36,
+  size = 42,
   variant = 'color',
   className = '',
 }) => {

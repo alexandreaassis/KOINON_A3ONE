@@ -327,7 +327,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                     to="/"
                     className="flex items-center justify-center p-1 rounded hover:opacity-90"
                   >
-                    <KoinonSymbol size={42} variant="negative" />
+                    <KoinonSymbol size={48} variant="negative" />
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent
@@ -339,7 +339,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
               </Tooltip>
             ) : (
               <div className="truncate flex-1 min-w-0">
-                <KoinonLogo size={38} variant="negative" subtitle={nomeCondominio} />
+                <KoinonLogo size={44} variant="negative" subtitle={nomeCondominio} />
               </div>
             )}
 
