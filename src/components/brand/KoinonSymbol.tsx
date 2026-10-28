@@ -14,8 +14,8 @@ export interface KoinonSymbolProps {
   variant?: 'color' | 'negative' | 'negative-solid' | 'monochrome'
   /**
    * Ajuste de renderização:
-   * - 'master': ponto com maior destaque (r=17, cy=42 no viewBox 240x240) para tamanhos a partir de 48px.
-   * - 'optical': compensação óptica (r=13, cy=42 no viewBox 240x240) para tamanhos reduzidos (24–32px).
+   * - 'master': ponto com maior destaque (r=19, cy=42 no viewBox 240x240) para tamanhos a partir de 48px.
+   * - 'optical': compensação óptica (r=15, cy=42 no viewBox 240x240) para tamanhos reduzidos (24–32px).
    * - 'auto': seleciona automaticamente com base na prop `size` (< 48px usa optical, >= 48px usa master).
    * @default 'auto'
    */
@@ -47,9 +47,9 @@ export const KoinonSymbol: React.FC<KoinonSymbolProps> = ({
   const isOptical =
     scaleMode === 'optical' || (scaleMode === 'auto' && typeof size === 'number' && size < 48)
 
-  // Variante Master: r=17 (cy=42) para maior destaque e presença visual no arco superior
-  // Variante Óptica (24-32px): r=13 (cy=42) preservando clareza e proporção harmônica
-  const dotRadius = isOptical ? 13 : 17
+  // Variante Master: r=19 (cy=42) para maior destaque e presença visual no arco superior
+  // Variante Óptica (24-32px): r=15 (cy=42) preservando clareza e proporção harmônica
+  const dotRadius = isOptical ? 15 : 19
   const dotCy = 42
 
   return (

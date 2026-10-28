@@ -11,5 +11,5 @@
     <path d="M 11.73 30.22 A 20.8 20.8 0 0 1 19.38 16.97"/>
   </g>
   <!-- Ponto Koinon Azure no topo sobre o arco superior com maior destaque -->
-  <circle cx="32" cy="11.2" r="4.53" fill="#1F6B94"/>
+  <circle cx="32" cy="11.2" r="5.05" fill="#1F6B94"/>
 </svg>

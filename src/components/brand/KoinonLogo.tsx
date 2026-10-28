@@ -18,7 +18,7 @@ export interface KoinonLogoProps {
   variant?: 'color' | 'negative' | 'negative-solid' | 'monochrome'
   /**
    * Ajuste de renderização do símbolo embutido:
-   * - 'master' (r=17), 'optical' (r=13) ou 'auto'.
+   * - 'master' (r=19), 'optical' (r=15) ou 'auto'.
    */
   scaleMode?: 'master' | 'optical' | 'auto'
   /**
