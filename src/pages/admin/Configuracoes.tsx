@@ -1682,7 +1682,9 @@ export const ConfiguracoesPage: React.FC = () => {
                   <li>Lista de presenças, assinaturas de participantes e procurações</li>
                   <li>Editais convocatórios, minutas de ata e atas publicadas</li>
                   <li>Documentos anexos, extrações de texto e transcrições</li>
-                  <li>Histórico da trilha de auditoria e logs de acesso</li>
+                  <li>
+                    Histórico da trilha de auditoria, logs de acesso e histórico de alterações
+                  </li>
                   <li>Malha de unidades e seus cadastros vinculados</li>
                 </ul>
               </div>

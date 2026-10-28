@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-28T02:40:05.296Z",
+  "generatedAt": "2026-10-28T03:16:33.544Z",
   "collections": [
     {
       "name": "users",
@@ -2058,6 +2058,114 @@
         "CREATE INDEX idx_cadastros_unidade ON cadastros_unidade (unidade)",
         "CREATE INDEX idx_cadastros_cpf ON cadastros_unidade (cpf)",
         "CREATE INDEX idx_cadastros_vinculo ON cadastros_unidade (vinculo)"
+      ]
+    },
+    {
+      "name": "historico_alteracoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && @request.auth.role = 'admin'",
+        "view": "@request.auth.id != '' && @request.auth.role = 'admin'",
+        "create": "@request.auth.id != ''",
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "user_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user_email",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user_role",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "acao",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["criacao", "atualizacao", "exclusao"]
+        },
+        {
+          "name": "entidade",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "registro_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "registro_rotulo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "campos_alterados",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ip",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user_agent",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_hora",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_hist_alt_data_hora ON historico_alteracoes (data_hora DESC)",
+        "CREATE INDEX idx_hist_alt_entidade ON historico_alteracoes (entidade)",
+        "CREATE INDEX idx_hist_alt_acao ON historico_alteracoes (acao)",
+        "CREATE INDEX idx_hist_alt_user ON historico_alteracoes (user)",
+        "CREATE INDEX idx_hist_alt_reg_id ON historico_alteracoes (registro_id)"
       ]
     }
   ]

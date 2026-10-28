@@ -77,11 +77,11 @@ routerAdd('POST', '/backend/v1/admin/limpar-dados', (e) => {
     { name: 'deliberacoes', label: 'Assembleias e Deliberações' },
     { name: 'credenciamentos', label: 'Solicitações de Credenciamento' },
     { name: 'cadastros_unidade', label: 'Cadastros de Condôminos por Unidade' },
+    { name: 'historico_alteracoes', label: 'Histórico de Alterações de Dados' },
     { name: 'auditoria_events', label: 'Trilha de Auditoria e Eventos' },
     { name: 'logs_acesso', label: 'Histórico de Logs de Acesso' },
     { name: 'unidades', label: 'Unidades do Condomínio' },
   ]
-
   const resumo = []
   let totalGeral = 0
 

@@ -41,6 +41,7 @@ import AuditoriaPage from '@/pages/mesa/Auditoria'
 // Páginas do Módulo de Administração
 import ConfiguracoesPage from '@/pages/admin/Configuracoes'
 import GestaoUsuariosPage from '@/pages/admin/Usuarios'
+import HistoricoAlteracoesPage from '@/pages/admin/HistoricoAlteracoes'
 import ParametrosConvencaoPage from '@/pages/admin/ParametrosConvencao'
 import CadastrosUnidadesPage from '@/pages/admin/CadastrosUnidades'
 
@@ -386,6 +387,16 @@ const App = () => (
                 <ProtectedRoute requireAdmin>
                   <AppLayout>
                     <GestaoUsuariosPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/historico"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AppLayout>
+                    <HistoricoAlteracoesPage />
                   </AppLayout>
                 </ProtectedRoute>
               }

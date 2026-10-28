@@ -211,6 +211,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     { label: 'Configurações do Condomínio', path: '/admin/configuracoes', icon: Settings },
     { label: 'Cadastros da Unidade', path: '/admin/cadastros', icon: Contact },
     { label: 'Gestão de Usuários', path: '/admin/usuarios', icon: Users },
+    { label: 'Histórico de Alterações', path: '/admin/historico', icon: History },
     { label: 'Parâmetros da Convenção', path: '/admin/parametros', icon: SlidersHorizontal },
   ]
 
@@ -233,6 +234,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     if (p === '/admin/configuracoes') return ['Administração', 'Configurações']
     if (p === '/admin/cadastros') return ['Administração', 'Cadastros da Unidade']
     if (p === '/admin/usuarios') return ['Administração', 'Usuários']
+    if (p === '/admin/historico') return ['Administração', 'Histórico de Alterações']
     if (p === '/admin/parametros') return ['Administração', 'Parâmetros Globais']
     return ['Sistema', nomeCondominio]
   }

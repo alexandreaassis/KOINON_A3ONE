@@ -432,6 +432,32 @@ export interface LogAcessoRecord extends RecordModel {
   }
 }
 
+export type HistoricoAcao = 'criacao' | 'atualizacao' | 'exclusao'
+
+export interface CampoAlteradoDiff {
+  campo: string
+  anterior: any
+  novo: any
+}
+
+export interface HistoricoAlteracaoRecord extends RecordModel {
+  user?: string
+  user_nome?: string
+  user_email?: string
+  user_role?: string
+  acao: HistoricoAcao
+  entidade: string
+  registro_id: string
+  registro_rotulo?: string
+  campos_alterados?: CampoAlteradoDiff[]
+  ip?: string
+  user_agent?: string
+  data_hora: string
+  expand?: {
+    user?: UserRecord
+  }
+}
+
 export interface ApuracaoItemResult {
   id: string
   ordem: number
@@ -1466,7 +1492,64 @@ export const api = {
     })
   },
 
-  // 14. Limpeza de Dados de Teste (Exclusivo Administradores)
+  // 14. Histórico de Alterações de Dados (Auditoria Operacional)
+  async getHistoricoAlteracoes(filtros?: {
+    entidade?: string
+    acao?: string
+    userId?: string
+    termo?: string
+    dataInicio?: string
+    dataFim?: string
+    page?: number
+    perPage?: number
+  }) {
+    const page = filtros?.page || 1
+    const perPage = filtros?.perPage || 30
+    const parts: string[] = []
+    const params: Record<string, any> = {}
+
+    if (filtros?.entidade && filtros.entidade !== 'todas') {
+      parts.push('entidade = {:entidade}')
+      params.entidade = filtros.entidade
+    }
+
+    if (filtros?.acao && filtros.acao !== 'todas') {
+      parts.push('acao = {:acao}')
+      params.acao = filtros.acao
+    }
+
+    if (filtros?.userId && filtros.userId !== 'todos') {
+      parts.push('user = {:userId}')
+      params.userId = filtros.userId
+    }
+
+    if (filtros?.dataInicio) {
+      parts.push('data_hora >= {:dataInicio}')
+      params.dataInicio = `${filtros.dataInicio} 00:00:00`
+    }
+
+    if (filtros?.dataFim) {
+      parts.push('data_hora <= {:dataFim}')
+      params.dataFim = `${filtros.dataFim} 23:59:59`
+    }
+
+    if (filtros?.termo && filtros.termo.trim()) {
+      parts.push(
+        '(registro_rotulo ~ {:termo} || user_nome ~ {:termo} || user_email ~ {:termo} || registro_id ~ {:termo})',
+      )
+      params.termo = filtros.termo.trim()
+    }
+
+    const filter = parts.length > 0 ? pb.filter(parts.join(' && '), params) : undefined
+
+    return pb.collection('historico_alteracoes').getList<HistoricoAlteracaoRecord>(page, perPage, {
+      filter,
+      sort: '-data_hora',
+      expand: 'user',
+    })
+  },
+
+  // 15. Limpeza de Dados de Teste (Exclusivo Administradores)
   async limparDadosAmbiente() {
     return pb.send<{
       success: boolean
