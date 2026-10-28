@@ -445,12 +445,18 @@ export const InformativoDeliberacoesPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-6 pt-3 border-t border-slate-200 text-center text-[10px] text-slate-500 space-y-0.5">
-            <p>Informativo emitido pelo sistema de votação eletrônica {nomeCondominio}.</p>
+          <div className="mt-6 pt-3 border-t border-slate-200 text-center text-[10px] text-slate-500 space-y-1">
+            <p>Informativo emitido pela Plataforma Virtual Koinon — {nomeCondominio}.</p>
             <p className="text-slate-400 text-[9px]">
               Apuração auditada com integridade criptográfica SHA-256 (Hash Raiz:{' '}
               {deliberacao.hash_raiz || 'Em consolidação'}).
             </p>
+            <div className="pt-2">
+              <span className="inline-block px-3 py-1 rounded-full border border-slate-200 bg-[#F3F7FC] text-[9px] text-[#5A6B82] tracking-wider">
+                <strong className="text-[#002B5E] font-bold">KOINON</strong> • uma solução{' '}
+                <strong className="text-[#0066FF] font-bold">A3ONE</strong>
+              </span>
+            </div>
           </div>
         </footer>
       </article>

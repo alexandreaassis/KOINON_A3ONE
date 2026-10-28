@@ -101,7 +101,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
       margin: 0;
       padding: 0;
       font-family: "Georgia", "Cambria", "Times New Roman", serif;
-      color: #0f172a;
+      color: #002B5E;
       background: #ffffff;
       line-height: 1.6;
       font-size: 11pt;
@@ -113,10 +113,10 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
       padding: 0;
     }
     header {
-      border-bottom: 2px solid #0f172a;
+      border-bottom: 2px solid #002B5E;
       padding-bottom: 12px;
       margin-bottom: 18px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
     .header-content {
       display: flex;
@@ -135,10 +135,10 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
     }
     .header-tag {
       font-size: 8pt;
-      font-weight: 800;
+      font-weight: 700;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      color: #0369a1;
+      color: #0066FF;
       margin-bottom: 2px;
     }
     .condo-title {
@@ -146,12 +146,12 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
       font-weight: 800;
       text-transform: uppercase;
       margin: 0;
-      color: #020617;
+      color: #002B5E;
       letter-spacing: 0.5px;
     }
     .header-sub {
       font-size: 9pt;
-      color: #475569;
+      color: #5A6B82;
       margin: 2px 0 0 0;
       text-transform: uppercase;
       font-weight: 600;
@@ -167,23 +167,24 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
       text-align: center;
       margin: 14px 0 18px 0;
       padding: 10px 14px;
-      background-color: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 4px;
+      background-color: #F3F7FC;
+      border: 1px solid #E2E8F0;
+      border-radius: 6px;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     .doc-headline h2 {
       margin: 0;
-      font-size: 14pt;
-      font-weight: bold;
+      font-size: 13pt;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #020617;
+      letter-spacing: 0.8px;
+      color: #002B5E;
     }
     .doc-headline p {
       margin: 4px 0 0 0;
       font-size: 9.5pt;
-      color: #475569;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #5A6B82;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-weight: 500;
     }
     .text-body {
@@ -232,28 +233,30 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
     .crypto-box {
       margin: 20px 0;
       padding: 12px 16px;
-      background-color: #f8fafc;
-      border: 1px solid #cbd5e1;
+      background-color: #F3F7FC;
+      border: 1px solid #E2E8F0;
+      border-left: 4px solid #0066FF;
       border-radius: 6px;
       font-family: monospace;
       font-size: 8.5pt;
-      color: #334155;
+      color: #002B5E;
       line-height: 1.4;
       page-break-inside: avoid;
     }
     .crypto-box-title {
       font-weight: bold;
-      color: #0f172a;
+      color: #002B5E;
       margin-bottom: 4px;
       display: flex;
       align-items: center;
       gap: 6px;
       font-size: 9pt;
+      font-family: 'Poppins', sans-serif;
     }
     .signatures-section {
       margin-top: 30px;
       page-break-inside: avoid;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     .signatures-grid {
       display: grid;
@@ -268,46 +271,64 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
     }
     .signature-line {
       width: 240px;
-      border-top: 1.5px solid #0f172a;
+      border-top: 1.5px solid #002B5E;
       margin: 0 auto 4px auto;
     }
     .signature-name {
       font-size: 10pt;
       font-weight: bold;
       text-transform: uppercase;
-      color: #0f172a;
+      color: #002B5E;
       margin: 0;
       line-height: 1.15;
     }
     .signature-cpf {
       font-size: 8.5pt;
-      color: #475569;
+      color: #5A6B82;
       font-family: monospace;
       margin: 0;
       line-height: 1.15;
     }
     .signature-role {
       font-size: 8pt;
-      color: #64748b;
+      color: #5A6B82;
       margin: 0;
       line-height: 1.15;
     }
     .signature-hash-stamp {
       margin-top: 4px;
       font-size: 7pt;
-      color: #059669;
+      color: #0066FF;
       font-family: monospace;
       word-break: break-all;
     }
     .footer-note {
       margin-top: 28px;
-      padding-top: 10px;
-      border-top: 1px solid #e2e8f0;
-      font-size: 7.5pt;
-      color: #94a3b8;
+      padding-top: 12px;
+      border-top: 1px solid #E2E8F0;
+      font-size: 8pt;
+      color: #5A6B82;
       text-align: center;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       page-break-inside: avoid;
+    }
+    .seal-a3one {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 12px;
+      border: 1px solid #E2E8F0;
+      border-radius: 999px;
+      background-color: #F3F7FC;
+      font-size: 7.5pt;
+      color: #5A6B82;
+      letter-spacing: 0.3px;
+    }
+    .seal-a3one strong {
+      color: #002B5E;
+    }
+    .seal-a3one .brand-a3one {
+      color: #0066FF;
+      font-weight: 700;
     }
     @media print {
       body {
@@ -417,6 +438,11 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
     <div class="footer-note">
       Documento lavrado e homologado através da Plataforma Virtual Koinon.<br>
       A integridade jurídica e a conformidade deste instrumento são atestadas pelas assinaturas digitais da Mesa Diretora e pelo Hash Raiz SHA-256 auditado.
+      <div>
+        <span class="seal-a3one">
+          <strong>KOINON</strong> • uma solução <span class="brand-a3one">A3ONE</span>
+        </span>
+      </div>
     </div>  </div>
 </body>
 </html>`

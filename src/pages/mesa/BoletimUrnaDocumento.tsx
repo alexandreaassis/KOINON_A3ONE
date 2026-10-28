@@ -831,6 +831,12 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
                 Documento emitido digitalmente em {dataEmissao.toLocaleString('pt-BR')} • Código
                 Identificador da Urna: {deliberacao?.id || boletim.deliberacao.id}
               </p>
+              <div className="pt-2">
+                <span className="inline-block px-3 py-1 rounded-full border border-slate-200 bg-[#F3F7FC] text-[9px] text-[#5A6B82] tracking-wider">
+                  <strong className="text-[#002B5E] font-bold">KOINON</strong> • uma solução{' '}
+                  <strong className="text-[#0066FF] font-bold">A3ONE</strong>
+                </span>
+              </div>
             </div>
           </footer>
         </article>

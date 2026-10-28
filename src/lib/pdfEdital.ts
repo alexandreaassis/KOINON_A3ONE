@@ -140,7 +140,7 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
       margin: 0;
       padding: 0;
       font-family: "Georgia", "Cambria", "Times New Roman", serif;
-      color: #0f172a;
+      color: #002B5E;
       background: #ffffff;
       line-height: 1.5;
       font-size: 11pt;
@@ -152,10 +152,10 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
       padding: 0;
     }
     header {
-      border-bottom: 2px solid #0f172a;
+      border-bottom: 2px solid #002B5E;
       padding-bottom: 12px;
       margin-bottom: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
     .header-content {
       display: flex;
@@ -174,10 +174,10 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
     }
     .header-tag {
       font-size: 8pt;
-      font-weight: 800;
+      font-weight: 700;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      color: #0284c7;
+      color: #0066FF;
       margin-bottom: 2px;
     }
     .condo-title {
@@ -185,12 +185,12 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
       font-weight: 800;
       text-transform: uppercase;
       margin: 0;
-      color: #020617;
+      color: #002B5E;
       letter-spacing: 0.5px;
     }
     .header-sub {
       font-size: 9pt;
-      color: #475569;
+      color: #5A6B82;
       margin: 2px 0 0 0;
       text-transform: uppercase;
       font-weight: 600;
@@ -206,24 +206,25 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
       text-align: center;
       margin: 16px 0 16px 0;
       padding: 8px 12px;
-      background-color: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 4px;
+      background-color: #F3F7FC;
+      border: 1px solid #E2E8F0;
+      border-radius: 6px;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     .doc-headline h2 {
       margin: 0;
-      font-size: 13.5pt;
-      font-weight: bold;
+      font-size: 13pt;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.8px;
-      color: #020617;
+      color: #002B5E;
     }
     .doc-headline p {
       margin: 3px 0 0 0;
       font-size: 9.5pt;
-      color: #475569;
+      color: #5A6B82;
       font-style: italic;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     .text-body {
       text-align: justify;
@@ -274,13 +275,15 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
       font-style: italic;
     }
     .box-condicoes {
-      background: #f8fafc;
-      border: 1px solid #cbd5e1;
+      background: #F3F7FC;
+      border: 1px solid #E2E8F0;
+      border-left: 4px solid #0066FF;
       border-radius: 6px;
       padding: 10px 14px;
       margin: 14px 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-size: 9.5pt;
+      color: #002B5E;
     }
     .box-condicoes div {
       margin-bottom: 4px;
@@ -289,20 +292,20 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
       margin-bottom: 0;
     }
     .section-title {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-size: 9.5pt;
-      font-weight: 800;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.8px;
-      color: #0f172a;
+      color: #002B5E;
       margin: 14px 0 6px 0;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1.5px solid #0066FF;
       padding-bottom: 3px;
     }
     .signature-area {
       margin-top: 28px;
       text-align: center;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       page-break-inside: avoid;
     }
     .signature-box {
@@ -312,21 +315,21 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
     }
     .signature-line {
       width: 260px;
-      border-top: 1.5px solid #0f172a;
+      border-top: 1.5px solid #002B5E;
       margin: 0 auto 4px auto;
     }
     .signature-name {
       font-size: 10.5pt;
       font-weight: bold;
       text-transform: uppercase;
-      color: #0f172a;
+      color: #002B5E;
       margin: 0;
       padding: 0;
       line-height: 1.15;
     }
     .signature-cpf {
       font-size: 9pt;
-      color: #475569;
+      color: #5A6B82;
       font-family: monospace;
       margin: 0;
       padding: 0;
@@ -334,20 +337,38 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
     }
     .signature-role {
       font-size: 8.5pt;
-      color: #64748b;
+      color: #5A6B82;
       margin: 0;
       padding: 0;
       line-height: 1.15;
     }
     .footer-note {
       margin-top: 24px;
-      padding-top: 8px;
-      border-top: 1px solid #e2e8f0;
-      font-size: 7.5pt;
-      color: #94a3b8;
+      padding-top: 10px;
+      border-top: 1px solid #E2E8F0;
+      font-size: 8pt;
+      color: #5A6B82;
       text-align: center;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       page-break-inside: avoid;
+    }
+    .seal-a3one {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 12px;
+      border: 1px solid #E2E8F0;
+      border-radius: 999px;
+      background-color: #F3F7FC;
+      font-size: 7.5pt;
+      color: #5A6B82;
+      letter-spacing: 0.3px;
+    }
+    .seal-a3one strong {
+      color: #002B5E;
+    }
+    .seal-a3one .brand-a3one {
+      color: #0066FF;
+      font-weight: 700;
     }
     @media print {
       body {
@@ -377,7 +398,7 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
         <div class="emission-badge">
           <div><strong>Emissão:</strong> ${dataHoje}</div>
           <div>${horaHoje}</div>
-          <div style="margin-top: 3px; color: #0284c7; font-weight: bold;">VIA OFICIAL</div>
+          <div style="margin-top: 3px; color: #0066FF; font-weight: bold;">VIA OFICIAL</div>
         </div>
       </div>
     </header>
@@ -434,6 +455,11 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
     <div class="footer-note">
       Documento gerado eletronicamente pela Plataforma Virtual Koinon.<br>
       A autenticidade deste edital pode ser confirmada por meio do hash SHA-256 e da chave de assinatura criptográfica.
+      <div>
+        <span class="seal-a3one">
+          <strong>KOINON</strong> • uma solução <span class="brand-a3one">A3ONE</span>
+        </span>
+      </div>
     </div>
   </div>
 </body>

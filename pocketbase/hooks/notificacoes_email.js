@@ -39,32 +39,46 @@ onRecordCreate((e) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${titulo}</title>
       </head>
-      <body style="margin: 0; padding: 0; background-color: #F1F4F8; font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #12314F; line-height: 1.6;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #F1F4F8; padding: 30px 10px;">
+      <body style="margin: 0; padding: 0; background-color: #F3F7FC; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #002B5E; line-height: 1.6;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #F3F7FC; padding: 30px 10px;">
           <tr>
             <td align="center">
-              <table role="presentation" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 14px; overflow: hidden; border: 1px solid #D5DCE5; box-shadow: 0 4px 24px rgba(18,49,79,0.06);">
+              <table role="presentation" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 14px; overflow: hidden; border: 1px solid #E2E8F0; box-shadow: 0 4px 24px rgba(0,43,94,0.06);">
                 <tr>
-                  <td style="background-color: #12314F; padding: 24px 30px; text-align: left; border-bottom: 3px solid #1F6B94;">
-                    <span style="display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #D5DCE5; font-weight: 700; margin-bottom: 4px;">Plataforma Virtual Koinon</span>
-                    <h1 style="margin: 0; font-size: 20px; color: #ffffff; font-weight: 700;">${nomeCondo}</h1>
+                  <td style="background-color: #002B5E; padding: 24px 30px; text-align: left; border-bottom: 3px solid #0066FF;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td align="left">
+                          <span style="display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #8EC0FF; font-weight: 600; margin-bottom: 4px;">Plataforma Virtual Koinon</span>
+                          <h1 style="margin: 0; font-size: 20px; color: #ffffff; font-weight: 700;">${nomeCondo}</h1>
+                        </td>
+                        <td align="right" valign="middle" style="width: 48px;">
+                          <div style="width: 40px; height: 40px; border-radius: 50%; background-color: #0066FF; text-align: center; line-height: 40px; color: #ffffff; font-size: 20px; font-weight: 700;">K</div>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 32px 30px; background-color: #ffffff;">
-                    <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #12314F; font-weight: 700;">${titulo}</h2>
-                    <div style="font-size: 14px; color: #12314F; line-height: 1.7; white-space: pre-line;">
+                    <h2 style="margin: 0 0 16px 0; font-size: 18px; color: #002B5E; font-weight: 700;">${titulo}</h2>
+                    <div style="font-size: 14px; color: #002B5E; line-height: 1.7; white-space: pre-line;">
                       ${corpo}
                     </div>
                   </td>
                 </tr>
                 <tr>
-                  <td style="background-color: #F1F4F8; padding: 20px 30px; border-top: 1px solid #D5DCE5; font-size: 11px; color: #5C6B7A; text-align: center;">
-                    <p style="margin: 0 0 6px 0; font-weight: 600; color: #12314F;">${nomeCondo} — Koinon</p>
-                    <p style="margin: 0; line-height: 1.4;">
+                  <td style="background-color: #F3F7FC; padding: 22px 30px; border-top: 1px solid #E2E8F0; font-size: 11px; color: #5A6B82; text-align: center;">
+                    <p style="margin: 0 0 6px 0; font-weight: 600; color: #002B5E;">${nomeCondo} — Koinon</p>
+                    <p style="margin: 0 0 12px 0; line-height: 1.4;">
                       Esta é uma notificação oficial da assembleia condominial. Não responda diretamente a este e-mail.<br>
                       Em conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei 13.709/2018).
                     </p>
+                    <div style="display: inline-block; padding: 6px 14px; background-color: #ffffff; border: 1px solid #E2E8F0; border-radius: 999px; font-size: 10px; color: #5A6B82; letter-spacing: 0.3px;">
+                      <span style="font-weight: 700; color: #002B5E; letter-spacing: 0.5px;">KOINON</span>
+                      <span style="margin: 0 6px; color: #8EC0FF;">•</span>
+                      <span>uma solução <strong style="color: #0066FF;">A3ONE</strong></span>
+                    </div>
                   </td>
                 </tr>
               </table>
@@ -432,11 +446,19 @@ routerAdd('POST', '/backend/v1/notificacoes/reenviar', (e) => {
     <!DOCTYPE html>
     <html lang="pt-BR">
     <head><meta charset="utf-8"><title>${titulo}</title></head>
-    <body style="font-family: 'Sora', sans-serif; background: #F1F4F8; padding: 20px; color: #12314F;">
-      <div style="max-width: 600px; margin: auto; background: #fff; padding: 24px; border-radius: 14px; border: 1px solid #D5DCE5;">
-        <h2 style="color: #12314F; margin-top: 0;">${nomeCondo}</h2>
-        <h3 style="color: #1F6B94;">${titulo}</h3>
-        <p style="white-space: pre-line; color: #12314F;">${corpo}</p>
+    <body style="font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #F3F7FC; padding: 20px; color: #002B5E;">
+      <div style="max-width: 600px; margin: auto; background: #fff; padding: 24px; border-radius: 14px; border: 1px solid #E2E8F0; box-shadow: 0 4px 24px rgba(0,43,94,0.06);">
+        <div style="border-bottom: 2px solid #0066FF; padding-bottom: 12px; margin-bottom: 16px;">
+          <span style="display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #0066FF; font-weight: 600;">Plataforma Virtual Koinon</span>
+          <h2 style="color: #002B5E; margin: 4px 0 0 0; font-size: 18px;">${nomeCondo}</h2>
+        </div>
+        <h3 style="color: #0066FF; font-size: 16px; margin-top: 0;">${titulo}</h3>
+        <p style="white-space: pre-line; color: #002B5E; font-size: 14px; line-height: 1.6;">${corpo}</p>
+        <div style="margin-top: 24px; padding-top: 14px; border-top: 1px solid #E2E8F0; text-align: center; font-size: 10px; color: #5A6B82;">
+          <span style="font-weight: 700; color: #002B5E;">KOINON</span>
+          <span style="margin: 0 6px; color: #8EC0FF;">•</span>
+          <span>uma solução <strong style="color: #0066FF;">A3ONE</strong></span>
+        </div>
       </div>
     </body>
     </html>

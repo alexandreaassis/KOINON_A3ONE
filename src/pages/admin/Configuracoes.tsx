@@ -563,10 +563,10 @@ export const ConfiguracoesPage: React.FC = () => {
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-[#12314F]" /> Configurações do Condomínio
+          <h2 className="text-xl font-bold tracking-tight text-[#002B5E] flex items-center gap-2">
+            <Building2 className="h-6 w-6 text-[#002B5E]" /> Configurações do Condomínio
           </h2>
-          <p className="text-xs text-slate-600 mt-1">
+          <p className="text-xs text-[#5A6B82] mt-1">
             Identidade institucional, parametrização avançada da malha de unidades (vertical,
             horizontal ou misto) e dimensionamento para a assembleia.
           </p>
@@ -574,10 +574,10 @@ export const ConfiguracoesPage: React.FC = () => {
         <Link to="/admin/usuarios">
           <Button
             variant="outline"
-            className="border-[#D5DCE5] hover:bg-[#F1F4F8] text-[#12314F] font-semibold text-xs h-9 px-3.5 rounded-[10px] shadow-xs"
+            className="border-[#5A6B82]/30 hover:bg-[#F3F7FC] text-[#002B5E] font-semibold text-xs h-9 px-3.5 rounded-[10px] shadow-xs"
           >
-            <Users className="mr-2 h-4 w-4 text-[#1F6B94]" /> Gestão de Usuários e Permissões
-            <ChevronRight className="ml-1.5 h-3.5 w-3.5 text-[#5C6B7A]" />
+            <Users className="mr-2 h-4 w-4 text-[#0066FF]" /> Gestão de Usuários e Permissões
+            <ChevronRight className="ml-1.5 h-3.5 w-3.5 text-[#5A6B82]" />
           </Button>
         </Link>
       </div>
@@ -674,7 +674,7 @@ export const ConfiguracoesPage: React.FC = () => {
                     variant="ghost"
                     size="sm"
                     onClick={handleTestarSomAtualOuNovo}
-                    className="h-7 text-xs text-[#1F6B94] hover:text-[#12314F] hover:bg-[#1F6B94]/10 px-2"
+                    className="h-7 text-xs text-[#0066FF] hover:text-[#002B5E] hover:bg-[#0066FF]/10 px-2"
                   >
                     <Play className="h-3 w-3 mr-1" /> Testar Reprodução
                   </Button>
@@ -682,7 +682,7 @@ export const ConfiguracoesPage: React.FC = () => {
 
                 <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-xl border border-slate-200 bg-slate-50/50">
                   <div className="h-16 w-16 rounded-xl border border-slate-300 bg-white flex items-center justify-center overflow-hidden shadow-xs shrink-0">
-                    <Music className="h-7 w-7 text-[#1F6B94]" />
+                    <Music className="h-7 w-7 text-[#0066FF]" />
                   </div>
 
                   <div className="space-y-2 flex-1 text-center sm:text-left">
@@ -718,7 +718,7 @@ export const ConfiguracoesPage: React.FC = () => {
 
                       {!somVotoFile && somVotoUrl && !removerSomVoto && (
                         <div className="inline-flex items-center gap-2">
-                          <span className="text-xs text-[#1F6B94] font-medium">
+                          <span className="text-xs text-[#0066FF] font-medium">
                             Áudio personalizado ativo
                           </span>
                           <Button
@@ -748,7 +748,7 @@ export const ConfiguracoesPage: React.FC = () => {
               <Button
                 type="submit"
                 disabled={salvandoGeral}
-                className="bg-[#1F6B94] hover:bg-[#185577] text-white font-semibold text-xs rounded-[10px]"
+                className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-semibold text-xs rounded-[10px]"
               >
                 <Save className="mr-1.5 h-3.5 w-3.5" />
                 {salvandoGeral ? 'Salvando...' : 'Salvar Identidade'}
@@ -762,10 +762,10 @@ export const ConfiguracoesPage: React.FC = () => {
           <CardHeader className="pb-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Layers className="h-4 w-4 text-[#1F6B94]" /> Configuração Avançada de Unidades
+                <CardTitle className="text-base font-bold text-[#002B5E] flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-[#0066FF]" /> Configuração Avançada de Unidades
                 </CardTitle>
-                <CardDescription className="text-xs text-slate-500">
+                <CardDescription className="text-xs text-[#5A6B82]">
                   Condomínios verticais, horizontais ou mistos com rótulos customizados, frações de
                   voto e travas de segurança ativas.
                 </CardDescription>
@@ -776,11 +776,11 @@ export const ConfiguracoesPage: React.FC = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setModalAvulsaAberto(true)}
-                  className="h-8 text-xs border-[#D5DCE5] text-[#12314F] hover:bg-[#F1F4F8]"
+                  className="h-8 text-xs border-[#5A6B82]/30 text-[#002B5E] hover:bg-[#F3F7FC]"
                 >
-                  <PlusCircle className="mr-1.5 h-3.5 w-3.5 text-[#1F6B94]" /> Nova Unidade Avulsa
+                  <PlusCircle className="mr-1.5 h-3.5 w-3.5 text-[#0066FF]" /> Nova Unidade Avulsa
                 </Button>
-                <Badge className="bg-[#1F6B94]/12 text-[#12314F] border-transparent text-xs px-2.5 py-1">
+                <Badge className="bg-[#0066FF]/12 text-[#002B5E] border-transparent text-xs px-2.5 py-1">
                   {totalAtualUnidades} unidades ativas
                 </Badge>{' '}
               </div>
@@ -804,7 +804,7 @@ export const ConfiguracoesPage: React.FC = () => {
             {/* PASSO 1: TIPO DO CONDOMÍNIO E RÓTULO GLOBAL */}
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-4">
               <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#12314F] text-white text-[10px]">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#002B5E] text-white text-[10px]">
                   1
                 </span>
                 Tipo de Condomínio e Nomenclatura Global
@@ -892,7 +892,7 @@ export const ConfiguracoesPage: React.FC = () => {
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#12314F] text-white text-[10px]">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#002B5E] text-white text-[10px]">
                     2
                   </span>
                   Grupos de Unidades ({grupos.length})
@@ -905,9 +905,9 @@ export const ConfiguracoesPage: React.FC = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => handleAdicionarGrupo('vertical')}
-                      className="h-8 text-xs bg-white border-[#D5DCE5] text-[#12314F] hover:bg-[#F1F4F8]"
+                      className="h-8 text-xs bg-white border-[#5A6B82]/30 text-[#002B5E] hover:bg-[#F3F7FC]"
                     >
-                      <Plus className="h-3 w-3 mr-1 text-[#1F6B94]" /> Adicionar Grupo Vertical
+                      <Plus className="h-3 w-3 mr-1 text-[#0066FF]" /> Adicionar Grupo Vertical
                     </Button>
                   )}
                   {(tipoCondominio === 'horizontal' || tipoCondominio === 'misto') && (
@@ -916,9 +916,9 @@ export const ConfiguracoesPage: React.FC = () => {
                       size="sm"
                       variant="outline"
                       onClick={() => handleAdicionarGrupo('horizontal')}
-                      className="h-8 text-xs bg-white border-[#D5DCE5] text-[#12314F] hover:bg-[#F1F4F8]"
+                      className="h-8 text-xs bg-white border-[#5A6B82]/30 text-[#002B5E] hover:bg-[#F3F7FC]"
                     >
-                      <Plus className="h-3 w-3 mr-1 text-[#1F6B94]" /> Adicionar Grupo Horizontal
+                      <Plus className="h-3 w-3 mr-1 text-[#0066FF]" /> Adicionar Grupo Horizontal
                     </Button>
                   )}
                 </div>
@@ -935,7 +935,7 @@ export const ConfiguracoesPage: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <Badge
                           variant="outline"
-                          className="border-[#D5DCE5] bg-[#F1F4F8] text-[#12314F] text-[10px]"
+                          className="border-[#5A6B82]/30 bg-[#F3F7FC] text-[#002B5E] text-[10px]"
                         >
                           {grupo.tipo === 'vertical' ? 'Vertical' : 'Horizontal'}
                         </Badge>
@@ -1560,27 +1560,27 @@ export const ConfiguracoesPage: React.FC = () => {
       {/* MODAL DE CADASTRO DE UNIDADE AVULSA */}
       {/* CARD 3: LIMPEZA DE DADOS DO AMBIENTE (EXCLUSIVO ADMINISTRADOR) */}
       {user?.role === 'admin' && (
-        <Card className="border-[#D5DCE5] shadow-[0_4px_24px_rgba(18,49,79,0.08)] rounded-[14px] bg-white overflow-hidden">
-          <CardHeader className="pb-3 border-b border-[#F1F4F8] bg-[#F1F4F8]/40">
+        <Card className="border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.08)] rounded-[14px] bg-white overflow-hidden">
+          <CardHeader className="pb-3 border-b border-[#F3F7FC] bg-[#F3F7FC]/60">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-base font-bold text-[#12314F] flex items-center gap-2">
-                  <Eraser className="h-4 w-4 text-[#1F6B94]" /> Limpeza de Dados do Ambiente
+                <CardTitle className="text-base font-bold text-[#002B5E] flex items-center gap-2">
+                  <Eraser className="h-4 w-4 text-[#0066FF]" /> Limpeza de Dados do Ambiente
                 </CardTitle>
-                <CardDescription className="text-xs text-[#5C6B7A] mt-0.5">
+                <CardDescription className="text-xs text-[#5A6B82] mt-0.5">
                   Redefinição controlada para início de novas assembleias e testes homologados.
                   Apaga lançamentos, votações, presenças, deliberações e documentos, mantendo
                   intactos exclusivamente os usuários e as credenciais de infraestrutura.
                 </CardDescription>
               </div>
-              <Badge className="bg-[#12314F]/10 text-[#12314F] border-transparent text-xs px-2.5 py-1 font-semibold shrink-0 self-start sm:self-auto">
+              <Badge className="bg-[#002B5E]/10 text-[#002B5E] border-transparent text-xs px-2.5 py-1 font-semibold shrink-0 self-start sm:self-auto">
                 Área Restrita do Administrador
               </Badge>
             </div>
           </CardHeader>
 
           <CardContent className="space-y-4 pt-4">
-            <div className="p-4 rounded-[14px] border border-amber-200 bg-amber-50/70 text-[#12314F] space-y-2">
+            <div className="p-4 rounded-[14px] border border-amber-200 bg-amber-50/70 text-[#002B5E] space-y-2">
               <div className="flex items-start gap-2.5">
                 <AlertTriangle className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
                 <div className="text-xs space-y-1">
@@ -1592,7 +1592,7 @@ export const ConfiguracoesPage: React.FC = () => {
                     urna, comprovantes, presenças, assinaturas de mesa e atas geradas, cadastros de
                     unidades e trilha de auditoria prévia.
                   </p>
-                  <p className="text-[#12314F] font-semibold pt-1">
+                  <p className="text-[#002B5E] font-semibold pt-1">
                     Preservação garantida: A conta dos condôminos e administradores (collection{' '}
                     <code className="px-1 py-0.5 bg-white/80 rounded border border-amber-200 font-mono text-[11px]">
                       users
@@ -1608,16 +1608,16 @@ export const ConfiguracoesPage: React.FC = () => {
             </div>
 
             {resultadoLimpeza && (
-              <div className="p-4 rounded-[14px] border border-[#4E8B7E]/40 bg-[#4E8B7E]/10 text-[#12314F] space-y-3">
-                <div className="flex items-center gap-2 font-bold text-xs text-[#12314F]">
-                  <CheckCircle className="h-4 w-4 text-[#4E8B7E]" />
+              <div className="p-4 rounded-[14px] border border-[#0066FF]/30 bg-[#0066FF]/10 text-[#002B5E] space-y-3">
+                <div className="flex items-center gap-2 font-bold text-xs text-[#002B5E]">
+                  <CheckCircle className="h-4 w-4 text-[#0066FF]" />
                   Última limpeza executada: {resultadoLimpeza.totalRemovidos} registros removidos
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
                   {resultadoLimpeza.detalhes.map((item) => (
                     <div
                       key={item.collection}
-                      className="p-2 rounded-[10px] bg-white border border-[#D5DCE5] flex items-center justify-between shadow-xs"
+                      className="p-2 rounded-[10px] bg-white border border-[#5A6B82]/20 flex items-center justify-between shadow-xs"
                     >
                       <span className="text-slate-700 truncate pr-2" title={item.label}>
                         {item.label}
@@ -1626,7 +1626,7 @@ export const ConfiguracoesPage: React.FC = () => {
                         variant="secondary"
                         className={
                           item.removidos > 0
-                            ? 'bg-[#1F6B94] text-white font-mono text-[11px]'
+                            ? 'bg-[#0066FF] text-white font-mono text-[11px]'
                             : 'bg-slate-100 text-slate-500 font-mono text-[11px]'
                         }
                       >
@@ -1639,16 +1639,16 @@ export const ConfiguracoesPage: React.FC = () => {
             )}
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
-              <span className="text-xs text-[#5C6B7A]">
+              <span className="text-xs text-[#5A6B82]">
                 Exige confirmação formal em duas etapas com digitação de frase de segurança.
               </span>
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleAbrirModalLimpeza}
-                className="h-10 px-4 text-xs font-semibold text-[#12314F] hover:text-white hover:bg-[#12314F] border-[#12314F]/40 hover:border-[#12314F] rounded-[10px] transition-colors"
+                className="h-10 px-4 text-xs font-semibold text-[#002B5E] hover:text-white hover:bg-[#002B5E] border-[#002B5E]/40 hover:border-[#002B5E] rounded-[10px] transition-colors"
               >
-                <Eraser className="mr-1.5 h-3.5 w-3.5 text-[#1F6B94]" /> Iniciar Limpeza de Dados
+                <Eraser className="mr-1.5 h-3.5 w-3.5 text-[#0066FF]" /> Iniciar Limpeza de Dados
               </Button>
             </div>
           </CardContent>
@@ -1657,15 +1657,15 @@ export const ConfiguracoesPage: React.FC = () => {
 
       {/* MODAL DE CONFIRMAÇÃO DE DOIS PASSOS - LIMPEZA DE DADOS */}
       <Dialog open={modalLimpezaAberto} onOpenChange={setModalLimpezaAberto}>
-        <DialogContent className="max-w-lg rounded-[14px] border border-[#D5DCE5] shadow-[0_4px_24px_rgba(18,49,79,0.12)]">
+        <DialogContent className="max-w-lg rounded-[14px] border border-[#5A6B82]/25 shadow-[0_4px_24px_rgba(0,43,94,0.12)]">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-[#12314F] flex items-center gap-2">
+            <DialogTitle className="text-base font-bold text-[#002B5E] flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-700" />
               {passoLimpeza === 1
                 ? 'Confirmação de Limpeza de Dados (Passo 1 de 2)'
                 : 'Autorização Definitiva (Passo 2 de 2)'}
             </DialogTitle>
-            <DialogDescription className="text-xs text-[#5C6B7A] mt-1">
+            <DialogDescription className="text-xs text-[#5A6B82] mt-1">
               {passoLimpeza === 1
                 ? 'Leia atentamente as consequências da exclusão antes de prosseguir.'
                 : 'Digite a frase de segurança exigida para habilitar o comando de exclusão.'}
@@ -1674,8 +1674,8 @@ export const ConfiguracoesPage: React.FC = () => {
 
           {passoLimpeza === 1 ? (
             <div className="py-2 text-xs space-y-3">
-              <div className="p-3.5 rounded-[10px] bg-[#F1F4F8] border border-[#D5DCE5] space-y-2">
-                <p className="font-semibold text-[#12314F]">O que será permanentemente apagado:</p>
+              <div className="p-3.5 rounded-[10px] bg-[#F3F7FC] border border-[#5A6B82]/20 space-y-2">
+                <p className="font-semibold text-[#002B5E]">O que será permanentemente apagado:</p>
                 <ul className="list-disc list-inside space-y-1 text-slate-700 pl-1">
                   <li>Todas as assembleias, deliberações e itens de pauta</li>
                   <li>Todas as votações, cédulas e boletins de urna emitidos</li>
@@ -1690,8 +1690,8 @@ export const ConfiguracoesPage: React.FC = () => {
               </div>
 
               <div className="p-3.5 rounded-[10px] bg-emerald-50 border border-emerald-200 text-emerald-950 space-y-1">
-                <p className="font-bold flex items-center gap-1.5 text-[#12314F]">
-                  <CheckCircle2 className="h-4 w-4 text-[#4E8B7E]" /> O que será integralmente
+                <p className="font-bold flex items-center gap-1.5 text-[#002B5E]">
+                  <CheckCircle2 className="h-4 w-4 text-[#0066FF]" /> O que será integralmente
                   preservado:
                 </p>
                 <p className="text-xs leading-relaxed text-slate-700">
@@ -1709,13 +1709,13 @@ export const ConfiguracoesPage: React.FC = () => {
                   Para confirmar a execução imediata da limpeza no banco de dados, digite exatamente
                   a frase em maiúsculas abaixo:
                 </p>
-                <div className="p-2 bg-white rounded border border-amber-300 text-center font-mono font-bold text-sm text-[#12314F] tracking-wider select-all">
+                <div className="p-2 bg-white rounded border border-amber-300 text-center font-mono font-bold text-sm text-[#002B5E] tracking-wider select-all">
                   APAGAR DADOS
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="frase-confirmacao" className="text-xs font-semibold text-[#12314F]">
+                <Label htmlFor="frase-confirmacao" className="text-xs font-semibold text-[#002B5E]">
                   Digite a frase de confirmação:
                 </Label>
                 <Input
@@ -1725,9 +1725,9 @@ export const ConfiguracoesPage: React.FC = () => {
                   placeholder="APAGAR DADOS"
                   disabled={executandoLimpeza}
                   autoFocus
-                  className="h-10 text-xs font-mono tracking-wider border-[#D5DCE5] focus:border-[#12314F] rounded-[10px]"
+                  className="h-10 text-xs font-mono tracking-wider border-[#5A6B82]/30 focus:border-[#002B5E] rounded-[10px]"
                 />
-                <span className="text-[11px] text-[#5C6B7A]">
+                <span className="text-[11px] text-[#5A6B82]">
                   O botão de exclusão só será desbloqueado quando o texto for idêntico.
                 </span>
               </div>
@@ -1742,7 +1742,7 @@ export const ConfiguracoesPage: React.FC = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setModalLimpezaAberto(false)}
-                  className="rounded-[10px] border-[#D5DCE5] text-[#12314F]"
+                  className="rounded-[10px] border-[#5A6B82]/30 text-[#002B5E]"
                 >
                   Cancelar
                 </Button>
@@ -1750,7 +1750,7 @@ export const ConfiguracoesPage: React.FC = () => {
                   type="button"
                   size="sm"
                   onClick={() => setPassoLimpeza(2)}
-                  className="bg-[#12314F] hover:bg-[#1C2331] text-white font-semibold rounded-[10px]"
+                  className="bg-[#002B5E] hover:bg-[#00224A] text-white font-semibold rounded-[10px]"
                 >
                   Entendi, Avançar para Confirmação
                 </Button>
@@ -1766,7 +1766,7 @@ export const ConfiguracoesPage: React.FC = () => {
                     setPassoLimpeza(1)
                     setFraseDigitada('')
                   }}
-                  className="rounded-[10px] border-[#D5DCE5] text-[#12314F]"
+                  className="rounded-[10px] border-[#5A6B82]/30 text-[#002B5E]"
                 >
                   Voltar
                 </Button>
@@ -1775,7 +1775,7 @@ export const ConfiguracoesPage: React.FC = () => {
                   size="sm"
                   disabled={executandoLimpeza || fraseDigitada.trim() !== 'APAGAR DADOS'}
                   onClick={handleConfirmarLimpeza}
-                  className="bg-[#12314F] hover:bg-[#1C2331] text-white font-semibold rounded-[10px] disabled:opacity-50"
+                  className="bg-[#002B5E] hover:bg-[#00224A] text-white font-semibold rounded-[10px] disabled:opacity-50"
                 >
                   {executandoLimpeza ? (
                     <>

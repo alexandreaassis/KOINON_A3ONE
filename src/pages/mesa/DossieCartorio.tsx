@@ -787,9 +787,17 @@ export const DossieCartorioPage: React.FC = () => {
             </div>
           </div>
 
-          <footer className="border-t border-slate-200 pt-3 text-center text-[10px] text-slate-500 font-sans">
-            Documento gerado eletronicamente em {new Date().toLocaleString('pt-BR')}. Koinon —
-            Governança e Assembleias Condominiais.
+          <footer className="border-t border-slate-200 pt-3 text-center text-[10px] text-slate-500 font-sans space-y-1">
+            <p>
+              Documento gerado eletronicamente em {new Date().toLocaleString('pt-BR')}. Plataforma
+              Virtual Koinon — Governança e Assembleias Condominiais.
+            </p>
+            <div>
+              <span className="inline-block px-3 py-1 rounded-full border border-slate-200 bg-[#F3F7FC] text-[9px] text-[#5A6B82] tracking-wider">
+                <strong className="text-[#002B5E] font-bold">KOINON</strong> • uma solução{' '}
+                <strong className="text-[#0066FF] font-bold">A3ONE</strong>
+              </span>
+            </div>
           </footer>
         </section>
       </div>
