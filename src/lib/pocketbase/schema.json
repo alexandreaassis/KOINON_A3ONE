@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-28T05:02:27.374Z",
+  "generatedAt": "2026-11-02T16:59:17.023Z",
   "collections": [
     {
       "name": "users",
@@ -161,9 +161,18 @@
           "type": "number",
           "required": false,
           "system": false
+        },
+        {
+          "name": "token_cadastro",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
-      "indexes": ["CREATE UNIQUE INDEX idx_unidades_identificador ON unidades (identificador)"]
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_unidades_identificador ON unidades (identificador)",
+        "CREATE INDEX `idx_unidades_token_cadastro` ON `unidades` (token_cadastro)"
+      ]
     },
     {
       "name": "deliberacoes",
@@ -2052,12 +2061,33 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "data_nascimento",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status_aprovacao",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["aprovado", "pendente", "rejeitado"]
+        },
+        {
+          "name": "origem",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["admin", "link_publico"]
         }
       ],
       "indexes": [
         "CREATE INDEX idx_cadastros_unidade ON cadastros_unidade (unidade)",
         "CREATE INDEX idx_cadastros_cpf ON cadastros_unidade (cpf)",
-        "CREATE INDEX idx_cadastros_vinculo ON cadastros_unidade (vinculo)"
+        "CREATE INDEX idx_cadastros_vinculo ON cadastros_unidade (vinculo)",
+        "CREATE INDEX `idx_cadastros_status_aprovacao` ON `cadastros_unidade` (status_aprovacao)"
       ]
     },
     {

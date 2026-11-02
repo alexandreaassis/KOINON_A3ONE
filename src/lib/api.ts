@@ -69,6 +69,7 @@ export interface UnidadeRecord extends RecordModel {
   andar?: string
   tipo_unidade?: string
   posicao_numero?: number
+  token_cadastro?: string
 }
 
 export type DeliberacaoStatus =
@@ -195,15 +196,20 @@ export interface ComprovanteRecord extends RecordModel {
 }
 
 export type VinculoCadastro = 'proprietario' | 'condomino' | 'locatario'
+export type StatusAprovacaoCadastro = 'aprovado' | 'pendente' | 'rejeitado'
+export type OrigemCadastro = 'admin' | 'link_publico'
 
 export interface CadastroUnidadeRecord extends RecordModel {
   unidade: string
   nome: string
   cpf: string
+  data_nascimento?: string
   email?: string
   telefone?: string
   vinculo: VinculoCadastro
   ativo?: boolean
+  status_aprovacao?: StatusAprovacaoCadastro
+  origem?: OrigemCadastro
   observacoes?: string
   expand?: {
     unidade?: UnidadeRecord
@@ -678,6 +684,7 @@ export const api = {
     unidadeId?: string
     vinculo?: VinculoCadastro
     ativo?: boolean
+    statusAprovacao?: StatusAprovacaoCadastro
     busca?: string
   }) {
     const filterParts: string[] = []
@@ -690,6 +697,9 @@ export const api = {
     if (filtros?.ativo !== undefined) {
       filterParts.push(pb.filter('ativo = {:atv}', { atv: filtros.ativo }))
     }
+    if (filtros?.statusAprovacao) {
+      filterParts.push(pb.filter('status_aprovacao = {:st}', { st: filtros.statusAprovacao }))
+    }
     if (filtros?.busca) {
       const b = filtros.busca.trim()
       filterParts.push(
@@ -699,7 +709,7 @@ export const api = {
 
     return pb.collection('cadastros_unidade').getFullList<CadastroUnidadeRecord>({
       filter: filterParts.length > 0 ? filterParts.join(' && ') : undefined,
-      sort: 'unidade.identificador,vinculo,nome',
+      sort: '-created,unidade.identificador,nome',
       expand: 'unidade',
     })
   },
@@ -724,6 +734,86 @@ export const api = {
 
   async excluirCadastroUnidade(id: string) {
     return pb.collection('cadastros_unidade').delete(id)
+  },
+
+  // Operações de Link e Aprovação de Cadastro de Moradores
+  async getUnidadePorTokenPublico(token: string) {
+    return pb.send<{
+      success: boolean
+      unidade: {
+        identificador: string
+        bloco?: string
+        tipo_unidade?: string
+        tem_bloco: boolean
+      }
+      condominio: {
+        nome: string
+      }
+    }>(`/backend/v1/publico/unidade/${encodeURIComponent(token)}`, {
+      method: 'GET',
+    })
+  },
+
+  async submeterCadastroMoradorPublico(dados: {
+    token: string
+    nome: string
+    cpf: string
+    data_nascimento: string
+    email: string
+    telefone: string
+    vinculo: VinculoCadastro
+  }) {
+    return pb.send<{
+      success: boolean
+      message: string
+      status: 'pendente' | 'aprovado'
+    }>('/backend/v1/publico/cadastro-morador', {
+      method: 'POST',
+      body: dados,
+    })
+  },
+
+  async garantirTokenUnidade(unidadeId: string) {
+    return pb.send<{
+      success: boolean
+      token: string
+      unidadeId: string
+      identificador: string
+      bloco?: string
+    }>('/backend/v1/admin/unidades/garantir-token', {
+      method: 'POST',
+      body: { unidadeId },
+    })
+  },
+
+  async enviarLinkCadastroEmail(dados: { unidadeId: string; email: string; link: string }) {
+    return pb.send<{
+      success: boolean
+      message: string
+    }>('/backend/v1/admin/unidades/enviar-link-email', {
+      method: 'POST',
+      body: dados,
+    })
+  },
+
+  async aprovarCadastroUnidade(cadastroId: string) {
+    return pb.send<{
+      success: boolean
+      message: string
+    }>('/backend/v1/admin/cadastros/aprovar', {
+      method: 'POST',
+      body: { cadastroId },
+    })
+  },
+
+  async rejeitarCadastroUnidade(cadastroId: string, motivo?: string) {
+    return pb.send<{
+      success: boolean
+      message: string
+    }>('/backend/v1/admin/cadastros/rejeitar', {
+      method: 'POST',
+      body: { cadastroId, motivo },
+    })
   },
 
   async deleteItemPauta(id: string) {
