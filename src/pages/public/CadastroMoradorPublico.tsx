@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api, type VinculoCadastro } from '@/lib/api'
 import { limparCpf, formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
+import { formatarTelefone, limparTelefone } from '@/lib/telefone'
 import {
   Card,
   CardHeader,
@@ -136,6 +137,21 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
     }
   }
 
+  // Formatar telefone em tempo real e na colagem
+  const handleTelefoneChange = (val: string) => {
+    const formatado = formatarTelefone(val)
+    setTelefone(formatado)
+  }
+
+  const handleTelefonePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    const textoColado = e.clipboardData.getData('text') || ''
+    // Extrai apenas dígitos da colagem e aplica a máscara
+    const digitos = limparTelefone(textoColado)
+    const formatado = formatarTelefone(digitos)
+    setTelefone(formatado)
+  }
+
   // Validação data de nascimento
   const validarDataNasc = (dataStr: string): boolean => {
     if (!dataStr || !/^\d{4}-\d{2}-\d{2}$/.test(dataStr)) {
@@ -202,7 +218,8 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
       return
     }
 
-    if (!telefone.trim() || telefone.replace(/\D/g, '').length < 8) {
+    const telDigitos = limparTelefone(telefone)
+    if (!telDigitos || telDigitos.length < 10) {
       setErroEnvio('Informe um telefone de contato válido com DDD.')
       return
     }
@@ -612,10 +629,13 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
                           <Phone className="absolute left-3 top-3 h-4 w-4 text-[#5A6B82]" />
                           <Input
                             id="cad-tel"
+                            type="tel"
                             required
-                            placeholder="(00) 00000-0000"
+                            placeholder="(XX) XXXXX-XXXX"
+                            maxLength={15}
                             value={telefone}
-                            onChange={(e) => setTelefone(e.target.value)}
+                            onChange={(e) => handleTelefoneChange(e.target.value)}
+                            onPaste={handleTelefonePaste}
                             className="pl-10 h-10 font-mono border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF] focus-visible:border-[#0066FF]"
                           />
                         </div>

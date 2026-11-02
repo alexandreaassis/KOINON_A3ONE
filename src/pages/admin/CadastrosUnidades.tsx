@@ -5,6 +5,7 @@ import { useCondoConfig } from '@/context/CondoConfigContext'
 import { useAuth } from '@/context/AuthContext'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { formatarCpf, validarCpf, limparCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
+import { formatarTelefone, limparTelefone } from '@/lib/telefone'
 import {
   formatarIdentificadorUnidade,
   formatarUnidadeComBloco,
@@ -342,7 +343,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
     setFormDataNascimento(cad.data_nascimento ? cad.data_nascimento.slice(0, 10) : '')
     setFormDataNascErro(null)
     setFormEmail(cad.email || '')
-    setFormTelefone(cad.telefone || '')
+    setFormTelefone(formatarTelefone(cad.telefone || ''))
     setFormVinculo(cad.vinculo)
     setFormAtivo(cad.ativo ?? true)
     setFormObservacoes(cad.observacoes || '')
@@ -1878,9 +1879,16 @@ export const CadastrosUnidadesPage: React.FC = () => {
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Telefone / WhatsApp</Label>
                 <Input
-                  placeholder="(00) 00000-0000"
+                  type="tel"
+                  placeholder="(XX) XXXXX-XXXX"
+                  maxLength={15}
                   value={formTelefone}
-                  onChange={(e) => setFormTelefone(e.target.value)}
+                  onChange={(e) => setFormTelefone(formatarTelefone(e.target.value))}
+                  onPaste={(e) => {
+                    e.preventDefault()
+                    const texto = e.clipboardData.getData('text') || ''
+                    setFormTelefone(formatarTelefone(limparTelefone(texto)))
+                  }}
                   className="text-xs h-9 font-mono"
                 />
               </div>
