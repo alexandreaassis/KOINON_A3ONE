@@ -494,14 +494,13 @@ export const CadastrosUnidadesPage: React.FC = () => {
     }
   }
 
-  // Abrir Modal de Compartilhamento do Link da Unidade
-  const abrirModalLinkUnidade = async (unidadeId: string) => {
+  // Selecionar ou alternar a Unidade no Modal de Link
+  const selecionarUnidadeNoModalLink = async (unidadeId: string) => {
     const unid = mapaUnidadesPorId.get(unidadeId)
     if (!unid) return
 
     setUnidadeSelecionadaLink(unid)
     setEmailEnvioLink(unid.contato_email || '')
-    setModalLinkAberto(true)
     setCarregandoLink(true)
 
     try {
@@ -510,7 +509,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
         const resp = await api.garantirTokenUnidade(unid.id)
         if (resp?.success && resp.token) {
           t = resp.token
-          // atualizar mapa local de unidades
+          // atualizar lista e mapa local de unidades
           setUnidades((antigas) =>
             antigas.map((u) => (u.id === unid.id ? { ...u, token_cadastro: t } : u)),
           )
@@ -521,15 +520,35 @@ export const CadastrosUnidadesPage: React.FC = () => {
       const urlCompleta = `${origin}/cadastro/${t || ''}`
       setLinkGerado(urlCompleta)
     } catch (err: any) {
-      console.error('Erro ao gerar token da unidade:', err)
+      console.error('Erro ao obter token da unidade:', err)
       toast({
         title: 'Erro ao gerar link',
-        description: err?.data?.message || err?.message || 'Falha ao obter link de cadastro.',
+        description:
+          err?.data?.message || err?.message || 'Falha ao obter link de cadastro da unidade.',
         variant: 'destructive',
       })
     } finally {
       setCarregandoLink(false)
     }
+  }
+
+  // Abrir Modal de Compartilhamento do Link da Unidade
+  const abrirModalLinkUnidade = async (unidadeId?: string) => {
+    // Se unidadeId não foi informada ou não existe, usa a primeira unidade cadastrada
+    const idAlvo = unidadeId && mapaUnidadesPorId.has(unidadeId) ? unidadeId : unidades[0]?.id
+
+    if (!idAlvo) {
+      toast({
+        title: 'Nenhuma unidade cadastrada',
+        description:
+          'Cadastre ao menos uma unidade no condomínio antes de gerar links de cadastro.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setModalLinkAberto(true)
+    await selecionarUnidadeNoModalLink(idAlvo)
   }
 
   // Copiar link para área de transferência
@@ -1124,11 +1143,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => {
-              if (unidades.length > 0) {
-                abrirModalLinkUnidade(unidades[0].id)
-              }
-            }}
+            onClick={() => abrirModalLinkUnidade()}
             className="text-xs h-9 border-[#0066FF]/30 text-[#002B5E] hover:bg-[#0066FF]/5 font-semibold"
           >
             <Share2 className="mr-1.5 h-3.5 w-3.5 text-[#0066FF]" /> Link de Cadastro
@@ -1583,24 +1598,52 @@ export const CadastrosUnidadesPage: React.FC = () => {
               Link Oficial de Cadastro da Unidade
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-600">
-              {unidadeSelecionadaLink && (
-                <span>
-                  Envie o link exclusivo da{' '}
-                  <strong>
-                    Unidade {unidadeSelecionadaLink.identificador}
-                    {unidadeSelecionadaLink.bloco ? ` (${unidadeSelecionadaLink.bloco})` : ''}
-                  </strong>{' '}
-                  para que o morador ou proprietário preencha os dados oficiais.
-                </span>
-              )}
+              Selecione o apartamento (unidade) para gerar ou compartilhar o link exclusivo de
+              autoatendimento.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2 text-xs">
+            {/* Seletor de Unidade (Apartamento / Bloco) */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                <Building className="h-3.5 w-3.5 text-[#0066FF]" />
+                Apartamento / Unidade de Destino *
+              </Label>
+              <Select
+                value={unidadeSelecionadaLink?.id || ''}
+                onValueChange={(val) => {
+                  if (val) selecionarUnidadeNoModalLink(val)
+                }}
+              >
+                <SelectTrigger className="text-xs h-9 bg-white border-slate-300">
+                  <SelectValue placeholder="Selecione a unidade..." />
+                </SelectTrigger>
+                <SelectContent className="text-xs max-h-56">
+                  {unidades.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.tipo_unidade || rotuloUnidade} {u.identificador} —{' '}
+                      {u.bloco ? `Bloco ${u.bloco}` : 'Torre Única (—)'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {unidadeSelecionadaLink && (
+                <p className="text-[11px] text-slate-500">
+                  Unidade selecionada:{' '}
+                  <strong className="text-[#002B5E]">
+                    {unidadeSelecionadaLink.tipo_unidade || rotuloUnidade}{' '}
+                    {unidadeSelecionadaLink.identificador}
+                  </strong>{' '}
+                  • Bloco: <strong>{unidadeSelecionadaLink.bloco || '—'}</strong>
+                </p>
+              )}
+            </div>
+
             {carregandoLink ? (
               <div className="py-8 text-center text-xs text-slate-500 space-y-2">
                 <div className="h-5 w-5 border-2 border-[#0066FF] border-t-transparent rounded-full animate-spin mx-auto" />
-                <p>Gerando link seguro da unidade...</p>
+                <p>Gerando e sincronizando link seguro da unidade...</p>
               </div>
             ) : (
               <>
