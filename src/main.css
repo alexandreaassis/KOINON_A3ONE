@@ -312,6 +312,151 @@
   .animate-spotlight {
     animation: spotlight 2s ease forwards;
   }
+
+  /* Padrão de 3 quiques da SetaIndicadora (dois rápidos + um lento + pausa prolongada em repouso) */
+  @keyframes quique-seta-baixo {
+    0%,
+    100% {
+      transform: translateY(0);
+      animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    4% {
+      transform: translateY(7px);
+      animation-timing-function: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+    }
+    8% {
+      transform: translateY(0);
+      animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    12% {
+      transform: translateY(7px);
+      animation-timing-function: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+    }
+    16% {
+      transform: translateY(0);
+      animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    26% {
+      transform: translateY(14px);
+      animation-timing-function: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+    }
+    36% {
+      transform: translateY(0);
+    }
+    /* De 36% a 100%: repouso prolongado */
+  }
+
+  @keyframes quique-seta-cima {
+    0%,
+    100% {
+      transform: translateY(0);
+      animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    4% {
+      transform: translateY(-7px);
+      animation-timing-function: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+    }
+    8% {
+      transform: translateY(0);
+      animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    12% {
+      transform: translateY(-7px);
+      animation-timing-function: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+    }
+    16% {
+      transform: translateY(0);
+      animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    26% {
+      transform: translateY(-14px);
+      animation-timing-function: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+    }
+    36% {
+      transform: translateY(0);
+    }
+    /* De 36% a 100%: repouso prolongado */
+  }
+
+  @keyframes quique-seta-esquerda {
+    0%,
+    100% {
+      transform: translateX(0);
+      animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    4% {
+      transform: translateX(-7px);
+      animation-timing-function: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+    }
+    8% {
+      transform: translateX(0);
+      animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    12% {
+      transform: translateX(-7px);
+      animation-timing-function: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+    }
+    16% {
+      transform: translateX(0);
+      animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    26% {
+      transform: translateX(-14px);
+      animation-timing-function: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+    }
+    36% {
+      transform: translateX(0);
+    }
+    /* De 36% a 100%: repouso prolongado */
+  }
+
+  @keyframes quique-seta-direita {
+    0%,
+    100% {
+      transform: translateX(0);
+      animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    4% {
+      transform: translateX(7px);
+      animation-timing-function: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+    }
+    8% {
+      transform: translateX(0);
+      animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    12% {
+      transform: translateX(7px);
+      animation-timing-function: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+    }
+    16% {
+      transform: translateX(0);
+      animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    26% {
+      transform: translateX(14px);
+      animation-timing-function: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+    }
+    36% {
+      transform: translateX(0);
+    }
+    /* De 36% a 100%: repouso prolongado */
+  }
+
+  .animate-quique-seta-baixo {
+    animation: quique-seta-baixo 2.6s infinite;
+  }
+
+  .animate-quique-seta-cima {
+    animation: quique-seta-cima 2.6s infinite;
+  }
+
+  .animate-quique-seta-esquerda {
+    animation: quique-seta-esquerda 2.6s infinite;
+  }
+
+  .animate-quique-seta-direita {
+    animation: quique-seta-direita 2.6s infinite;
+  }
 }
 
 /* Regras de Impressão de Alta Fidelidade para Documentos Oficiais (Boletim de Urna) */

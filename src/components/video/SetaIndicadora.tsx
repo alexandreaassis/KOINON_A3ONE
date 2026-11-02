@@ -20,7 +20,7 @@ export const SetaIndicadora: React.FC<SetaIndicadoraProps> = ({
   className = '',
   pulsar = true,
 }) => {
-  // Rotação do ícone da seta
+  // Rotação do ícone da seta para apontar na direção configurada
   const rotacoes = {
     baixo: 'rotate-180',
     cima: 'rotate-0',
@@ -28,10 +28,18 @@ export const SetaIndicadora: React.FC<SetaIndicadoraProps> = ({
     direita: 'rotate-90',
   }
 
+  // Padrão de 3 quiques: dois rápidos + um mais lento + repouso prolongado, ininterruptamente
+  const animacaoQuique = {
+    baixo: 'animate-quique-seta-baixo',
+    cima: 'animate-quique-seta-cima',
+    esquerda: 'animate-quique-seta-esquerda',
+    direita: 'animate-quique-seta-direita',
+  }
+
   return (
     <div
       className={`inline-flex items-center gap-2 select-none z-30 pointer-events-none transition-all duration-300 ${
-        pulsar ? 'animate-bounce' : ''
+        pulsar ? animacaoQuique[direcao] : ''
       } ${className}`}
     >
       {/* Rótulo explicativo opcional */}
