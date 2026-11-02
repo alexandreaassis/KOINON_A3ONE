@@ -45,6 +45,7 @@ import HistoricoAlteracoesPage from '@/pages/admin/HistoricoAlteracoes'
 import ParametrosConvencaoPage from '@/pages/admin/ParametrosConvencao'
 import CadastrosUnidadesPage from '@/pages/admin/CadastrosUnidades'
 import CadastroMoradorPublicoPage from '@/pages/public/CadastroMoradorPublico'
+import ApresentacaoVideoCadastroPage from '@/pages/video/ApresentacaoVideoCadastro'
 
 import NotFound from '@/pages/NotFound'
 
@@ -126,6 +127,10 @@ const App = () => (
             <Route path="/cadastro/:token" element={<CadastroMoradorPublicoPage />} />
             <Route path="/auth/confirm-verification" element={<VerificarEmailPage />} />
             <Route path="/auth/confirm-verification/:token" element={<VerificarEmailPage />} />
+
+            {/* Apresentação HTML Animada e Roteiro de Vídeo Institucional (Fora do menu lateral) */}
+            <Route path="/video/cadastro" element={<ApresentacaoVideoCadastroPage />} />
+            <Route path="/video" element={<ApresentacaoVideoCadastroPage />} />
 
             {/* Rotas Protegidas - Módulo do Morador */}
             <Route
