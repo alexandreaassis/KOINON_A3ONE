@@ -79,8 +79,22 @@ routerAdd('GET', '/backend/v1/publico/unidade/{token}', (e) => {
   } catch (_) {}
 
   const identificador = unidade.getString('identificador') || ''
-  const bloco = (unidade.getString('bloco') || '').trim()
+  let bloco = (unidade.getString('bloco') || '').trim()
   const tipoUnidade = unidade.getString('tipo_unidade') || rotuloPadrao
+
+  // Normalizar bloco para evitar redundância com o tipo da unidade (ex: bloco "Apto") ou torre única
+  if (
+    bloco === '—' ||
+    bloco === '-' ||
+    bloco.toLowerCase() === 'torre única' ||
+    bloco.toLowerCase() === 'torre unica' ||
+    bloco.toLowerCase() === 'lago azul' ||
+    bloco.toLowerCase() === tipoUnidade.toLowerCase() ||
+    bloco.toLowerCase() === 'apto' ||
+    bloco.toLowerCase() === 'apartamento'
+  ) {
+    bloco = ''
+  }
 
   // Verificar estado atual dos cadastros da unidade para orientar o formulário público:
   // - se já tem morador (condomino ou locatario) cadastrado/aprovado
@@ -378,8 +392,23 @@ routerAdd('POST', '/backend/v1/publico/cadastro-morador', (e) => {
     // Notificar mesa por e-mail sobre novo cadastro pendente
     try {
       const identU = unidade.getString('identificador')
-      const blocoU = unidade.getString('bloco')
-      const unidRotulo = blocoU ? `${identU} (${blocoU})` : `${identU} (Torre única)`
+      const tipoU = unidade.getString('tipo_unidade') || 'Apto'
+      let blocoU = (unidade.getString('bloco') || '').trim()
+      if (
+        blocoU === '—' ||
+        blocoU === '-' ||
+        blocoU.toLowerCase() === 'torre única' ||
+        blocoU.toLowerCase() === 'torre unica' ||
+        blocoU.toLowerCase() === 'lago azul' ||
+        blocoU.toLowerCase() === tipoU.toLowerCase() ||
+        blocoU.toLowerCase() === 'apto'
+      ) {
+        blocoU = ''
+      }
+      const rotuloPrefixo = identU.toLowerCase().startsWith(tipoU.toLowerCase())
+        ? identU
+        : `${tipoU} ${identU}`
+      const unidRotulo = blocoU ? `${rotuloPrefixo} (${blocoU})` : `${rotuloPrefixo} (Torre única)`
       const notifCol = e.app.findCollectionByNameOrId('notificacoes')
 
       const mesaUsers = e.app.findRecordsByFilter(

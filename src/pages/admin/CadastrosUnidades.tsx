@@ -572,10 +572,9 @@ export const CadastrosUnidadesPage: React.FC = () => {
   // Enviar link via WhatsApp (wa.me)
   const enviarLinkWhatsApp = () => {
     if (!linkGerado || !unidadeSelecionadaLink) return
-    const ident = unidadeSelecionadaLink.identificador
-    const bloco = unidadeSelecionadaLink.bloco ? ` (${unidadeSelecionadaLink.bloco})` : ''
+    const descUnidade = formatarUnidadeComBloco(unidadeSelecionadaLink, rotuloUnidade)
     const texto = encodeURIComponent(
-      `Olá! Segue o link oficial para realizar o cadastro de moradores da Unidade ${ident}${bloco} no Condomínio Lago Azul pela Plataforma Virtual Koinon:\n\n${linkGerado}\n\nPreencha seus dados para homologação da mesa diretora da assembleia.`,
+      `Olá! Segue o link oficial para realizar o cadastro de moradores da ${descUnidade} no Condomínio Lago Azul pela Plataforma Virtual Koinon:\n\n${linkGerado}\n\nPreencha seus dados para homologação da mesa diretora da assembleia.`,
     )
 
     let telefoneLimpo = (unidadeSelecionadaLink.contato_celular || '').replace(/\D/g, '')
@@ -1454,10 +1453,18 @@ export const CadastrosUnidadesPage: React.FC = () => {
                         <td className="py-3 px-4 font-semibold text-slate-900 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
                             <Building className="h-3.5 w-3.5 text-slate-400" />
-                            <span>{unid?.identificador || '—'}</span>
-                            {unid?.bloco && (
+                            <span>
+                              {unid
+                                ? formatarIdentificadorUnidade(
+                                    unid.identificador,
+                                    unid.tipo_unidade,
+                                    rotuloUnidade,
+                                  )
+                                : '—'}
+                            </span>
+                            {unid && temBlocoReal(unid.bloco, unid.tipo_unidade) && (
                               <span className="text-[10px] text-slate-400 font-normal">
-                                ({unid.bloco})
+                                ({normalizarBloco(unid.bloco, unid.tipo_unidade)})
                               </span>
                             )}
                           </div>
@@ -1623,8 +1630,11 @@ export const CadastrosUnidadesPage: React.FC = () => {
                 <SelectContent className="text-xs max-h-56">
                   {unidades.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
-                      {u.tipo_unidade || rotuloUnidade} {u.identificador} —{' '}
-                      {u.bloco ? `Bloco ${u.bloco}` : 'Torre Única (—)'}
+                      {formatarIdentificadorUnidade(u.identificador, u.tipo_unidade, rotuloUnidade)}{' '}
+                      —{' '}
+                      {temBlocoReal(u.bloco, u.tipo_unidade)
+                        ? `Bloco ${normalizarBloco(u.bloco, u.tipo_unidade)}`
+                        : 'Torre Única (—)'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1633,10 +1643,21 @@ export const CadastrosUnidadesPage: React.FC = () => {
                 <p className="text-[11px] text-slate-500">
                   Unidade selecionada:{' '}
                   <strong className="text-[#002B5E]">
-                    {unidadeSelecionadaLink.tipo_unidade || rotuloUnidade}{' '}
-                    {unidadeSelecionadaLink.identificador}
+                    {formatarIdentificadorUnidade(
+                      unidadeSelecionadaLink.identificador,
+                      unidadeSelecionadaLink.tipo_unidade,
+                      rotuloUnidade,
+                    )}
                   </strong>{' '}
-                  • Bloco: <strong>{unidadeSelecionadaLink.bloco || '—'}</strong>
+                  • Bloco:{' '}
+                  <strong>
+                    {temBlocoReal(unidadeSelecionadaLink.bloco, unidadeSelecionadaLink.tipo_unidade)
+                      ? normalizarBloco(
+                          unidadeSelecionadaLink.bloco,
+                          unidadeSelecionadaLink.tipo_unidade,
+                        )
+                      : '—'}
+                  </strong>
                 </p>
               )}
             </div>
@@ -1779,8 +1800,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
                 <SelectContent className="text-xs max-h-56">
                   {unidades.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
-                      {u.tipo_unidade || rotuloUnidade} {u.identificador}{' '}
-                      {u.bloco ? `(${u.bloco})` : ''}
+                      {formatarUnidadeComBloco(u, rotuloUnidade)}
                     </SelectItem>
                   ))}
                 </SelectContent>

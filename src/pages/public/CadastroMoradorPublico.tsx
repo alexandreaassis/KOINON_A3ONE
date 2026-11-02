@@ -24,6 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { KoinonLogo } from '@/components/brand/KoinonLogo'
 import { KoinonSymbol } from '@/components/brand/KoinonSymbol'
 import { EndossoA3One } from '@/components/brand/EndossoA3One'
+import { formatarUnidadeComBloco, temBlocoReal } from '@/lib/formatadorUnidade'
 import {
   Building,
   CheckCircle2,
@@ -255,14 +256,15 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
     setSucesso(null)
   }
 
-  // Rótulo da Unidade
+  // Rótulo da Unidade (ex: "Apto 1203" ou "Apto 1203 (Bloco B)" se houver bloco real)
   const rotuloUnidadeCompleto = (() => {
     if (!unidade) return ''
-    const tipo = unidade.tipo_unidade || 'Unidade'
-    if (unidade.bloco && unidade.bloco.trim()) {
-      return `${tipo} ${unidade.identificador} (${unidade.bloco})`
-    }
-    return `${tipo} ${unidade.identificador}`
+    return formatarUnidadeComBloco(unidade, 'Apto')
+  })()
+
+  const possuiBloco = (() => {
+    if (!unidade) return false
+    return temBlocoReal(unidade.bloco, unidade.tipo_unidade)
   })()
 
   return (
@@ -305,9 +307,9 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
                   <div className="p-3 rounded-[10px] bg-[#002B5E]/5 border border-[#002B5E]/15 flex items-center justify-center gap-2 text-xs font-semibold text-[#002B5E]">
                     <Building className="h-4 w-4 text-[#0066FF] shrink-0" />
                     <span>{rotuloUnidadeCompleto}</span>
-                    {!unidade.bloco && (
+                    {!possuiBloco && (
                       <span className="text-[10px] font-normal text-[#5A6B82] bg-white px-2 py-0.5 rounded border border-[#5A6B82]/20">
-                        Torre única
+                        Torre única (—)
                       </span>
                     )}
                   </div>
