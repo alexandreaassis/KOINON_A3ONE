@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api, type VinculoCadastro } from '@/lib/api'
 import { limparCpf, formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
 import { formatarTelefone, limparTelefone } from '@/lib/telefone'
@@ -28,7 +28,6 @@ import { EndossoA3One } from '@/components/brand/EndossoA3One'
 import { formatarUnidadeComBloco, temBlocoReal } from '@/lib/formatadorUnidade'
 import {
   Building,
-  CheckCircle2,
   Clock,
   AlertTriangle,
   User,
@@ -36,9 +35,12 @@ import {
   Calendar,
   Mail,
   Phone,
-  ArrowRight,
   ShieldCheck,
   HelpCircle,
+  FileCheck2,
+  UserPlus,
+  LogOut,
+  CheckCircle2,
 } from 'lucide-react'
 
 interface DadosUnidadePublica {
@@ -53,8 +55,18 @@ interface DadosUnidadePublica {
   tipo_morador_existente?: string
 }
 
+const TEXTOS_DECLARACAO: Record<VinculoCadastro, string> = {
+  locatario:
+    'Declaro, sob as penas da lei, que sou locatário e morador da unidade para a qual estou me cadastrando, na qualidade de inquilino na forma da Lei nº 8.245/91 (Lei do Inquilinato), e que as informações prestadas neste cadastro são verdadeiras. Autorizo o tratamento dos meus dados pessoais exclusivamente para fins de credenciamento e participação na assembleia, nos termos da Lei nº 13.709/2018 (LGPD).',
+  condomino:
+    'Declaro, sob as penas da lei, que sou proprietário legítimo da unidade para a qual estou me cadastrando, na forma dos arts. 1.228 e 1.331 do Código Civil (Lei nº 10.406/2002), que resido na unidade e que as informações prestadas neste cadastro são verdadeiras. Autorizo o tratamento dos meus dados pessoais exclusivamente para fins de credenciamento e participação na assembleia, nos termos da Lei nº 13.709/2018 (LGPD).',
+  proprietario:
+    'Declaro, sob as penas da lei, que sou proprietário legítimo da unidade para a qual estou me cadastrando, na forma dos arts. 1.228 e 1.331 do Código Civil (Lei nº 10.406/2002), e que não resido na unidade, cujo cadastro de morador é realizado separadamente. As informações prestadas neste cadastro são verdadeiras. Autorizo o tratamento dos meus dados pessoais exclusivamente para fins de credenciamento e participação na assembleia, nos termos da Lei nº 13.709/2018 (LGPD).',
+}
+
 export const CadastroMoradorPublicoPage: React.FC = () => {
   const { token } = useParams<{ token: string }>()
+  const navigate = useNavigate()
 
   const [carregandoUnidade, setCarregandoUnidade] = useState(true)
   const [erroUnidade, setErroUnidade] = useState<string | null>(null)
@@ -70,6 +82,11 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
   const [email, setEmail] = useState('')
   const [telefone, setTelefone] = useState('')
   const [vinculo, setVinculo] = useState<VinculoCadastro>('condomino')
+
+  // Campos de indicação do morador/proprietário de fato
+  const [mostrarIndicacao, setMostrarIndicacao] = useState(false)
+  const [indicacaoNome, setIndicacaoNome] = useState('')
+  const [indicacaoTelefone, setIndicacaoTelefone] = useState('')
 
   const [enviando, setEnviando] = useState(false)
   const [erroEnvio, setErroEnvio] = useState<string | null>(null)
@@ -146,10 +163,23 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
   const handleTelefonePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault()
     const textoColado = e.clipboardData.getData('text') || ''
-    // Extrai apenas dígitos da colagem e aplica a máscara
     const digitos = limparTelefone(textoColado)
     const formatado = formatarTelefone(digitos)
     setTelefone(formatado)
+  }
+
+  // Formatar telefone da indicação
+  const handleIndicacaoTelefoneChange = (val: string) => {
+    const formatado = formatarTelefone(val)
+    setIndicacaoTelefone(formatado)
+  }
+
+  const handleIndicacaoTelefonePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    const textoColado = e.clipboardData.getData('text') || ''
+    const digitos = limparTelefone(textoColado)
+    const formatado = formatarTelefone(digitos)
+    setIndicacaoTelefone(formatado)
   }
 
   // Validação data de nascimento
@@ -187,9 +217,21 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
     return true
   }
 
-  // Submissão do cadastro
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Verificar se formulário está completo para habilitar o botão de assinatura
+  const formularioValido = (() => {
+    if (!nome.trim() || nome.trim().length < 3) return false
+    if (!validarCpf(cpf)) return false
+    if (!dataNascimento || !/^\d{4}-\d{2}-\d{2}$/.test(dataNascimento)) return false
+    if (!email.trim() || !email.includes('@')) return false
+    const telDigitos = limparTelefone(telefone)
+    if (!telDigitos || telDigitos.length < 10) return false
+    if (!vinculo) return false
+    return true
+  })()
+
+  // Submissão do cadastro assinando eletronicamente
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     setErroEnvio(null)
 
     if (!token) {
@@ -224,7 +266,16 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
       return
     }
 
+    // Se preencheu indicação parcial, avisar
+    if (mostrarIndicacao && indicacaoNome.trim() && !indicacaoTelefone.trim()) {
+      setErroEnvio('Informe o telefone da pessoa indicada.')
+      return
+    }
+
     setEnviando(true)
+    const textoDeclaracaoSelecionada = TEXTOS_DECLARACAO[vinculo]
+    const dataHoraAceite = new Date().toISOString()
+
     try {
       const resp = await api.submeterCadastroMoradorPublico({
         token,
@@ -234,13 +285,19 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
         email: email.trim().toLowerCase(),
         telefone: telefone.trim(),
         vinculo,
+        declaracao_vinculo: textoDeclaracaoSelecionada,
+        declaracao_assinatura: nome.trim(),
+        declaracao_data: dataHoraAceite,
+        indicacao_nome: mostrarIndicacao && indicacaoNome.trim() ? indicacaoNome.trim() : undefined,
+        indicacao_telefone:
+          mostrarIndicacao && indicacaoTelefone.trim() ? indicacaoTelefone.trim() : undefined,
       })
 
       if (resp?.success) {
         setSucesso({
           mensagem:
             resp.message ||
-            'Cadastro enviado com sucesso! Seus dados foram recebidos e estão pendentes de homologação da mesa diretora.',
+            'Cadastro enviado com sucesso! Seus dados e a assinatura eletrônica da declaração foram registrados e estão pendentes de homologação da mesa diretora.',
           status: resp.status || 'pendente',
           vinculo_enviado: vinculo,
         })
@@ -259,6 +316,22 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
     }
   }
 
+  // Ação: Sair sem cadastrar (descarta o preenchimento e sai da página)
+  const handleSairSemCadastrar = () => {
+    setNome('')
+    setCpf('')
+    setCpfErro(null)
+    setDataNascimento('')
+    setDataNascErro(null)
+    setEmail('')
+    setTelefone('')
+    setIndicacaoNome('')
+    setIndicacaoTelefone('')
+    setMostrarIndicacao(false)
+    setErroEnvio(null)
+    navigate('/login')
+  }
+
   // Ação para realizar o segundo cadastro na mesma unidade (ex: inquilino cadastrado -> cadastrar proprietário)
   const prepararSegundoCadastro = (novoVinculoSugerido: VinculoCadastro) => {
     setNome('')
@@ -268,6 +341,9 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
     setDataNascErro(null)
     setEmail('')
     setTelefone('')
+    setIndicacaoNome('')
+    setIndicacaoTelefone('')
+    setMostrarIndicacao(false)
     setVinculo(novoVinculoSugerido)
     setErroEnvio(null)
     setSucesso(null)
@@ -283,6 +359,14 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
     if (!unidade) return false
     return temBlocoReal(unidade.bloco, unidade.tipo_unidade)
   })()
+
+  // Rótulo do vínculo do outro para o botão de indicação
+  const rotuloOutraPessoa =
+    vinculo === 'locatario'
+      ? 'proprietário'
+      : vinculo === 'proprietario'
+        ? 'inquilino (morador)'
+        : 'morador / proprietário de fato'
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F3F7FC] text-[#002B5E] font-['Poppins',sans-serif]">
@@ -318,7 +402,7 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
                 comunicações formais.
               </CardDescription>
 
-              {/* Box de Identificação da Unidade e Suporte a Morador + Proprietário */}
+              {/* Box de Identificação da Unidade e Orientação em Tópicos */}
               {unidade && !carregandoUnidade && (
                 <div className="mt-4 space-y-2">
                   <div className="p-3 rounded-[10px] bg-[#002B5E]/5 border border-[#002B5E]/15 flex items-center justify-center gap-2 text-xs font-semibold text-[#002B5E]">
@@ -331,20 +415,35 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Orientação oficial: suporte a 2 cadastros (morador + proprietário) */}
-                  <div className="p-2.5 rounded-[8px] bg-[#0066FF]/5 border border-[#0066FF]/20 text-left text-[11px] text-[#002B5E] space-y-1">
-                    <p className="font-semibold text-[#002B5E] flex items-center gap-1.5">
+                  {/* Orientação oficial em tópicos aprovados */}
+                  <div className="p-3 rounded-[10px] bg-[#0066FF]/5 border border-[#0066FF]/20 text-left text-[11px] text-[#002B5E] space-y-1.5">
+                    <p className="font-semibold text-[#002B5E] flex items-center gap-1.5 text-xs">
                       <HelpCircle className="h-3.5 w-3.5 text-[#0066FF]" />
                       Quem deve se cadastrar nesta unidade?
                     </p>
-                    <p className="text-[#5A6B82] leading-relaxed">
-                      • <strong>Condômino residente:</strong> proprietário que mora no imóvel
-                      (cadastro único suficiente).
-                      <br />• <strong>Imóvel alugado:</strong> este mesmo link permite cadastrar o{' '}
-                      <strong>Inquilino</strong> (morador) <em>E</em> o{' '}
-                      <strong>Proprietário</strong> (não morador), totalizando até 2 pessoas por
-                      unidade.
-                    </p>
+                    <ul className="text-[#5A6B82] leading-relaxed space-y-1 pl-1">
+                      <li className="flex items-start gap-1.5">
+                        <span className="text-[#0066FF] font-bold">•</span>
+                        <span>
+                          <strong>Condômino residente:</strong> proprietário que mora no imóvel
+                          (cadastro único suficiente).
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-1.5">
+                        <span className="text-[#0066FF] font-bold">•</span>
+                        <span>
+                          <strong>Imóvel alugado:</strong> este mesmo link permite cadastrar o{' '}
+                          <strong>Inquilino</strong> (morador).
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-1.5">
+                        <span className="text-[#0066FF] font-bold">•</span>
+                        <span>
+                          <strong>Proprietário (não morador)</strong>, totalizando até 2 pessoas por
+                          unidade.
+                        </span>
+                      </li>
+                    </ul>
                   </div>
                 </div>
               )}
@@ -396,9 +495,13 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
                   <div className="p-3.5 rounded-[10px] bg-[#F3F7FC] border border-[#5A6B82]/20 text-left text-xs space-y-2">
                     <div className="flex items-center gap-1.5 font-semibold text-[#002B5E]">
                       <ShieldCheck className="h-4 w-4 text-[#0066FF]" />
-                      <span>Próximos passos</span>
+                      <span>Declaração e Assinatura Eletrônica Registradas</span>
                     </div>
                     <ul className="text-[11px] text-[#5A6B82] space-y-1 list-disc pl-4">
+                      <li>
+                        A declaração legal correspondente ao vínculo foi formalmente assinada e
+                        anexada ao seu cadastro com registro de data/hora e IP.
+                      </li>
                       <li>A mesa diretora conferirá os dados cadastrados para a unidade.</li>
                       <li>
                         Após a homologação, a confirmação oficial será encaminhada por e-mail.
@@ -582,23 +685,45 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
                         </SelectTrigger>
                         <SelectContent className="text-xs">
                           <SelectItem value="condomino">
-                            Condômino (Morador — Proprietário que reside na unidade)
+                            Condômino (residente) — Proprietário que mora no imóvel
                           </SelectItem>
                           <SelectItem value="locatario">
-                            Inquilino (Morador — Locatário residente na unidade)
+                            Locatário (Inquilino) — Morador da unidade
                           </SelectItem>
                           <SelectItem value="proprietario">
-                            Proprietário (Não mora na unidade — condômino não morador)
+                            Proprietário (não morador) — Não reside na unidade
                           </SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-[10px] text-[#5A6B82]">
                         {vinculo === 'proprietario'
-                          ? 'Proprietário titular que não reside nesta unidade.'
+                          ? 'Proprietário legítimo titular que não reside nesta unidade.'
                           : vinculo === 'locatario'
-                            ? 'Morador na condição de inquilino (locatário).'
-                            : 'Morador na condição de condômino residente.'}
+                            ? 'Morador na qualidade de inquilino (Lei do Inquilinato nº 8.245/91).'
+                            : 'Proprietário legítimo residente na unidade (Código Civil arts. 1.228 e 1.331).'}
                       </p>
+
+                      {/* DECLARAÇÃO DINÂMICA POR VÍNCULO (textos exatos aprovados) */}
+                      <div className="mt-2.5 p-3.5 rounded-[10px] bg-[#002B5E]/5 border border-[#002B5E]/15 space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-[#002B5E]">
+                          <FileCheck2 className="h-4 w-4 text-[#0066FF] shrink-0" />
+                          <span>
+                            Declaração de Vínculo Legal —{' '}
+                            {vinculo === 'locatario'
+                              ? 'Locatário (Inquilino)'
+                              : vinculo === 'condomino'
+                                ? 'Condômino (residente)'
+                                : 'Proprietário (não morador)'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#002B5E]/90 leading-relaxed italic bg-white/70 p-2.5 rounded-[8px] border border-[#5A6B82]/15">
+                          "{TEXTOS_DECLARACAO[vinculo]}"
+                        </p>
+                        <p className="text-[10px] text-[#5A6B82]">
+                          A assinatura eletrônica desta declaração vincula o declarante sob as penas
+                          da lei e autoriza o tratamento para credenciamento e assembleia (LGPD).
+                        </p>
+                      </div>
                     </div>
 
                     {/* Contatos */}
@@ -642,24 +767,134 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* Seção opcional de indicação do morador/proprietário de fato */}
+                    <div className="space-y-2 pt-1 border-t border-[#5A6B82]/15">
+                      <div className="flex items-center justify-between">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setMostrarIndicacao((prev) => !prev)}
+                          className="text-xs text-[#0066FF] hover:text-[#0052CC] hover:bg-[#0066FF]/10 font-semibold h-8 px-2 flex items-center gap-1.5"
+                        >
+                          <UserPlus className="h-3.5 w-3.5" />
+                          {mostrarIndicacao
+                            ? 'Ocultar indicação de morador/proprietário de fato'
+                            : 'Indicar o morador/proprietário de fato'}
+                        </Button>
+                        <span className="text-[10px] text-[#5A6B82]">
+                          {vinculo === 'locatario'
+                            ? 'O inquilino indica o proprietário'
+                            : vinculo === 'proprietario'
+                              ? 'O proprietário indica o inquilino'
+                              : 'Opcional'}
+                        </span>
+                      </div>
+
+                      {mostrarIndicacao && (
+                        <div className="p-3.5 rounded-[10px] bg-slate-50 border border-slate-200 space-y-3 animate-in fade-in-50">
+                          <div>
+                            <span className="text-xs font-semibold text-[#002B5E] block">
+                              Dados da outra pessoa vinculada à unidade ({rotuloOutraPessoa})
+                            </span>
+                            <p className="text-[11px] text-[#5A6B82] mt-0.5">
+                              Estes dados serão encaminhados junto do cadastro pendente para a mesa
+                              diretora entrar em contato e providenciar o registro complementar.
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label
+                                htmlFor="cad-ind-nome"
+                                className="text-[11px] font-medium text-[#002B5E]"
+                              >
+                                Nome Completo da pessoa indicada
+                              </Label>
+                              <div className="relative">
+                                <User className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[#5A6B82]" />
+                                <Input
+                                  id="cad-ind-nome"
+                                  placeholder="Nome completo do morador/proprietário"
+                                  value={indicacaoNome}
+                                  onChange={(e) => setIndicacaoNome(e.target.value)}
+                                  className="pl-8 h-9 text-xs border-[#5A6B82]/30 bg-white text-[#002B5E] rounded-[8px]"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <Label
+                                htmlFor="cad-ind-tel"
+                                className="text-[11px] font-medium text-[#002B5E]"
+                              >
+                                Telefone com DDD
+                              </Label>
+                              <div className="relative">
+                                <Phone className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[#5A6B82]" />
+                                <Input
+                                  id="cad-ind-tel"
+                                  type="tel"
+                                  placeholder="(XX) XXXXX-XXXX"
+                                  maxLength={15}
+                                  value={indicacaoTelefone}
+                                  onChange={(e) => handleIndicacaoTelefoneChange(e.target.value)}
+                                  onPaste={handleIndicacaoTelefonePaste}
+                                  className="pl-8 h-9 text-xs font-mono border-[#5A6B82]/30 bg-white text-[#002B5E] rounded-[8px]"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Nota de Segurança e Homologação */}
                     <div className="p-3 rounded-[10px] bg-[#0066FF]/5 border border-[#0066FF]/20 flex items-start gap-2 text-[11px] text-[#002B5E]">
                       <Clock className="h-4 w-4 text-[#0066FF] shrink-0 mt-0.5" />
                       <div>
-                        <strong>Aprovação da Mesa Diretora:</strong> Após o envio, seu cadastro
-                        ficará com status <em>Pendente</em> até a conferência e aprovação pela mesa
-                        diretora da assembleia condominial.
+                        <strong>Aprovação da Mesa Diretora:</strong> Após o envio e a assinatura
+                        eletrônica da declaração, seu cadastro ficará com status <em>Pendente</em>{' '}
+                        até a conferência e homologação pela mesa diretora da assembleia
+                        condominial.
                       </div>
                     </div>
 
-                    <Button
-                      type="submit"
-                      disabled={enviando}
-                      className="w-full h-11 bg-[#0066FF] text-white font-semibold hover:bg-[#0052CC] rounded-[10px] shadow-none border-0 text-xs focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2"
-                    >
-                      {enviando ? 'Enviando Cadastro...' : 'Enviar Cadastro para Homologação'}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    {/* BOTÕES DE AÇÃO: Assinar eletronicamente + Sair sem cadastrar */}
+                    <div className="pt-2 space-y-2">
+                      <Button
+                        type="submit"
+                        disabled={enviando || !formularioValido}
+                        className={`w-full h-11 text-white font-semibold rounded-[10px] shadow-none border-0 text-xs focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2 flex items-center justify-center gap-2 ${
+                          formularioValido && !enviando
+                            ? 'bg-[#0066FF] hover:bg-[#0052CC] cursor-pointer'
+                            : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                        }`}
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        {enviando ? 'Gravando Assinatura...' : 'Assinar declaração eletronicamente'}
+                      </Button>
+
+                      {!formularioValido && (
+                        <p className="text-[10px] text-center text-[#5A6B82]">
+                          Preencha todos os campos obrigatórios acima para habilitar a assinatura
+                          eletrônica da declaração.
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-center pt-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleSairSemCadastrar}
+                          className="text-xs text-slate-500 hover:text-red-600 hover:bg-red-50 h-8 px-3 rounded-[8px] flex items-center gap-1.5"
+                        >
+                          <LogOut className="h-3.5 w-3.5" />
+                          Sair sem cadastrar
+                        </Button>
+                      </div>
+                    </div>
                   </form>
                 </>
               )}

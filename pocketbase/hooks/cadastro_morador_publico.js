@@ -181,7 +181,8 @@ routerAdd('POST', '/backend/v1/publico/cadastro-morador', (e) => {
     return resto === parseInt(limpo.charAt(10), 10)
   }
 
-  const body = e.requestInfo().body || {}
+  const reqInfo = e.requestInfo()
+  const body = reqInfo.body || {}
   const token = (body.token || '').trim()
   const nome = (body.nome || '').trim()
   const cpfRaw = (body.cpf || '').trim()
@@ -189,6 +190,24 @@ routerAdd('POST', '/backend/v1/publico/cadastro-morador', (e) => {
   const email = (body.email || '').trim().toLowerCase()
   const telefone = (body.telefone || '').trim()
   const vinculoRaw = (body.vinculo || '').trim().toLowerCase()
+
+  // Campos adicionais: Declaração / Assinatura Eletrônica e Indicação da outra parte
+  const declaracaoVinculo = (body.declaracao_vinculo || '').trim()
+  const declaracaoAssinatura = (body.declaracao_assinatura || '').trim()
+  const declaracaoData = (body.declaracao_data || '').trim()
+  const indicacaoNome = (body.indicacao_nome || '').trim()
+  const indicacaoTelefone = (body.indicacao_telefone || '').trim()
+
+  // Capturar IP de origem
+  let declaracaoIp = (body.declaracao_ip || '').trim()
+  if (!declaracaoIp && reqInfo.headers) {
+    const xf =
+      reqInfo.headers['x-forwarded-for'] ||
+      reqInfo.headers['x-real-ip'] ||
+      reqInfo.headers['cf-connecting-ip'] ||
+      ''
+    declaracaoIp = typeof xf === 'string' ? xf.split(',')[0].trim() : ''
+  }
 
   if (!token) {
     return e.json(400, { success: false, message: 'Token de unidade não informado.' })
@@ -387,6 +406,31 @@ routerAdd('POST', '/backend/v1/publico/cadastro-morador', (e) => {
     novoCad.set('ativo', false) // Somente fica ativo após aprovação da mesa
     novoCad.set('origem', 'link_publico')
     novoCad.set('observacoes', 'Cadastro enviado pelo morador via link público da unidade.')
+
+    // Gravar declaração / assinatura eletrônica se fornecidos
+    if (declaracaoVinculo) {
+      novoCad.set('declaracao_vinculo', declaracaoVinculo)
+    }
+    if (declaracaoAssinatura) {
+      novoCad.set('declaracao_assinatura', declaracaoAssinatura)
+    }
+    if (declaracaoData) {
+      novoCad.set('declaracao_data', declaracaoData)
+    } else if (declaracaoAssinatura) {
+      novoCad.set('declaracao_data', new Date().toISOString())
+    }
+    if (declaracaoIp) {
+      novoCad.set('declaracao_ip', declaracaoIp)
+    }
+
+    // Gravar indicação de morador/proprietário de fato se preenchida
+    if (indicacaoNome) {
+      novoCad.set('indicacao_nome', indicacaoNome)
+    }
+    if (indicacaoTelefone) {
+      novoCad.set('indicacao_telefone', indicacaoTelefone)
+    }
+
     e.app.save(novoCad)
 
     // Notificar mesa por e-mail sobre novo cadastro pendente

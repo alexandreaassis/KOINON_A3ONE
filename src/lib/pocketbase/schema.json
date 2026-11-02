@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-02T19:40:46.007Z",
+  "generatedAt": "2026-11-02T20:14:24.098Z",
   "collections": [
     {
       "name": "users",
@@ -2081,6 +2081,42 @@
           "required": false,
           "system": false,
           "selectValues": ["admin", "link_publico"]
+        },
+        {
+          "name": "declaracao_vinculo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "declaracao_assinatura",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "declaracao_data",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "declaracao_ip",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "indicacao_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "indicacao_telefone",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

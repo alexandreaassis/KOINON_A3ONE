@@ -31,6 +31,10 @@ import {
   Building,
   UserCheck,
   Download,
+  FileCheck2,
+  Globe,
+  UserPlus,
+  ShieldCheck,
 } from 'lucide-react'
 
 export const CredenciaisPendentesPage: React.FC = () => {
@@ -471,6 +475,78 @@ export const CredenciaisPendentesPage: React.FC = () => {
                           {cad.origem === 'link_publico' ? 'Link Público' : 'Administração'}
                         </span>
                       </div>
+
+                      {/* Bloco de Assinatura Eletrônica e Declaração Legal */}
+                      {(cad.declaracao_assinatura || cad.declaracao_vinculo) && (
+                        <div className="mt-2 p-2.5 rounded-lg bg-blue-50/70 border border-blue-200/80 space-y-1.5 text-xs">
+                          <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] font-semibold text-[#002B5E]">
+                            <span className="flex items-center gap-1.5">
+                              <FileCheck2 className="h-3.5 w-3.5 text-[#0066FF]" />
+                              Assinatura Eletrônica da Declaração
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-normal flex items-center gap-1">
+                              <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                              Aceite registrado
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-700">
+                            {cad.declaracao_assinatura && (
+                              <span>
+                                <strong>Assinado por:</strong> {cad.declaracao_assinatura}
+                              </span>
+                            )}
+                            {cad.declaracao_data && (
+                              <span>
+                                <strong>Data/Hora:</strong>{' '}
+                                {new Date(cad.declaracao_data).toLocaleString('pt-BR')}
+                              </span>
+                            )}
+                            {cad.declaracao_ip && (
+                              <span className="flex items-center gap-1 text-slate-600">
+                                <Globe className="h-3 w-3 text-slate-400" />
+                                <strong>IP:</strong>{' '}
+                                <code className="bg-white px-1 py-0.2 rounded border border-slate-200 text-[10px] font-mono">
+                                  {cad.declaracao_ip}
+                                </code>
+                              </span>
+                            )}
+                          </div>
+
+                          {cad.declaracao_vinculo && (
+                            <details className="text-[10px] text-slate-600 cursor-pointer pt-0.5">
+                              <summary className="font-medium text-[#0066FF] hover:underline">
+                                Ver texto da declaração aceita
+                              </summary>
+                              <p className="mt-1 p-2 bg-white rounded border border-slate-200 italic leading-relaxed text-slate-700">
+                                "{cad.declaracao_vinculo}"
+                              </p>
+                            </details>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Bloco de Indicação do morador/proprietário de fato se houver */}
+                      {(cad.indicacao_nome || cad.indicacao_telefone) && (
+                        <div className="mt-1.5 p-2 rounded-lg bg-amber-50/70 border border-amber-200 text-xs space-y-1">
+                          <span className="text-[11px] font-semibold text-amber-900 flex items-center gap-1">
+                            <UserPlus className="h-3.5 w-3.5 text-amber-700" />
+                            Indicação de Morador / Proprietário de Fato:
+                          </span>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-amber-900">
+                            {cad.indicacao_nome && (
+                              <span>
+                                <strong>Nome:</strong> {cad.indicacao_nome}
+                              </span>
+                            )}
+                            {cad.indicacao_telefone && (
+                              <span>
+                                <strong>Telefone:</strong> {cad.indicacao_telefone}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {cad.motivo_rejeicao && (
                         <p className="text-xs text-red-700 font-medium">

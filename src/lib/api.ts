@@ -211,6 +211,12 @@ export interface CadastroUnidadeRecord extends RecordModel {
   status_aprovacao?: StatusAprovacaoCadastro
   origem?: OrigemCadastro
   observacoes?: string
+  declaracao_vinculo?: string
+  declaracao_assinatura?: string
+  declaracao_data?: string
+  declaracao_ip?: string
+  indicacao_nome?: string
+  indicacao_telefone?: string
   expand?: {
     unidade?: UnidadeRecord
   }
@@ -762,6 +768,12 @@ export const api = {
     email: string
     telefone: string
     vinculo: VinculoCadastro
+    declaracao_vinculo?: string
+    declaracao_assinatura?: string
+    declaracao_data?: string
+    declaracao_ip?: string
+    indicacao_nome?: string
+    indicacao_telefone?: string
   }) {
     return pb.send<{
       success: boolean
