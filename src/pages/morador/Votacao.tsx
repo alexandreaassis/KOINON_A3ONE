@@ -7,6 +7,7 @@ import {
   type DeliberacaoRecord,
   type ItemPautaRecord,
   type ComparecimentoRecord,
+  type CredenciamentoRecord,
 } from '@/lib/api'
 import { formatarIdentificadorUnidade, formatarUnidadeComBloco } from '@/lib/formatadorUnidade'
 import {
