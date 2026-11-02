@@ -132,7 +132,7 @@ export const ConfiguracoesPage: React.FC = () => {
   const [modalAvulsaAberto, setModalAvulsaAberto] = useState(false)
   const [salvandoAvulsa, setSalvandoAvulsa] = useState(false)
   const [avulsaIdentificador, setAvulsaIdentificador] = useState('')
-  const [avulsaBloco, setAvulsaBloco] = useState('Avulso')
+  const [avulsaBloco, setAvulsaBloco] = useState('')
   const [avulsaTipo, setAvulsaTipo] = useState('Cobertura')
   const [avulsaPeso, setAvulsaPeso] = useState('1')
   const [avulsaAndar, setAvulsaAndar] = useState('')
@@ -436,7 +436,7 @@ export const ConfiguracoesPage: React.FC = () => {
     try {
       const resp = await api.cadastrarUnidadeAvulsa({
         identificador: avulsaIdentificador.trim(),
-        bloco: avulsaBloco.trim() || 'Avulso',
+        bloco: avulsaBloco.trim(),
         tipo_unidade: avulsaTipo.trim() || 'Unidade Especial',
         peso_voto: Number(avulsaPeso) > 0 ? Number(avulsaPeso) : 1,
         andar: avulsaAndar.trim(),
@@ -1836,15 +1836,15 @@ export const ConfiguracoesPage: React.FC = () => {
 
                 <div className="space-y-1">
                   <Label htmlFor="av-bloco" className="text-xs font-semibold text-slate-700">
-                    Bloco / Setor
+                    Bloco / Setor (Opcional)
                   </Label>
                   <Input
                     id="av-bloco"
                     value={avulsaBloco}
                     onChange={(e) => setAvulsaBloco(e.target.value)}
-                    placeholder="Torre A, Térreo"
-                    className="h-9 text-xs border-slate-300"
-                  />
+                    placeholder="Opcional se torre única (ex: Bloco A, Ala Sul)"
+                    className="text-xs h-9"
+                  />{' '}
                 </div>
               </div>
 

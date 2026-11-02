@@ -202,7 +202,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     { label: 'Ata da Assembleia (IA)', path: '/mesa/ata', icon: FileText },
     { label: 'Documentos & Edital', path: '/mesa/documentos', icon: FolderArchive },
     { label: 'Lista de Presença', path: '/mesa/presenca', icon: UserCheck },
-    { label: 'Credenciais Pendentes', path: '/mesa/credenciamentos', icon: Users },
+    { label: 'Aprovação de Cadastros', path: '/mesa/credenciamentos', icon: Users },
     { label: 'Cadastros da Unidade', path: '/admin/cadastros', icon: Contact },
     { label: 'Deliberações e Pautas', path: '/mesa/deliberacoes', icon: FileSpreadsheet },
     { label: 'Auditoria e Urna', path: '/mesa/auditoria', icon: History },
@@ -229,7 +229,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     if (p === '/mesa/ata') return ['Mesa Diretora', 'Ata da Assembleia']
     if (p === '/mesa/documentos') return ['Mesa Diretora', 'Documentos & Edital']
     if (p === '/mesa/presenca') return ['Mesa Diretora', 'Lista de Presença']
-    if (p === '/mesa/credenciamentos') return ['Mesa Diretora', 'Credenciais']
+    if (p === '/mesa/credenciamentos') return ['Mesa Diretora', 'Aprovação de Cadastros']
     if (p === '/mesa/deliberacoes') return ['Mesa Diretora', 'Deliberações']
     if (p === '/mesa/auditoria') return ['Mesa Diretora', 'Auditoria & Boletim']
     if (p === '/admin/configuracoes') return ['Administração', 'Configurações']

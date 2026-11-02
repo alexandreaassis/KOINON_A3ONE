@@ -816,7 +816,7 @@ routerAdd('POST', '/backend/v1/admin/unidades/avulsa', (e) => {
 
   const body = e.requestInfo().body || {}
   const identificador = (body.identificador || '').trim()
-  const bloco = (body.bloco || 'Avulso').trim()
+  const bloco = (body.bloco !== undefined ? body.bloco : '').trim()
   const responsavelNome = (body.responsavel_nome || 'Condômino ' + identificador).trim()
   const contatoEmail = (body.contato_email || '').trim()
   const contatoCelular = (body.contato_celular || '').trim()

@@ -45,6 +45,10 @@ import {
   ShieldAlert,
   Info,
   RotateCcw,
+  Share2,
+  Copy,
+  MessageCircle,
+  ExternalLink,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
@@ -54,6 +58,7 @@ interface LinhaPlanilhaImportada {
   bloco?: string
   nome: string
   cpf: string
+  data_nascimento?: string
   email?: string
   telefone?: string
   vinculo: VinculoCadastro
@@ -70,21 +75,23 @@ export const CadastrosUnidadesPage: React.FC = () => {
   const STORAGE_KEY_LARGURAS = 'koinon_cadastros_unidades_colunas_v1'
   const LARGURAS_PADRAO: Record<string, number> = {
     unidade: 140,
-    nome: 260,
-    cpf: 140,
+    nome: 240,
+    cpf: 130,
+    dataNasc: 120,
     vinculo: 180,
-    contatos: 220,
+    contatos: 200,
     status: 100,
-    acoes: 90,
+    acoes: 120,
   }
   const LARGURAS_MINIMAS: Record<string, number> = {
     unidade: 80,
     nome: 140,
     cpf: 110,
+    dataNasc: 100,
     vinculo: 120,
-    contatos: 140,
+    contatos: 130,
     status: 80,
-    acoes: 80,
+    acoes: 100,
   }
 
   const [largurasColunas, setLargurasColunas] = useState<Record<string, number>>(() => {
@@ -198,6 +205,15 @@ export const CadastrosUnidadesPage: React.FC = () => {
   const [filtroUnidade, setFiltroUnidade] = useState<string>('todas')
   const [filtroStatus, setFiltroStatus] = useState<string>('todos')
 
+  // Modal de Compartilhamento de Link de Cadastro da Unidade
+  const [modalLinkAberto, setModalLinkAberto] = useState(false)
+  const [unidadeSelecionadaLink, setUnidadeSelecionadaLink] = useState<UnidadeRecord | null>(null)
+  const [tokenUnidade, setTokenUnidade] = useState('')
+  const [linkGerado, setLinkGerado] = useState('')
+  const [carregandoLink, setCarregandoLink] = useState(false)
+  const [emailEnvioLink, setEmailEnvioLink] = useState('')
+  const [enviandoEmailLink, setEnviandoEmailLink] = useState(false)
+
   // Modal de Criação / Edição
   const [modalAberto, setModalAberto] = useState(false)
   const [salvando, setSalvando] = useState(false)
@@ -208,6 +224,8 @@ export const CadastrosUnidadesPage: React.FC = () => {
   const [formNome, setFormNome] = useState('')
   const [formCpf, setFormCpf] = useState('')
   const [formCpfErro, setFormCpfErro] = useState<string | null>(null)
+  const [formDataNascimento, setFormDataNascimento] = useState('')
+  const [formDataNascErro, setFormDataNascErro] = useState<string | null>(null)
   const [formEmail, setFormEmail] = useState('')
   const [formTelefone, setFormTelefone] = useState('')
   const [formVinculo, setFormVinculo] = useState<VinculoCadastro>('condomino')
@@ -298,6 +316,8 @@ export const CadastrosUnidadesPage: React.FC = () => {
     setFormNome('')
     setFormCpf('')
     setFormCpfErro(null)
+    setFormDataNascimento('')
+    setFormDataNascErro(null)
     setFormEmail('')
     setFormTelefone('')
     setFormVinculo('condomino')
@@ -313,6 +333,8 @@ export const CadastrosUnidadesPage: React.FC = () => {
     setFormNome(cad.nome || '')
     setFormCpf(formatarCpf(cad.cpf || ''))
     setFormCpfErro(null)
+    setFormDataNascimento(cad.data_nascimento ? cad.data_nascimento.slice(0, 10) : '')
+    setFormDataNascErro(null)
     setFormEmail(cad.email || '')
     setFormTelefone(cad.telefone || '')
     setFormVinculo(cad.vinculo)
@@ -364,6 +386,27 @@ export const CadastrosUnidadesPage: React.FC = () => {
       setFormCpfErro(MSG_CPF_INVALIDO)
       toast({ title: 'CPF Inválido', description: MSG_CPF_INVALIDO, variant: 'destructive' })
       return
+    }
+
+    // Validação da Data de Nascimento (se informada)
+    if (formDataNascimento) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(formDataNascimento)) {
+        setFormDataNascErro('Data inválida (formato AAAA-MM-DD)')
+        return
+      }
+      const partes = formDataNascimento.split('-').map(Number)
+      const dataObj = new Date(partes[0], partes[1] - 1, partes[2])
+      const hoje = new Date()
+      hoje.setHours(23, 59, 59, 999)
+      if (dataObj > hoje) {
+        setFormDataNascErro('Data de nascimento não pode estar no futuro')
+        return
+      }
+      if (partes[0] < 1900) {
+        setFormDataNascErro('Ano incompatível (anterior a 1900)')
+        return
+      }
+      setFormDataNascErro(null)
     }
 
     // Regra de Unidade: máximo de 1 PROPRIETÁRIO e 1 MORADOR ativo por unidade
@@ -419,9 +462,12 @@ export const CadastrosUnidadesPage: React.FC = () => {
         unidade: formUnidadeId,
         nome: formNome.trim(),
         cpf: cpfLimpo,
+        data_nascimento: formDataNascimento ? `${formDataNascimento} 00:00:00.000Z` : undefined,
         email: formEmail.trim().toLowerCase() || undefined,
         telefone: formTelefone.trim() || undefined,
         vinculo: formVinculo,
+        status_aprovacao: 'aprovado',
+        origem: itemEditando?.origem || 'admin',
         ativo: formAtivo,
         observacoes: formObservacoes.trim() || undefined,
       }
@@ -445,6 +491,116 @@ export const CadastrosUnidadesPage: React.FC = () => {
       })
     } finally {
       setSalvando(false)
+    }
+  }
+
+  // Abrir Modal de Compartilhamento do Link da Unidade
+  const abrirModalLinkUnidade = async (unidadeId: string) => {
+    const unid = mapaUnidadesPorId.get(unidadeId)
+    if (!unid) return
+
+    setUnidadeSelecionadaLink(unid)
+    setEmailEnvioLink(unid.contato_email || '')
+    setModalLinkAberto(true)
+    setCarregandoLink(true)
+
+    try {
+      let t = unid.token_cadastro
+      if (!t) {
+        const resp = await api.garantirTokenUnidade(unid.id)
+        if (resp?.success && resp.token) {
+          t = resp.token
+          // atualizar mapa local de unidades
+          setUnidades((antigas) =>
+            antigas.map((u) => (u.id === unid.id ? { ...u, token_cadastro: t } : u)),
+          )
+        }
+      }
+      setTokenUnidade(t || '')
+      const origin = window.location.origin
+      const urlCompleta = `${origin}/cadastro/${t || ''}`
+      setLinkGerado(urlCompleta)
+    } catch (err: any) {
+      console.error('Erro ao gerar token da unidade:', err)
+      toast({
+        title: 'Erro ao gerar link',
+        description: err?.data?.message || err?.message || 'Falha ao obter link de cadastro.',
+        variant: 'destructive',
+      })
+    } finally {
+      setCarregandoLink(false)
+    }
+  }
+
+  // Copiar link para área de transferência
+  const copiarLinkCadastro = async () => {
+    if (!linkGerado) return
+    try {
+      await navigator.clipboard.writeText(linkGerado)
+      toast({
+        title: 'Link copiado!',
+        description: 'O link de cadastro da unidade foi copiado para a área de transferência.',
+      })
+    } catch {
+      toast({
+        title: 'Falha ao copiar',
+        description: 'Selecione e copie o endereço manualmente.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Enviar link via WhatsApp (wa.me)
+  const enviarLinkWhatsApp = () => {
+    if (!linkGerado || !unidadeSelecionadaLink) return
+    const ident = unidadeSelecionadaLink.identificador
+    const bloco = unidadeSelecionadaLink.bloco ? ` (${unidadeSelecionadaLink.bloco})` : ''
+    const texto = encodeURIComponent(
+      `Olá! Segue o link oficial para realizar o cadastro de moradores da Unidade ${ident}${bloco} no Condomínio Lago Azul pela Plataforma Virtual Koinon:\n\n${linkGerado}\n\nPreencha seus dados para homologação da mesa diretora da assembleia.`,
+    )
+
+    let telefoneLimpo = (unidadeSelecionadaLink.contato_celular || '').replace(/\D/g, '')
+    if (telefoneLimpo && !telefoneLimpo.startsWith('55') && telefoneLimpo.length >= 10) {
+      telefoneLimpo = `55${telefoneLimpo}`
+    }
+
+    const urlWa = telefoneLimpo
+      ? `https://wa.me/${telefoneLimpo}?text=${texto}`
+      : `https://wa.me/?text=${texto}`
+
+    window.open(urlWa, '_blank')
+  }
+
+  // Enviar link via E-mail institucional
+  const enviarLinkPorEmail = async () => {
+    if (!unidadeSelecionadaLink || !emailEnvioLink.trim() || !linkGerado) {
+      toast({
+        title: 'E-mail obrigatório',
+        description: 'Informe um e-mail válido para envio.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setEnviandoEmailLink(true)
+    try {
+      const resp = await api.enviarLinkCadastroEmail({
+        unidadeId: unidadeSelecionadaLink.id,
+        email: emailEnvioLink.trim().toLowerCase(),
+        link: linkGerado,
+      })
+      toast({
+        title: 'E-mail Enfileirado',
+        description: resp?.message || 'Link enviado com sucesso para o destinatário.',
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Falha no envio de e-mail',
+        description: err?.data?.message || err?.message || 'Não foi possível enviar o e-mail.',
+        variant: 'destructive',
+      })
+    } finally {
+      setEnviandoEmailLink(false)
     }
   }
 
@@ -522,6 +678,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
           Bloco: unid?.bloco || '',
           'Nome Completo': cad.nome || '',
           CPF: formatarCpf(cad.cpf || ''),
+          'Data Nasc': cad.data_nascimento ? cad.data_nascimento.slice(0, 10) : '',
           Vínculo:
             cad.vinculo === 'proprietario'
               ? 'PROPRIETÁRIO'
@@ -530,6 +687,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
                 : 'LOCATÁRIO',
           'E-mail': cad.email || '',
           Telefone: cad.telefone || '',
+          Status: cad.status_aprovacao ? cad.status_aprovacao.toUpperCase() : 'APROVADO',
           Ativo: cad.ativo ? 'SIM' : 'NÃO',
           Observações: cad.observacoes || '',
         }
@@ -543,9 +701,11 @@ export const CadastrosUnidadesPage: React.FC = () => {
           Bloco: unidExemplo?.bloco || 'Bloco A',
           'Nome Completo': 'Exemplo Silva',
           CPF: '000.000.000-00',
+          'Data Nasc': '1985-05-20',
           Vínculo: 'CONDÔMINO',
           'E-mail': 'exemplo@condominio.com',
           Telefone: '(11) 99999-9999',
+          Status: 'APROVADO',
           Ativo: 'SIM',
           Observações: 'Modelo de importação',
         })
@@ -558,9 +718,11 @@ export const CadastrosUnidadesPage: React.FC = () => {
         { wch: 14 }, // Bloco
         { wch: 32 }, // Nome Completo
         { wch: 16 }, // CPF
+        { wch: 14 }, // Data Nasc
         { wch: 16 }, // Vínculo
         { wch: 28 }, // E-mail
         { wch: 18 }, // Telefone
+        { wch: 12 }, // Status
         { wch: 8 }, // Ativo
         { wch: 25 }, // Observações
       ]
@@ -636,6 +798,13 @@ export const CadastrosUnidadesPage: React.FC = () => {
           row['Nome Completo'] || row['Nome'] || row['nome'] || row['NOME'] || '',
         ).trim()
         const cpfRaw = String(row['CPF'] || row['cpf'] || row['Cpf'] || '').trim()
+        const dataNascRaw = String(
+          row['Data Nasc'] ||
+            row['Data de Nascimento'] ||
+            row['Nascimento'] ||
+            row['data_nascimento'] ||
+            '',
+        ).trim()
         const emailRaw = String(
           row['E-mail'] || row['Email'] || row['email'] || row['EMAIL'] || '',
         ).trim()
@@ -740,6 +909,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
           bloco: blocoRaw,
           nome: nomeRaw,
           cpf: cpfLimpo,
+          data_nascimento: dataNascRaw || undefined,
           email: emailRaw,
           telefone: telefoneRaw,
           vinculo: vinculoNormalizado || 'condomino',
@@ -794,9 +964,14 @@ export const CadastrosUnidadesPage: React.FC = () => {
             unidade: item.unidadeIdEncontrada,
             nome: item.nome,
             cpf: item.cpf,
+            data_nascimento: item.data_nascimento
+              ? `${item.data_nascimento} 00:00:00.000Z`
+              : undefined,
             email: item.email || undefined,
             telefone: item.telefone || undefined,
             vinculo: item.vinculo,
+            status_aprovacao: 'aprovado',
+            origem: 'admin',
             ativo: true,
             observacoes: 'Importado em massa via planilha Excel',
           })
@@ -870,19 +1045,42 @@ export const CadastrosUnidadesPage: React.FC = () => {
     })
   }, [cadastros, filtroBusca, filtroVinculo, filtroUnidade, filtroStatus, mapaUnidadesPorId])
 
+  // Função utilitária para cálculo de idade
+  const calcularIdade = (dataIso?: string): { anos: number; textoFormatado: string } | null => {
+    if (!dataIso) return null
+    try {
+      const parte = dataIso.slice(0, 10).split('-').map(Number)
+      if (parte.length !== 3 || isNaN(parte[0]) || isNaN(parte[1]) || isNaN(parte[2])) return null
+      const dataNasc = new Date(parte[0], parte[1] - 1, parte[2])
+      const hoje = new Date()
+      let anos = hoje.getFullYear() - dataNasc.getFullYear()
+      const m = hoje.getMonth() - dataNasc.getMonth()
+      if (m < 0 || (m === 0 && hoje.getDate() < dataNasc.getDate())) {
+        anos--
+      }
+      if (anos < 0) return null
+      const dataBr = `${String(parte[2]).padStart(2, '0')}/${String(parte[1]).padStart(2, '0')}/${parte[0]}`
+      return { anos, textoFormatado: `${dataBr} (${anos} anos)` }
+    } catch {
+      return null
+    }
+  }
+
   // Estatísticas do cabeçalho
   const stats = useMemo(() => {
     let prop = 0
     let cond = 0
     let loc = 0
     let ativos = 0
+    let pendentes = 0
     for (const c of cadastros) {
       if (c.ativo) ativos++
+      if (c.status_aprovacao === 'pendente') pendentes++
       if (c.vinculo === 'proprietario') prop++
       else if (c.vinculo === 'condomino') cond++
       else if (c.vinculo === 'locatario') loc++
     }
-    return { total: cadastros.length, ativos, prop, cond, loc }
+    return { total: cadastros.length, ativos, pendentes, prop, cond, loc }
   }, [cadastros])
 
   return (
@@ -921,6 +1119,19 @@ export const CadastrosUnidadesPage: React.FC = () => {
             className="text-xs h-9 border-slate-300 hover:bg-slate-50"
           >
             <Upload className="mr-1.5 h-3.5 w-3.5 text-cyan-600" /> Importar Excel (.xlsx)
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              if (unidades.length > 0) {
+                abrirModalLinkUnidade(unidades[0].id)
+              }
+            }}
+            className="text-xs h-9 border-[#0066FF]/30 text-[#002B5E] hover:bg-[#0066FF]/5 font-semibold"
+          >
+            <Share2 className="mr-1.5 h-3.5 w-3.5 text-[#0066FF]" /> Link de Cadastro
           </Button>
 
           <Button
@@ -1054,6 +1265,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
                   largurasColunas.unidade +
                   largurasColunas.nome +
                   largurasColunas.cpf +
+                  largurasColunas.dataNasc +
                   largurasColunas.vinculo +
                   largurasColunas.contatos +
                   largurasColunas.status +
@@ -1064,6 +1276,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
                 <col style={{ width: `${largurasColunas.unidade}px` }} />
                 <col style={{ width: `${largurasColunas.nome}px` }} />
                 <col style={{ width: `${largurasColunas.cpf}px` }} />
+                <col style={{ width: `${largurasColunas.dataNasc}px` }} />
                 <col style={{ width: `${largurasColunas.vinculo}px` }} />
                 <col style={{ width: `${largurasColunas.contatos}px` }} />
                 <col style={{ width: `${largurasColunas.status}px` }} />
@@ -1119,7 +1332,25 @@ export const CadastrosUnidadesPage: React.FC = () => {
                     </span>
                   </th>
 
-                  {/* Coluna 4: VÍNCULO (exatamente VÍNCULO) */}
+                  {/* Coluna 4: Data de Nascimento / Idade */}
+                  <th className="py-3 px-4 relative group">
+                    <span className="truncate block">Nascimento</span>
+                    <span
+                      role="separator"
+                      aria-orientation="vertical"
+                      title="Arrastar para redimensionar (duplo clique para restaurar)"
+                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 flex items-center justify-center touch-none"
+                      onMouseDown={(e) => iniciarRedimensionamento('dataNasc', e)}
+                      onTouchStart={(e) => iniciarRedimensionamento('dataNasc', e)}
+                      onDoubleClick={() =>
+                        salvarLarguraColuna('dataNasc', LARGURAS_PADRAO.dataNasc)
+                      }
+                    >
+                      <span className="w-0.5 h-3.5 bg-slate-300 rounded-full group-hover:bg-[#1F6B94]" />
+                    </span>
+                  </th>
+
+                  {/* Coluna 5: VÍNCULO (exatamente VÍNCULO) */}
                   <th className="py-3 px-4 relative group">
                     <span className="truncate block">VÍNCULO</span>
                     <span
@@ -1135,7 +1366,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
                     </span>
                   </th>
 
-                  {/* Coluna 5: Contatos */}
+                  {/* Coluna 6: Contatos */}
                   <th className="py-3 px-4 relative group">
                     <span className="truncate block">Contatos</span>
                     <span
@@ -1153,7 +1384,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
                     </span>
                   </th>
 
-                  {/* Coluna 6: Status */}
+                  {/* Coluna 7: Status */}
                   <th className="py-3 px-4 text-center relative group">
                     <span className="truncate block">Status</span>
                     <span
@@ -1169,7 +1400,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
                     </span>
                   </th>
 
-                  {/* Coluna 7: Ações */}
+                  {/* Coluna 8: Ações */}
                   <th className="py-3 px-4 text-right relative group">
                     <span className="truncate block">Ações</span>
                     <span
@@ -1189,13 +1420,13 @@ export const CadastrosUnidadesPage: React.FC = () => {
               <tbody className="divide-y divide-slate-100">
                 {carregando ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-10 text-slate-400">
+                    <td colSpan={8} className="text-center py-10 text-slate-400">
                       Carregando cadastros...
                     </td>
                   </tr>
                 ) : cadastrosFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-10 text-slate-400">
+                    <td colSpan={8} className="text-center py-10 text-slate-400">
                       Nenhum cadastro encontrado com os filtros aplicados.
                     </td>
                   </tr>
@@ -1228,6 +1459,23 @@ export const CadastrosUnidadesPage: React.FC = () => {
 
                         <td className="py-3 px-4 font-mono text-slate-700 whitespace-nowrap">
                           {formatarCpf(cad.cpf)}
+                        </td>
+
+                        <td className="py-3 px-4 text-slate-700 whitespace-nowrap text-[11px]">
+                          {(() => {
+                            const idade = calcularIdade(cad.data_nascimento)
+                            if (!idade) return <span className="text-slate-400">—</span>
+                            return (
+                              <div>
+                                <span className="font-mono">
+                                  {idade.textoFormatado.split(' ')[0]}
+                                </span>
+                                <span className="block text-[10px] text-slate-500 font-medium">
+                                  {idade.anos} anos
+                                </span>
+                              </div>
+                            )
+                          })()}
                         </td>
 
                         <td className="py-3 px-4 whitespace-nowrap">
@@ -1290,6 +1538,15 @@ export const CadastrosUnidadesPage: React.FC = () => {
                             <Button
                               size="icon"
                               variant="ghost"
+                              onClick={() => abrirModalLinkUnidade(cad.unidade)}
+                              className="h-7 w-7 text-[#0066FF] hover:bg-[#0066FF]/10"
+                              title="Enviar/Copiar link de cadastro da unidade"
+                            >
+                              <Share2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
                               onClick={() => abrirEditarCadastro(cad)}
                               className="h-7 w-7 text-slate-500 hover:text-cyan-700"
                               title="Editar cadastro"
@@ -1316,6 +1573,128 @@ export const CadastrosUnidadesPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* MODAL LINK DE CADASTRO DA UNIDADE (WhatsApp, E-mail e Copiar) */}
+      <Dialog open={modalLinkAberto} onOpenChange={setModalLinkAberto}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-[#002B5E] flex items-center gap-2">
+              <Share2 className="h-5 w-5 text-[#0066FF]" />
+              Link Oficial de Cadastro da Unidade
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600">
+              {unidadeSelecionadaLink && (
+                <span>
+                  Envie o link exclusivo da{' '}
+                  <strong>
+                    Unidade {unidadeSelecionadaLink.identificador}
+                    {unidadeSelecionadaLink.bloco ? ` (${unidadeSelecionadaLink.bloco})` : ''}
+                  </strong>{' '}
+                  para que o morador ou proprietário preencha os dados oficiais.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs">
+            {carregandoLink ? (
+              <div className="py-8 text-center text-xs text-slate-500 space-y-2">
+                <div className="h-5 w-5 border-2 border-[#0066FF] border-t-transparent rounded-full animate-spin mx-auto" />
+                <p>Gerando link seguro da unidade...</p>
+              </div>
+            ) : (
+              <>
+                {/* Campo com o link para visualização e cópia */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700">
+                    Endereço Web Exclusivo
+                  </Label>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      readOnly
+                      value={linkGerado}
+                      className="text-xs h-9 font-mono bg-slate-50 border-slate-200"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={copiarLinkCadastro}
+                      className="bg-[#002B5E] hover:bg-[#001D40] text-white shrink-0 h-9 px-3"
+                    >
+                      <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    O morador acessará a página pública segura associada diretamente a esta unidade.
+                  </p>
+                </div>
+
+                {/* Opção 1: Envio por WhatsApp (wa.me) */}
+                <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-xs text-emerald-900 block flex items-center gap-1.5">
+                      <MessageCircle className="h-4 w-4 text-emerald-700" />
+                      Enviar pelo WhatsApp
+                    </span>
+                    <span className="text-[11px] text-emerald-700">
+                      Dispara mensagem formatada com o link via WhatsApp Web ou app.
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={enviarLinkWhatsApp}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shrink-0"
+                  >
+                    Abrir WhatsApp
+                  </Button>
+                </div>
+
+                {/* Opção 2: Envio por E-mail institucional */}
+                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
+                  <span className="font-bold text-xs text-[#002B5E] block flex items-center gap-1.5">
+                    <Mail className="h-4 w-4 text-[#0066FF]" />
+                    Enviar por E-mail Institucional
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="email"
+                      placeholder="email.do.morador@exemplo.com"
+                      value={emailEnvioLink}
+                      onChange={(e) => setEmailEnvioLink(e.target.value)}
+                      className="text-xs h-9 bg-white"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={enviandoEmailLink || !emailEnvioLink.trim()}
+                      onClick={enviarLinkPorEmail}
+                      className="bg-[#0066FF] hover:bg-[#0052CC] text-white shrink-0 h-9 font-semibold"
+                    >
+                      {enviandoEmailLink ? 'Enviando...' : 'Enviar E-mail'}
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    Dispara o e-mail formal de convite através da infraestrutura transacional do
+                    Koinon.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setModalLinkAberto(false)}
+            >
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* MODAL CRIAR / EDITAR */}
       <Dialog open={modalAberto} onOpenChange={setModalAberto}>
@@ -1361,8 +1740,8 @@ export const CadastrosUnidadesPage: React.FC = () => {
               />
             </div>
 
-            {/* Grid CPF e Vínculo */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Grid CPF, Data de Nascimento e Vínculo */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">CPF *</Label>
                 <Input
@@ -1377,7 +1756,22 @@ export const CadastrosUnidadesPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Classificação do Vínculo *</Label>
+                <Label className="text-xs font-semibold">Data de Nascimento</Label>
+                <Input
+                  type="date"
+                  max={new Date().toISOString().slice(0, 10)}
+                  value={formDataNascimento}
+                  onChange={(e) => {
+                    setFormDataNascimento(e.target.value)
+                    setFormDataNascErro(null)
+                  }}
+                  className={`text-xs h-9 ${formDataNascErro ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                />
+                {formDataNascErro && <p className="text-[10px] text-red-600">{formDataNascErro}</p>}
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Vínculo *</Label>
                 <Select
                   value={formVinculo}
                   onValueChange={(val) => setFormVinculo(val as VinculoCadastro)}

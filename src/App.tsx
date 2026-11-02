@@ -44,6 +44,7 @@ import GestaoUsuariosPage from '@/pages/admin/Usuarios'
 import HistoricoAlteracoesPage from '@/pages/admin/HistoricoAlteracoes'
 import ParametrosConvencaoPage from '@/pages/admin/ParametrosConvencao'
 import CadastrosUnidadesPage from '@/pages/admin/CadastrosUnidades'
+import CadastroMoradorPublicoPage from '@/pages/public/CadastroMoradorPublico'
 
 import NotFound from '@/pages/NotFound'
 
@@ -120,6 +121,9 @@ const App = () => (
             <Route path="/verify-email/:token" element={<VerificarEmailPage />} />
             <Route path="/confirm-verification" element={<VerificarEmailPage />} />
             <Route path="/confirm-verification/:token" element={<VerificarEmailPage />} />
+
+            {/* Rota Pública de Cadastro de Moradores por Unidade */}
+            <Route path="/cadastro/:token" element={<CadastroMoradorPublicoPage />} />
             <Route path="/auth/confirm-verification" element={<VerificarEmailPage />} />
             <Route path="/auth/confirm-verification/:token" element={<VerificarEmailPage />} />
 
