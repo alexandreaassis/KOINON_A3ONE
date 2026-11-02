@@ -12,6 +12,7 @@ import {
   type AssinaturaDocumentoRecord,
   type FormatoAssinatura,
 } from '@/lib/api'
+import { formatarIdentificadorUnidade } from '@/lib/formatadorUnidade'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { useAuth } from '@/context/AuthContext'
 import { formatarCpf } from '@/lib/cpf'
@@ -520,7 +521,7 @@ export const DossieCartorioPage: React.FC = () => {
                 return (
                   <tr key={u.id} className={pres ? 'bg-white' : 'bg-slate-50 text-slate-400'}>
                     <td className="p-1.5 border-r border-slate-300 font-bold text-center">
-                      {u.tipo_unidade || rotuloUnidade} {u.identificador}
+                      {formatarIdentificadorUnidade(u.identificador, u.tipo_unidade, rotuloUnidade)}
                     </td>
                     <td className="p-1.5 border-r border-slate-300">
                       {pres ? (

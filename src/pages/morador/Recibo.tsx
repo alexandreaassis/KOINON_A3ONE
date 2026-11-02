@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { api, type ComprovanteRecord } from '@/lib/api'
+import { formatarIdentificadorUnidade, formatarUnidadeComBloco } from '@/lib/formatadorUnidade'
 import {
   Card,
   CardHeader,
@@ -191,8 +192,8 @@ export const ReciboPage: React.FC = () => {
       {/* Lista de Comprovantes da Unidade */}
       <div>
         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700 mb-3">
-          Comprovantes da Unidade {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
-          {unidadeSelecionada?.identificador} ({comprovantes.length})
+          Comprovantes da Unidade {formatarUnidadeComBloco(unidadeSelecionada, rotuloUnidade)} (
+          {comprovantes.length})
         </h3>
 
         {comprovantes.length === 0 ? (
@@ -258,8 +259,11 @@ export const ReciboPage: React.FC = () => {
                         <Building className="h-3.5 w-3.5" /> Unidade:
                       </span>
                       <strong className="text-slate-900">
-                        {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
-                        {unidadeSelecionada?.identificador}
+                        {formatarIdentificadorUnidade(
+                          unidadeSelecionada?.identificador,
+                          unidadeSelecionada?.tipo_unidade,
+                          rotuloUnidade,
+                        )}
                       </strong>
                     </div>
 

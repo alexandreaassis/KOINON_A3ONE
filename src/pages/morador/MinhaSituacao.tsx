@@ -8,6 +8,7 @@ import {
   type DeliberacaoRecord,
   type ComprovanteRecord,
 } from '@/lib/api'
+import { formatarIdentificadorUnidade, formatarUnidadeComBloco } from '@/lib/formatadorUnidade'
 import {
   Card,
   CardHeader,
@@ -231,11 +232,21 @@ export const MinhaSituacaoPage: React.FC = () => {
               Sua Unidade Ativa
             </span>
             <span className="text-xl font-extrabold text-white">
-              {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
-              {unidadeSelecionada?.identificador || '—'}
+              {formatarIdentificadorUnidade(
+                unidadeSelecionada?.identificador,
+                unidadeSelecionada?.tipo_unidade,
+                rotuloUnidade,
+              )}
             </span>
             <span className="text-[11px] text-cyan-300 block">
-              {unidadeSelecionada?.bloco || 'Lago Azul'}
+              {formatarUnidadeComBloco(unidadeSelecionada, rotuloUnidade) !==
+              formatarIdentificadorUnidade(
+                unidadeSelecionada?.identificador,
+                unidadeSelecionada?.tipo_unidade,
+                rotuloUnidade,
+              )
+                ? formatarUnidadeComBloco(unidadeSelecionada, rotuloUnidade)
+                : '—'}
             </span>
           </div>
         </div>
@@ -259,8 +270,7 @@ export const MinhaSituacaoPage: React.FC = () => {
                 <Home className="h-3.5 w-3.5" /> Identificador:
               </span>
               <span className="font-semibold text-slate-900">
-                {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
-                {unidadeSelecionada?.identificador} ({unidadeSelecionada?.bloco})
+                {formatarUnidadeComBloco(unidadeSelecionada, rotuloUnidade)}
               </span>
             </div>
             <div className="flex items-center justify-between py-1.5 border-b border-slate-100">

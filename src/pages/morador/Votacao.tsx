@@ -6,8 +6,9 @@ import {
   api,
   type DeliberacaoRecord,
   type ItemPautaRecord,
-  type CredenciamentoRecord,
+  type ComparecimentoRecord,
 } from '@/lib/api'
+import { formatarIdentificadorUnidade, formatarUnidadeComBloco } from '@/lib/formatadorUnidade'
 import {
   Card,
   CardHeader,
@@ -358,10 +359,16 @@ export const VotacaoPage: React.FC = () => {
           </div>
           <CardTitle className="text-xl font-bold text-slate-900">Voto Já Computado</CardTitle>
           <CardDescription className="text-sm text-slate-600 mt-2 max-w-md mx-auto">
-            A unidade {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
-            <strong>{unidadeSelecionada?.identificador}</strong> já registrou seu voto nesta
-            deliberação. Por segurança e integridade eleitoral (1 Unidade = 1 Voto), o voto é
-            irretratável.
+            A unidade{' '}
+            <strong>
+              {formatarIdentificadorUnidade(
+                unidadeSelecionada?.identificador,
+                unidadeSelecionada?.tipo_unidade,
+                rotuloUnidade,
+              )}
+            </strong>{' '}
+            já registrou seu voto nesta deliberação. Por segurança e integridade eleitoral (1
+            Unidade = 1 Voto), o voto é irretratável.
           </CardDescription>
           <div className="mt-6 flex justify-center gap-3">
             <Button
@@ -389,9 +396,15 @@ export const VotacaoPage: React.FC = () => {
           <CardTitle className="text-xl font-bold text-slate-900">Canal Online Bloqueado</CardTitle>
           <CardDescription className="text-sm text-slate-600 mt-2 max-w-md mx-auto">
             Foi registrada a presença física do representante do{' '}
-            {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
-            <strong>{unidadeSelecionada?.identificador}</strong> no plenário da assembleia. O voto
-            presencial tem prevalência e impede a emissão de cédula eletrônica remota.
+            <strong>
+              {formatarIdentificadorUnidade(
+                unidadeSelecionada?.identificador,
+                unidadeSelecionada?.tipo_unidade,
+                rotuloUnidade,
+              )}
+            </strong>{' '}
+            no plenário da assembleia. O voto presencial tem prevalência e impede a emissão de
+            cédula eletrônica remota.
           </CardDescription>
           <div className="mt-6 flex justify-center">
             <Button variant="outline" onClick={() => navigate('/')}>
@@ -511,9 +524,14 @@ export const VotacaoPage: React.FC = () => {
             </CardTitle>
             <CardDescription className="text-xs text-slate-500">
               Confirme seu CPF vinculado à unidade{' '}
-              {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
-              <strong>{unidadeSelecionada?.identificador}</strong> para solicitar o código
-              temporário de votação.
+              <strong>
+                {formatarIdentificadorUnidade(
+                  unidadeSelecionada?.identificador,
+                  unidadeSelecionada?.tipo_unidade,
+                  rotuloUnidade,
+                )}
+              </strong>{' '}
+              para solicitar o código temporário de votação.
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSolicitarOtp}>
@@ -557,8 +575,8 @@ export const VotacaoPage: React.FC = () => {
 
               <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600 border border-slate-200 space-y-1">
                 <p>
-                  <strong>Unidade:</strong> {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
-                  {unidadeSelecionada?.identificador} ({unidadeSelecionada?.bloco})
+                  <strong>Unidade:</strong>{' '}
+                  {formatarUnidadeComBloco(unidadeSelecionada, rotuloUnidade)}
                 </p>
                 <p>
                   <strong>Deliberação:</strong> {deliberacao?.titulo}
@@ -726,8 +744,7 @@ export const VotacaoPage: React.FC = () => {
               </span>
               <span>
                 <strong>Unidade Votante:</strong>{' '}
-                {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
-                {unidadeSelecionada?.identificador}
+                {formatarUnidadeComBloco(unidadeSelecionada, rotuloUnidade)}
               </span>
             </div>
           </div>
@@ -985,8 +1002,7 @@ export const VotacaoPage: React.FC = () => {
               <p className="flex justify-between">
                 <span>Unidade:</span>
                 <strong className="text-slate-900">
-                  {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
-                  {unidadeSelecionada?.identificador}
+                  {formatarUnidadeComBloco(unidadeSelecionada, rotuloUnidade)}
                 </strong>
               </p>
               <p className="flex justify-between">

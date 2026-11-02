@@ -6,6 +6,7 @@ import {
   type TipoCondominio,
   type GrupoCondoConfig,
 } from '@/lib/api'
+import { formatarUnidadeComBloco } from '@/lib/formatadorUnidade'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { useAuth } from '@/context/AuthContext'
 import {
@@ -1438,7 +1439,7 @@ export const ConfiguracoesPage: React.FC = () => {
                           ? 'bg-amber-50 border-amber-300 text-amber-900 font-semibold ring-1 ring-amber-300'
                           : 'bg-slate-50 border-slate-100 text-slate-700'
                       }`}
-                      title={`${u.tipo_unidade || rotuloEfetivo} ${u.identificador} (${u.bloco || 'Lago Azul'})${u.andar ? ` - Andar: ${u.andar}` : ''}${u.posicao_numero ? ` - Pos: ${u.posicao_numero}` : ''} - Peso: ${u.peso_voto ?? 1}${ehPreservadaEspecial ? ' [Unidade com vínculos eleitorais preservada]' : ''}`}
+                      title={`${formatarUnidadeComBloco(u, rotuloEfetivo)}${u.andar ? ` - Andar: ${u.andar}` : ''}${u.posicao_numero ? ` - Pos: ${u.posicao_numero}` : ''} - Peso: ${u.peso_voto ?? 1}${ehPreservadaEspecial ? ' [Unidade com vínculos eleitorais preservada]' : ''}`}
                     >
                       {u.identificador}
                       {ehPreservadaEspecial && (

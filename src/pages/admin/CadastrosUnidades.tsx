@@ -1249,7 +1249,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
                   <SelectItem value="todas">Todas as Unidades</SelectItem>
                   {unidades.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
-                      {u.identificador} {u.bloco ? `(${u.bloco})` : ''}
+                      {formatarUnidadeComBloco(u, rotuloUnidade)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1460,20 +1460,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
                           <div className="flex items-center gap-1.5">
                             <Building className="h-3.5 w-3.5 text-slate-400" />
                             <span>
-                              {unid
-                                ? formatarIdentificadorUnidade(
-                                    unid.identificador,
-                                    unid.tipo_unidade,
-                                    rotuloUnidade,
-                                  )
-                                : '—'}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-normal">
-                              (
-                              {unid && temBlocoReal(unid.bloco, unid.tipo_unidade)
-                                ? normalizarBloco(unid.bloco, unid.tipo_unidade)
-                                : '—'}
-                              )
+                              {unid ? formatarUnidadeComBloco(unid, rotuloUnidade, ' (—)') : '—'}
                             </span>
                           </div>
                         </td>

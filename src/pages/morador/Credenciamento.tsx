@@ -24,6 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
 import { formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
+import { formatarIdentificadorUnidade, formatarUnidadeComBloco } from '@/lib/formatadorUnidade'
 import {
   UserCheck,
   UploadCloud,
@@ -245,8 +246,12 @@ export const CredenciamentoPage: React.FC = () => {
                   : credExistente.tipo_vinculo === 'locatario'
                     ? 'LOCATÁRIO (INQUILINO)'
                     : credExistente.tipo_vinculo.toUpperCase()}{' '}
-              • <strong>Unidade:</strong> {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
-              {unidadeSelecionada?.identificador}
+              • <strong>Unidade:</strong>{' '}
+              {formatarIdentificadorUnidade(
+                unidadeSelecionada?.identificador,
+                unidadeSelecionada?.tipo_unidade,
+                rotuloUnidade,
+              )}
             </p>
             {credExistente.motivo_rejeicao && (
               <p className="text-red-700 font-semibold pt-1">
@@ -282,10 +287,7 @@ export const CredenciamentoPage: React.FC = () => {
                 <Label className="text-xs font-semibold text-slate-700">Unidade Habitacional</Label>
                 <div className="flex items-center gap-2 h-10 px-3 rounded-md bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-800">
                   <Building className="h-4 w-4 text-cyan-700" />
-                  <span>
-                    {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
-                    {unidadeSelecionada?.identificador} ({unidadeSelecionada?.bloco || 'Lago Azul'})
-                  </span>
+                  <span>{formatarUnidadeComBloco(unidadeSelecionada, rotuloUnidade)}</span>
                 </div>
               </div>
 

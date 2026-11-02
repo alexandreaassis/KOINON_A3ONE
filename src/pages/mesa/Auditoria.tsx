@@ -7,6 +7,7 @@ import {
   type ApuracaoResponse,
   type UnidadeRecord,
 } from '@/lib/api'
+import { formatarIdentificadorUnidade } from '@/lib/formatadorUnidade'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -450,7 +451,11 @@ export const AuditoriaPage: React.FC = () => {
                           {getBadgeEvento(ev.evento)}
                           {unid && (
                             <span className="font-semibold text-slate-800">
-                              {unid.tipo_unidade || rotuloUnidade} {unid.identificador}
+                              {formatarIdentificadorUnidade(
+                                unid.identificador,
+                                unid.tipo_unidade,
+                                rotuloUnidade,
+                              )}
                             </span>
                           )}
                         </div>
