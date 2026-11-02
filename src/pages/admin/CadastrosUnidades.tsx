@@ -226,6 +226,14 @@ export const CadastrosUnidadesPage: React.FC = () => {
   const [salvando, setSalvando] = useState(false)
   const [itemEditando, setItemEditando] = useState<CadastroUnidadeRecord | null>(null)
 
+  // Modal de Exclusão com Reautenticação
+  const [modalExclusaoAberto, setModalExclusaoAberto] = useState(false)
+  const [cadastroParaExcluir, setCadastroParaExcluir] = useState<CadastroUnidadeRecord | null>(null)
+  const [authEmailExclusao, setAuthEmailExclusao] = useState('')
+  const [authSenhaExclusao, setAuthSenhaExclusao] = useState('')
+  const [excluindoCadastro, setExcluindoCadastro] = useState(false)
+  const [erroExclusao, setErroExclusao] = useState<string | null>(null)
+
   // Campos do formulário
   const [formUnidadeId, setFormUnidadeId] = useState('')
   const [formNome, setFormNome] = useState('')
@@ -676,19 +684,64 @@ export const CadastrosUnidadesPage: React.FC = () => {
     }
   }
 
-  // Excluir cadastro
-  const excluirCadastro = async (cad: CadastroUnidadeRecord) => {
-    if (!confirm(`Deseja excluir definitivamente o cadastro de "${cad.nome}"?`)) return
+  // Abrir modal de exclusão com reautenticação
+  const abrirModalExcluirCadastro = (cad: CadastroUnidadeRecord) => {
+    setCadastroParaExcluir(cad)
+    setAuthEmailExclusao(user?.email || '')
+    setAuthSenhaExclusao('')
+    setErroExclusao(null)
+    setModalExclusaoAberto(true)
+  }
+
+  // Executar exclusão com validação de login e senha no servidor
+  const handleConfirmarExclusaoComReautenticacao = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!cadastroParaExcluir) return
+
+    if (!authEmailExclusao.trim()) {
+      setErroExclusao('Informe seu e-mail institucional.')
+      return
+    }
+    if (!authSenhaExclusao) {
+      setErroExclusao('Informe sua senha para autorizar a exclusão.')
+      return
+    }
+
+    setExcluindoCadastro(true)
+    setErroExclusao(null)
+
     try {
-      await api.excluirCadastroUnidade(cad.id)
-      toast({ title: 'Cadastro excluído' })
-      await carregarDados()
-    } catch (err) {
+      const resp = await api.excluirCadastroUnidadeComReautenticacao({
+        cadastroId: cadastroParaExcluir.id,
+        email: authEmailExclusao.trim(),
+        password: authSenhaExclusao,
+      })
+
       toast({
-        title: 'Erro ao excluir',
-        description: getErrorMessage(err),
+        title: 'Cadastro excluído com sucesso',
+        description:
+          resp?.message ||
+          `O cadastro de "${cadastroParaExcluir.nome}" foi removido e registrado no Histórico de Alterações.`,
+      })
+
+      setModalExclusaoAberto(false)
+      setCadastroParaExcluir(null)
+      setAuthSenhaExclusao('')
+      await carregarDados()
+    } catch (err: any) {
+      console.error('Erro na exclusão com reautenticação:', err)
+      const msg =
+        err?.data?.message ||
+        err?.message ||
+        'Falha ao autenticar ou excluir o cadastro. Verifique suas credenciais.'
+      setErroExclusao(msg)
+      toast({
+        title: 'Falha na exclusão',
+        description: msg,
         variant: 'destructive',
       })
+    } finally {
+      setExcluindoCadastro(false)
     }
   }
 
@@ -1574,9 +1627,9 @@ export const CadastrosUnidadesPage: React.FC = () => {
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => excluirCadastro(cad)}
+                              onClick={() => abrirModalExcluirCadastro(cad)}
                               className="h-7 w-7 text-slate-400 hover:text-red-600"
-                              title="Excluir cadastro"
+                              title="Excluir cadastro (exige login e senha)"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
@@ -2085,6 +2138,132 @@ export const CadastrosUnidadesPage: React.FC = () => {
               </Button>
             </div>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE EXCLUSÃO COM REAUTENTICAÇÃO (LOGIN E SENHA) */}
+      <Dialog open={modalExclusaoAberto} onOpenChange={setModalExclusaoAberto}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-red-900 flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <Trash2 className="h-4 w-4 text-red-600" />
+              </div>
+              Confirmar Exclusão de Cadastro
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600">
+              Esta ação removerá permanentemente o cadastro de morador ou proprietário vinculado à
+              unidade e liberará a vaga na matriz de bloqueios.
+            </DialogDescription>
+          </DialogHeader>
+
+          {cadastroParaExcluir && (
+            <div className="space-y-4 py-2 text-xs">
+              {/* Card de Identificação da Pessoa e Unidade */}
+              <div className="p-3 rounded-lg bg-red-50/70 border border-red-200 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-slate-900 text-xs">
+                    {cadastroParaExcluir.nome}
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-white border border-red-200 text-red-700">
+                    {cadastroParaExcluir.vinculo === 'proprietario'
+                      ? 'Proprietário'
+                      : cadastroParaExcluir.vinculo === 'condomino'
+                        ? 'Condômino'
+                        : 'Inquilino'}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-600 space-y-0.5 font-mono">
+                  <p>
+                    <strong className="text-slate-700 font-sans">CPF:</strong>{' '}
+                    {formatarCpf(cadastroParaExcluir.cpf || '')}
+                  </p>
+                  <p>
+                    <strong className="text-slate-700 font-sans">Unidade:</strong>{' '}
+                    {mapaUnidadesPorId.get(cadastroParaExcluir.unidade)
+                      ? formatarUnidadeComBloco(
+                          mapaUnidadesPorId.get(cadastroParaExcluir.unidade)!,
+                          rotuloUnidade,
+                        )
+                      : cadastroParaExcluir.unidade}
+                  </p>
+                </div>
+                <p className="text-[10px] text-red-700 pt-1 border-t border-red-200/60 font-sans">
+                  • Os dados da pessoa serão salvos no <strong>Histórico de Alterações</strong> para
+                  fins de auditoria e conformidade legal.
+                  <br />• A vaga desta unidade na matriz de bloqueios será liberada imediatamente.
+                </p>
+              </div>
+
+              {/* Formulário de Reautenticação */}
+              <form onSubmit={handleConfirmarExclusaoComReautenticacao} className="space-y-3">
+                <div className="rounded-md bg-amber-50 border border-amber-200 p-2.5 text-[11px] text-amber-900">
+                  <strong className="block mb-0.5">Reautenticação de Segurança Obrigatória</strong>
+                  Por exigência de auditoria, confirme seu login e senha de administrador para
+                  validar a exclusão contra o servidor.
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold text-slate-700">
+                    E-mail do Administrador *
+                  </Label>
+                  <Input
+                    type="email"
+                    required
+                    value={authEmailExclusao}
+                    onChange={(e) => setAuthEmailExclusao(e.target.value)}
+                    placeholder="seu.email@exemplo.com"
+                    className="text-xs h-9 bg-white"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold text-slate-700">
+                    Senha do Administrador *
+                  </Label>
+                  <Input
+                    type="password"
+                    required
+                    value={authSenhaExclusao}
+                    onChange={(e) => setAuthSenhaExclusao(e.target.value)}
+                    placeholder="Digite sua senha de acesso"
+                    className="text-xs h-9 bg-white"
+                  />
+                </div>
+
+                {erroExclusao && (
+                  <div className="p-2.5 rounded bg-red-100 border border-red-300 text-red-800 text-xs font-medium">
+                    {erroExclusao}
+                  </div>
+                )}
+
+                <DialogFooter className="pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={excluindoCadastro}
+                    onClick={() => {
+                      setModalExclusaoAberto(false)
+                      setCadastroParaExcluir(null)
+                      setAuthSenhaExclusao('')
+                      setErroExclusao(null)
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={excluindoCadastro}
+                    size="sm"
+                    className="bg-red-600 hover:bg-red-700 text-white font-semibold"
+                  >
+                    {excluindoCadastro ? 'Autenticando e Excluindo...' : 'Excluir Definitivamente'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

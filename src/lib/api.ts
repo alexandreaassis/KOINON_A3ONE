@@ -742,6 +742,27 @@ export const api = {
     return pb.collection('cadastros_unidade').delete(id)
   },
 
+  async excluirCadastroUnidadeComReautenticacao(dados: {
+    cadastroId: string
+    email: string
+    password: string
+  }) {
+    return pb.send<{
+      success: boolean
+      message: string
+      dadosExcluidos: {
+        id: string
+        nome: string
+        cpf: string
+        vinculo: string
+        unidade: string
+      }
+    }>('/backend/v1/admin/cadastros/excluir', {
+      method: 'POST',
+      body: dados,
+    })
+  },
+
   // Operações de Link e Aprovação de Cadastro de Moradores
   async getUnidadePorTokenPublico(token: string) {
     return pb.send<{

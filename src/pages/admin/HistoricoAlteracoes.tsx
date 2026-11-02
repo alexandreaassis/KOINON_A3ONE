@@ -16,6 +16,8 @@ import {
   Trash2,
   Info,
   CheckCircle2,
+  FileText,
+  Printer,
 } from 'lucide-react'
 import {
   api,
@@ -25,6 +27,7 @@ import {
   UserRecord,
 } from '@/lib/api'
 import { useAuth } from '@/context/AuthContext'
+import { useCondoConfig } from '@/context/CondoConfigContext'
 import { useToast } from '@/hooks/use-toast'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,6 +40,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { imprimirOuBaixarPdfHistorico, type FiltrosRelatorioHistorico } from '@/lib/pdfHistorico'
 
 const ENTIDADES_CONFIG: Record<string, { label: string; singular: string; cor: string }> = {
   unidades: {
@@ -117,6 +121,7 @@ const ROTULOS_CAMPOS: Record<string, string> = {
 
 export function HistoricoAlteracoesPage() {
   const { user } = useAuth()
+  const { config } = useCondoConfig()
   const { toast } = useToast()
 
   const [registros, setRegistros] = useState<HistoricoAlteracaoRecord[]>([])
@@ -132,6 +137,9 @@ export function HistoricoAlteracoesPage() {
   const [filtroDataInicio, setFiltroDataInicio] = useState<string>('')
   const [filtroDataFim, setFiltroDataFim] = useState<string>('')
   const [buscaLivre, setBuscaLivre] = useState<string>('')
+
+  // Estado para emissão do relatório estruturado
+  const [gerandoRelatorioPdf, setGerandoRelatorioPdf] = useState(false)
 
   // Linhas expandidas
   const [linhasExpandidas, setLinhasExpandidas] = useState<Record<string, boolean>>({})
@@ -198,6 +206,79 @@ export function HistoricoAlteracoesPage() {
     setFiltroDataInicio('')
     setFiltroDataFim('')
     setBuscaLivre('')
+  }
+
+  // Geração do relatório em PDF respeitando rigorosamente os filtros da tela
+  const handleGerarRelatorioPdf = async () => {
+    setGerandoRelatorioPdf(true)
+    try {
+      // Buscar todos os registros que atendem exatamente aos mesmos filtros (sem paginação estreita)
+      const res = await api.getHistoricoAlteracoes({
+        entidade: filtroEntidade !== 'todas' ? filtroEntidade : undefined,
+        acao: filtroAcao !== 'todas' ? filtroAcao : undefined,
+        userId: filtroUsuario !== 'todos' ? filtroUsuario : undefined,
+        dataInicio: filtroDataInicio || undefined,
+        dataFim: filtroDataFim || undefined,
+        termo: buscaLivre || undefined,
+        page: 1,
+        perPage: 500, // Limite amplo para o relatório consolidado
+      })
+
+      const registrosFiltrados = res.items || []
+      const totalFiltrado = res.totalItems || registrosFiltrados.length
+
+      // Obter nomes amigáveis para o cabeçalho do relatório
+      const entidadeObj = ENTIDADES_CONFIG[filtroEntidade]
+      const entidadeLabel =
+        filtroEntidade === 'todas' ? 'Todas as entidades' : entidadeObj?.label || filtroEntidade
+
+      let acaoLabel = 'Todas as operações'
+      if (filtroAcao === 'criacao') acaoLabel = 'Criação de Registro'
+      else if (filtroAcao === 'atualizacao') acaoLabel = 'Atualização de Dados'
+      else if (filtroAcao === 'exclusao') acaoLabel = 'Exclusão de Registro'
+
+      const operadorEncontrado = usuariosSistema.find((u) => u.id === filtroUsuario)
+      const operadorNome =
+        filtroUsuario === 'todos'
+          ? 'Todos os operadores'
+          : operadorEncontrado?.name || operadorEncontrado?.email || filtroUsuario
+
+      const filtrosDescritos: FiltrosRelatorioHistorico = {
+        entidade: filtroEntidade !== 'todas' ? filtroEntidade : undefined,
+        entidadeLabel,
+        acao: filtroAcao !== 'todas' ? filtroAcao : undefined,
+        acaoLabel,
+        operador: filtroUsuario !== 'todos' ? filtroUsuario : undefined,
+        operadorNome,
+        dataInicio: filtroDataInicio || undefined,
+        dataFim: filtroDataFim || undefined,
+        busca: buscaLivre || undefined,
+      }
+
+      imprimirOuBaixarPdfHistorico({
+        nomeCondominio: config?.nome_condominio || 'Condomínio Lago Azul',
+        registros: registrosFiltrados,
+        filtros: filtrosDescritos,
+        totalRegistros: totalFiltrado,
+        solicitanteNome: user?.name || user?.email || 'Administrador',
+        solicitanteEmail: user?.email,
+        solicitanteRole: user?.role,
+      })
+
+      toast({
+        title: 'Relatório gerado com sucesso',
+        description: `O documento traz ${totalFiltrado} registros respeitando os filtros selecionados.`,
+      })
+    } catch (err: any) {
+      console.error('Erro ao gerar relatório do histórico em PDF:', err)
+      toast({
+        title: 'Falha ao emitir relatório',
+        description: err?.message || 'Não foi possível carregar os registros para o relatório.',
+        variant: 'destructive',
+      })
+    } finally {
+      setGerandoRelatorioPdf(false)
+    }
   }
 
   const alternarLinha = (id: string) => {
@@ -327,6 +408,16 @@ export function HistoricoAlteracoesPage() {
           >
             <RotateCw className={`h-3.5 w-3.5 mr-1.5 ${carregando ? 'animate-spin' : ''}`} />
             Atualizar
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleGerarRelatorioPdf}
+            disabled={gerandoRelatorioPdf || carregando}
+            className="bg-[#002B5E] hover:bg-[#001D40] text-white rounded-[10px] text-xs font-semibold shadow-sm gap-1.5"
+            title="Gerar relatório em PDF respeitando os filtros atuais"
+          >
+            <Printer className="h-3.5 w-3.5 text-[#0066FF]" />
+            {gerandoRelatorioPdf ? 'Gerando Relatório...' : 'Gerar Relatório (PDF)'}
           </Button>
         </div>
       </div>

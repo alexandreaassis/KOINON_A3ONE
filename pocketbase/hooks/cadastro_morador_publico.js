@@ -822,7 +822,200 @@ routerAdd('POST', '/backend/v1/admin/cadastros/rejeitar', (e) => {
   })
 })
 
-// 6. POST /backend/v1/admin/unidades/garantir-token
+// 6. POST /backend/v1/admin/cadastros/excluir
+// Exclusão de cadastro por unidade com reautenticação e registro explícito no Histórico de Alterações
+routerAdd('POST', '/backend/v1/admin/cadastros/excluir', (e) => {
+  const reqInfo = e.requestInfo()
+  const body = reqInfo.body || {}
+  const cadastroId = (body.cadastroId || '').trim()
+  const email = (body.email || '').trim().toLowerCase()
+  const senha = (body.password || body.senha || '').trim()
+
+  if (!cadastroId) {
+    return e.json(400, { success: false, message: 'ID do cadastro não informado.' })
+  }
+  if (!email || !senha) {
+    return e.json(400, {
+      success: false,
+      message: 'Informe seu e-mail e senha de administrador para confirmar a exclusão.',
+    })
+  }
+
+  // 1. Reautenticação do solicitante contra o banco
+  let solicitanteRecord = null
+  try {
+    solicitanteRecord = e.app.findAuthRecordByEmail('_pb_users_auth_', email)
+  } catch (_) {
+    return e.json(401, {
+      success: false,
+      message: 'Credenciais inválidas: e-mail ou senha incorretos.',
+    })
+  }
+
+  if (!solicitanteRecord) {
+    return e.json(401, {
+      success: false,
+      message: 'Credenciais inválidas: e-mail ou senha incorretos.',
+    })
+  }
+
+  // Validar senha
+  let senhaValida = false
+  try {
+    if (typeof solicitanteRecord.validatePassword === 'function') {
+      senhaValida = solicitanteRecord.validatePassword(senha)
+    }
+  } catch (_) {
+    senhaValida = false
+  }
+
+  if (!senhaValida) {
+    return e.json(401, {
+      success: false,
+      message: 'Senha incorreta. A exclusão não foi realizada.',
+    })
+  }
+
+  // Verificar se o usuário está ativo
+  if (solicitanteRecord.getBool('ativo') === false) {
+    return e.json(403, {
+      success: false,
+      message: 'Conta inativa. Ação não permitida.',
+    })
+  }
+
+  // 2. Verificar perfil administrativo (mesa ou admin)
+  const role = solicitanteRecord.getString('role')
+  if (role !== 'admin' && role !== 'mesa') {
+    return e.json(403, {
+      success: false,
+      message:
+        'Acesso negado: apenas administradores ou membros da mesa diretora podem excluir cadastros.',
+    })
+  }
+
+  // 3. Localizar o cadastro da unidade
+  let cad = null
+  try {
+    cad = e.app.findRecordById('cadastros_unidade', cadastroId)
+  } catch (_) {
+    return e.json(404, {
+      success: false,
+      message: 'Cadastro não localizado ou já excluído.',
+    })
+  }
+
+  // 4. Capturar metadados e snapshot dos dados da pessoa para auditoria
+  const nomePessoa = cad.getString('nome') || ''
+  const cpfPessoa = cad.getString('cpf') || ''
+  const vinculoPessoa = cad.getString('vinculo') || ''
+  const unidadeId = cad.getString('unidade') || ''
+
+  let rotuloUnidade = unidadeId
+  try {
+    const uRec = e.app.findRecordById('unidades', unidadeId)
+    const iden = uRec.getString('identificador') || ''
+    const bloco = (uRec.getString('bloco') || '').trim()
+    const tipo = uRec.getString('tipo_unidade') || 'Unidade'
+    rotuloUnidade = bloco ? `${tipo} ${iden} (${bloco})` : `${tipo} ${iden}`
+  } catch (_) {}
+
+  // Rótulo amigável com vínculo e unidade
+  const rotuloHistorico = `${nomePessoa} (${vinculoPessoa}) — ${rotuloUnidade}`
+
+  // Capturar IP e User-Agent do solicitante
+  let ip = ''
+  let userAgent = ''
+  try {
+    if (reqInfo && reqInfo.headers) {
+      const xf = reqInfo.headers['x-forwarded-for'] || reqInfo.headers['x-real-ip'] || ''
+      ip = typeof xf === 'string' ? xf.split(',')[0].trim() : ''
+      userAgent = reqInfo.headers['user-agent'] || ''
+    }
+  } catch (_) {}
+
+  // Snapshot sanitizado de todos os campos do cadastro excluído
+  const snapshotCampos = []
+  try {
+    const schemaFields = cad.collection().fields || []
+    for (let i = 0; i < schemaFields.length; i++) {
+      const f = schemaFields[i]
+      const fName = f.name
+      if (!fName || fName === 'created' || fName === 'updated' || fName === 'id') continue
+      if (fName === 'tokenKey' || fName === 'passwordHash') continue
+
+      let val = null
+      try {
+        val = cad.get(fName)
+      } catch (_) {}
+
+      if (val !== undefined && val !== null && val !== '') {
+        let valLimpo = val
+        if (typeof val === 'object') {
+          try {
+            valLimpo = JSON.stringify(val)
+          } catch (_) {
+            valLimpo = String(val)
+          }
+        }
+        snapshotCampos.push({
+          campo: fName,
+          anterior: valLimpo,
+          novo: null,
+        })
+      }
+    }
+  } catch (_) {}
+
+  // 5. Excluir o registro do banco
+  try {
+    e.app.delete(cad)
+  } catch (errDelete) {
+    console.log('Erro ao excluir cadastro_unidade:', errDelete)
+    return e.json(500, {
+      success: false,
+      message: 'Falha interna ao excluir cadastro de morador.',
+    })
+  }
+
+  // 6. Gravar log da exclusão no Histórico de Alterações com dados preservados
+  try {
+    const histCol = e.app.findCollectionByNameOrId('historico_alteracoes')
+    const histRec = new Record(histCol)
+    histRec.set('user', solicitanteRecord.id)
+    histRec.set(
+      'user_nome',
+      solicitanteRecord.getString('name') || solicitanteRecord.getString('email'),
+    )
+    histRec.set('user_email', solicitanteRecord.getString('email') || '')
+    histRec.set('user_role', role)
+    histRec.set('acao', 'exclusao')
+    histRec.set('entidade', 'cadastros_unidade')
+    histRec.set('registro_id', cadastroId)
+    histRec.set('registro_rotulo', rotuloHistorico)
+    histRec.set('campos_alterados', snapshotCampos)
+    histRec.set('ip', ip)
+    histRec.set('user_agent', userAgent)
+    histRec.set('data_hora', new Date().toISOString().replace('T', ' ').substring(0, 19))
+    e.app.save(histRec)
+  } catch (histErr) {
+    console.log('Aviso ao registrar log de exclusao em historico_alteracoes:', histErr)
+  }
+
+  return e.json(200, {
+    success: true,
+    message: `Cadastro de "${nomePessoa}" da ${rotuloUnidade} foi excluído com sucesso e registrado na auditoria.`,
+    dadosExcluidos: {
+      id: cadastroId,
+      nome: nomePessoa,
+      cpf: cpfPessoa,
+      vinculo: vinculoPessoa,
+      unidade: rotuloUnidade,
+    },
+  })
+})
+
+// 7. POST /backend/v1/admin/unidades/garantir-token
 routerAdd('POST', '/backend/v1/admin/unidades/garantir-token', (e) => {
   const authRecord = e.auth
   if (!authRecord) {
