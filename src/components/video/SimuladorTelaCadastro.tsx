@@ -90,9 +90,9 @@ export const SimuladorTelaCadastro: React.FC<SimuladorTelaCadastroProps> = ({ ce
           <SetaIndicadora direcao="esquerda" texto="Identidade Koinon" />
         </div>
 
-        {/* Símbolo com rotação suave e constante de abertura (1 volta a cada 10s, linear constante) */}
+        {/* Símbolo com rotação suave e constante de abertura (1 volta a cada 10s, linear constante via classe dedicada CSS) */}
         <div className="relative mb-6">
-          <div className="transition-transform duration-1000 ease-out hover:scale-105 animate-[spin_10s_linear_infinite]">
+          <div className="transition-transform duration-1000 ease-out hover:scale-105 animacao-giro-koinon">
             <KoinonSymbol size={110} variant="color" />
           </div>
         </div>

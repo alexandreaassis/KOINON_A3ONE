@@ -457,6 +457,20 @@
   .animate-quique-seta-direita {
     animation: quique-seta-direita 2.6s infinite;
   }
+
+  /* Giro contínuo suave da logomarca Koinon (1 volta completa a cada 10 segundos, linear e constante) */
+  @keyframes giro-koinon-10s {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animacao-giro-koinon {
+    animation: giro-koinon-10s 10s linear infinite;
+  }
 }
 
 /* Regras de Impressão de Alta Fidelidade para Documentos Oficiais (Boletim de Urna) */
