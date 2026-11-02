@@ -90,10 +90,46 @@ onRecordCreate((e) => {
     `
 
     try {
+      // Verificar se o condomínio possui remetente próprio ou SMTP configurado
+      let emailOficial = ''
+      let nomeRemetente = ''
+      let smtpAtivo = false
+      let smtpHost = ''
+      let smtpPort = 587
+      let smtpUser = ''
+      let smtpEncryption = 'starttls'
+
+      try {
+        const configs = e.app.findRecordsByFilter('configuracoes', '', '-created', 1, 0)
+        if (configs && configs.length > 0) {
+          const cfg = configs[0]
+          emailOficial = (cfg.getString('email_oficial') || '').trim()
+          nomeRemetente = (cfg.getString('nome_remetente') || '').trim()
+          smtpAtivo = cfg.getBool('smtp_ativo')
+          smtpHost = (cfg.getString('smtp_host') || '').trim()
+          smtpPort = cfg.getInt('smtp_port') || 587
+          smtpUser = (cfg.getString('smtp_user') || '').trim()
+          smtpEncryption = cfg.getString('smtp_encryption') || 'starttls'
+        }
+      } catch (_) {}
+
+      let smtpPass = ''
+      if (smtpAtivo && smtpHost) {
+        try {
+          const sec = e.app.findFirstRecordByData('configuracoes_backend', 'chave', 'SMTP_SENHA')
+          if (sec) {
+            smtpPass = sec.getString('valor') || ''
+          }
+        } catch (_) {}
+      }
+
       const settings = e.app.settings()
-      const senderAddr =
+      const fallbackAddr =
         (settings && settings.meta && settings.meta.senderAddress) || 'nao-responda@lagoazul.condo'
-      const senderName = (settings && settings.meta && settings.meta.senderName) || nomeCondo
+      const fallbackName = (settings && settings.meta && settings.meta.senderName) || nomeCondo
+
+      const senderAddr = emailOficial || fallbackAddr
+      const senderName = nomeRemetente || fallbackName
 
       const message = new MailerMessage({
         from: {
@@ -105,7 +141,44 @@ onRecordCreate((e) => {
         html: htmlBody,
       })
 
-      e.app.newMailClient().send(message)
+      const usarSmtpProprio = Boolean(smtpAtivo && smtpHost)
+
+      if (usarSmtpProprio) {
+        const origSmtp = settings.smtp
+          ? {
+              enabled: settings.smtp.enabled,
+              host: settings.smtp.host,
+              port: settings.smtp.port,
+              username: settings.smtp.username,
+              password: settings.smtp.password,
+              tls: settings.smtp.tls,
+            }
+          : null
+
+        try {
+          settings.smtp.enabled = true
+          settings.smtp.host = smtpHost
+          settings.smtp.port = smtpPort
+          settings.smtp.username = smtpUser
+          settings.smtp.password = smtpPass
+          settings.smtp.tls = smtpEncryption === 'starttls' || smtpEncryption === 'ssl'
+
+          const client = e.app.newMailClient()
+          client.send(message)
+        } finally {
+          if (origSmtp) {
+            settings.smtp.enabled = origSmtp.enabled
+            settings.smtp.host = origSmtp.host
+            settings.smtp.port = origSmtp.port
+            settings.smtp.username = origSmtp.username
+            settings.smtp.password = origSmtp.password
+            settings.smtp.tls = origSmtp.tls
+          }
+        }
+      } else {
+        // Fallback padrão da plataforma
+        e.app.newMailClient().send(message)
+      }
 
       rec.set('status', 'enviada')
       rec.set('enviada_em', new Date().toISOString().replace('T', ' ').substring(0, 19))
@@ -465,10 +538,45 @@ routerAdd('POST', '/backend/v1/notificacoes/reenviar', (e) => {
   `
 
   try {
+    let emailOficial = ''
+    let nomeRemetente = ''
+    let smtpAtivo = false
+    let smtpHost = ''
+    let smtpPort = 587
+    let smtpUser = ''
+    let smtpEncryption = 'starttls'
+
+    try {
+      const configs = e.app.findRecordsByFilter('configuracoes', '', '-created', 1, 0)
+      if (configs && configs.length > 0) {
+        const cfg = configs[0]
+        emailOficial = (cfg.getString('email_oficial') || '').trim()
+        nomeRemetente = (cfg.getString('nome_remetente') || '').trim()
+        smtpAtivo = cfg.getBool('smtp_ativo')
+        smtpHost = (cfg.getString('smtp_host') || '').trim()
+        smtpPort = cfg.getInt('smtp_port') || 587
+        smtpUser = (cfg.getString('smtp_user') || '').trim()
+        smtpEncryption = cfg.getString('smtp_encryption') || 'starttls'
+      }
+    } catch (_) {}
+
+    let smtpPass = ''
+    if (smtpAtivo && smtpHost) {
+      try {
+        const sec = e.app.findFirstRecordByData('configuracoes_backend', 'chave', 'SMTP_SENHA')
+        if (sec) {
+          smtpPass = sec.getString('valor') || ''
+        }
+      } catch (_) {}
+    }
+
     const settings = e.app.settings()
-    const senderAddr =
+    const fallbackAddr =
       (settings && settings.meta && settings.meta.senderAddress) || 'nao-responda@lagoazul.condo'
-    const senderName = (settings && settings.meta && settings.meta.senderName) || nomeCondo
+    const fallbackName = (settings && settings.meta && settings.meta.senderName) || nomeCondo
+
+    const senderAddr = emailOficial || fallbackAddr
+    const senderName = nomeRemetente || fallbackName
 
     const message = new MailerMessage({
       from: { address: senderAddr, name: senderName },
@@ -477,7 +585,43 @@ routerAdd('POST', '/backend/v1/notificacoes/reenviar', (e) => {
       html: htmlBody,
     })
 
-    e.app.newMailClient().send(message)
+    const usarSmtpProprio = Boolean(smtpAtivo && smtpHost)
+
+    if (usarSmtpProprio) {
+      const origSmtp = settings.smtp
+        ? {
+            enabled: settings.smtp.enabled,
+            host: settings.smtp.host,
+            port: settings.smtp.port,
+            username: settings.smtp.username,
+            password: settings.smtp.password,
+            tls: settings.smtp.tls,
+          }
+        : null
+
+      try {
+        settings.smtp.enabled = true
+        settings.smtp.host = smtpHost
+        settings.smtp.port = smtpPort
+        settings.smtp.username = smtpUser
+        settings.smtp.password = smtpPass
+        settings.smtp.tls = smtpEncryption === 'starttls' || smtpEncryption === 'ssl'
+
+        const client = e.app.newMailClient()
+        client.send(message)
+      } finally {
+        if (origSmtp) {
+          settings.smtp.enabled = origSmtp.enabled
+          settings.smtp.host = origSmtp.host
+          settings.smtp.port = origSmtp.port
+          settings.smtp.username = origSmtp.username
+          settings.smtp.password = origSmtp.password
+          settings.smtp.tls = origSmtp.tls
+        }
+      }
+    } else {
+      e.app.newMailClient().send(message)
+    }
 
     notif.set('status', 'enviada')
     notif.set('enviada_em', new Date().toISOString().replace('T', ' ').substring(0, 19))

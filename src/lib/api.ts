@@ -40,6 +40,33 @@ export interface GrupoCondoConfig {
   numero_inicial?: number
 }
 
+export type SmtpEncryption = 'starttls' | 'ssl' | 'none'
+
+export interface CanaisEnvioData {
+  email_oficial?: string
+  nome_remetente?: string
+  whatsapp_oficial?: string
+  smtp_host?: string
+  smtp_port?: number
+  smtp_user?: string
+  smtp_encryption?: SmtpEncryption
+  smtp_ativo?: boolean
+  tem_senha_smtp?: boolean
+}
+
+export interface SalvarCanaisEnvioPayload {
+  email_oficial?: string
+  nome_remetente?: string
+  whatsapp_oficial?: string
+  smtp_host?: string
+  smtp_port?: number
+  smtp_user?: string
+  smtp_encryption?: SmtpEncryption
+  smtp_ativo?: boolean
+  smtp_pass?: string
+  limpar_senha_smtp?: boolean
+}
+
 export interface CondoConfigRecord extends RecordModel {
   nome_condominio: string
   logo?: string
@@ -55,6 +82,14 @@ export interface CondoConfigRecord extends RecordModel {
   default_locatario_vota?: boolean
   default_quorum_materia?: string
   default_tipo_cedula?: string
+  email_oficial?: string
+  nome_remetente?: string
+  whatsapp_oficial?: string
+  smtp_host?: string
+  smtp_port?: number
+  smtp_user?: string
+  smtp_encryption?: SmtpEncryption
+  smtp_ativo?: boolean
 }
 
 export interface UnidadeRecord extends RecordModel {
@@ -1039,6 +1074,86 @@ export const api = {
 
   async updateConfiguracao(id: string, data: Partial<CondoConfigRecord> | FormData) {
     return pb.collection('configuracoes').update<CondoConfigRecord>(id, data)
+  },
+
+  // 5.1 Canais de envio do condomínio (E-mail, WhatsApp e SMTP próprio protegido)
+  async getCanaisEnvio(): Promise<CanaisEnvioData> {
+    try {
+      const resp = await pb.send<{
+        success: boolean
+        data: CanaisEnvioData
+      }>('/backend/v1/admin/canais-envio', {
+        method: 'GET',
+      })
+      return resp.data || {}
+    } catch (err: any) {
+      console.warn(
+        'Falha ao obter canais de envio via endpoint seguro, usando fallback da collection:',
+        err,
+      )
+      const cfg = await this.getConfiguracao()
+      return {
+        email_oficial: cfg?.email_oficial || '',
+        nome_remetente: cfg?.nome_remetente || '',
+        whatsapp_oficial: cfg?.whatsapp_oficial || '',
+        smtp_host: cfg?.smtp_host || '',
+        smtp_port: cfg?.smtp_port || 587,
+        smtp_user: cfg?.smtp_user || '',
+        smtp_encryption: cfg?.smtp_encryption || 'starttls',
+        smtp_ativo: cfg?.smtp_ativo || false,
+        tem_senha_smtp: false,
+      }
+    }
+  },
+
+  async salvarCanaisEnvio(payload: SalvarCanaisEnvioPayload): Promise<{
+    success: boolean
+    message: string
+    data?: CanaisEnvioData
+  }> {
+    try {
+      return await pb.send<{
+        success: boolean
+        message: string
+        data: CanaisEnvioData
+      }>('/backend/v1/admin/canais-envio', {
+        method: 'POST',
+        body: payload,
+      })
+    } catch (err: any) {
+      const msg = getErrorMessage(err, 'Falha ao salvar canais de envio do condomínio.')
+      const erroTratado = new Error(msg)
+      ;(erroTratado as any).originalError = err
+      ;(erroTratado as any).status = err?.status || 400
+      throw erroTratado
+    }
+  },
+
+  async testarCanalEnvioEmail(destinatario?: string): Promise<{
+    success: boolean
+    message: string
+    canal?: string
+    remetente?: string
+    detalhe?: string
+  }> {
+    try {
+      return await pb.send<{
+        success: boolean
+        message: string
+        canal?: string
+        remetente?: string
+        detalhe?: string
+      }>('/backend/v1/admin/canais-envio/testar', {
+        method: 'POST',
+        body: { destinatario },
+      })
+    } catch (err: any) {
+      const msg = getErrorMessage(err, 'Falha ao enviar e-mail de teste.')
+      const erroTratado = new Error(msg)
+      ;(erroTratado as any).originalError = err
+      ;(erroTratado as any).status = err?.status || 400
+      throw erroTratado
+    }
   },
 
   // 6. Gerenciamento e Regeneração de unidades com Trava de Segurança

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-02T22:43:07.800Z",
+  "generatedAt": "2026-11-02T23:44:44.756Z",
   "collections": [
     {
       "name": "users",
@@ -1064,6 +1064,55 @@
         {
           "name": "grupos_config",
           "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "email_oficial",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "nome_remetente",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "whatsapp_oficial",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "smtp_host",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "smtp_port",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "smtp_user",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "smtp_encryption",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["starttls", "ssl", "none"]
+        },
+        {
+          "name": "smtp_ativo",
+          "type": "bool",
           "required": false,
           "system": false
         }

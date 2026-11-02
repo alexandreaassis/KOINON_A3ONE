@@ -69,6 +69,7 @@ import {
 } from 'lucide-react'
 import { urnaAudio } from '@/lib/urnaAudio'
 import { KoinonSymbol } from '@/components/brand/KoinonSymbol'
+import { SecaoCanaisEnvio } from '@/components/admin/SecaoCanaisEnvio'
 
 const ROTULOS_SUGERIDOS = [
   'Apartamento',
@@ -584,6 +585,11 @@ export const ConfiguracoesPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
+        {/* CARD 0: CANAIS DE ENVIO DO CONDOMÍNIO (E-MAIL, WHATSAPP E SMTP PRÓPRIO) */}
+        <SecaoCanaisEnvio
+          nomeCondominioPadrao={nomeCondominio || 'Condomínio Residencial Lago Azul'}
+        />
+
         {/* CARD 1: IDENTIDADE DO CONDOMÍNIO (NOME & LOGO) */}
         <Card className="border-slate-200 shadow-xs">
           <CardHeader className="pb-3">
