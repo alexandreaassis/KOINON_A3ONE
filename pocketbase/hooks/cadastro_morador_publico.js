@@ -96,45 +96,81 @@ routerAdd('GET', '/backend/v1/publico/unidade/{token}', (e) => {
     bloco = ''
   }
 
-  // Verificar estado atual dos cadastros da unidade para orientar o formulário público:
-  // - se já tem morador (condomino ou locatario) cadastrado/aprovado
-  // - se já tem proprietario cadastrado/aprovado
-  // NÃO expõe nomes, CPFs ou contatos de terceiros (apenas flags booleanas)
-  let temMoradorAprovado = false
+  // Avaliar estado dos cadastros ativos ou pendentes da unidade segundo a MATRIZ DE BLOQUEIO:
+  // - cadastros 'rejeitado' NÃO contam (liberam a vaga imediatamente)
+  // - cadastros 'aprovado' ou 'pendente' contam
+  let temCondomino = false // condomino residente (aprovado ou pendente)
+  let temInquilino = false // locatario (aprovado ou pendente)
+  let temProprietario = false // proprietario nao morador (aprovado ou pendente)
+  let temCondominoAprovado = false
+  let temInquilinoAprovado = false
   let temProprietarioAprovado = false
-  let temMoradorPendente = false
-  let temProprietarioPendente = false
-  let tipoMoradorExistente = '' // 'condomino' | 'locatario' | ''
 
   try {
     const cads = e.app.findRecordsByFilter(
       'cadastros_unidade',
       'unidade = {:u}',
       '-created',
-      10,
+      50,
       0,
       { u: unidade.id },
     )
     for (let c of cads) {
-      const v = c.getString('vinculo')
       const st = c.getString('status_aprovacao') || 'aprovado'
-      const eAtivo = c.getBool('ativo')
+      if (st === 'rejeitado') continue // Rejeitado libera a vaga
 
-      if (v === 'proprietario') {
-        if (st === 'aprovado' && eAtivo) temProprietarioAprovado = true
-        if (st === 'pendente') temProprietarioPendente = true
-      } else if (v === 'condomino' || v === 'locatario') {
-        if (st === 'aprovado' && eAtivo) {
-          temMoradorAprovado = true
-          tipoMoradorExistente = v
-        }
-        if (st === 'pendente') {
-          temMoradorPendente = true
-          if (!tipoMoradorExistente) tipoMoradorExistente = v
-        }
+      const v = c.getString('vinculo')
+      if (v === 'condomino') {
+        temCondomino = true
+        if (st === 'aprovado') temCondominoAprovado = true
+      } else if (v === 'locatario') {
+        temInquilino = true
+        if (st === 'aprovado') temInquilinoAprovado = true
+      } else if (v === 'proprietario') {
+        temProprietario = true
+        if (st === 'aprovado') temProprietarioAprovado = true
       }
     }
   } catch (_) {}
+
+  // Determinar bloqueios por vínculo e mensagem explicativa
+  let unidadeBloqueadaTotal = false
+  let mensagemBloqueioGeral = ''
+  const vinculosPermitidos = []
+  const vinculosBloqueados = {}
+
+  if (temCondomino) {
+    // Condômino residente aprovado ou pendente bloqueia qualquer novo envio
+    unidadeBloqueadaTotal = true
+    mensagemBloqueioGeral =
+      'Esta unidade já possui condômino residente cadastrado; cadastro único é suficiente.'
+    vinculosBloqueados['condomino'] = mensagemBloqueioGeral
+    vinculosBloqueados['locatario'] = mensagemBloqueioGeral
+    vinculosBloqueados['proprietario'] = mensagemBloqueioGeral
+  } else if (temInquilino && temProprietario) {
+    // Inquilino + Proprietário (unidade completa) bloqueia qualquer novo envio
+    unidadeBloqueadaTotal = true
+    mensagemBloqueioGeral = 'Esta unidade já possui 2 pessoas cadastradas (morador e proprietário).'
+    vinculosBloqueados['condomino'] = mensagemBloqueioGeral
+    vinculosBloqueados['locatario'] = mensagemBloqueioGeral
+    vinculosBloqueados['proprietario'] = mensagemBloqueioGeral
+  } else if (temInquilino && !temProprietario) {
+    // Inquilino cadastrado: aceita apenas Proprietário (não morador)
+    vinculosPermitidos.push('proprietario')
+    vinculosBloqueados['condomino'] =
+      'Esta unidade já possui inquilino cadastrado. O vínculo permitido para esta unidade é Proprietário (não morador).'
+    vinculosBloqueados['locatario'] = 'Esta unidade já possui inquilino cadastrado.'
+  } else if (temProprietario && !temInquilino) {
+    // Proprietário cadastrado: aceita apenas Inquilino
+    vinculosPermitidos.push('locatario')
+    vinculosBloqueados['proprietario'] =
+      'Esta unidade já possui proprietário cadastrado (não morador).'
+    vinculosBloqueados['condomino'] =
+      'Esta unidade já possui proprietário cadastrado (não morador). Se você é o proprietário e passou a morar na unidade, procure a mesa.'
+  } else {
+    // Sem cadastros: aceita qualquer vínculo
+    vinculosPermitidos.push('condomino', 'locatario', 'proprietario')
+  }
 
   return e.json(200, {
     success: true,
@@ -143,11 +179,17 @@ routerAdd('GET', '/backend/v1/publico/unidade/{token}', (e) => {
       bloco: bloco, // pode ser vazio se torre única
       tipo_unidade: tipoUnidade,
       tem_bloco: !!bloco,
-      tem_morador_aprovado: temMoradorAprovado,
+      // Estado detalhado conforme a matriz de bloqueio
+      tem_condomino: temCondomino,
+      tem_inquilino: temInquilino,
+      tem_proprietario: temProprietario,
+      tem_condomino_aprovado: temCondominoAprovado,
+      tem_inquilino_aprovado: temInquilinoAprovado,
       tem_proprietario_aprovado: temProprietarioAprovado,
-      tem_morador_pendente: temMoradorPendente,
-      tem_proprietario_pendente: temProprietarioPendente,
-      tipo_morador_existente: tipoMoradorExistente,
+      unidade_bloqueada_total: unidadeBloqueadaTotal,
+      mensagem_bloqueio_geral: mensagemBloqueioGeral,
+      vinculos_permitidos: vinculosPermitidos,
+      vinculos_bloqueados: vinculosBloqueados,
     },
     condominio: {
       nome: nomeCondo,
@@ -302,94 +344,109 @@ routerAdd('POST', '/backend/v1/publico/cadastro-morador', (e) => {
     return e.json(400, { success: false, message: 'Telefone de contato obrigatório.' })
   }
 
-  // Regra de suporte a DUAS pessoas por unidade (1 morador [Condômino ou Inquilino] + 1 Proprietário [não morador]).
-  // 1. Verificar se o mesmo CPF já está cadastrado nesta unidade
-  try {
-    const existentesCpf = e.app.findRecordsByFilter(
-      'cadastros_unidade',
-      'unidade = {:u} && cpf = {:c}',
-      '-created',
-      1,
-      0,
-      {
-        u: unidade.id,
-        c: cpfLimpo,
-      },
-    )
-    if (existentesCpf && existentesCpf.length > 0) {
-      const ex = existentesCpf[0]
-      const statusAtual = ex.getString('status_aprovacao') || 'aprovado'
-      if (statusAtual === 'pendente') {
-        return e.json(200, {
-          success: true,
-          message:
-            'Seu cadastro com este CPF para esta unidade já foi enviado e está aguardando homologação da mesa diretora.',
-          status: 'pendente',
-          vinculo_enviado: vinculoValido,
-        })
-      }
-      if (statusAtual === 'aprovado') {
-        return e.json(200, {
-          success: true,
-          message:
-            'Os dados deste CPF já estão homologados e ativos para esta unidade na plataforma.',
-          status: 'aprovado',
-          vinculo_enviado: vinculoValido,
-        })
-      }
-    }
-  } catch (_) {}
-
-  // 2. Verificar se a unidade já possui cadastro pendente ou aprovado com a MESMA categoria de vínculo
-  // - Categoria Morador: 'condomino' ou 'locatario'
-  // - Categoria Proprietário: 'proprietario'
-  // A unidade aceita 1 Morador E 1 Proprietário (duas pessoas diferentes).
+  // AVALIAÇÃO DA MATRIZ DE BLOQUEIO POR UNIDADE
+  // Consulta cadastros APROVADOS e PENDENTES da unidade (pendente também bloqueia; cadastros rejeitados liberam a vaga).
   try {
     const cadastrosUnidade = e.app.findRecordsByFilter(
       'cadastros_unidade',
       'unidade = {:u}',
       '-created',
-      10,
+      50,
       0,
       { u: unidade.id },
     )
 
-    const eProprietario = vinculoValido === 'proprietario'
-    const eMorador = vinculoValido === 'condomino' || vinculoValido === 'locatario'
-
+    // 1. Verificar se o mesmo CPF já está cadastrado nesta unidade (aprovado ou pendente)
     for (let cad of cadastrosUnidade) {
       const st = cad.getString('status_aprovacao') || 'aprovado'
-      if (st === 'rejeitado') continue // rejeitado libera nova submissão
-
-      const v = cad.getString('vinculo')
-      const cadEProprietario = v === 'proprietario'
-      const cadEMorador = v === 'condomino' || v === 'locatario'
-
-      if (eProprietario && cadEProprietario) {
-        return e.json(200, {
-          success: true,
-          message:
-            st === 'pendente'
-              ? 'Já existe um cadastro de Proprietário pendente de homologação para esta unidade.'
-              : 'Esta unidade já possui o cadastro de Proprietário registrado.',
-          status: st,
-          vinculo_enviado: vinculoValido,
-        })
-      }
-
-      if (eMorador && cadEMorador) {
-        return e.json(200, {
-          success: true,
-          message:
-            st === 'pendente'
-              ? 'Já existe um cadastro de morador pendente de homologação para esta unidade.'
-              : 'Esta unidade já possui o cadastro de morador registrado.',
-          status: st,
-          vinculo_enviado: vinculoValido,
+      if (st === 'rejeitado') continue // Rejeitado libera a vaga
+      const cpfCad = (cad.getString('cpf') || '').replace(/\D/g, '')
+      if (cpfCad === cpfLimpo) {
+        return e.json(400, {
+          success: false,
+          blocked: true,
+          message: 'Este CPF já possui cadastro nesta unidade.',
         })
       }
     }
-  } catch (_) {}
+
+    // 2. Mapear ocupação atual (cadastros aprovados ou pendentes)
+    let temCondomino = false
+    let temInquilino = false
+    let temProprietario = false
+
+    for (let cad of cadastrosUnidade) {
+      const st = cad.getString('status_aprovacao') || 'aprovado'
+      if (st === 'rejeitado') continue
+
+      const v = cad.getString('vinculo')
+      if (v === 'condomino') temCondomino = true
+      else if (v === 'locatario') temInquilino = true
+      else if (v === 'proprietario') temProprietario = true
+    }
+
+    // 3. Aplicar regras da MATRIZ DE BLOQUEIO
+    // Regra: Condômino residente aprovado ou pendente -> Bloqueia qualquer novo envio
+    if (temCondomino) {
+      return e.json(400, {
+        success: false,
+        blocked: true,
+        message:
+          'Esta unidade já possui condômino residente cadastrado; cadastro único é suficiente.',
+      })
+    }
+
+    // Regra: Inquilino + Proprietário (unidade completa) -> Bloqueia qualquer novo envio
+    if (temInquilino && temProprietario) {
+      return e.json(400, {
+        success: false,
+        blocked: true,
+        message: 'Esta unidade já possui 2 pessoas cadastradas (morador e proprietário).',
+      })
+    }
+
+    // Regra: Unidade tem Inquilino cadastrado
+    if (temInquilino && !temProprietario) {
+      if (vinculoValido === 'locatario') {
+        return e.json(400, {
+          success: false,
+          blocked: true,
+          message: 'Esta unidade já possui inquilino cadastrado.',
+        })
+      }
+      if (vinculoValido === 'condomino') {
+        return e.json(400, {
+          success: false,
+          blocked: true,
+          message:
+            'Esta unidade já possui inquilino cadastrado. O vínculo permitido para esta unidade é Proprietário (não morador).',
+        })
+      }
+      // Se for 'proprietario', aceita!
+    }
+
+    // Regra: Unidade tem Proprietário cadastrado
+    if (temProprietario && !temInquilino) {
+      if (vinculoValido === 'condomino') {
+        return e.json(400, {
+          success: false,
+          blocked: true,
+          message:
+            'Esta unidade já possui proprietário cadastrado (não morador). Se você é o proprietário e passou a morar na unidade, procure a mesa.',
+        })
+      }
+      if (vinculoValido === 'proprietario') {
+        return e.json(400, {
+          success: false,
+          blocked: true,
+          message: 'Esta unidade já possui proprietário cadastrado (não morador).',
+        })
+      }
+      // Se for 'locatario', aceita!
+    }
+  } catch (errBloqueio) {
+    console.log('Erro ao checar matriz de bloqueio de cadastro:', errBloqueio)
+  }
 
   // Gravar novo cadastro pendente
   try {
@@ -618,34 +675,61 @@ routerAdd('POST', '/backend/v1/admin/cadastros/aprovar', (e) => {
   const unidadeId = cad.getString('unidade')
   const vinculo = cad.getString('vinculo')
 
-  // Regra de unidade: até 1 proprietário e 1 morador ATIVOS simultâneos
+  // Regra de unidade: aplicação rigorosa da matriz de limites da unidade entre os APROVADOS e ATIVOS
   try {
-    const cadastrosAtivos = e.app.findRecordsByFilter(
+    const outrosCadastrosAtivos = e.app.findRecordsByFilter(
       'cadastros_unidade',
-      'unidade = {:u} && ativo = true && id != {:id}',
+      'unidade = {:u} && ativo = true && status_aprovacao = "aprovado" && id != {:id}',
       '',
-      10,
+      20,
       0,
       { u: unidadeId, id: cadastroId },
     )
 
-    const eProprietario = vinculo === 'proprietario'
-    const eMorador = vinculo === 'condomino' || vinculo === 'locatario'
+    let outroCondomino = null
+    let outroInquilino = null
+    let outroProprietario = null
 
-    for (let c of cadastrosAtivos) {
+    for (let c of outrosCadastrosAtivos) {
       const v = c.getString('vinculo')
-      if (eProprietario && v === 'proprietario') {
-        return e.json(400, {
-          success: false,
-          message: `A unidade já possui o proprietário "${c.getString('nome')}" ativo. Desative-o antes de aprovar outro.`,
-        })
-      }
-      if (eMorador && (v === 'condomino' || v === 'locatario')) {
-        return e.json(400, {
-          success: false,
-          message: `A unidade já possui o morador (${v.toUpperCase()}) "${c.getString('nome')}" ativo. Desative-o antes de aprovar outro.`,
-        })
-      }
+      if (v === 'condomino') outroCondomino = c
+      else if (v === 'locatario') outroInquilino = c
+      else if (v === 'proprietario') outroProprietario = c
+    }
+
+    if (outroCondomino) {
+      return e.json(400, {
+        success: false,
+        message: `Esta unidade já possui o condômino residente "${outroCondomino.getString('nome')}" ativo. Cadastro único é suficiente.`,
+      })
+    }
+
+    if (vinculo === 'condomino' && (outroInquilino || outroProprietario)) {
+      return e.json(400, {
+        success: false,
+        message: `Não é possível aprovar condômino residente pois a unidade já possui outro morador ou proprietário ativo.`,
+      })
+    }
+
+    if (vinculo === 'locatario' && outroInquilino) {
+      return e.json(400, {
+        success: false,
+        message: `A unidade já possui o inquilino "${outroInquilino.getString('nome')}" ativo. Rejeite ou desative o anterior antes de aprovar outro.`,
+      })
+    }
+
+    if (vinculo === 'proprietario' && outroProprietario) {
+      return e.json(400, {
+        success: false,
+        message: `A unidade já possui o proprietário "${outroProprietario.getString('nome')}" ativo. Rejeite ou desative o anterior antes de aprovar outro.`,
+      })
+    }
+
+    if (outroInquilino && outroProprietario) {
+      return e.json(400, {
+        success: false,
+        message: `Esta unidade já possui 2 pessoas cadastradas e ativas (morador e proprietário).`,
+      })
     }
   } catch (_) {}
 

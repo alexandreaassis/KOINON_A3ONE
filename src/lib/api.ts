@@ -751,6 +751,16 @@ export const api = {
         bloco?: string
         tipo_unidade?: string
         tem_bloco: boolean
+        tem_condomino?: boolean
+        tem_inquilino?: boolean
+        tem_proprietario?: boolean
+        tem_condomino_aprovado?: boolean
+        tem_inquilino_aprovado?: boolean
+        tem_proprietario_aprovado?: boolean
+        unidade_bloqueada_total?: boolean
+        mensagem_bloqueio_geral?: string
+        vinculos_permitidos?: string[]
+        vinculos_bloqueados?: Record<string, string>
       }
       condominio: {
         nome: string

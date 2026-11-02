@@ -548,9 +548,12 @@ export const CredenciaisPendentesPage: React.FC = () => {
                         </div>
                       )}
 
-                      {cad.motivo_rejeicao && (
+                      {(cad.motivo_rejeicao ||
+                        (cad.observacoes && cad.observacoes.includes('Rejeição:'))) && (
                         <p className="text-xs text-red-700 font-medium">
-                          Motivo de recusa: {cad.motivo_rejeicao}
+                          Motivo de recusa:{' '}
+                          {cad.motivo_rejeicao ||
+                            cad.observacoes.slice(cad.observacoes.indexOf('Rejeição:') + 9)}
                         </p>
                       )}
                     </div>
@@ -573,7 +576,7 @@ export const CredenciaisPendentesPage: React.FC = () => {
                           onClick={() => abrirRejeicaoCadastro(cad)}
                           className="border-red-300 text-red-700 hover:bg-red-50 text-xs h-8"
                         >
-                          <XCircle className="mr-1 h-3.5 w-3.5" /> Rejeitar
+                          <XCircle className="mr-1 h-3.5 w-3.5" /> Rejeitar com Justificativa
                         </Button>
                       )}
                     </div>

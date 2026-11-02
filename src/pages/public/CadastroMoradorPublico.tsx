@@ -48,11 +48,16 @@ interface DadosUnidadePublica {
   bloco?: string
   tipo_unidade?: string
   tem_bloco: boolean
-  tem_morador_aprovado?: boolean
+  tem_condomino?: boolean
+  tem_inquilino?: boolean
+  tem_proprietario?: boolean
+  tem_condomino_aprovado?: boolean
+  tem_inquilino_aprovado?: boolean
   tem_proprietario_aprovado?: boolean
-  tem_morador_pendente?: boolean
-  tem_proprietario_pendente?: boolean
-  tipo_morador_existente?: string
+  unidade_bloqueada_total?: boolean
+  mensagem_bloqueio_geral?: string
+  vinculos_permitidos?: string[]
+  vinculos_bloqueados?: Record<string, string>
 }
 
 const TEXTOS_DECLARACAO: Record<VinculoCadastro, string> = {
@@ -115,6 +120,15 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
           setUnidade(resp.unidade)
           if (resp.condominio?.nome) {
             setNomeCondominio(resp.condominio.nome)
+          }
+          // Ajustar seleção de vínculo padrão se o condomino estiver bloqueado mas houver outro vínculo permitido
+          const permitidos = resp.unidade.vinculos_permitidos || []
+          if (permitidos.length > 0 && !permitidos.includes('condomino')) {
+            if (permitidos.includes('proprietario')) {
+              setVinculo('proprietario')
+            } else if (permitidos.includes('locatario')) {
+              setVinculo('locatario')
+            }
           }
         } else {
           setErroUnidade('Unidade não localizada ou link desativado.')
@@ -226,6 +240,10 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
     const telDigitos = limparTelefone(telefone)
     if (!telDigitos || telDigitos.length < 10) return false
     if (!vinculo) return false
+    // Se o vínculo selecionado estiver na lista de bloqueados, não permite submeter
+    if (unidade?.vinculos_bloqueados && unidade.vinculos_bloqueados[vinculo]) {
+      return false
+    }
     return true
   })()
 
@@ -332,6 +350,19 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
     navigate('/login')
   }
 
+  // Recarregar os dados da unidade via token para atualizar matriz de ocupação
+  const recarregarUnidade = async () => {
+    if (!token) return
+    try {
+      const resp = await api.getUnidadePorTokenPublico(token)
+      if (resp?.success && resp.unidade) {
+        setUnidade(resp.unidade)
+      }
+    } catch {
+      /* intentionally ignored */
+    }
+  }
+
   // Ação para realizar o segundo cadastro na mesma unidade (ex: inquilino cadastrado -> cadastrar proprietário)
   const prepararSegundoCadastro = (novoVinculoSugerido: VinculoCadastro) => {
     setNome('')
@@ -347,6 +378,7 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
     setVinculo(novoVinculoSugerido)
     setErroEnvio(null)
     setSucesso(null)
+    recarregarUnidade()
   }
 
   // Rótulo da Unidade (ex: "Apto 1203" ou "Apto 1203 (Bloco B)" se houver bloco real)
@@ -578,326 +610,433 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Estado: Formulário Ativo */}
-              {!carregandoUnidade && !erroUnidade && !sucesso && unidade && (
-                <>
-                  {erroEnvio && (
-                    <Alert
-                      variant="destructive"
-                      className="border border-red-200 bg-red-50 text-red-900 rounded-[10px]"
-                    >
-                      <AlertTriangle className="h-4 w-4 text-red-600" />
-                      <AlertTitle className="text-xs font-semibold text-red-700">
-                        Não foi possível enviar o cadastro
-                      </AlertTitle>
-                      <AlertDescription className="text-xs text-[#002B5E]">
-                        {erroEnvio}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-                    {/* Nome Completo */}
-                    <div className="space-y-1.5">
-                      <Label htmlFor="cad-nome" className="text-xs font-medium text-[#002B5E]">
-                        Nome Completo *
-                      </Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-3 h-4 w-4 text-[#5A6B82]" />
-                        <Input
-                          id="cad-nome"
-                          required
-                          placeholder="Informe seu nome completo"
-                          value={nome}
-                          onChange={(e) => setNome(e.target.value)}
-                          className="pl-10 h-10 border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF] focus-visible:border-[#0066FF]"
-                        />
-                      </div>
+              {/* Estado: Unidade Bloqueada Totalmente para novos cadastros */}
+              {!carregandoUnidade &&
+                !erroUnidade &&
+                !sucesso &&
+                unidade &&
+                unidade.unidade_bloqueada_total && (
+                  <div className="py-6 px-3 text-center space-y-4">
+                    <div className="h-12 w-12 rounded-full bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center mx-auto">
+                      <ShieldCheck className="h-6 w-6" />
                     </div>
-
-                    {/* CPF e Data de Nascimento */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="cad-cpf" className="text-xs font-medium text-[#002B5E]">
-                          CPF *
-                        </Label>
-                        <div className="relative">
-                          <CreditCard className="absolute left-3 top-3 h-4 w-4 text-[#5A6B82]" />
-                          <Input
-                            id="cad-cpf"
-                            required
-                            placeholder="000.000.000-00"
-                            maxLength={14}
-                            value={cpf}
-                            onChange={(e) => handleCpfChange(e.target.value)}
-                            className={`pl-10 h-10 font-mono border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF] focus-visible:border-[#0066FF] ${
-                              cpfErro ? 'border-red-500 focus-visible:ring-red-500' : ''
-                            }`}
-                          />
-                        </div>
-                        {cpfErro && <p className="text-[10px] text-red-600">{cpfErro}</p>}
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label htmlFor="cad-nasc" className="text-xs font-medium text-[#002B5E]">
-                          Data de Nascimento *
-                        </Label>
-                        <div className="relative">
-                          <Calendar className="absolute left-3 top-3 h-4 w-4 text-[#5A6B82]" />
-                          <Input
-                            id="cad-nasc"
-                            type="date"
-                            required
-                            max={new Date().toISOString().slice(0, 10)}
-                            value={dataNascimento}
-                            onChange={(e) => {
-                              setDataNascimento(e.target.value)
-                              validarDataNasc(e.target.value)
-                            }}
-                            className={`pl-10 h-10 border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF] focus-visible:border-[#0066FF] ${
-                              dataNascErro ? 'border-red-500 focus-visible:ring-red-500' : ''
-                            }`}
-                          />
-                        </div>
-                        {dataNascErro && <p className="text-[10px] text-red-600">{dataNascErro}</p>}
-                      </div>
-                    </div>
-
-                    {/* Vínculo com a Unidade */}
                     <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="cad-vinculo" className="text-xs font-medium text-[#002B5E]">
-                          Seu Vínculo com esta Unidade *
-                        </Label>
-                        <span className="text-[11px] text-[#5A6B82]">
-                          Defina se você mora na unidade
-                        </span>
-                      </div>
-                      <Select
-                        value={vinculo}
-                        onValueChange={(val) => setVinculo(val as VinculoCadastro)}
-                      >
-                        <SelectTrigger
-                          id="cad-vinculo"
-                          className="h-10 border-[#5A6B82]/30 bg-white text-[#002B5E] rounded-[10px] text-xs focus-visible:ring-[#0066FF]"
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="text-xs">
-                          <SelectItem value="condomino">
-                            Condômino (residente) — Proprietário que mora no imóvel
-                          </SelectItem>
-                          <SelectItem value="locatario">
-                            Locatário (Inquilino) — Morador da unidade
-                          </SelectItem>
-                          <SelectItem value="proprietario">
-                            Proprietário (não morador) — Não reside na unidade
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[10px] text-[#5A6B82]">
-                        {vinculo === 'proprietario'
-                          ? 'Proprietário legítimo titular que não reside nesta unidade.'
-                          : vinculo === 'locatario'
-                            ? 'Morador na qualidade de inquilino (Lei do Inquilinato nº 8.245/91).'
-                            : 'Proprietário legítimo residente na unidade (Código Civil arts. 1.228 e 1.331).'}
+                      <h3 className="text-base font-bold text-[#002B5E]">
+                        Unidade com Cadastro Completo
+                      </h3>
+                      <p className="text-xs text-[#5A6B82] max-w-md mx-auto leading-relaxed font-medium">
+                        {unidade.mensagem_bloqueio_geral ||
+                          'Esta unidade já possui o limite de cadastros atingido.'}
                       </p>
-
-                      {/* DECLARAÇÃO DINÂMICA POR VÍNCULO (textos exatos aprovados) */}
-                      <div className="mt-2.5 p-3.5 rounded-[10px] bg-[#002B5E]/5 border border-[#002B5E]/15 space-y-1.5">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-[#002B5E]">
-                          <FileCheck2 className="h-4 w-4 text-[#0066FF] shrink-0" />
-                          <span>
-                            Declaração de Vínculo Legal —{' '}
-                            {vinculo === 'locatario'
-                              ? 'Locatário (Inquilino)'
-                              : vinculo === 'condomino'
-                                ? 'Condômino (residente)'
-                                : 'Proprietário (não morador)'}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-[#002B5E]/90 leading-relaxed italic bg-white/70 p-2.5 rounded-[8px] border border-[#5A6B82]/15">
-                          "{TEXTOS_DECLARACAO[vinculo]}"
-                        </p>
-                        <p className="text-[10px] text-[#5A6B82]">
-                          A assinatura eletrônica desta declaração vincula o declarante sob as penas
-                          da lei e autoriza o tratamento para credenciamento e assembleia (LGPD).
-                        </p>
-                      </div>
                     </div>
 
-                    {/* Contatos */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="p-3.5 rounded-[10px] bg-[#F3F7FC] border border-[#5A6B82]/20 text-left text-xs space-y-2">
+                      <p className="text-[11px] text-[#5A6B82] leading-relaxed">
+                        • Se você precisa atualizar ou substituir um morador/inquilino anterior, a
+                        alteração é realizada pela mesa diretora da assembleia condominial.
+                      </p>
+                      <p className="text-[11px] text-[#5A6B82] leading-relaxed">
+                        • Caso necessite de orientações adicionais ou suporte, procure a
+                        administração ou a mesa diretora do condomínio.
+                      </p>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-center gap-2">
+                      <Link to="/login">
+                        <Button
+                          variant="default"
+                          className="text-xs h-9 bg-[#002B5E] text-white hover:bg-[#001D40] rounded-[10px]"
+                        >
+                          Ir para a página de entrada
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+              {/* Estado: Formulário Ativo (quando a unidade aceita pelo menos um vínculo) */}
+              {!carregandoUnidade &&
+                !erroUnidade &&
+                !sucesso &&
+                unidade &&
+                !unidade.unidade_bloqueada_total && (
+                  <>
+                    {erroEnvio && (
+                      <Alert
+                        variant="destructive"
+                        className="border border-red-200 bg-red-50 text-red-900 rounded-[10px]"
+                      >
+                        <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
+                        <div>
+                          <AlertTitle className="text-xs font-semibold text-red-700">
+                            Não foi possível enviar o cadastro
+                          </AlertTitle>
+                          <AlertDescription className="text-xs text-[#002B5E] mt-0.5">
+                            {erroEnvio}
+                          </AlertDescription>
+                        </div>
+                      </Alert>
+                    )}
+
+                    {/* Alerta contextual se houver algum vínculo bloqueado previamente */}
+                    {unidade.vinculos_bloqueados && unidade.vinculos_bloqueados[vinculo] && (
+                      <Alert className="border border-amber-200 bg-amber-50 text-amber-900 rounded-[10px]">
+                        <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0" />
+                        <div>
+                          <AlertTitle className="text-xs font-semibold text-amber-800">
+                            Vínculo não disponível para esta unidade
+                          </AlertTitle>
+                          <AlertDescription className="text-xs text-amber-900 mt-0.5">
+                            {unidade.vinculos_bloqueados[vinculo]}
+                          </AlertDescription>
+                        </div>
+                      </Alert>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+                      {/* Nome Completo */}
                       <div className="space-y-1.5">
-                        <Label htmlFor="cad-email" className="text-xs font-medium text-[#002B5E]">
-                          E-mail Oficial *
+                        <Label htmlFor="cad-nome" className="text-xs font-medium text-[#002B5E]">
+                          Nome Completo *
                         </Label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-3 h-4 w-4 text-[#5A6B82]" />
+                          <User className="absolute left-3 top-3 h-4 w-4 text-[#5A6B82]" />
                           <Input
-                            id="cad-email"
-                            type="email"
+                            id="cad-nome"
                             required
-                            placeholder="seuemail@exemplo.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="Informe seu nome completo"
+                            value={nome}
+                            onChange={(e) => setNome(e.target.value)}
                             className="pl-10 h-10 border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF] focus-visible:border-[#0066FF]"
                           />
                         </div>
                       </div>
 
+                      {/* CPF e Data de Nascimento */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="cad-cpf" className="text-xs font-medium text-[#002B5E]">
+                            CPF *
+                          </Label>
+                          <div className="relative">
+                            <CreditCard className="absolute left-3 top-3 h-4 w-4 text-[#5A6B82]" />
+                            <Input
+                              id="cad-cpf"
+                              required
+                              placeholder="000.000.000-00"
+                              maxLength={14}
+                              value={cpf}
+                              onChange={(e) => handleCpfChange(e.target.value)}
+                              className={`pl-10 h-10 font-mono border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF] focus-visible:border-[#0066FF] ${
+                                cpfErro ? 'border-red-500 focus-visible:ring-red-500' : ''
+                              }`}
+                            />
+                          </div>
+                          {cpfErro && <p className="text-[10px] text-red-600">{cpfErro}</p>}
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label htmlFor="cad-nasc" className="text-xs font-medium text-[#002B5E]">
+                            Data de Nascimento *
+                          </Label>
+                          <div className="relative">
+                            <Calendar className="absolute left-3 top-3 h-4 w-4 text-[#5A6B82]" />
+                            <Input
+                              id="cad-nasc"
+                              type="date"
+                              required
+                              max={new Date().toISOString().slice(0, 10)}
+                              value={dataNascimento}
+                              onChange={(e) => {
+                                setDataNascimento(e.target.value)
+                                validarDataNasc(e.target.value)
+                              }}
+                              className={`pl-10 h-10 border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF] focus-visible:border-[#0066FF] ${
+                                dataNascErro ? 'border-red-500 focus-visible:ring-red-500' : ''
+                              }`}
+                            />
+                          </div>
+                          {dataNascErro && (
+                            <p className="text-[10px] text-red-600">{dataNascErro}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Vínculo com a Unidade */}
                       <div className="space-y-1.5">
-                        <Label htmlFor="cad-tel" className="text-xs font-medium text-[#002B5E]">
-                          Telefone / WhatsApp *
-                        </Label>
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-3 h-4 w-4 text-[#5A6B82]" />
-                          <Input
-                            id="cad-tel"
-                            type="tel"
-                            required
-                            placeholder="(XX) XXXXX-XXXX"
-                            maxLength={15}
-                            value={telefone}
-                            onChange={(e) => handleTelefoneChange(e.target.value)}
-                            onPaste={handleTelefonePaste}
-                            className="pl-10 h-10 font-mono border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF] focus-visible:border-[#0066FF]"
-                          />
+                        <div className="flex items-center justify-between">
+                          <Label
+                            htmlFor="cad-vinculo"
+                            className="text-xs font-medium text-[#002B5E]"
+                          >
+                            Seu Vínculo com esta Unidade *
+                          </Label>
+                          <span className="text-[11px] text-[#5A6B82]">
+                            Defina se você mora na unidade
+                          </span>
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Seção opcional de indicação do morador/proprietário de fato */}
-                    <div className="space-y-2 pt-1 border-t border-[#5A6B82]/15">
-                      <div className="flex items-center justify-between">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setMostrarIndicacao((prev) => !prev)}
-                          className="text-xs text-[#0066FF] hover:text-[#0052CC] hover:bg-[#0066FF]/10 font-semibold h-8 px-2 flex items-center gap-1.5"
+                        <Select
+                          value={vinculo}
+                          onValueChange={(val) => setVinculo(val as VinculoCadastro)}
                         >
-                          <UserPlus className="h-3.5 w-3.5" />
-                          {mostrarIndicacao
-                            ? 'Ocultar indicação de morador/proprietário de fato'
-                            : 'Indicar o morador/proprietário de fato'}
-                        </Button>
-                        <span className="text-[10px] text-[#5A6B82]">
-                          {vinculo === 'locatario'
-                            ? 'O inquilino indica o proprietário'
-                            : vinculo === 'proprietario'
-                              ? 'O proprietário indica o inquilino'
-                              : 'Opcional'}
-                        </span>
-                      </div>
-
-                      {mostrarIndicacao && (
-                        <div className="p-3.5 rounded-[10px] bg-slate-50 border border-slate-200 space-y-3 animate-in fade-in-50">
-                          <div>
-                            <span className="text-xs font-semibold text-[#002B5E] block">
-                              Dados da outra pessoa vinculada à unidade ({rotuloOutraPessoa})
-                            </span>
-                            <p className="text-[11px] text-[#5A6B82] mt-0.5">
-                              Estes dados serão encaminhados junto do cadastro pendente para a mesa
-                              diretora entrar em contato e providenciar o registro complementar.
-                            </p>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <Label
-                                htmlFor="cad-ind-nome"
-                                className="text-[11px] font-medium text-[#002B5E]"
-                              >
-                                Nome Completo da pessoa indicada
-                              </Label>
-                              <div className="relative">
-                                <User className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[#5A6B82]" />
-                                <Input
-                                  id="cad-ind-nome"
-                                  placeholder="Nome completo do morador/proprietário"
-                                  value={indicacaoNome}
-                                  onChange={(e) => setIndicacaoNome(e.target.value)}
-                                  className="pl-8 h-9 text-xs border-[#5A6B82]/30 bg-white text-[#002B5E] rounded-[8px]"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="space-y-1">
-                              <Label
-                                htmlFor="cad-ind-tel"
-                                className="text-[11px] font-medium text-[#002B5E]"
-                              >
-                                Telefone com DDD
-                              </Label>
-                              <div className="relative">
-                                <Phone className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[#5A6B82]" />
-                                <Input
-                                  id="cad-ind-tel"
-                                  type="tel"
-                                  placeholder="(XX) XXXXX-XXXX"
-                                  maxLength={15}
-                                  value={indicacaoTelefone}
-                                  onChange={(e) => handleIndicacaoTelefoneChange(e.target.value)}
-                                  onPaste={handleIndicacaoTelefonePaste}
-                                  className="pl-8 h-9 text-xs font-mono border-[#5A6B82]/30 bg-white text-[#002B5E] rounded-[8px]"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Nota de Segurança e Homologação */}
-                    <div className="p-3 rounded-[10px] bg-[#0066FF]/5 border border-[#0066FF]/20 flex items-start gap-2 text-[11px] text-[#002B5E]">
-                      <Clock className="h-4 w-4 text-[#0066FF] shrink-0 mt-0.5" />
-                      <div>
-                        <strong>Aprovação da Mesa Diretora:</strong> Após o envio e a assinatura
-                        eletrônica da declaração, seu cadastro ficará com status <em>Pendente</em>{' '}
-                        até a conferência e homologação pela mesa diretora da assembleia
-                        condominial.
-                      </div>
-                    </div>
-
-                    {/* BOTÕES DE AÇÃO: Assinar eletronicamente + Sair sem cadastrar */}
-                    <div className="pt-2 space-y-2">
-                      <Button
-                        type="submit"
-                        disabled={enviando || !formularioValido}
-                        className={`w-full h-11 text-white font-semibold rounded-[10px] shadow-none border-0 text-xs focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2 flex items-center justify-center gap-2 ${
-                          formularioValido && !enviando
-                            ? 'bg-[#0066FF] hover:bg-[#0052CC] cursor-pointer'
-                            : 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                        }`}
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        {enviando ? 'Gravando Assinatura...' : 'Assinar declaração eletronicamente'}
-                      </Button>
-
-                      {!formularioValido && (
-                        <p className="text-[10px] text-center text-[#5A6B82]">
-                          Preencha todos os campos obrigatórios acima para habilitar a assinatura
-                          eletrônica da declaração.
+                          <SelectTrigger
+                            id="cad-vinculo"
+                            className="h-10 border-[#5A6B82]/30 bg-white text-[#002B5E] rounded-[10px] text-xs focus-visible:ring-[#0066FF]"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="text-xs">
+                            <SelectItem
+                              value="condomino"
+                              disabled={
+                                !!(
+                                  unidade.vinculos_bloqueados &&
+                                  unidade.vinculos_bloqueados['condomino']
+                                )
+                              }
+                            >
+                              Condômino (residente) — Proprietário que mora no imóvel
+                              {unidade.vinculos_bloqueados &&
+                                unidade.vinculos_bloqueados['condomino'] &&
+                                ' (Indisponível)'}
+                            </SelectItem>
+                            <SelectItem
+                              value="locatario"
+                              disabled={
+                                !!(
+                                  unidade.vinculos_bloqueados &&
+                                  unidade.vinculos_bloqueados['locatario']
+                                )
+                              }
+                            >
+                              Locatário (Inquilino) — Morador da unidade
+                              {unidade.vinculos_bloqueados &&
+                                unidade.vinculos_bloqueados['locatario'] &&
+                                ' (Indisponível)'}
+                            </SelectItem>
+                            <SelectItem
+                              value="proprietario"
+                              disabled={
+                                !!(
+                                  unidade.vinculos_bloqueados &&
+                                  unidade.vinculos_bloqueados['proprietario']
+                                )
+                              }
+                            >
+                              Proprietário (não morador) — Não reside na unidade
+                              {unidade.vinculos_bloqueados &&
+                                unidade.vinculos_bloqueados['proprietario'] &&
+                                ' (Indisponível)'}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[10px] text-[#5A6B82]">
+                          {vinculo === 'proprietario'
+                            ? 'Proprietário legítimo titular que não reside nesta unidade.'
+                            : vinculo === 'locatario'
+                              ? 'Morador na qualidade de inquilino (Lei do Inquilinato nº 8.245/91).'
+                              : 'Proprietário legítimo residente na unidade (Código Civil arts. 1.228 e 1.331).'}
                         </p>
-                      )}
 
-                      <div className="flex items-center justify-center pt-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleSairSemCadastrar}
-                          className="text-xs text-slate-500 hover:text-red-600 hover:bg-red-50 h-8 px-3 rounded-[8px] flex items-center gap-1.5"
-                        >
-                          <LogOut className="h-3.5 w-3.5" />
-                          Sair sem cadastrar
-                        </Button>
+                        {/* DECLARAÇÃO DINÂMICA POR VÍNCULO (textos exatos aprovados) */}
+                        <div className="mt-2.5 p-3.5 rounded-[10px] bg-[#002B5E]/5 border border-[#002B5E]/15 space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-[#002B5E]">
+                            <FileCheck2 className="h-4 w-4 text-[#0066FF] shrink-0" />
+                            <span>
+                              Declaração de Vínculo Legal —{' '}
+                              {vinculo === 'locatario'
+                                ? 'Locatário (Inquilino)'
+                                : vinculo === 'condomino'
+                                  ? 'Condômino (residente)'
+                                  : 'Proprietário (não morador)'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[#002B5E]/90 leading-relaxed italic bg-white/70 p-2.5 rounded-[8px] border border-[#5A6B82]/15">
+                            "{TEXTOS_DECLARACAO[vinculo]}"
+                          </p>
+                          <p className="text-[10px] text-[#5A6B82]">
+                            A assinatura eletrônica desta declaração vincula o declarante sob as
+                            penas da lei e autoriza o tratamento para credenciamento e assembleia
+                            (LGPD).
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </form>
-                </>
-              )}
+
+                      {/* Contatos */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="cad-email" className="text-xs font-medium text-[#002B5E]">
+                            E-mail Oficial *
+                          </Label>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-3 h-4 w-4 text-[#5A6B82]" />
+                            <Input
+                              id="cad-email"
+                              type="email"
+                              required
+                              placeholder="seuemail@exemplo.com"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              className="pl-10 h-10 border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF] focus-visible:border-[#0066FF]"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label htmlFor="cad-tel" className="text-xs font-medium text-[#002B5E]">
+                            Telefone / WhatsApp *
+                          </Label>
+                          <div className="relative">
+                            <Phone className="absolute left-3 top-3 h-4 w-4 text-[#5A6B82]" />
+                            <Input
+                              id="cad-tel"
+                              type="tel"
+                              required
+                              placeholder="(XX) XXXXX-XXXX"
+                              maxLength={15}
+                              value={telefone}
+                              onChange={(e) => handleTelefoneChange(e.target.value)}
+                              onPaste={handleTelefonePaste}
+                              className="pl-10 h-10 font-mono border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF] focus-visible:border-[#0066FF]"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Seção opcional de indicação do morador/proprietário de fato */}
+                      <div className="space-y-2 pt-1 border-t border-[#5A6B82]/15">
+                        <div className="flex items-center justify-between">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setMostrarIndicacao((prev) => !prev)}
+                            className="text-xs text-[#0066FF] hover:text-[#0052CC] hover:bg-[#0066FF]/10 font-semibold h-8 px-2 flex items-center gap-1.5"
+                          >
+                            <UserPlus className="h-3.5 w-3.5" />
+                            {mostrarIndicacao
+                              ? 'Ocultar indicação de morador/proprietário de fato'
+                              : 'Indicar o morador/proprietário de fato'}
+                          </Button>
+                          <span className="text-[10px] text-[#5A6B82]">
+                            {vinculo === 'locatario'
+                              ? 'O inquilino indica o proprietário'
+                              : vinculo === 'proprietario'
+                                ? 'O proprietário indica o inquilino'
+                                : 'Opcional'}
+                          </span>
+                        </div>
+
+                        {mostrarIndicacao && (
+                          <div className="p-3.5 rounded-[10px] bg-slate-50 border border-slate-200 space-y-3 animate-in fade-in-50">
+                            <div>
+                              <span className="text-xs font-semibold text-[#002B5E] block">
+                                Dados da outra pessoa vinculada à unidade ({rotuloOutraPessoa})
+                              </span>
+                              <p className="text-[11px] text-[#5A6B82] mt-0.5">
+                                Estes dados serão encaminhados junto do cadastro pendente para a
+                                mesa diretora entrar em contato e providenciar o registro
+                                complementar.
+                              </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <Label
+                                  htmlFor="cad-ind-nome"
+                                  className="text-[11px] font-medium text-[#002B5E]"
+                                >
+                                  Nome Completo da pessoa indicada
+                                </Label>
+                                <div className="relative">
+                                  <User className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[#5A6B82]" />
+                                  <Input
+                                    id="cad-ind-nome"
+                                    placeholder="Nome completo do morador/proprietário"
+                                    value={indicacaoNome}
+                                    onChange={(e) => setIndicacaoNome(e.target.value)}
+                                    className="pl-8 h-9 text-xs border-[#5A6B82]/30 bg-white text-[#002B5E] rounded-[8px]"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="space-y-1">
+                                <Label
+                                  htmlFor="cad-ind-tel"
+                                  className="text-[11px] font-medium text-[#002B5E]"
+                                >
+                                  Telefone com DDD
+                                </Label>
+                                <div className="relative">
+                                  <Phone className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[#5A6B82]" />
+                                  <Input
+                                    id="cad-ind-tel"
+                                    type="tel"
+                                    placeholder="(XX) XXXXX-XXXX"
+                                    maxLength={15}
+                                    value={indicacaoTelefone}
+                                    onChange={(e) => handleIndicacaoTelefoneChange(e.target.value)}
+                                    onPaste={handleIndicacaoTelefonePaste}
+                                    className="pl-8 h-9 text-xs font-mono border-[#5A6B82]/30 bg-white text-[#002B5E] rounded-[8px]"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Nota de Segurança e Homologação */}
+                      <div className="p-3 rounded-[10px] bg-[#0066FF]/5 border border-[#0066FF]/20 flex items-start gap-2 text-[11px] text-[#002B5E]">
+                        <Clock className="h-4 w-4 text-[#0066FF] shrink-0 mt-0.5" />
+                        <div>
+                          <strong>Aprovação da Mesa Diretora:</strong> Após o envio e a assinatura
+                          eletrônica da declaração, seu cadastro ficará com status <em>Pendente</em>{' '}
+                          até a conferência e homologação pela mesa diretora da assembleia
+                          condominial.
+                        </div>
+                      </div>
+
+                      {/* BOTÕES DE AÇÃO: Assinar eletronicamente + Sair sem cadastrar */}
+                      <div className="pt-2 space-y-2">
+                        <Button
+                          type="submit"
+                          disabled={enviando || !formularioValido}
+                          className={`w-full h-11 text-white font-semibold rounded-[10px] shadow-none border-0 text-xs focus-visible:ring-2 focus-visible:ring-[#0066FF] focus-visible:ring-offset-2 flex items-center justify-center gap-2 ${
+                            formularioValido && !enviando
+                              ? 'bg-[#0066FF] hover:bg-[#0052CC] cursor-pointer'
+                              : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                          }`}
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          {enviando
+                            ? 'Gravando Assinatura...'
+                            : 'Assinar declaração eletronicamente'}
+                        </Button>
+
+                        {!formularioValido && (
+                          <p className="text-[10px] text-center text-[#5A6B82]">
+                            Preencha todos os campos obrigatórios acima para habilitar a assinatura
+                            eletrônica da declaração.
+                          </p>
+                        )}
+
+                        <div className="flex items-center justify-center pt-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleSairSemCadastrar}
+                            className="text-xs text-slate-500 hover:text-red-600 hover:bg-red-50 h-8 px-3 rounded-[8px] flex items-center gap-1.5"
+                          >
+                            <LogOut className="h-3.5 w-3.5" />
+                            Sair sem cadastrar
+                          </Button>
+                        </div>
+                      </div>
+                    </form>
+                  </>
+                )}
             </CardContent>
 
             <CardFooter className="flex flex-col items-center justify-center border-t border-[#5A6B82]/15 py-3 text-center">
