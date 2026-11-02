@@ -11,6 +11,11 @@ import {
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { useAuth } from '@/context/AuthContext'
 import { formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
+import {
+  formatarIdentificadorUnidade,
+  normalizarBloco,
+  temBlocoReal,
+} from '@/lib/formatadorUnidade'
 import pb from '@/lib/pocketbase/client'
 import { toast } from '@/hooks/use-toast'
 import {
@@ -1186,10 +1191,17 @@ export const ListaPresencaPage: React.FC = () => {
                 <SelectContent className="max-h-56">
                   {unidades.map((u) => {
                     const jaRegistrado = mapaPresencas.has(u.id)
+                    const idFormatado = formatarIdentificadorUnidade(
+                      u.identificador,
+                      u.tipo_unidade,
+                      rotuloUnidade,
+                    )
+                    const blocoRotulo = temBlocoReal(u.bloco, u.tipo_unidade)
+                      ? normalizarBloco(u.bloco, u.tipo_unidade)
+                      : '—'
                     return (
                       <SelectItem key={u.id} value={u.id} className="text-xs">
-                        {u.tipo_unidade || rotuloUnidade} {u.identificador} (
-                        {u.bloco || 'Principal'}){jaRegistrado ? ' — [JÁ PRESENTE]' : ''}
+                        {idFormatado} ({blocoRotulo}){jaRegistrado ? ' — [JÁ PRESENTE]' : ''}
                       </SelectItem>
                     )
                   })}

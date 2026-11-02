@@ -5,6 +5,12 @@ import { useCondoConfig } from '@/context/CondoConfigContext'
 import { useAuth } from '@/context/AuthContext'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { formatarCpf, validarCpf, limparCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
+import {
+  formatarIdentificadorUnidade,
+  formatarUnidadeComBloco,
+  normalizarBloco,
+  temBlocoReal,
+} from '@/lib/formatadorUnidade'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -1462,11 +1468,13 @@ export const CadastrosUnidadesPage: React.FC = () => {
                                   )
                                 : '—'}
                             </span>
-                            {unid && temBlocoReal(unid.bloco, unid.tipo_unidade) && (
-                              <span className="text-[10px] text-slate-400 font-normal">
-                                ({normalizarBloco(unid.bloco, unid.tipo_unidade)})
-                              </span>
-                            )}
+                            <span className="text-[10px] text-slate-400 font-normal">
+                              (
+                              {unid && temBlocoReal(unid.bloco, unid.tipo_unidade)
+                                ? normalizarBloco(unid.bloco, unid.tipo_unidade)
+                                : '—'}
+                              )
+                            </span>
                           </div>
                         </td>
 

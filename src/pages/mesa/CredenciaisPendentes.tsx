@@ -3,6 +3,11 @@ import { useAuth } from '@/context/AuthContext'
 import { api, type CredenciamentoRecord, type UnidadeRecord } from '@/lib/api'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import pb from '@/lib/pocketbase/client'
+import {
+  formatarIdentificadorUnidade,
+  normalizarBloco,
+  temBlocoReal,
+} from '@/lib/formatadorUnidade'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -386,9 +391,25 @@ export const CredenciaisPendentesPage: React.FC = () => {
                         <div className="h-7 w-7 rounded-md bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-800">
                           {unid?.identificador || '—'}
                         </div>
-                        <span className="font-bold text-sm text-slate-900">
-                          {unid?.tipo_unidade || rotuloUnidade} {unid?.identificador}{' '}
-                          {unid?.bloco ? `(${unid.bloco})` : ''} — {cad.nome}
+                        <span className="font-bold text-sm text-slate-900 flex items-center gap-1.5 flex-wrap">
+                          <span>
+                            {unid
+                              ? formatarIdentificadorUnidade(
+                                  unid.identificador,
+                                  unid.tipo_unidade,
+                                  rotuloUnidade,
+                                )
+                              : '—'}
+                          </span>
+                          <span className="text-xs text-slate-400 font-normal">
+                            (
+                            {unid && temBlocoReal(unid.bloco, unid.tipo_unidade)
+                              ? normalizarBloco(unid.bloco, unid.tipo_unidade)
+                              : '—'}
+                            )
+                          </span>
+                          <span className="text-slate-400 font-normal">—</span>
+                          <span>{cad.nome}</span>
                         </span>
                         <Badge
                           className={`shrink-0 text-center leading-normal ${
@@ -511,9 +532,25 @@ export const CredenciaisPendentesPage: React.FC = () => {
                       <div className="h-7 w-7 rounded-md bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-800">
                         {unid?.identificador || '—'}
                       </div>
-                      <span className="font-bold text-sm text-slate-900">
-                        {unid?.tipo_unidade || rotuloUnidade} {unid?.identificador}{' '}
-                        {unid?.bloco ? `(${unid.bloco})` : ''} — {cred.titular_nome}
+                      <span className="font-bold text-sm text-slate-900 flex items-center gap-1.5 flex-wrap">
+                        <span>
+                          {unid
+                            ? formatarIdentificadorUnidade(
+                                unid.identificador,
+                                unid.tipo_unidade,
+                                rotuloUnidade,
+                              )
+                            : '—'}
+                        </span>
+                        <span className="text-xs text-slate-400 font-normal">
+                          (
+                          {unid && temBlocoReal(unid.bloco, unid.tipo_unidade)
+                            ? normalizarBloco(unid.bloco, unid.tipo_unidade)
+                            : '—'}
+                          )
+                        </span>
+                        <span className="text-slate-400 font-normal">—</span>
+                        <span>{cred.titular_nome}</span>
                       </span>
                       <Badge
                         className={`shrink-0 text-center leading-normal ${

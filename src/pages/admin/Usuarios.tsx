@@ -8,6 +8,11 @@ import {
   type UnidadeRecord,
   type LogAcessoRecord,
 } from '@/lib/api'
+import {
+  formatarIdentificadorUnidade,
+  normalizarBloco,
+  temBlocoReal,
+} from '@/lib/formatadorUnidade'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -738,8 +743,20 @@ export const GestaoUsuariosPage: React.FC = () => {
                             {unidadeVinc ? (
                               <span className="font-mono text-xs inline-flex items-center gap-1">
                                 <Building className="h-3 w-3 text-[#5C6B7A]" />
-                                {unidadeVinc.tipo_unidade || rotuloUnidade}{' '}
-                                {unidadeVinc.identificador} ({unidadeVinc.bloco || 'Lago Azul'})
+                                <span>
+                                  {formatarIdentificadorUnidade(
+                                    unidadeVinc.identificador,
+                                    unidadeVinc.tipo_unidade,
+                                    rotuloUnidade,
+                                  )}
+                                </span>
+                                <span className="text-slate-400 font-normal">
+                                  (
+                                  {temBlocoReal(unidadeVinc.bloco, unidadeVinc.tipo_unidade)
+                                    ? normalizarBloco(unidadeVinc.bloco, unidadeVinc.tipo_unidade)
+                                    : '—'}
+                                  )
+                                </span>
                               </span>
                             ) : (
                               <span className="text-[#5C6B7A] italic">Sem unidade</span>
@@ -888,7 +905,11 @@ export const GestaoUsuariosPage: React.FC = () => {
                           </span>
                           <span className="text-[#12314F]">
                             {unidadeVinc
-                              ? `${unidadeVinc.tipo_unidade || rotuloUnidade} ${unidadeVinc.identificador}`
+                              ? `${formatarIdentificadorUnidade(
+                                  unidadeVinc.identificador,
+                                  unidadeVinc.tipo_unidade,
+                                  rotuloUnidade,
+                                )} (${temBlocoReal(unidadeVinc.bloco, unidadeVinc.tipo_unidade) ? normalizarBloco(unidadeVinc.bloco, unidadeVinc.tipo_unidade) : '—'})`
                               : 'Sem vínculo'}
                           </span>
                         </div>
@@ -1092,11 +1113,21 @@ export const GestaoUsuariosPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent className="max-h-56 bg-white border-[#D5DCE5] text-[#12314F]">
                   <SelectItem value="none">Nenhuma unidade (operador avulso)</SelectItem>
-                  {unidades.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.tipo_unidade || rotuloUnidade} {u.identificador} ({u.bloco || 'Lago Azul'})
-                    </SelectItem>
-                  ))}
+                  {unidades.map((u) => {
+                    const idFormatado = formatarIdentificadorUnidade(
+                      u.identificador,
+                      u.tipo_unidade,
+                      rotuloUnidade,
+                    )
+                    const blocoRotulo = temBlocoReal(u.bloco, u.tipo_unidade)
+                      ? normalizarBloco(u.bloco, u.tipo_unidade)
+                      : '—'
+                    return (
+                      <SelectItem key={u.id} value={u.id}>
+                        {idFormatado} ({blocoRotulo})
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -1221,11 +1252,21 @@ export const GestaoUsuariosPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent className="max-h-56 bg-white border-[#D5DCE5] text-[#12314F]">
                   <SelectItem value="none">Nenhuma unidade (operador avulso)</SelectItem>
-                  {unidades.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.tipo_unidade || rotuloUnidade} {u.identificador} ({u.bloco || 'Lago Azul'})
-                    </SelectItem>
-                  ))}
+                  {unidades.map((u) => {
+                    const idFormatado = formatarIdentificadorUnidade(
+                      u.identificador,
+                      u.tipo_unidade,
+                      rotuloUnidade,
+                    )
+                    const blocoRotulo = temBlocoReal(u.bloco, u.tipo_unidade)
+                      ? normalizarBloco(u.bloco, u.tipo_unidade)
+                      : '—'
+                    return (
+                      <SelectItem key={u.id} value={u.id}>
+                        {idFormatado} ({blocoRotulo})
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             </div>

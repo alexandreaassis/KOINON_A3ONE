@@ -44,6 +44,12 @@ import {
   FolderArchive,
 } from 'lucide-react'
 import { useCondoConfig } from '@/context/CondoConfigContext'
+import {
+  formatarIdentificadorUnidade,
+  formatarUnidadeComBloco,
+  normalizarBloco,
+  temBlocoReal,
+} from '@/lib/formatadorUnidade'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -427,16 +433,25 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                   <SelectValue placeholder="Selecione sua unidade" />
                 </SelectTrigger>
                 <SelectContent className="max-h-64 bg-[#002B5E] text-[#FFFFFF] border-white/15">
-                  {unidadesDisponiveis.map((u) => (
-                    <SelectItem
-                      key={u.id}
-                      value={u.id}
-                      className="text-xs text-[#FFFFFF] focus:bg-white/15 focus:text-[#FFFFFF]"
-                    >
-                      {u.tipo_unidade || rotuloUnidade} {u.identificador} (
-                      {u.bloco || nomeCondominio})
-                    </SelectItem>
-                  ))}
+                  {unidadesDisponiveis.map((u) => {
+                    const idFormatado = formatarIdentificadorUnidade(
+                      u.identificador,
+                      u.tipo_unidade,
+                      rotuloUnidade,
+                    )
+                    const blocoRotulo = temBlocoReal(u.bloco, u.tipo_unidade)
+                      ? normalizarBloco(u.bloco, u.tipo_unidade)
+                      : '—'
+                    return (
+                      <SelectItem
+                        key={u.id}
+                        value={u.id}
+                        className="text-xs text-[#FFFFFF] focus:bg-white/15 focus:text-[#FFFFFF]"
+                      >
+                        {idFormatado} ({blocoRotulo})
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -524,7 +539,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                       ? 'Administrador Geral'
                       : role === 'mesa'
                         ? 'Membro da Mesa'
-                        : `Condômino ${unidadeSelecionada?.tipo_unidade || rotuloUnidade} ${unidadeSelecionada?.identificador || '—'}`}
+                        : `Condômino ${
+                            unidadeSelecionada
+                              ? formatarIdentificadorUnidade(
+                                  unidadeSelecionada.identificador,
+                                  unidadeSelecionada.tipo_unidade,
+                                  rotuloUnidade,
+                                )
+                              : '—'
+                          }`}
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -593,7 +616,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                       ? 'Administrador Geral'
                       : role === 'mesa'
                         ? 'Membro da Mesa'
-                        : `Condômino ${unidadeSelecionada?.tipo_unidade || rotuloUnidade} ${unidadeSelecionada?.identificador || '—'}`}
+                        : `Condômino ${
+                            unidadeSelecionada
+                              ? formatarIdentificadorUnidade(
+                                  unidadeSelecionada.identificador,
+                                  unidadeSelecionada.tipo_unidade,
+                                  rotuloUnidade,
+                                )
+                              : '—'
+                          }`}
                   </p>
                 </div>
               </div>
@@ -774,8 +805,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                     <p className="text-xs font-semibold text-[#002B5E]">{user?.name}</p>
                     <p className="text-[11px] text-[#5A6B82]">{user?.email}</p>
                     <p className="text-[11px] font-medium text-[#0066FF] mt-1">
-                      Unidade: {unidadeSelecionada?.tipo_unidade || rotuloUnidade}{' '}
-                      {unidadeSelecionada?.identificador || 'Não selecionada'}
+                      Unidade:{' '}
+                      {unidadeSelecionada
+                        ? formatarIdentificadorUnidade(
+                            unidadeSelecionada.identificador,
+                            unidadeSelecionada.tipo_unidade,
+                            rotuloUnidade,
+                          )
+                        : 'Não selecionada'}
                     </p>
                   </div>
                 </DropdownMenuLabel>

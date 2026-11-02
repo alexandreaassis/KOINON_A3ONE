@@ -63,8 +63,13 @@ export function formatarIdentificadorUnidade(
   tipoUnidade?: string | null,
   rotuloPadrao: string = 'Apto',
 ): string {
-  const idLimpo = (identificador || '').trim()
-  if (!idLimpo || idLimpo === '—') return '—'
+  let idLimpo = (identificador || '').trim()
+  if (!idLimpo || idLimpo === '—' || idLimpo === '-') return '—'
+
+  // Remover sufixos redundantes como " (Apto)", " (Apartamento)", " (Unidade)" do identificador se vierem gravados
+  idLimpo = idLimpo
+    .replace(/\s*\(\s*(?:apto|apartamento|sala|casa|lote|unidade|bloco\s*apto)\s*\)$/i, '')
+    .trim()
 
   const tipoEfetivo = (tipoUnidade || rotuloPadrao || 'Apto').trim()
   const idLower = idLimpo.toLowerCase()

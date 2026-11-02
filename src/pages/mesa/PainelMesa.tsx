@@ -10,6 +10,11 @@ import {
 } from '@/lib/api'
 import { formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
 import { useCondoConfig } from '@/context/CondoConfigContext'
+import {
+  formatarIdentificadorUnidade,
+  normalizarBloco,
+  temBlocoReal,
+} from '@/lib/formatadorUnidade'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -585,7 +590,13 @@ export const PainelMesaPage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <Building className="h-3.5 w-3.5 text-slate-400" />
                           <span className="font-semibold text-slate-800">
-                            {unid?.tipo_unidade || rotuloUnidade} {unid?.identificador || p.unidade}
+                            {unid
+                              ? formatarIdentificadorUnidade(
+                                  unid.identificador,
+                                  unid.tipo_unidade,
+                                  rotuloUnidade,
+                                )
+                              : p.unidade}
                           </span>
                           <span className="text-slate-500 text-[11px]">
                             ({unid?.responsavel_nome || 'Condômino'})
@@ -632,10 +643,14 @@ export const PainelMesaPage: React.FC = () => {
                   <SelectContent className="max-h-60">
                     {unidades.map((u) => {
                       const jaPresente = presencas.some((p) => p.unidade === u.id)
+                      const idFormatado = formatarIdentificadorUnidade(
+                        u.identificador,
+                        u.tipo_unidade,
+                        rotuloUnidade,
+                      )
                       return (
                         <SelectItem key={u.id} value={u.id} className="text-xs">
-                          {u.tipo_unidade || rotuloUnidade} {u.identificador} — {u.responsavel_nome}{' '}
-                          {jaPresente ? '(Já presente)' : ''}
+                          {idFormatado} — {u.responsavel_nome} {jaPresente ? '(Já presente)' : ''}
                         </SelectItem>
                       )
                     })}
