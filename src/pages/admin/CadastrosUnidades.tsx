@@ -1595,11 +1595,12 @@ export const CadastrosUnidadesPage: React.FC = () => {
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-[#002B5E] flex items-center gap-2">
               <Share2 className="h-5 w-5 text-[#0066FF]" />
-              Link Oficial de Cadastro da Unidade
+              Link Oficial de Cadastro da Unidade (Até 2 Vínculos)
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-600">
-              Selecione o apartamento (unidade) para gerar ou compartilhar o link exclusivo de
-              autoatendimento.
+              Gere ou compartilhe o link exclusivo de autoatendimento. O mesmo link permite
+              cadastrar o <strong>Morador</strong> (Condômino ou Inquilino) e também o{' '}
+              <strong>Proprietário</strong> (condômino não morador).
             </DialogDescription>
           </DialogHeader>
 
@@ -1669,6 +1670,21 @@ export const CadastrosUnidadesPage: React.FC = () => {
                   </div>
                   <p className="text-[10px] text-slate-400">
                     O morador acessará a página pública segura associada diretamente a esta unidade.
+                  </p>
+                </div>
+
+                {/* Box explicativo de suporte a 2 cadastros (morador + proprietário) */}
+                <div className="p-2.5 rounded-lg bg-[#0066FF]/5 border border-[#0066FF]/20 text-[11px] text-[#002B5E] space-y-1">
+                  <span className="font-semibold block flex items-center gap-1.5 text-[#002B5E]">
+                    <Users className="h-3.5 w-3.5 text-[#0066FF]" />
+                    Regra da Unidade: Suporte a Morador e Proprietário
+                  </span>
+                  <p className="text-slate-600 leading-relaxed">
+                    • Se mora o <strong>Condômino</strong> (proprietário residente), ele preenche
+                    sozinho o cadastro.
+                    <br />• Se a unidade está alugada para um <strong>Inquilino</strong>, este mesmo
+                    link deve ser utilizado por ambos: pelo inquilino (morador) e pelo proprietário
+                    (não morador), totalizando até 2 cadastros homologados por unidade.
                   </p>
                 </div>
 

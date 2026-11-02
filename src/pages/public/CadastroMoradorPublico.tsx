@@ -44,6 +44,11 @@ interface DadosUnidadePublica {
   bloco?: string
   tipo_unidade?: string
   tem_bloco: boolean
+  tem_morador_aprovado?: boolean
+  tem_proprietario_aprovado?: boolean
+  tem_morador_pendente?: boolean
+  tem_proprietario_pendente?: boolean
+  tipo_morador_existente?: string
 }
 
 export const CadastroMoradorPublicoPage: React.FC = () => {
@@ -69,6 +74,7 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
   const [sucesso, setSucesso] = useState<{
     mensagem: string
     status: 'pendente' | 'aprovado'
+    vinculo_enviado?: string
   } | null>(null)
 
   // Carregar dados seguros da unidade via token
@@ -218,6 +224,7 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
             resp.message ||
             'Cadastro enviado com sucesso! Seus dados foram recebidos e estão pendentes de homologação da mesa diretora.',
           status: resp.status || 'pendente',
+          vinculo_enviado: vinculo,
         })
       } else {
         setErroEnvio(resp?.message || 'Falha ao registrar cadastro.')
@@ -232,6 +239,20 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
     } finally {
       setEnviando(false)
     }
+  }
+
+  // Ação para realizar o segundo cadastro na mesma unidade (ex: inquilino cadastrado -> cadastrar proprietário)
+  const prepararSegundoCadastro = (novoVinculoSugerido: VinculoCadastro) => {
+    setNome('')
+    setCpf('')
+    setCpfErro(null)
+    setDataNascimento('')
+    setDataNascErro(null)
+    setEmail('')
+    setTelefone('')
+    setVinculo(novoVinculoSugerido)
+    setErroEnvio(null)
+    setSucesso(null)
   }
 
   // Rótulo da Unidade
@@ -278,16 +299,34 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
                 comunicações formais.
               </CardDescription>
 
-              {/* Box de Identificação da Unidade */}
+              {/* Box de Identificação da Unidade e Suporte a Morador + Proprietário */}
               {unidade && !carregandoUnidade && (
-                <div className="mt-4 p-3 rounded-[10px] bg-[#002B5E]/5 border border-[#002B5E]/15 flex items-center justify-center gap-2 text-xs font-semibold text-[#002B5E]">
-                  <Building className="h-4 w-4 text-[#0066FF] shrink-0" />
-                  <span>{rotuloUnidadeCompleto}</span>
-                  {!unidade.bloco && (
-                    <span className="text-[10px] font-normal text-[#5A6B82] bg-white px-2 py-0.5 rounded border border-[#5A6B82]/20">
-                      Torre única
-                    </span>
-                  )}
+                <div className="mt-4 space-y-2">
+                  <div className="p-3 rounded-[10px] bg-[#002B5E]/5 border border-[#002B5E]/15 flex items-center justify-center gap-2 text-xs font-semibold text-[#002B5E]">
+                    <Building className="h-4 w-4 text-[#0066FF] shrink-0" />
+                    <span>{rotuloUnidadeCompleto}</span>
+                    {!unidade.bloco && (
+                      <span className="text-[10px] font-normal text-[#5A6B82] bg-white px-2 py-0.5 rounded border border-[#5A6B82]/20">
+                        Torre única
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Orientação oficial: suporte a 2 cadastros (morador + proprietário) */}
+                  <div className="p-2.5 rounded-[8px] bg-[#0066FF]/5 border border-[#0066FF]/20 text-left text-[11px] text-[#002B5E] space-y-1">
+                    <p className="font-semibold text-[#002B5E] flex items-center gap-1.5">
+                      <HelpCircle className="h-3.5 w-3.5 text-[#0066FF]" />
+                      Quem deve se cadastrar nesta unidade?
+                    </p>
+                    <p className="text-[#5A6B82] leading-relaxed">
+                      • <strong>Condômino residente:</strong> proprietário que mora no imóvel
+                      (cadastro único suficiente).
+                      <br />• <strong>Imóvel alugado:</strong> este mesmo link permite cadastrar o{' '}
+                      <strong>Inquilino</strong> (morador) <em>E</em> o{' '}
+                      <strong>Proprietário</strong> (não morador), totalizando até 2 pessoas por
+                      unidade.
+                    </p>
+                  </div>
                 </div>
               )}
             </CardHeader>
@@ -341,20 +380,74 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
                       <span>Próximos passos</span>
                     </div>
                     <ul className="text-[11px] text-[#5A6B82] space-y-1 list-disc pl-4">
-                      <li>A mesa diretora conferirá os dados da unidade.</li>
-                      <li>Após a homologação, você receberá a confirmação por e-mail.</li>
+                      <li>A mesa diretora conferirá os dados cadastrados para a unidade.</li>
                       <li>
-                        Seus dados estarão habilitados para as deliberações e votações da
+                        Após a homologação, a confirmação oficial será encaminhada por e-mail.
+                      </li>
+                      <li>
+                        Os cadastros aprovados ficam habilitados para as deliberações e votações da
                         assembleia.
                       </li>
                     </ul>
                   </div>
 
-                  <div className="pt-2">
+                  {/* Seção de segundo cadastro na mesma unidade quando aplicável */}
+                  {sucesso.vinculo_enviado === 'locatario' && (
+                    <div className="p-3 rounded-[10px] bg-amber-50 border border-amber-200 text-left text-xs space-y-2">
+                      <span className="font-bold text-amber-900 block flex items-center gap-1.5">
+                        <User className="h-4 w-4 text-amber-700" />
+                        Cadastrar também o Proprietário desta unidade?
+                      </span>
+                      <p className="text-[11px] text-amber-800 leading-relaxed">
+                        Como foi cadastrado um <strong>Inquilino</strong>, a unidade ainda necessita
+                        do cadastro do <strong>Proprietário (não morador)</strong>. Você pode
+                        cadastrá-lo agora mesmo usando este mesmo link.
+                      </p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => prepararSegundoCadastro('proprietario')}
+                        className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs h-8"
+                      >
+                        Cadastrar Proprietário da Unidade Agora
+                      </Button>
+                    </div>
+                  )}
+
+                  {sucesso.vinculo_enviado === 'proprietario' && (
+                    <div className="p-3 rounded-[10px] bg-cyan-50 border border-cyan-200 text-left text-xs space-y-2">
+                      <span className="font-bold text-cyan-900 block flex items-center gap-1.5">
+                        <User className="h-4 w-4 text-cyan-700" />
+                        A unidade é alugada e possui Inquilino morador?
+                      </span>
+                      <p className="text-[11px] text-cyan-800 leading-relaxed">
+                        Se a unidade estiver locada, você também pode registrar o{' '}
+                        <strong>Inquilino (morador)</strong> por este mesmo link.
+                      </p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => prepararSegundoCadastro('locatario')}
+                        className="bg-[#0066FF] hover:bg-[#0052CC] text-white font-semibold text-xs h-8"
+                      >
+                        Cadastrar Inquilino Morador
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="pt-2 flex items-center justify-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => prepararSegundoCadastro('condomino')}
+                      className="text-xs h-9 border-[#5A6B82]/30 text-[#002B5E] hover:bg-[#F3F7FC] rounded-[10px]"
+                    >
+                      Novo Envio para esta Unidade
+                    </Button>
                     <Link to="/login">
                       <Button
-                        variant="outline"
-                        className="text-xs h-9 border-[#5A6B82]/30 text-[#002B5E] hover:bg-[#F3F7FC] rounded-[10px]"
+                        variant="default"
+                        className="text-xs h-9 bg-[#002B5E] text-white hover:bg-[#001D40] rounded-[10px]"
                       >
                         Ir para a página de entrada
                       </Button>

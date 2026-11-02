@@ -82,6 +82,46 @@ routerAdd('GET', '/backend/v1/publico/unidade/{token}', (e) => {
   const bloco = (unidade.getString('bloco') || '').trim()
   const tipoUnidade = unidade.getString('tipo_unidade') || rotuloPadrao
 
+  // Verificar estado atual dos cadastros da unidade para orientar o formulário público:
+  // - se já tem morador (condomino ou locatario) cadastrado/aprovado
+  // - se já tem proprietario cadastrado/aprovado
+  // NÃO expõe nomes, CPFs ou contatos de terceiros (apenas flags booleanas)
+  let temMoradorAprovado = false
+  let temProprietarioAprovado = false
+  let temMoradorPendente = false
+  let temProprietarioPendente = false
+  let tipoMoradorExistente = '' // 'condomino' | 'locatario' | ''
+
+  try {
+    const cads = e.app.findRecordsByFilter(
+      'cadastros_unidade',
+      'unidade = {:u}',
+      '-created',
+      10,
+      0,
+      { u: unidade.id },
+    )
+    for (let c of cads) {
+      const v = c.getString('vinculo')
+      const st = c.getString('status_aprovacao') || 'aprovado'
+      const eAtivo = c.getBool('ativo')
+
+      if (v === 'proprietario') {
+        if (st === 'aprovado' && eAtivo) temProprietarioAprovado = true
+        if (st === 'pendente') temProprietarioPendente = true
+      } else if (v === 'condomino' || v === 'locatario') {
+        if (st === 'aprovado' && eAtivo) {
+          temMoradorAprovado = true
+          tipoMoradorExistente = v
+        }
+        if (st === 'pendente') {
+          temMoradorPendente = true
+          if (!tipoMoradorExistente) tipoMoradorExistente = v
+        }
+      }
+    }
+  } catch (_) {}
+
   return e.json(200, {
     success: true,
     unidade: {
@@ -89,6 +129,11 @@ routerAdd('GET', '/backend/v1/publico/unidade/{token}', (e) => {
       bloco: bloco, // pode ser vazio se torre única
       tipo_unidade: tipoUnidade,
       tem_bloco: !!bloco,
+      tem_morador_aprovado: temMoradorAprovado,
+      tem_proprietario_aprovado: temProprietarioAprovado,
+      tem_morador_pendente: temMoradorPendente,
+      tem_proprietario_pendente: temProprietarioPendente,
+      tipo_morador_existente: tipoMoradorExistente,
     },
     condominio: {
       nome: nomeCondo,
@@ -224,13 +269,13 @@ routerAdd('POST', '/backend/v1/publico/cadastro-morador', (e) => {
     return e.json(400, { success: false, message: 'Telefone de contato obrigatório.' })
   }
 
-  // Verificar se já existe cadastro pendente ou aprovado com este CPF na mesma unidade
-  // Segurança: tratamento neutro para não expor dados de terceiros
+  // Regra de suporte a DUAS pessoas por unidade (1 morador [Condômino ou Inquilino] + 1 Proprietário [não morador]).
+  // 1. Verificar se o mesmo CPF já está cadastrado nesta unidade
   try {
-    const existentes = e.app.findRecordsByFilter(
+    const existentesCpf = e.app.findRecordsByFilter(
       'cadastros_unidade',
       'unidade = {:u} && cpf = {:c}',
-      '',
+      '-created',
       1,
       0,
       {
@@ -238,23 +283,76 @@ routerAdd('POST', '/backend/v1/publico/cadastro-morador', (e) => {
         c: cpfLimpo,
       },
     )
-    if (existentes && existentes.length > 0) {
-      const ex = existentes[0]
+    if (existentesCpf && existentesCpf.length > 0) {
+      const ex = existentesCpf[0]
       const statusAtual = ex.getString('status_aprovacao') || 'aprovado'
       if (statusAtual === 'pendente') {
         return e.json(200, {
           success: true,
           message:
-            'Seu cadastro para esta unidade já foi enviado anteriormente e está aguardando homologação da mesa diretora.',
+            'Seu cadastro com este CPF para esta unidade já foi enviado e está aguardando homologação da mesa diretora.',
           status: 'pendente',
+          vinculo_enviado: vinculoValido,
         })
       }
       if (statusAtual === 'aprovado') {
         return e.json(200, {
           success: true,
           message:
-            'Os dados para esta unidade já se encontram registrados na plataforma. Em caso de dúvidas, contate a administração.',
+            'Os dados deste CPF já estão homologados e ativos para esta unidade na plataforma.',
           status: 'aprovado',
+          vinculo_enviado: vinculoValido,
+        })
+      }
+    }
+  } catch (_) {}
+
+  // 2. Verificar se a unidade já possui cadastro pendente ou aprovado com a MESMA categoria de vínculo
+  // - Categoria Morador: 'condomino' ou 'locatario'
+  // - Categoria Proprietário: 'proprietario'
+  // A unidade aceita 1 Morador E 1 Proprietário (duas pessoas diferentes).
+  try {
+    const cadastrosUnidade = e.app.findRecordsByFilter(
+      'cadastros_unidade',
+      'unidade = {:u}',
+      '-created',
+      10,
+      0,
+      { u: unidade.id },
+    )
+
+    const eProprietario = vinculoValido === 'proprietario'
+    const eMorador = vinculoValido === 'condomino' || vinculoValido === 'locatario'
+
+    for (let cad of cadastrosUnidade) {
+      const st = cad.getString('status_aprovacao') || 'aprovado'
+      if (st === 'rejeitado') continue // rejeitado libera nova submissão
+
+      const v = cad.getString('vinculo')
+      const cadEProprietario = v === 'proprietario'
+      const cadEMorador = v === 'condomino' || v === 'locatario'
+
+      if (eProprietario && cadEProprietario) {
+        return e.json(200, {
+          success: true,
+          message:
+            st === 'pendente'
+              ? 'Já existe um cadastro de Proprietário pendente de homologação para esta unidade.'
+              : 'Esta unidade já possui o cadastro de Proprietário registrado.',
+          status: st,
+          vinculo_enviado: vinculoValido,
+        })
+      }
+
+      if (eMorador && cadEMorador) {
+        return e.json(200, {
+          success: true,
+          message:
+            st === 'pendente'
+              ? 'Já existe um cadastro de morador pendente de homologação para esta unidade.'
+              : 'Esta unidade já possui o cadastro de morador registrado.',
+          status: st,
+          vinculo_enviado: vinculoValido,
         })
       }
     }
@@ -324,6 +422,8 @@ routerAdd('POST', '/backend/v1/publico/cadastro-morador', (e) => {
       message:
         'Cadastro enviado com sucesso. Seu registro está pendente e será ativado após homologação da mesa diretora.',
       status: 'pendente',
+      vinculo_enviado: vinculoValido,
+      permite_segundo_cadastro: vinculoValido === 'locatario', // inquilino cadastrado abre oportunidade imediata para proprietário
     })
   } catch (err) {
     console.log('Erro ao gravar cadastro de morador público:', err)
