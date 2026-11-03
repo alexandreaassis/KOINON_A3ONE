@@ -22,6 +22,7 @@ import {
 export const ApresentacaoVideoCadastroPage: React.FC = () => {
   const [indiceCena, setIndiceCena] = useState(0)
   const [modoTelaCheia, setModoTelaCheia] = useState(false)
+  const [modoGravacao, setModoGravacao] = useState(false)
   const [reproducaoAutomatica, setReproducaoAutomatica] = useState(false)
   const [baixandoDocx, setBaixandoDocx] = useState(false)
   const [downloadConcluido, setDownloadConcluido] = useState(false)
@@ -53,13 +54,25 @@ export const ApresentacaoVideoCadastroPage: React.FC = () => {
       } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
         e.preventDefault()
         voltarCena()
-      } else if (e.key === ' ' || e.key === 'Spacebar') {
+      } else if (e.key === 'Escape') {
+        // Se estiver em modo gravação, sai do modo gravação e restaura a visualização normal
+        setModoGravacao((prev) => {
+          if (prev) {
+            // Se o navegador estiver em fullscreen nativo e sairmos via ESC, o browser já lida ou podemos garantir saída
+            if (document.fullscreenElement) {
+              document.exitFullscreen().catch(() => {})
+            }
+            return false
+          }
+          return prev
+        })
+      } else if (!modoGravacao && (e.key === ' ' || e.key === 'Spacebar')) {
         e.preventDefault()
         setReproducaoAutomatica((prev) => !prev)
-      } else if (e.key === 'Home') {
+      } else if (!modoGravacao && e.key === 'Home') {
         e.preventDefault()
         setIndiceCena(0)
-      } else if (e.key === 'End') {
+      } else if (!modoGravacao && e.key === 'End') {
         e.preventDefault()
         setIndiceCena(totalCenas - 1)
       }
@@ -67,7 +80,7 @@ export const ApresentacaoVideoCadastroPage: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [avancarCena, voltarCena, totalCenas])
+  }, [avancarCena, voltarCena, totalCenas, modoGravacao])
 
   // Reprodução automática se ativada
   useEffect(() => {
@@ -81,7 +94,20 @@ export const ApresentacaoVideoCadastroPage: React.FC = () => {
     return () => clearTimeout(timer)
   }, [reproducaoAutomatica, indiceCena, cenaAtual, avancarCena])
 
-  // Alternar tela cheia nativa do browser
+  // Ativar modo gravação (limpo, tela cheia com requestFullscreen quando suportado)
+  const ativarModoGravacao = async () => {
+    setModoGravacao(true)
+    setReproducaoAutomatica(false) // No modo gravação a transição é controlada manualmente pelas setas
+    try {
+      if (!document.fullscreenElement && containerRef.current) {
+        await containerRef.current.requestFullscreen()
+      }
+    } catch (err) {
+      console.warn('Fullscreen nativo indisponível ou recusado:', err)
+    }
+  }
+
+  // Alternar tela cheia normal
   const toggleTelaCheia = async () => {
     try {
       if (!document.fullscreenElement) {
@@ -92,21 +118,28 @@ export const ApresentacaoVideoCadastroPage: React.FC = () => {
       } else {
         await document.exitFullscreen()
         setModoTelaCheia(false)
+        if (modoGravacao) {
+          setModoGravacao(false)
+        }
       }
     } catch (err) {
       console.error('Erro ao alternar tela cheia:', err)
-      // Fallback em CSS
       setModoTelaCheia((prev) => !prev)
     }
   }
 
   useEffect(() => {
     const onFsChange = () => {
-      setModoTelaCheia(!!document.fullscreenElement)
+      const isFs = !!document.fullscreenElement
+      setModoTelaCheia(isFs)
+      // Se saiu do fullscreen nativo enquanto estava no modo gravação, também sincroniza o estado
+      if (!isFs && modoGravacao) {
+        setModoGravacao(false)
+      }
     }
     document.addEventListener('fullscreenchange', onFsChange)
     return () => document.removeEventListener('fullscreenchange', onFsChange)
-  }, [])
+  }, [modoGravacao])
 
   // Gerar e baixar documento Word .docx real
   const handleBaixarDocx = () => {
@@ -121,6 +154,22 @@ export const ApresentacaoVideoCadastroPage: React.FC = () => {
     } finally {
       setBaixandoDocx(false)
     }
+  }
+
+  // MODO GRAVAÇÃO ATIVO: renderização 100% limpa em tela cheia
+  // Apenas o slide da cena atual, fundo limpo (#F3F7FC), sem cabeçalho, rodapé, legenda ou chips
+  if (modoGravacao) {
+    return (
+      <div
+        ref={containerRef}
+        tabIndex={0}
+        className="fixed inset-0 z-50 w-screen h-screen bg-[#F3F7FC] text-[#002B5E] font-['Poppins',sans-serif] flex items-center justify-center p-4 sm:p-8 md:p-12 overflow-hidden outline-hidden select-none"
+      >
+        <div className="w-full max-w-6xl flex items-center justify-center">
+          <SimuladorTelaCadastro cena={cenaAtual} modoApresentacao={true} modoGravacao={true} />
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -167,12 +216,24 @@ export const ApresentacaoVideoCadastroPage: React.FC = () => {
             )}
           </button>
 
-          {/* Botão de Tela Cheia */}
+          {/* Botão de Modo Gravação Limpo */}
+          <button
+            type="button"
+            onClick={ativarModoGravacao}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[10px] bg-[#002B5E] hover:bg-[#001D40] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+            title="Ativar modo de gravação limpo em tela cheia (apenas slides, sem cabeçalhos/rodapés). Navegação por setas e Esc para sair."
+          >
+            <Video className="h-4 w-4 text-[#8EC0FF]" />
+            <span className="hidden sm:inline">Modo Gravação</span>
+            <Maximize2 className="h-3.5 w-3.5 opacity-70" />
+          </button>
+
+          {/* Botão de Tela Cheia Normal */}
           <button
             type="button"
             onClick={toggleTelaCheia}
-            className="p-2 rounded-[10px] border border-[#5A6B82]/30 hover:bg-[#F3F7FC] text-[#002B5E] transition-colors"
-            title={modoTelaCheia ? 'Sair da tela cheia (Esc)' : 'Modo tela cheia'}
+            className="p-2 rounded-[10px] border border-[#5A6B82]/30 hover:bg-[#F3F7FC] text-[#002B5E] transition-colors cursor-pointer"
+            title={modoTelaCheia ? 'Sair da tela cheia (Esc)' : 'Modo tela cheia com controles'}
           >
             {modoTelaCheia ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>

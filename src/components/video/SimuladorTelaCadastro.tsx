@@ -25,9 +25,13 @@ import {
 export interface SimuladorTelaCadastroProps {
   cena: CenaApresentacaoVideo
   modoApresentacao?: boolean
+  modoGravacao?: boolean
 }
 
-export const SimuladorTelaCadastro: React.FC<SimuladorTelaCadastroProps> = ({ cena }) => {
+export const SimuladorTelaCadastro: React.FC<SimuladorTelaCadastroProps> = ({
+  cena,
+  modoGravacao = false,
+}) => {
   // Simulação de animação de digitação de texto
   const [caracteresDigitados, setCaracteresDigitados] = useState({
     nome: '',
@@ -80,7 +84,13 @@ export const SimuladorTelaCadastro: React.FC<SimuladorTelaCadastroProps> = ({ ce
   // CENA 1: ABERTURA INSTITUCIONAL (Logomarca Koinon girando + endosso A3ONE surgindo)
   if (cena.tipoVisual === 'abertura') {
     return (
-      <div className="relative flex flex-col items-center justify-center min-h-[460px] p-8 text-center bg-white rounded-[16px] border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)] overflow-hidden">
+      <div
+        className={`relative flex flex-col items-center justify-center text-center bg-white border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)] overflow-hidden ${
+          modoGravacao
+            ? 'min-h-[560px] md:min-h-[640px] p-8 md:p-12 rounded-[20px] max-w-5xl w-full'
+            : 'min-h-[460px] p-8 rounded-[16px]'
+        }`}
+      >
         {/* Glow de fundo suave azul/marinho */}
         <div className="absolute -top-24 -left-24 w-80 h-80 bg-[#8EC0FF]/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-[#0066FF]/10 rounded-full blur-3xl pointer-events-none" />
@@ -127,7 +137,13 @@ export const SimuladorTelaCadastro: React.FC<SimuladorTelaCadastroProps> = ({ ce
   // CENA 2: CHEGADA DO LINK (WhatsApp ou E-mail)
   if (cena.tipoVisual === 'link_mensagem') {
     return (
-      <div className="relative flex flex-col items-center justify-center min-h-[460px] p-6 bg-white rounded-[16px] border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)]">
+      <div
+        className={`relative flex flex-col items-center justify-center bg-white border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)] ${
+          modoGravacao
+            ? 'min-h-[560px] md:min-h-[640px] p-8 md:p-12 rounded-[20px] max-w-5xl w-full'
+            : 'min-h-[460px] p-6 rounded-[16px]'
+        }`}
+      >
         <div className="w-full max-w-md space-y-4">
           <div className="flex items-center justify-between border-b border-[#5A6B82]/20 pb-3">
             <div className="flex items-center gap-2">
@@ -182,7 +198,13 @@ export const SimuladorTelaCadastro: React.FC<SimuladorTelaCadastroProps> = ({ ce
   // CENA 3: IDENTIFICAÇÃO DA UNIDADE (Apto 1203 e Torre Única "—")
   if (cena.tipoVisual === 'identificacao_unidade') {
     return (
-      <div className="relative flex flex-col items-center justify-center min-h-[460px] p-6 bg-white rounded-[16px] border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)]">
+      <div
+        className={`relative flex flex-col items-center justify-center bg-white border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)] ${
+          modoGravacao
+            ? 'min-h-[560px] md:min-h-[640px] p-8 md:p-12 rounded-[20px] max-w-5xl w-full'
+            : 'min-h-[460px] p-6 rounded-[16px]'
+        }`}
+      >
         <div className="w-full max-w-lg space-y-4 text-center">
           <KoinonSymbol size={54} variant="color" className="mx-auto" />
           <h3 className="text-xl font-semibold text-[#002B5E]">Condomínio Residencial Lago Azul</h3>
@@ -217,7 +239,13 @@ export const SimuladorTelaCadastro: React.FC<SimuladorTelaCadastroProps> = ({ ce
   // CENA 4: QUEM DEVE SE CADASTRAR NESTA UNIDADE? (3 TÓPICOS)
   if (cena.tipoVisual === 'quem_deve_cadastrar') {
     return (
-      <div className="relative flex flex-col items-center justify-center min-h-[460px] p-6 bg-white rounded-[16px] border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)]">
+      <div
+        className={`relative flex flex-col items-center justify-center bg-white border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)] ${
+          modoGravacao
+            ? 'min-h-[560px] md:min-h-[640px] p-8 md:p-12 rounded-[20px] max-w-5xl w-full'
+            : 'min-h-[460px] p-6 rounded-[16px]'
+        }`}
+      >
         <div className="w-full max-w-lg space-y-4">
           <div className="text-center space-y-1">
             <span className="text-xs font-semibold text-[#0066FF]">Apto 1203 • Torre única</span>
@@ -271,7 +299,13 @@ export const SimuladorTelaCadastro: React.FC<SimuladorTelaCadastroProps> = ({ ce
   // CENA 5: PREENCHIMENTO DOS DADOS (Nome, CPF, Data de Nascimento e Telefone)
   if (cena.tipoVisual === 'preenchimento_dados') {
     return (
-      <div className="relative flex flex-col justify-center min-h-[460px] p-6 bg-white rounded-[16px] border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)]">
+      <div
+        className={`relative flex flex-col justify-center bg-white border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)] ${
+          modoGravacao
+            ? 'min-h-[560px] md:min-h-[640px] p-8 md:p-12 rounded-[20px] max-w-5xl w-full'
+            : 'min-h-[460px] p-6 rounded-[16px]'
+        }`}
+      >
         <div className="w-full max-w-lg mx-auto space-y-3 text-xs">
           <div className="flex items-center justify-between border-b border-[#5A6B82]/20 pb-2">
             <span className="font-semibold text-[#002B5E]">Dados Pessoais do Morador</span>
@@ -369,7 +403,13 @@ export const SimuladorTelaCadastro: React.FC<SimuladorTelaCadastroProps> = ({ ce
   // CENA 6: ESCOLHA DO VÍNCULO E DECLARAÇÃO LEGAL
   if (cena.tipoVisual === 'escolha_vinculo_declaracao') {
     return (
-      <div className="relative flex flex-col justify-center min-h-[460px] p-6 bg-white rounded-[16px] border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)]">
+      <div
+        className={`relative flex flex-col justify-center bg-white border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)] ${
+          modoGravacao
+            ? 'min-h-[560px] md:min-h-[640px] p-8 md:p-12 rounded-[20px] max-w-5xl w-full'
+            : 'min-h-[460px] p-6 rounded-[16px]'
+        }`}
+      >
         <div className="w-full max-w-lg mx-auto space-y-3.5 text-xs">
           <div className="space-y-1 relative">
             <div className="absolute -top-7 right-0">
@@ -418,7 +458,13 @@ export const SimuladorTelaCadastro: React.FC<SimuladorTelaCadastroProps> = ({ ce
   // CENA 7: ASSINATURA ELETRÔNICA (Botão com Gravação de Nome, Data/Hora e IP)
   if (cena.tipoVisual === 'assinatura_eletronica') {
     return (
-      <div className="relative flex flex-col items-center justify-center min-h-[460px] p-6 bg-white rounded-[16px] border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)]">
+      <div
+        className={`relative flex flex-col items-center justify-center bg-white border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)] ${
+          modoGravacao
+            ? 'min-h-[560px] md:min-h-[640px] p-8 md:p-12 rounded-[20px] max-w-5xl w-full'
+            : 'min-h-[460px] p-6 rounded-[16px]'
+        }`}
+      >
         <div className="w-full max-w-md space-y-4 text-center">
           <div className="p-3.5 rounded-[12px] bg-[#F3F7FC] border border-[#5A6B82]/20 text-left space-y-2 text-xs">
             <div className="flex items-center gap-1.5 font-semibold text-[#002B5E]">
@@ -464,7 +510,13 @@ export const SimuladorTelaCadastro: React.FC<SimuladorTelaCadastroProps> = ({ ce
   // CENA 8: INDICAÇÃO DO MORADOR/PROPRIETÁRIO DE FATO
   if (cena.tipoVisual === 'indicacao_de_fato') {
     return (
-      <div className="relative flex flex-col justify-center min-h-[460px] p-6 bg-white rounded-[16px] border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)]">
+      <div
+        className={`relative flex flex-col justify-center bg-white border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)] ${
+          modoGravacao
+            ? 'min-h-[560px] md:min-h-[640px] p-8 md:p-12 rounded-[20px] max-w-5xl w-full'
+            : 'min-h-[460px] p-6 rounded-[16px]'
+        }`}
+      >
         <div className="w-full max-w-lg mx-auto space-y-3.5 text-xs">
           <div className="flex items-center justify-between border-b border-[#5A6B82]/20 pb-2">
             <button
@@ -519,7 +571,13 @@ export const SimuladorTelaCadastro: React.FC<SimuladorTelaCadastroProps> = ({ ce
   // CENA 9: ENVIO E MENSAGEM DE SUCESSO
   if (cena.tipoVisual === 'envio_sucesso') {
     return (
-      <div className="relative flex flex-col items-center justify-center min-h-[460px] p-6 bg-white rounded-[16px] border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)] text-center">
+      <div
+        className={`relative flex flex-col items-center justify-center bg-white border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)] text-center ${
+          modoGravacao
+            ? 'min-h-[560px] md:min-h-[640px] p-8 md:p-12 rounded-[20px] max-w-5xl w-full'
+            : 'min-h-[460px] p-6 rounded-[16px]'
+        }`}
+      >
         <div className="w-full max-w-md space-y-4">
           <div className="relative">
             <div className="absolute -top-7 right-10">
@@ -555,7 +613,13 @@ export const SimuladorTelaCadastro: React.FC<SimuladorTelaCadastroProps> = ({ ce
   // CENA 10: PENDÊNCIA ATÉ APROVAÇÃO DA MESA DIRETORA
   if (cena.tipoVisual === 'pendencia_mesa') {
     return (
-      <div className="relative flex flex-col items-center justify-center min-h-[460px] p-6 bg-white rounded-[16px] border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)] text-center">
+      <div
+        className={`relative flex flex-col items-center justify-center bg-white border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)] text-center ${
+          modoGravacao
+            ? 'min-h-[560px] md:min-h-[640px] p-8 md:p-12 rounded-[20px] max-w-5xl w-full'
+            : 'min-h-[460px] p-6 rounded-[16px]'
+        }`}
+      >
         <div className="w-full max-w-md space-y-4">
           <div className="relative">
             <div className="absolute -top-7 left-10">
@@ -592,7 +656,13 @@ export const SimuladorTelaCadastro: React.FC<SimuladorTelaCadastroProps> = ({ ce
 
   // CENA 11: ENCERRAMENTO INSTITUCIONAL
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-[460px] p-8 text-center bg-white rounded-[16px] border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)]">
+    <div
+      className={`relative flex flex-col items-center justify-center text-center bg-white border border-[#5A6B82]/20 shadow-[0_4px_24px_rgba(0,43,94,0.06)] ${
+        modoGravacao
+          ? 'min-h-[560px] md:min-h-[640px] p-8 md:p-12 rounded-[20px] max-w-5xl w-full'
+          : 'min-h-[460px] p-8 rounded-[16px]'
+      }`}
+    >
       <div className="space-y-4 max-w-md">
         <div className="mx-auto mb-2">
           <KoinonLogo size={56} variant="color" />
