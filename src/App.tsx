@@ -34,6 +34,7 @@ import AtaAssembleiaPage from '@/pages/mesa/AtaAssembleia'
 import AtaImprimirPage from '@/pages/mesa/AtaImprimir'
 import DocumentosEditalPage from '@/pages/mesa/DocumentosEdital'
 import ListaPresencaPage from '@/pages/mesa/ListaPresenca'
+import ManualPresencaPage from '@/pages/mesa/ManualPresenca'
 import CredenciaisPendentesPage from '@/pages/mesa/CredenciaisPendentes'
 import DeliberacoesPage from '@/pages/mesa/Deliberacoes'
 import AuditoriaPage from '@/pages/mesa/Auditoria'
@@ -299,6 +300,15 @@ const App = () => (
               element={
                 <ProtectedRoute requireMesa>
                   <BoletimUrnaDocumentoPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Visão de Impressão Dedicada do Manual de Uso da Lista de Presença A4 */}
+            <Route
+              path="/mesa/presenca/manual"
+              element={
+                <ProtectedRoute requireMesa>
+                  <ManualPresencaPage />
                 </ProtectedRoute>
               }
             />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   api,
   type DeliberacaoRecord,
@@ -47,6 +48,7 @@ import {
 } from '@/components/ui/dialog'
 import {
   Printer,
+  BookOpen,
   UserCheck,
   CheckCircle2,
   FileText,
@@ -67,6 +69,7 @@ import { ModalAssinaturaEletronica } from '@/components/assinatura/ModalAssinatu
 import { FormatoAssinatura } from '@/lib/api'
 
 export const ListaPresencaPage: React.FC = () => {
+  const navigate = useNavigate()
   const { nomeCondominio, logoUrl, rotuloUnidade } = useCondoConfig()
   const { user } = useAuth()
 
@@ -611,6 +614,16 @@ export const ListaPresencaPage: React.FC = () => {
               </SelectContent>
             </Select>
           )}
+
+          <Button
+            size="sm"
+            onClick={() => navigate('/mesa/presenca/manual')}
+            variant="outline"
+            className="text-xs h-9 border-[#0066FF] text-[#0066FF] hover:bg-blue-50 font-medium"
+            title="Abrir o Manual de Uso da Lista de Presença com layout profissional para impressão em PDF"
+          >
+            <BookOpen className="h-4 w-4 mr-1.5" /> Manual (PDF)
+          </Button>
 
           <Button
             size="sm"
