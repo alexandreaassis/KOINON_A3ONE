@@ -40,6 +40,7 @@ import {
 import {
   Users,
   UserPlus,
+  BookOpen,
   FileSpreadsheet,
   Upload,
   Download,
@@ -1252,6 +1253,16 @@ export const CadastrosUnidadesPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.open('/admin/cadastros/manual', '_blank')}
+            className="text-xs h-9 border-[#0066FF] text-[#0066FF] hover:bg-blue-50 font-medium"
+            title="Abrir o Manual de Cadastro por Link da Unidade com layout profissional para impressão em PDF (Ctrl+P)"
+          >
+            <BookOpen className="mr-1.5 h-3.5 w-3.5" /> Manual (PDF)
+          </Button>
+
           <Button
             size="sm"
             variant="outline"

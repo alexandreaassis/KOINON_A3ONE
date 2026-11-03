@@ -45,6 +45,7 @@ import GestaoUsuariosPage from '@/pages/admin/Usuarios'
 import HistoricoAlteracoesPage from '@/pages/admin/HistoricoAlteracoes'
 import ParametrosConvencaoPage from '@/pages/admin/ParametrosConvencao'
 import CadastrosUnidadesPage from '@/pages/admin/CadastrosUnidades'
+import ManualCadastroLinkPage from '@/pages/admin/ManualCadastroLink'
 import CadastroMoradorPublicoPage from '@/pages/public/CadastroMoradorPublico'
 import ApresentacaoVideoCadastroPage from '@/pages/video/ApresentacaoVideoCadastro'
 
@@ -375,6 +376,16 @@ const App = () => (
               element={
                 <ProtectedRoute requireMesa>
                   <DossieCartorioPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Visão de Impressão Dedicada do Manual de Cadastro por Link da Unidade A4 */}
+            <Route
+              path="/admin/cadastros/manual"
+              element={
+                <ProtectedRoute requireMesa>
+                  <ManualCadastroLinkPage />
                 </ProtectedRoute>
               }
             />
