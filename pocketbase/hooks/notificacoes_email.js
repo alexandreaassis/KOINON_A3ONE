@@ -155,13 +155,29 @@ onRecordCreate((e) => {
             }
           : null
 
+        // Resolução correta da segurança SMTP no PocketBase:
+        // settings.smtp.tls = true  => TLS implícito direto (dial TLS, porta 465)
+        // settings.smtp.tls = false => Conexão em texto puro com comando STARTTLS negociado após EHLO (porta 587/25)
+        let usarTlsImplicito = false
+        const enc = (smtpEncryption || '').toLowerCase().trim()
+        if (enc === 'ssl') {
+          usarTlsImplicito = true
+        } else if (enc === 'starttls') {
+          usarTlsImplicito = false
+        } else if (enc === 'none') {
+          usarTlsImplicito = false
+        } else {
+          // Campos ambíguos: deduzir pela porta
+          usarTlsImplicito = Number(smtpPort) === 465
+        }
+
         try {
           settings.smtp.enabled = true
           settings.smtp.host = smtpHost
           settings.smtp.port = smtpPort
           settings.smtp.username = smtpUser
           settings.smtp.password = smtpPass
-          settings.smtp.tls = smtpEncryption === 'starttls' || smtpEncryption === 'ssl'
+          settings.smtp.tls = usarTlsImplicito
 
           const client = e.app.newMailClient()
           client.send(message)
@@ -599,13 +615,29 @@ routerAdd('POST', '/backend/v1/notificacoes/reenviar', (e) => {
           }
         : null
 
+      // Resolução correta da segurança SMTP no PocketBase:
+      // settings.smtp.tls = true  => TLS implícito direto (dial TLS, porta 465)
+      // settings.smtp.tls = false => Conexão em texto puro com comando STARTTLS negociado após EHLO (porta 587/25)
+      let usarTlsImplicito = false
+      const enc = (smtpEncryption || '').toLowerCase().trim()
+      if (enc === 'ssl') {
+        usarTlsImplicito = true
+      } else if (enc === 'starttls') {
+        usarTlsImplicito = false
+      } else if (enc === 'none') {
+        usarTlsImplicito = false
+      } else {
+        // Campos ambíguos: deduzir pela porta
+        usarTlsImplicito = Number(smtpPort) === 465
+      }
+
       try {
         settings.smtp.enabled = true
         settings.smtp.host = smtpHost
         settings.smtp.port = smtpPort
         settings.smtp.username = smtpUser
         settings.smtp.password = smtpPass
-        settings.smtp.tls = smtpEncryption === 'starttls' || smtpEncryption === 'ssl'
+        settings.smtp.tls = usarTlsImplicito
 
         const client = e.app.newMailClient()
         client.send(message)

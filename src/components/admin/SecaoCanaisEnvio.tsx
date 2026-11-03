@@ -477,8 +477,8 @@ export const SecaoCanaisEnvio: React.FC<SecaoCanaisEnvioProps> = ({
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="starttls">STARTTLS (Porta 587 — Recomendado)</SelectItem>
-                    <SelectItem value="ssl">SSL / TLS Direto (Porta 465)</SelectItem>
+                    <SelectItem value="starttls">STARTTLS (recomendado — porta 587)</SelectItem>
+                    <SelectItem value="ssl">SSL (porta 465)</SelectItem>
                     <SelectItem value="none">Nenhuma (Conexão simples)</SelectItem>
                   </SelectContent>
                 </Select>

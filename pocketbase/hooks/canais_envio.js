@@ -502,13 +502,29 @@ routerAdd('POST', '/backend/v1/admin/canais-envio/testar', (e) => {
           }
         : null
 
+      // Resolução correta da segurança SMTP no PocketBase:
+      // settings.smtp.tls = true  => TLS implícito direto (dial TLS, porta 465)
+      // settings.smtp.tls = false => Conexão em texto puro com comando STARTTLS negociado após EHLO (porta 587/25)
+      let usarTlsImplicito = false
+      const enc = (smtpEncryption || '').toLowerCase().trim()
+      if (enc === 'ssl') {
+        usarTlsImplicito = true
+      } else if (enc === 'starttls') {
+        usarTlsImplicito = false
+      } else if (enc === 'none') {
+        usarTlsImplicito = false
+      } else {
+        // Campos ambíguos: deduzir pela porta
+        usarTlsImplicito = Number(smtpPort) === 465
+      }
+
       try {
         settings.smtp.enabled = true
         settings.smtp.host = smtpHost
         settings.smtp.port = smtpPort
         settings.smtp.username = smtpUser || ''
         settings.smtp.password = smtpPass || ''
-        settings.smtp.tls = smtpEncryption === 'starttls' || smtpEncryption === 'ssl'
+        settings.smtp.tls = usarTlsImplicito
 
         const client = e.app.newMailClient()
         client.send(message)
@@ -586,19 +602,34 @@ routerAdd('POST', '/backend/v1/admin/canais-envio/testar', (e) => {
     let dicaLegivel = mensagemErro
     const lower = mensagemErro.toLowerCase()
     if (
-      lower.includes('authentication') ||
-      lower.includes('535') ||
-      lower.includes('auth failed')
+      lower.includes('sender') ||
+      lower.includes('from') ||
+      lower.includes('553') ||
+      lower.includes('550 5.7') ||
+      lower.includes('550 5.1') ||
+      lower.includes('not owned') ||
+      lower.includes('send-as') ||
+      lower.includes('relay')
     ) {
       dicaLegivel =
-        'Autenticação recusada pelo servidor SMTP. Verifique o usuário e a senha informados.'
+        'O servidor SMTP recusou o endereço de remetente configurado. Em provedores como Google Workspace/Gmail, configure o e-mail real do condomínio (igual ou autorizado pelo Usuário SMTP) nos campos "E-mail oficial" e "Usuário SMTP".'
+    } else if (
+      lower.includes('authentication') ||
+      lower.includes('535') ||
+      lower.includes('auth failed') ||
+      lower.includes('badcredentials') ||
+      lower.includes('username and password not accepted')
+    ) {
+      dicaLegivel =
+        'Autenticação recusada pelo servidor SMTP. Verifique o usuário e a senha informados. No Google Workspace/Gmail, utilize uma Senha de App dedicada.'
     } else if (
       lower.includes('connection refused') ||
       lower.includes('dial tcp') ||
-      lower.includes('timeout')
+      lower.includes('timeout') ||
+      lower.includes('i/o timeout')
     ) {
       dicaLegivel =
-        'Conexão recusada pelo servidor SMTP. Verifique o Host e a Porta (geralmente 587 para STARTTLS ou 465 para SSL).'
+        'Conexão recusada ou expirada pelo servidor SMTP. Verifique o Host e a Porta (geralmente 587 para STARTTLS ou 465 para SSL).'
     } else if (
       lower.includes('certificate') ||
       lower.includes('tls') ||
