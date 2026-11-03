@@ -78,6 +78,11 @@ const ENTIDADES_CONFIG: Record<string, { label: string; singular: string; cor: s
     singular: 'Documento da Pauta',
     cor: '#5C6B7A',
   },
+  configuracoes: {
+    label: 'Configurações e Canais de Envio',
+    singular: 'Configurações',
+    cor: '#0066FF',
+  },
 }
 
 const ROTULOS_CAMPOS: Record<string, string> = {
@@ -117,6 +122,17 @@ const ROTULOS_CAMPOS: Record<string, string> = {
   local_texto: 'Local da Assembleia',
   sindico_nome: 'Síndico Convocante',
   sindico_cpf: 'CPF do Síndico',
+  whatsapp_teste: 'Teste de Canal WhatsApp',
+  email_teste: 'Teste de Canal E-mail',
+  email_oficial: 'E-mail Oficial',
+  nome_remetente: 'Nome do Remetente',
+  whatsapp_oficial: 'WhatsApp Oficial',
+  smtp_host: 'Host do Servidor SMTP',
+  smtp_port: 'Porta SMTP',
+  smtp_user: 'Usuário SMTP',
+  smtp_encryption: 'Criptografia SMTP',
+  smtp_ativo: 'SMTP Próprio Ativo',
+  smtp_senha: 'Senha do Servidor SMTP',
 }
 
 export function HistoricoAlteracoesPage() {

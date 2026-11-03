@@ -10,6 +10,7 @@
  * - GET  /backend/v1/admin/canais-envio (mesa/admin: dados visíveis + tem_senha_smtp)
  * - POST /backend/v1/admin/canais-envio (mesa/admin: salva configs e senha segura)
  * - POST /backend/v1/admin/canais-envio/testar (mesa/admin: envia e-mail de teste com identidade Koinon)
+ * - POST /backend/v1/admin/canais-envio/testar-whatsapp (mesa/admin: valida número, gera wa.me e audita em historico_alteracoes)
  */
 
 // 1. GET /backend/v1/admin/canais-envio
@@ -653,5 +654,161 @@ routerAdd('POST', '/backend/v1/admin/canais-envio/testar', (e) => {
     message: `E-mail de teste enviado com sucesso para ${destinatario}!`,
     canal: canalDescricao,
     remetente: `${remetenteNomeEfetivo} <${remetenteEmailEfetivo}>`,
+  })
+})
+
+// 4. POST /backend/v1/admin/canais-envio/testar-whatsapp
+routerAdd('POST', '/backend/v1/admin/canais-envio/testar-whatsapp', (e) => {
+  let operador = e.auth
+  if (!operador) {
+    try {
+      const authHeader = (e.requestInfo().headers && e.requestInfo().headers['authorization']) || ''
+      const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+      if (token && e.app) {
+        operador = e.app.findAuthRecordByToken(token, 'auth')
+      }
+    } catch (_) {}
+  }
+  if (!operador) {
+    return e.json(403, {
+      success: false,
+      message: 'Acesso restrito à Mesa Diretora e Administradores.',
+    })
+  }
+
+  const role = operador.getString('role')
+  if (role !== 'admin' && role !== 'mesa') {
+    return e.json(403, {
+      success: false,
+      message: 'Acesso restrito à Mesa Diretora e Administradores.',
+    })
+  }
+
+  const body = e.requestInfo().body || {}
+  const rawNumero = String(body.numero || '').trim()
+
+  // Extrair apenas dígitos
+  const digitos = rawNumero.replace(/\D/g, '')
+
+  // Se o número vier com o prefixo 55 internacional e tiver 12 ou 13 dígitos, retirar o 55 para validação do DDD+número
+  let digitosNacionais = digitos
+  if (digitos.startsWith('55') && (digitos.length === 12 || digitos.length === 13)) {
+    digitosNacionais = digitos.substring(2)
+  }
+
+  // Validação: número incompleto (menos de 10 dígitos)
+  if (digitosNacionais.length < 10) {
+    return e.json(400, {
+      success: false,
+      message: `Número incompleto. Informe o DDD e o número com pelo menos 10 dígitos (faltam ${10 - digitosNacionais.length} dígitos).`,
+      digitosRecebidos: digitosNacionais.length,
+    })
+  }
+
+  // Limitar em 11 dígitos nacionais (DDD + 8 ou 9 dígitos)
+  if (digitosNacionais.length > 11) {
+    digitosNacionais = digitosNacionais.substring(0, 11)
+  }
+
+  // Conversão para formato internacional: 55 + DDD + número
+  const numeroInternacional = `55${digitosNacionais}`
+
+  // Formatação legível para exibição e histórico: (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
+  const ddd = digitosNacionais.substring(0, 2)
+  let numeroFormatado = ''
+  if (digitosNacionais.length === 11) {
+    numeroFormatado = `(${ddd}) ${digitosNacionais.substring(2, 7)}-${digitosNacionais.substring(7)}`
+  } else {
+    numeroFormatado = `(${ddd}) ${digitosNacionais.substring(2, 6)}-${digitosNacionais.substring(6)}`
+  }
+
+  // Carregar dados das configurações do condomínio para compor a mensagem
+  let config = null
+  let nomeCondo = 'Condomínio Residencial Lago Azul'
+  try {
+    const list = e.app.findRecordsByFilter('configuracoes', '', '-created', 1, 0)
+    if (list && list.length > 0) {
+      config = list[0]
+      nomeCondo = config.getString('nome_condominio') || nomeCondo
+    }
+  } catch (_) {}
+
+  const whatsappOficial = config ? (config.getString('whatsapp_oficial') || '').trim() : ''
+  const nomeOperador = operador.getString('name') || 'Administração'
+
+  const dataHoraFormatada = new Date().toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    dateStyle: 'short',
+    timeStyle: 'medium',
+  })
+
+  // Mensagem de teste pronta, identificando o condomínio e o canal oficial
+  let textoMensagem = `*TESTE DE CANAL WHATSAPP — ${nomeCondo}*\n\n`
+  textoMensagem += `Olá! Esta é uma mensagem de verificação disparada a partir das Configurações da Plataforma Virtual Koinon para homologar o canal de atendimento e comunicação das assembleias do *${nomeCondo}*.\n\n`
+  if (whatsappOficial) {
+    textoMensagem += `• *WhatsApp Oficial de Referência:* ${whatsappOficial}\n`
+  }
+  textoMensagem += `• *Operador do Teste:* ${nomeOperador}\n`
+  textoMensagem += `• *Data e Hora:* ${dataHoraFormatada}\n`
+  textoMensagem += `• *Destino do Teste:* ${numeroFormatado} (+${numeroInternacional})\n\n`
+  textoMensagem += `Se você recebeu este teste, o link direto está operacional para envio de convocações de editais, links de cadastro por unidade e avisos da mesa diretora.`
+
+  // Montar link oficial wa.me
+  const urlWaMe = `https://wa.me/${numeroInternacional}?text=${encodeURIComponent(textoMensagem)}`
+
+  // Registrar auditoria no Histórico de Alterações (historico_alteracoes)
+  try {
+    const reqInfo = e.requestInfo() || {}
+    let ip = ''
+    let userAgent = ''
+    if (reqInfo.headers) {
+      const xf = reqInfo.headers['x-forwarded-for'] || reqInfo.headers['x-real-ip'] || ''
+      ip = typeof xf === 'string' ? xf.split(',')[0].trim() : ''
+      userAgent = reqInfo.headers['user-agent'] || ''
+    }
+
+    const histCol = e.app.findCollectionByNameOrId('historico_alteracoes')
+    const histRec = new Record(histCol)
+    histRec.set('user', operador.id)
+    histRec.set('user_nome', operador.getString('name') || 'Mesa / Administrador')
+    histRec.set('user_email', operador.getString('email') || '')
+    histRec.set('user_role', operador.getString('role') || 'admin')
+    histRec.set('acao', 'atualizacao')
+    histRec.set('entidade', 'configuracoes')
+    histRec.set('registro_id', config ? config.id : 'teste_whatsapp')
+    histRec.set('registro_rotulo', `Disparo de teste de WhatsApp (${numeroFormatado})`)
+    histRec.set('campos_alterados', [
+      {
+        campo: 'whatsapp_teste',
+        anterior: null,
+        novo: {
+          numero_digitado: rawNumero,
+          numero_formatado: numeroFormatado,
+          numero_internacional: numeroInternacional,
+          operador_nome: nomeOperador,
+          condominio: nomeCondo,
+          whatsapp_referencia: whatsappOficial || null,
+          data_hora: dataHoraFormatada,
+        },
+      },
+    ])
+    histRec.set('ip', ip)
+    histRec.set('user_agent', userAgent)
+    histRec.set('data_hora', new Date().toISOString().replace('T', ' ').substring(0, 19))
+    e.app.save(histRec)
+  } catch (hErr) {
+    console.log('Aviso ao registrar auditoria de WhatsApp de teste:', hErr)
+  }
+
+  return e.json(200, {
+    success: true,
+    message: `Teste de WhatsApp preparado com sucesso para ${numeroFormatado}!`,
+    data: {
+      numero_formatado: numeroFormatado,
+      numero_internacional: numeroInternacional,
+      url_wame: urlWaMe,
+      texto_mensagem: textoMensagem,
+      data_hora: dataHoraFormatada,
+    },
   })
 })

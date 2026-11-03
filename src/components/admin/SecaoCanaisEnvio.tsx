@@ -22,11 +22,17 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { toast } from '@/hooks/use-toast'
 import { api, type CanaisEnvioData, type SmtpEncryption } from '@/lib/api'
-import { formatarTelefone, limparTelefone } from '@/lib/telefone'
+import {
+  formatarTelefone,
+  limparTelefone,
+  converterParaWhatsappInternacional,
+} from '@/lib/telefone'
 import {
   Mail,
   Send,
   MessageSquare,
+  MessageCircle,
+  ExternalLink,
   Server,
   Lock,
   KeyRound,
@@ -34,6 +40,7 @@ import {
   EyeOff,
   CheckCircle2,
   AlertTriangle,
+  AlertCircle,
   Info,
   ShieldCheck,
   RefreshCw,
@@ -76,6 +83,19 @@ export const SecaoCanaisEnvio: React.FC<SecaoCanaisEnvioProps> = ({
     mensagem: string
     canal?: string
     remetente?: string
+    dataHora?: string
+  } | null>(null)
+
+  // Teste de WhatsApp
+  const [whatsappTesteDestino, setWhatsappTesteDestino] = useState('')
+  const [testandoWhatsapp, setTestandoWhatsapp] = useState(false)
+  const [avisoValidacaoWhatsapp, setAvisoValidacaoWhatsapp] = useState<string | null>(null)
+  const [ultimoResultadoWhatsapp, setUltimoResultadoWhatsapp] = useState<{
+    sucesso: boolean
+    mensagem: string
+    numeroFormatado?: string
+    numeroInternacional?: string
+    urlWaMe?: string
     dataHora?: string
   } | null>(null)
 
@@ -122,6 +142,84 @@ export const SecaoCanaisEnvio: React.FC<SecaoCanaisEnvioProps> = ({
     const texto = e.clipboardData.getData('text')
     const limpo = limparTelefone(texto)
     setWhatsappOficial(formatarTelefone(limpo))
+  }
+
+  // Máscara e colagem do campo Testar WhatsApp com tolerância a símbolos/letras/espaços
+  const handleWhatsappTesteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatado = formatarTelefone(e.target.value)
+    setWhatsappTesteDestino(formatado)
+    if (avisoValidacaoWhatsapp) {
+      setAvisoValidacaoWhatsapp(null)
+    }
+  }
+
+  const handleWhatsappTestePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    const texto = e.clipboardData.getData('text')
+    const limpo = limparTelefone(texto)
+    setWhatsappTesteDestino(formatarTelefone(limpo))
+    if (avisoValidacaoWhatsapp) {
+      setAvisoValidacaoWhatsapp(null)
+    }
+  }
+
+  // Abrir no WhatsApp: validação, conversão 55, chamada da API para auditoria no Histórico e window.open(wa.me)
+  const handleAbrirWhatsAppTeste = async () => {
+    const conversao = converterParaWhatsappInternacional(whatsappTesteDestino)
+
+    if (!conversao.valido) {
+      const msg = `Número incompleto. Informe o DDD e o número com pelo menos 10 dígitos (faltam ${conversao.faltamDigitos} dígito${conversao.faltamDigitos > 1 ? 's' : ''}).`
+      setAvisoValidacaoWhatsapp(msg)
+      toast({
+        title: 'Número incompleto',
+        description: msg,
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setAvisoValidacaoWhatsapp(null)
+    setTestandoWhatsapp(true)
+
+    try {
+      const resp = await api.testarCanalEnvioWhatsapp(conversao.digitosNacionais)
+      const urlWaMe = resp.data?.url_wame || `https://wa.me/${conversao.numeroInternacional}`
+
+      setUltimoResultadoWhatsapp({
+        sucesso: true,
+        mensagem:
+          resp.message ||
+          `Conversa aberta para ${resp.data?.numero_formatado || conversao.formatado}.`,
+        numeroFormatado: resp.data?.numero_formatado || conversao.formatado,
+        numeroInternacional: resp.data?.numero_internacional || conversao.numeroInternacional,
+        urlWaMe,
+        dataHora: resp.data?.data_hora || new Date().toLocaleTimeString('pt-BR'),
+      })
+
+      toast({
+        title: 'Abrindo no WhatsApp',
+        description: `Teste registrado no Histórico de Alterações para ${resp.data?.numero_formatado || conversao.formatado}.`,
+      })
+
+      // Abrir o wa.me em nova aba
+      window.open(urlWaMe, '_blank', 'noopener,noreferrer')
+    } catch (err: any) {
+      console.error('Falha ao preparar teste de WhatsApp:', err)
+      const msg = err?.message || 'Falha ao registrar e abrir o teste no WhatsApp.'
+      setUltimoResultadoWhatsapp({
+        sucesso: false,
+        mensagem: msg,
+        dataHora: new Date().toLocaleTimeString('pt-BR'),
+      })
+
+      toast({
+        title: 'Aviso no teste de WhatsApp',
+        description: msg,
+        variant: 'destructive',
+      })
+    } finally {
+      setTestandoWhatsapp(false)
+    }
   }
 
   // Salvar alterações
@@ -651,6 +749,123 @@ export const SecaoCanaisEnvio: React.FC<SecaoCanaisEnvioProps> = ({
                     <strong>Canal:</strong> {ultimoResultadoTeste.canal} •{' '}
                     <strong>Remetente:</strong> {ultimoResultadoTeste.remetente}
                   </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* BLOCO 5: TESTE DE WHATSAPP COM A MESMA UX DO TESTE DE E-MAIL */}
+          <div className="p-4 rounded-xl border border-emerald-500/25 bg-gradient-to-br from-emerald-50/40 via-white to-slate-50 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-white text-[10px] font-bold">
+                  <MessageCircle className="h-3 w-3" />
+                </span>
+                <span className="text-xs font-bold text-[#002B5E] uppercase tracking-wider">
+                  Testar WhatsApp
+                </span>
+              </div>
+              <span className="text-[11px] text-emerald-800 font-medium">
+                Abertura direta via wa.me com mensagem pronta e auditoria
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Digite um número com DDD para abrir a conversa no WhatsApp Web do seu navegador com
+              uma mensagem de teste já preenchida identificando o condomínio (
+              <strong>{nomeCondominioPadrao}</strong>) e o WhatsApp oficial de referência. A
+              mensagem sai pela sessão do seu navegador, sem custo de API e sem exigir que o
+              destinatário esteja salvo na sua agenda de contatos.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+              <div className="relative flex-1">
+                <MessageSquare className="absolute left-3 top-2.5 h-4 w-4 text-emerald-600" />
+                <Input
+                  type="tel"
+                  value={whatsappTesteDestino}
+                  onChange={handleWhatsappTesteChange}
+                  onPaste={handleWhatsappTestePaste}
+                  placeholder="Número de destino do teste: (XX) XXXXX-XXXX"
+                  maxLength={15}
+                  className="h-10 pl-9 text-xs border-slate-300 bg-white font-mono tracking-wide"
+                />
+              </div>
+
+              <Button
+                type="button"
+                onClick={handleAbrirWhatsAppTeste}
+                disabled={testandoWhatsapp || salvando || carregando}
+                className="h-10 px-4 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-[10px] shadow-xs shrink-0"
+              >
+                {testandoWhatsapp ? (
+                  <>
+                    <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Registrando Teste...
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Abrir no WhatsApp
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Aviso de Validação (número incompleto) */}
+            {avisoValidacaoWhatsapp && (
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                <span>{avisoValidacaoWhatsapp}</span>
+              </div>
+            )}
+
+            {/* Resultado e Confirmação de Rastreio no Histórico */}
+            {ultimoResultadoWhatsapp && (
+              <div
+                className={`p-3 rounded-lg border text-xs space-y-1 ${
+                  ultimoResultadoWhatsapp.sucesso
+                    ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
+                    : 'bg-red-50/80 border-red-200 text-red-950'
+                }`}
+              >
+                <div className="flex items-center gap-2 font-bold">
+                  {ultimoResultadoWhatsapp.sucesso ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                  )}
+                  <span>
+                    {ultimoResultadoWhatsapp.sucesso
+                      ? 'Teste registrado no Histórico de Alterações'
+                      : 'Falha no teste de WhatsApp'}
+                  </span>
+                  <span className="text-[10px] text-slate-500 ml-auto font-normal">
+                    {ultimoResultadoWhatsapp.dataHora}
+                  </span>
+                </div>
+                <p className="text-[11px] leading-relaxed pl-6">
+                  {ultimoResultadoWhatsapp.mensagem}
+                </p>
+                {ultimoResultadoWhatsapp.numeroInternacional && (
+                  <div className="pl-6 pt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-700">
+                    <span>
+                      <strong>Formato internacional:</strong> +
+                      {ultimoResultadoWhatsapp.numeroInternacional}
+                    </span>
+                    <span>•</span>
+                    <span>
+                      <strong>Rótulo auditado:</strong> {ultimoResultadoWhatsapp.numeroFormatado}
+                    </span>
+                    {ultimoResultadoWhatsapp.urlWaMe && (
+                      <a
+                        href={ultimoResultadoWhatsapp.urlWaMe}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-emerald-700 hover:text-emerald-800 hover:underline font-semibold inline-flex items-center gap-1 ml-auto"
+                      >
+                        Reabrir link wa.me <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
             )}

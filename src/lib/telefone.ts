@@ -61,3 +61,44 @@ export function validarTelefone(valor: string | undefined | null): boolean {
   const digits = limparTelefone(valor)
   return digits.length === 10 || digits.length === 11
 }
+
+/**
+ * Converte número brasileiro para formato internacional com prefixo 55.
+ * Remove caracteres não numéricos e prefixo 55 repetido caso o usuário tenha colado.
+ * Retorna null se tiver menos de 10 dígitos (incompleto).
+ */
+export function converterParaWhatsappInternacional(valor: string | undefined | null): {
+  valido: boolean
+  digitosNacionais: string
+  numeroInternacional: string
+  formatado: string
+  faltamDigitos: number
+} {
+  const digitosBrutos = String(valor || '').replace(/\D/g, '')
+
+  let digitosNacionais = digitosBrutos
+  // Se já começar com 55 e tiver 12 ou 13 dígitos
+  if (
+    digitosBrutos.startsWith('55') &&
+    (digitosBrutos.length === 12 || digitosBrutos.length === 13)
+  ) {
+    digitosNacionais = digitosBrutos.substring(2)
+  }
+
+  // Trunca em 11 dígitos nacionais caso venha mais
+  if (digitosNacionais.length > 11) {
+    digitosNacionais = digitosNacionais.substring(0, 11)
+  }
+
+  const valido = digitosNacionais.length >= 10
+  const faltamDigitos = valido ? 0 : Math.max(0, 10 - digitosNacionais.length)
+  const numeroInternacional = valido ? `55${digitosNacionais}` : ''
+
+  return {
+    valido,
+    digitosNacionais,
+    numeroInternacional,
+    formatado: formatarTelefone(digitosNacionais),
+    faltamDigitos,
+  }
+}
