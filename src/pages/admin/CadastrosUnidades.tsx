@@ -5,7 +5,11 @@ import { useCondoConfig } from '@/context/CondoConfigContext'
 import { useAuth } from '@/context/AuthContext'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { formatarCpf, validarCpf, limparCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
-import { formatarTelefone, limparTelefone } from '@/lib/telefone'
+import {
+  formatarTelefone,
+  limparTelefone,
+  converterParaWhatsappInternacional,
+} from '@/lib/telefone'
 import {
   formatarIdentificadorUnidade,
   formatarUnidadeComBloco,
@@ -55,6 +59,8 @@ import {
   Share2,
   Copy,
   MessageCircle,
+  MessageSquare,
+  AlertCircle,
   ExternalLink,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
@@ -220,6 +226,10 @@ export const CadastrosUnidadesPage: React.FC = () => {
   const [carregandoLink, setCarregandoLink] = useState(false)
   const [emailEnvioLink, setEmailEnvioLink] = useState('')
   const [enviandoEmailLink, setEnviandoEmailLink] = useState(false)
+  const [whatsappEnvioLink, setWhatsappEnvioLink] = useState('')
+  const [avisoValidacaoWhatsappLink, setAvisoValidacaoWhatsappLink] = useState<string | null>(null)
+  const [salvarCelularNaUnidade, setSalvarCelularNaUnidade] = useState(false)
+  const [salvandoCelularUnidade, setSalvandoCelularUnidade] = useState(false)
 
   // Modal de Criação / Edição
   const [modalAberto, setModalAberto] = useState(false)
@@ -516,6 +526,9 @@ export const CadastrosUnidadesPage: React.FC = () => {
 
     setUnidadeSelecionadaLink(unid)
     setEmailEnvioLink(unid.contato_email || '')
+    setWhatsappEnvioLink(unid.contato_celular ? formatarTelefone(unid.contato_celular) : '')
+    setAvisoValidacaoWhatsappLink(null)
+    setSalvarCelularNaUnidade(false)
     setCarregandoLink(true)
 
     try {
@@ -584,22 +597,80 @@ export const CadastrosUnidadesPage: React.FC = () => {
     }
   }
 
-  // Enviar link via WhatsApp (wa.me)
-  const enviarLinkWhatsApp = () => {
+  // Handlers do campo de WhatsApp do Modal de Link
+  const handleWhatsappEnvioLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const limpo = limparTelefone(e.target.value)
+    setWhatsappEnvioLink(formatarTelefone(limpo))
+    if (avisoValidacaoWhatsappLink) {
+      setAvisoValidacaoWhatsappLink(null)
+    }
+  }
+
+  const handleWhatsappEnvioLinkPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    const texto = e.clipboardData.getData('text') || ''
+    const limpo = limparTelefone(texto)
+    setWhatsappEnvioLink(formatarTelefone(limpo))
+    if (avisoValidacaoWhatsappLink) {
+      setAvisoValidacaoWhatsappLink(null)
+    }
+  }
+
+  // Enviar link via WhatsApp (wa.me) com validação e formatação 55 + DDD + número
+  const enviarLinkWhatsApp = async () => {
     if (!linkGerado || !unidadeSelecionadaLink) return
+
+    const conversao = converterParaWhatsappInternacional(whatsappEnvioLink)
+
+    if (!conversao.valido) {
+      const msg = `Número incompleto. Informe o DDD e o número com pelo menos 10 dígitos (faltam ${conversao.faltamDigitos} dígito${conversao.faltamDigitos > 1 ? 's' : ''}).`
+      setAvisoValidacaoWhatsappLink(msg)
+      toast({
+        title: 'Número de WhatsApp incompleto',
+        description: msg,
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setAvisoValidacaoWhatsappLink(null)
+
     const descUnidade = formatarUnidadeComBloco(unidadeSelecionadaLink, rotuloUnidade)
     const texto = encodeURIComponent(
       `Olá! Segue o link oficial para realizar o cadastro de moradores da ${descUnidade} no Condomínio Lago Azul pela Plataforma Virtual Koinon:\n\n${linkGerado}\n\nPreencha seus dados para homologação da mesa diretora da assembleia.`,
     )
 
-    let telefoneLimpo = (unidadeSelecionadaLink.contato_celular || '').replace(/\D/g, '')
-    if (telefoneLimpo && !telefoneLimpo.startsWith('55') && telefoneLimpo.length >= 10) {
-      telefoneLimpo = `55${telefoneLimpo}`
-    }
+    const urlWa = `https://wa.me/${conversao.numeroInternacional}?text=${texto}`
 
-    const urlWa = telefoneLimpo
-      ? `https://wa.me/${telefoneLimpo}?text=${texto}`
-      : `https://wa.me/?text=${texto}`
+    // Se checkbox estiver marcado ou se o número digitado for diferente do salvo, permite atualizar
+    const numeroFormatadoNovo = conversao.formatado
+    const numeroAntigo = unidadeSelecionadaLink.contato_celular || ''
+
+    if (salvarCelularNaUnidade && conversao.digitosNacionais !== limparTelefone(numeroAntigo)) {
+      setSalvandoCelularUnidade(true)
+      try {
+        await api.atualizarUnidade(unidadeSelecionadaLink.id, {
+          contato_celular: numeroFormatadoNovo,
+        })
+        // Atualizar estados locais
+        setUnidadeSelecionadaLink((ant) =>
+          ant ? { ...ant, contato_celular: numeroFormatadoNovo } : ant,
+        )
+        setUnidades((antigas) =>
+          antigas.map((u) =>
+            u.id === unidadeSelecionadaLink.id ? { ...u, contato_celular: numeroFormatadoNovo } : u,
+          ),
+        )
+        toast({
+          title: 'WhatsApp da unidade atualizado',
+          description: `O telefone da ${descUnidade} foi salvo como ${numeroFormatadoNovo} para os próximos envios.`,
+        })
+      } catch (err) {
+        console.warn('Aviso ao salvar telefone na unidade:', err)
+      } finally {
+        setSalvandoCelularUnidade(false)
+      }
+    }
 
     window.open(urlWa, '_blank')
   }
@@ -1758,25 +1829,98 @@ export const CadastrosUnidadesPage: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Opção 1: Envio por WhatsApp (wa.me) */}
-                <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-3">
-                  <div className="space-y-0.5">
+                {/* Opção 1: Envio por WhatsApp (wa.me) com campo editável de destinatário */}
+                <div className="p-3 rounded-lg bg-emerald-50/70 border border-emerald-200 space-y-2.5">
+                  <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-emerald-900 block flex items-center gap-1.5">
                       <MessageCircle className="h-4 w-4 text-emerald-700" />
                       Enviar pelo WhatsApp
                     </span>
-                    <span className="text-[11px] text-emerald-700">
-                      Dispara mensagem formatada com o link via WhatsApp Web ou app.
-                    </span>
+                    {unidadeSelecionadaLink?.contato_celular && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] bg-emerald-100/70 text-emerald-800 border-emerald-300 font-semibold"
+                      >
+                        Contato cadastrado
+                      </Badge>
+                    )}
                   </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={enviarLinkWhatsApp}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shrink-0"
-                  >
-                    Abrir WhatsApp
-                  </Button>
+
+                  <p className="text-[11px] text-emerald-800 leading-relaxed">
+                    Informe o WhatsApp do destinatário. O sistema abre diretamente a conversa com a
+                    mensagem pronta de cadastro.
+                  </p>
+
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="whatsapp_destinatario_link"
+                      className="text-xs font-semibold text-emerald-950"
+                    >
+                      Número do WhatsApp do destinatário *
+                    </Label>
+                    <div className="flex items-center gap-1.5">
+                      <div className="relative flex-1">
+                        <MessageSquare className="absolute left-3 top-2.5 h-4 w-4 text-emerald-600" />
+                        <Input
+                          id="whatsapp_destinatario_link"
+                          type="tel"
+                          placeholder="(XX) XXXXX-XXXX"
+                          maxLength={15}
+                          value={whatsappEnvioLink}
+                          onChange={handleWhatsappEnvioLinkChange}
+                          onPaste={handleWhatsappEnvioLinkPaste}
+                          className="text-xs h-9 pl-9 bg-white border-emerald-200 font-mono tracking-wide"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={
+                          salvandoCelularUnidade ||
+                          !converterParaWhatsappInternacional(whatsappEnvioLink).valido
+                        }
+                        onClick={enviarLinkWhatsApp}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shrink-0 h-9 px-3.5 shadow-xs"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                        Abrir WhatsApp
+                      </Button>
+                    </div>
+
+                    {/* Aviso de validação de dígitos */}
+                    {avisoValidacaoWhatsappLink && (
+                      <div className="flex items-center gap-1.5 p-2 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-[11px]">
+                        <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                        <span>{avisoValidacaoWhatsappLink}</span>
+                      </div>
+                    )}
+
+                    {/* Opção para atualizar o contato_celular da unidade para os próximos envios */}
+                    <div className="pt-1 flex items-center justify-between gap-2">
+                      <label
+                        htmlFor="salvar_celular_unidade"
+                        className="text-[11px] text-emerald-900 cursor-pointer select-none flex items-center gap-1.5"
+                      >
+                        <input
+                          id="salvar_celular_unidade"
+                          type="checkbox"
+                          checked={salvarCelularNaUnidade}
+                          onChange={(e) => setSalvarCelularNaUnidade(e.target.checked)}
+                          className="h-3.5 w-3.5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span>Salvar este número como contato oficial da unidade</span>
+                      </label>
+                      {converterParaWhatsappInternacional(whatsappEnvioLink).valido && (
+                        <span className="text-[10px] text-emerald-700 font-mono">
+                          +
+                          {
+                            converterParaWhatsappInternacional(whatsappEnvioLink)
+                              .numeroInternacional
+                          }
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Opção 2: Envio por E-mail institucional */}

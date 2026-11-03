@@ -649,6 +649,10 @@ export const api = {
     }
   },
 
+  async atualizarUnidade(id: string, dados: Partial<UnidadeRecord>) {
+    return pb.collection('unidades').update<UnidadeRecord>(id, dados)
+  },
+
   // Deliberações
   async getDeliberacoes() {
     return pb.collection('deliberacoes').getFullList<DeliberacaoRecord>({
