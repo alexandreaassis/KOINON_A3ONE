@@ -42,6 +42,7 @@ import {
   Contact,
   FileText,
   FolderArchive,
+  BookOpen,
 } from 'lucide-react'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import {
@@ -201,6 +202,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     { label: 'Credenciamento', path: '/credenciamento', icon: UserCheck },
     { label: 'Cabine de Votação', path: '/votacao', icon: Vote },
     { label: 'Meus Recibos', path: '/recibo', icon: Receipt },
+    { label: 'Manual do Morador', path: '/morador/manual', icon: BookOpen },
   ]
 
   const navMesa = [
@@ -232,6 +234,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     if (p === '/mesa') return ['Mesa Diretora', 'Painel Geral']
     if (p === '/ata-assembleia') return ['Morador', 'Ata Notarial']
     if (p === '/documentos-assembleia') return ['Morador', 'Documentos da Assembleia']
+    if (p === '/morador/manual') return ['Morador', 'Manual do Morador']
     if (p === '/mesa/ata') return ['Mesa Diretora', 'Ata da Assembleia']
     if (p === '/mesa/documentos') return ['Mesa Diretora', 'Documentos & Edital']
     if (p === '/mesa/presenca') return ['Mesa Diretora', 'Lista de Presença']

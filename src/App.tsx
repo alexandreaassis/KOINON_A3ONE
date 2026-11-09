@@ -27,6 +27,7 @@ import VotacaoPage from '@/pages/morador/Votacao'
 import ReciboPage from '@/pages/morador/Recibo'
 import DocumentosAssembleiaMoradorPage from '@/pages/morador/DocumentosAssembleia'
 import AtaMoradorPage from '@/pages/morador/AtaMorador'
+import ManualMoradorPage from '@/pages/morador/ManualMorador'
 
 // Páginas do Módulo da Mesa Diretora
 import PainelMesaPage from '@/pages/mesa/PainelMesa'
@@ -201,6 +202,16 @@ const App = () => (
                 <ProtectedRoute>
                   <AppLayout>
                     <AtaMoradorPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/morador/manual"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ManualMoradorPage />
                   </AppLayout>
                 </ProtectedRoute>
               }
