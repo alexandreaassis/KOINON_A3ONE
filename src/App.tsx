@@ -150,13 +150,7 @@ const App = () => (
             />
             <Route
               path="/credenciamento"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <CredenciamentoPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
+              element={<Navigate to="/mesa/credenciamento" replace />}
             />
             <Route
               path="/votacao"
@@ -238,6 +232,16 @@ const App = () => (
                 <ProtectedRoute requireMesa>
                   <AppLayout>
                     <PainelMesaPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/credenciamento"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <CredenciamentoPage />
                   </AppLayout>
                 </ProtectedRoute>
               }
