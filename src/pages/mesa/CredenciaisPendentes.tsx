@@ -47,6 +47,8 @@ import {
   UserPlus,
   ShieldCheck,
   Eye,
+  AlertTriangle,
+  ClipboardList,
 } from 'lucide-react'
 
 export const CredenciaisPendentesPage: React.FC = () => {
@@ -215,20 +217,26 @@ export const CredenciaisPendentesPage: React.FC = () => {
   const termoBusca = busca.trim().toLowerCase()
   const termoBuscaNumeros = termoBusca.replace(/\D/g, '')
 
-  // Filtragem Credenciamentos
-  const credsFiltrados = credenciamentos.filter((c) => {
-    const matchStatus = filtroStatus === 'todos' ? true : c.status === filtroStatus
-    const matchUnidade = filtroUnidade === 'todas' || c.unidade === filtroUnidade
-    const unid = unidades.find((u) => u.id === c.unidade)
-    const matchBusca =
-      !termoBusca ||
-      c.titular_nome.toLowerCase().includes(termoBusca) ||
-      (termoBuscaNumeros && (c.cpf || '').replace(/\D/g, '').includes(termoBuscaNumeros)) ||
-      (unid?.identificador || '').toLowerCase().includes(termoBusca)
-    return matchStatus && matchUnidade && matchBusca
-  })
+  // Filtragem Credenciamentos (pendentes primeiro, mais antigos antes)
+  const credsFiltrados = credenciamentos
+    .filter((c) => {
+      const matchStatus = filtroStatus === 'todos' ? true : c.status === filtroStatus
+      const matchUnidade = filtroUnidade === 'todas' || c.unidade === filtroUnidade
+      const unid = unidades.find((u) => u.id === c.unidade)
+      const matchBusca =
+        !termoBusca ||
+        c.titular_nome.toLowerCase().includes(termoBusca) ||
+        (termoBuscaNumeros && (c.cpf || '').replace(/\D/g, '').includes(termoBuscaNumeros)) ||
+        (unid?.identificador || '').toLowerCase().includes(termoBusca)
+      return matchStatus && matchUnidade && matchBusca
+    })
+    .sort((a, b) => {
+      if (a.status === 'pendente' && b.status !== 'pendente') return -1
+      if (b.status === 'pendente' && a.status !== 'pendente') return 1
+      return (a.created || '').localeCompare(b.created || '')
+    })
 
-  // Filtragem Cadastros de Moradores (pendentes primeiro, depois mais recentes)
+  // Filtragem Cadastros de Moradores (pendentes primeiro, mais antigos antes)
   const cadastrosFiltrados = cadastrosPublicos
     .filter((cad) => {
       const statusCad = cad.status_aprovacao || 'aprovado'
@@ -248,13 +256,54 @@ export const CredenciaisPendentesPage: React.FC = () => {
       const rb = b.status_aprovacao || 'aprovado'
       if (ra === 'pendente' && rb !== 'pendente') return -1
       if (rb === 'pendente' && ra !== 'pendente') return 1
-      return (b.created || '').localeCompare(a.created || '')
+      return (a.created || '').localeCompare(b.created || '')
     })
 
   const totalCadastrosPendentes = cadastrosPublicos.filter(
     (c) => (c.status_aprovacao || 'aprovado') === 'pendente',
   ).length
   const totalCredsPendentes = credenciamentos.filter((c) => c.status === 'pendente').length
+
+  // Pendências antigas: aguardando análise há 7 dias ou mais
+  const DIAS_ALERTA_PENDENCIA = 7
+  const diasAguardando = (data?: string) => {
+    if (!data) return 0
+    const diff = Date.now() - new Date(data).getTime()
+    return Math.max(0, Math.floor(diff / 86400000))
+  }
+  const cadastrosPendentes = cadastrosPublicos.filter(
+    (c) => (c.status_aprovacao || 'aprovado') === 'pendente',
+  )
+  const credsPendentes = credenciamentos.filter((c) => c.status === 'pendente')
+  const cadastrosPendentesAntigos = cadastrosPendentes.filter(
+    (c) => diasAguardando(c.created) >= DIAS_ALERTA_PENDENCIA,
+  )
+  const credsPendentesAntigos = credsPendentes.filter(
+    (c) => diasAguardando(c.created) >= DIAS_ALERTA_PENDENCIA,
+  )
+  const totalPendentesGeral = totalCadastrosPendentes + totalCredsPendentes
+  const pendentesAntigosGeral = cadastrosPendentesAntigos.length + credsPendentesAntigos.length
+
+  // Contagens clicáveis por status/categoria
+  const contagensCadastros = {
+    pendente: totalCadastrosPendentes,
+    aprovado: cadastrosPublicos.filter((c) => (c.status_aprovacao || 'aprovado') === 'aprovado')
+      .length,
+    rejeitado: cadastrosPublicos.filter((c) => (c.status_aprovacao || 'aprovado') === 'rejeitado')
+      .length,
+  }
+  const contagensCreds = {
+    pendente: totalCredsPendentes,
+    aprovado: credenciamentos.filter((c) => c.status === 'aprovado').length,
+    rejeitado: credenciamentos.filter((c) => c.status === 'rejeitado').length,
+  }
+
+  const selecionarResumo = (aba: 'cadastros' | 'credenciais', status: string) => {
+    setAbaAtiva(aba)
+    setFiltroStatus(status)
+    setFiltroUnidade('todas')
+    setBusca('')
+  }
 
   return (
     <div className="space-y-6">
@@ -309,6 +358,164 @@ export const CredenciaisPendentesPage: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Painel de Resumo de Pendências (Dashboard) */}
+      <Card className="border-[#0066FF]/20 bg-gradient-to-r from-blue-50/80 to-white shadow-xs">
+        <CardHeader className="pb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-[#0066FF]" /> Resumo de Pendências
+            </CardTitle>
+            {totalPendentesGeral === 0 ? (
+              <Badge className="bg-emerald-600 text-white text-xs shrink-0 text-center leading-normal">
+                <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Nenhuma pendência — tudo em ordem
+              </Badge>
+            ) : (
+              <Badge className="bg-amber-600 text-white text-xs shrink-0 text-center leading-normal">
+                {totalPendentesGeral} pendência{totalPendentesGeral > 1 ? 's' : ''} aguardando
+                análise
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3 pt-0">
+          {pendentesAntigosGeral > 0 && (
+            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-300 text-[11px] text-amber-900">
+              <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <span>
+                <strong>{pendentesAntigosGeral}</strong> pendência
+                {pendentesAntigosGeral > 1 ? 's' : ''} aguardando há <strong>7 dias ou mais</strong>{' '}
+                — priorize a análise destas, destacadas em âmbar na lista abaixo.
+              </span>
+            </div>
+          )}
+
+          {/* Contagens clicáveis por categoria e status */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <div
+              className={`text-left p-3 rounded-lg border ${
+                pendentesAntigosGeral > 0
+                  ? 'border-amber-400 bg-amber-50/70'
+                  : 'border-slate-200 bg-white'
+              }`}
+            >
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                Pendências Antigas (≥7 dias)
+              </span>
+              <span className="flex items-end gap-1.5">
+                <span
+                  className={`text-2xl font-extrabold ${pendentesAntigosGeral > 0 ? 'text-amber-700' : 'text-slate-300'}`}
+                >
+                  {pendentesAntigosGeral}
+                </span>
+                <span className="text-[10px] text-slate-500 mb-1">
+                  {cadastrosPendentesAntigos.length} cad • {credsPendentesAntigos.length} cred
+                </span>
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                mais antigos vêm primeiro na lista
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => selecionarResumo('cadastros', 'pendente')}
+              className={`text-left p-3 rounded-lg border transition-all ${
+                abaAtiva === 'cadastros' && filtroStatus === 'pendente'
+                  ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-400'
+                  : 'border-slate-200 bg-white hover:border-amber-400 hover:bg-amber-50/40'
+              }`}
+            >
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                Cadastros de Moradores
+              </span>
+              <span className="flex items-end gap-1.5">
+                <span
+                  className={`text-2xl font-extrabold ${totalCadastrosPendentes > 0 ? 'text-amber-700' : 'text-slate-300'}`}
+                >
+                  {totalCadastrosPendentes}
+                </span>
+                <span className="text-[10px] text-slate-500 mb-1">pendentes</span>
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                {contagensCadastros.aprovado} aprovados • {contagensCadastros.rejeitado} rejeitados
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => selecionarResumo('credenciais', 'pendente')}
+              className={`text-left p-3 rounded-lg border transition-all ${
+                abaAtiva === 'credenciais' && filtroStatus === 'pendente'
+                  ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-400'
+                  : 'border-slate-200 bg-white hover:border-amber-400 hover:bg-amber-50/40'
+              }`}
+            >
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                Credenciais de Assembleia
+              </span>
+              <span className="flex items-end gap-1.5">
+                <span
+                  className={`text-2xl font-extrabold ${totalCredsPendentes > 0 ? 'text-amber-700' : 'text-slate-300'}`}
+                >
+                  {totalCredsPendentes}
+                </span>
+                <span className="text-[10px] text-slate-500 mb-1">pendentes</span>
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                {contagensCreds.aprovado} aprovadas • {contagensCreds.rejeitado} rejeitadas
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => selecionarResumo('cadastros', 'aprovado')}
+              className={`text-left p-3 rounded-lg border transition-all ${
+                filtroStatus === 'aprovado' &&
+                (abaAtiva === 'cadastros' || abaAtiva === 'credenciais')
+                  ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-400'
+                  : 'border-slate-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/40'
+              }`}
+            >
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                Aprovados (Geral)
+              </span>
+              <span className="flex items-end gap-1.5">
+                <span className="text-2xl font-extrabold text-emerald-700">
+                  {contagensCadastros.aprovado + contagensCreds.aprovado}
+                </span>
+                <span className="text-[10px] text-slate-500 mb-1">registros</span>
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                {contagensCadastros.aprovado} cadastros • {contagensCreds.aprovado} credenciais
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => selecionarResumo('cadastros', 'rejeitado')}
+              className={`text-left p-3 rounded-lg border transition-all ${
+                filtroStatus === 'rejeitado' &&
+                (abaAtiva === 'cadastros' || abaAtiva === 'credenciais')
+                  ? 'border-red-500 bg-red-50 ring-1 ring-red-400'
+                  : 'border-slate-200 bg-white hover:border-red-400 hover:bg-red-50/40'
+              }`}
+            >
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                Rejeitados (Geral)
+              </span>
+              <span className="flex items-end gap-1.5">
+                <span className="text-2xl font-extrabold text-red-700">
+                  {contagensCadastros.rejeitado + contagensCreds.rejeitado}
+                </span>
+                <span className="text-[10px] text-slate-500 mb-1">registros</span>
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                {contagensCadastros.rejeitado} cadastros • {contagensCreds.rejeitado} credenciais
+              </span>
+            </button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Barra de Filtros e Busca */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -488,6 +695,18 @@ export const CredenciaisPendentesPage: React.FC = () => {
                         >
                           {statusCad.toUpperCase()}
                         </Badge>
+                        {statusCad === 'pendente' && diasAguardando(cad.created) > 0 && (
+                          <span
+                            className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                              diasAguardando(cad.created) >= DIAS_ALERTA_PENDENCIA
+                                ? 'bg-amber-200 text-amber-900 border border-amber-400'
+                                : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            <Clock className="h-3 w-3" />
+                            {diasAguardando(cad.created)}d aguardando
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-600">
@@ -673,7 +892,11 @@ export const CredenciaisPendentesPage: React.FC = () => {
             return (
               <Card
                 key={cred.id}
-                className="border-slate-200 shadow-xs hover:border-slate-300 transition-all"
+                className={`shadow-xs transition-all ${
+                  cred.status === 'pendente'
+                    ? 'border-amber-400 border-2 bg-amber-50/40 hover:border-amber-500'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
               >
                 <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="space-y-1.5 flex-1">
@@ -712,6 +935,18 @@ export const CredenciaisPendentesPage: React.FC = () => {
                       >
                         {cred.status}
                       </Badge>
+                      {cred.status === 'pendente' && diasAguardando(cred.created) > 0 && (
+                        <span
+                          className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                            diasAguardando(cred.created) >= DIAS_ALERTA_PENDENCIA
+                              ? 'bg-amber-200 text-amber-900 border border-amber-400'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          <Clock className="h-3 w-3" />
+                          {diasAguardando(cred.created)}d aguardando
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-600">
@@ -747,6 +982,18 @@ export const CredenciaisPendentesPage: React.FC = () => {
                         <strong>Submetido:</strong>{' '}
                         {new Date(cred.created).toLocaleDateString('pt-BR')}
                       </span>
+                      {cred.status === 'pendente' && diasAguardando(cred.created) > 0 && (
+                        <span
+                          className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                            diasAguardando(cred.created) >= DIAS_ALERTA_PENDENCIA
+                              ? 'bg-amber-200 text-amber-900 border border-amber-400'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          <Clock className="h-3 w-3" />
+                          {diasAguardando(cred.created)}d aguardando
+                        </span>
+                      )}
                     </div>
 
                     {cred.motivo_rejeicao && (

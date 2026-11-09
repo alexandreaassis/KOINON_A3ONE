@@ -7,6 +7,8 @@ import {
   type PresencaRecord,
   type ComparecimentoRecord,
   type UnidadeRecord,
+  type CredenciamentoRecord,
+  type CadastroUnidadeRecord,
 } from '@/lib/api'
 import { formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
 import { useCondoConfig } from '@/context/CondoConfigContext'
@@ -51,6 +53,7 @@ import {
   UserCog,
   Save,
   FileText,
+  Clock,
 } from 'lucide-react'
 
 export const PainelMesaPage: React.FC = () => {
@@ -89,11 +92,24 @@ export const PainelMesaPage: React.FC = () => {
 
   const [carregando, setCarregando] = useState(true)
 
+  // Pendências da mesa: credenciamentos + cadastros públicos aguardando análise
+  const [totalCredPendentes, setTotalCredPendentes] = useState(0)
+  const [totalCadPendentes, setTotalCadPendentes] = useState(0)
+
   const carregarDados = async (isBackgroundPoll = false) => {
     try {
-      const [delibs, unids] = await Promise.all([api.getDeliberacoes(), api.getUnidades()])
+      const [delibs, unids, creds, cads] = await Promise.all([
+        api.getDeliberacoes(),
+        api.getUnidades(),
+        api.getCredenciamentos().catch(() => [] as CredenciamentoRecord[]),
+        api.getCadastrosUnidades().catch(() => [] as CadastroUnidadeRecord[]),
+      ])
       setDeliberacoes(delibs)
       setUnidades(unids)
+      setTotalCredPendentes(creds.filter((c) => c.status === 'pendente').length)
+      setTotalCadPendentes(
+        cads.filter((c) => (c.status_aprovacao || 'aprovado') === 'pendente').length,
+      )
 
       // Se o usuário já está visualizando uma deliberação específica, preserva ela; caso contrário pega a ativa
       const idAtual = deliberacaoAtivaIdRef.current
@@ -315,6 +331,55 @@ export const PainelMesaPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Cartão de Pendências da Mesa */}
+      <Card
+        className={`shadow-xs ${
+          totalCredPendentes + totalCadPendentes > 0
+            ? 'border-amber-400 bg-amber-50/50'
+            : 'border-emerald-200 bg-emerald-50/40'
+        }`}
+      >
+        <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            {totalCredPendentes + totalCadPendentes > 0 ? (
+              <Clock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            ) : (
+              <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+            )}
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-slate-900">Pendências de Aprovação</p>
+              <p className="text-xs text-slate-600 mt-0.5">
+                {totalCredPendentes + totalCadPendentes > 0 ? (
+                  <>
+                    <span className="font-bold text-amber-700">
+                      {totalCredPendentes + totalCadPendentes}
+                    </span>{' '}
+                    aguardando análise: <strong>{totalCadPendentes}</strong> cadastro
+                    {totalCadPendentes !== 1 ? 's' : ''} de morador
+                    {totalCadPendentes !== 1 ? 's' : ''} e <strong>{totalCredPendentes}</strong>{' '}
+                    credenciamento{totalCredPendentes !== 1 ? 's' : ''} de assembleia.
+                  </>
+                ) : (
+                  'Nenhum cadastro ou credenciamento aguardando análise da mesa.'
+                )}
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant={totalCredPendentes + totalCadPendentes > 0 ? 'default' : 'outline'}
+            onClick={() => navigate('/mesa/credenciamentos')}
+            className={
+              totalCredPendentes + totalCadPendentes > 0
+                ? 'bg-amber-600 hover:bg-amber-700 text-white text-xs h-8 shrink-0'
+                : 'text-xs h-8 shrink-0'
+            }
+          >
+            <Users className="mr-1 h-3.5 w-3.5" /> Ver pendências
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Ciclo de Vida da Deliberação Ativa */}
       {deliberacaoAtiva && (
