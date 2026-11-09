@@ -182,11 +182,19 @@ const ManualMesaPage: React.FC = () => {
     onParar: parar,
   })
 
+  const rolarParaSecao = (id: string) => {
+    const el = document.getElementById(id)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#F3F7FC] pb-16">
       <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6">
         <CapaManual
           onImprimir={abrirImpressao}
+          onRolarParaIa={() => rolarParaSecao('ia-koinon')}
           titulo="Manual de Instrução do Módulo da Mesa Diretora"
           descricao="Um guia ilustrado, em linguagem simples, para a mesa diretora conduzir a assembleia eletrônica do Lago Azul: aprovar credenciamentos, instalar a assembleia com quórum, conduzir a votação, apurar, assinar a ata e prestar contas na auditoria."
           rotuloRodape="Assembleia Eletrônica Lago Azul — conduzida pela mesa diretora"
@@ -204,7 +212,11 @@ const ManualMesaPage: React.FC = () => {
               <li key={s.id}>
                 <a
                   href={`#${s.id}`}
-                  className="group flex items-center gap-2.5 rounded-xl border border-slate-100 px-3 py-2.5 text-sm text-slate-600 transition-colors hover:border-[#0066FF]/30 hover:bg-[#0066FF]/5"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    rolarParaSecao(s.id)
+                  }}
+                  className="group flex items-center gap-2.5 rounded-xl border border-slate-100 px-3 py-2.5 text-sm text-slate-600 transition-colors hover:border-[#0066FF]/30 hover:bg-[#0066FF]/5 cursor-pointer"
                 >
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#002B5E] text-[11px] font-bold text-white">
                     {i + 1}
@@ -217,7 +229,11 @@ const ManualMesaPage: React.FC = () => {
             <li>
               <a
                 href="#ia-koinon"
-                className="group flex items-center gap-2.5 rounded-xl border border-slate-100 px-3 py-2.5 text-sm text-slate-600 transition-colors hover:border-[#0066FF]/30 hover:bg-[#0066FF]/5"
+                onClick={(e) => {
+                  e.preventDefault()
+                  rolarParaSecao('ia-koinon')
+                }}
+                className="group flex items-center gap-2.5 rounded-xl border border-slate-100 px-3 py-2.5 text-sm text-slate-600 transition-colors hover:border-[#0066FF]/30 hover:bg-[#0066FF]/5 cursor-pointer"
               >
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0066FF] text-[11px] font-bold text-white">
                   8

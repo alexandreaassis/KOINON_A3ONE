@@ -492,13 +492,22 @@
     print-color-adjust: exact !important;
   }
 
-  /* Ocultar tudo que não for o documento de impressão */
-  header,
-  nav,
+  /* Ocultar elementos de layout e navegação na impressão,
+     preservando cabeçalhos e blocos de documentos e manuais (.print-block / .manual-capa) */
+  header:not(.print-block):not(.manual-capa),
+  nav:not(.print-block),
   aside,
-  footer:not(#boletim-urna-folha footer),
-  .no-print {
+  footer:not(#boletim-urna-folha footer):not(.print-block),
+  .no-print,
+  .print-hidden {
     display: none !important;
+  }
+
+  .print-block,
+  .manual-capa {
+    display: block !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   #boletim-urna-folha {

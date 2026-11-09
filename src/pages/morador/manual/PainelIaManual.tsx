@@ -39,8 +39,14 @@ export const PainelIaManual: React.FC<{ className?: string }> = ({ className = '
   const [carregando, setCarregando] = useState(false)
   const conversaIdRef = useRef<string>('')
   const fimRef = useRef<HTMLDivElement | null>(null)
+  const primeiraMontagemRef = useRef(true)
 
   React.useEffect(() => {
+    // Evita rolar a página inteira no carregamento inicial do manual
+    if (primeiraMontagemRef.current) {
+      primeiraMontagemRef.current = false
+      return
+    }
     fimRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [mensagens, carregando])
 

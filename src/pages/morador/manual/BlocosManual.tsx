@@ -21,58 +21,89 @@ export interface Marcador {
 /* ---------------- Capa ---------------- */
 export const CapaManual: React.FC<{
   onImprimir: () => void
+  onRolarParaIa?: () => void
   titulo?: string
   descricao?: string
   rotuloRodape?: string
 }> = ({
   onImprimir,
+  onRolarParaIa,
   titulo = 'Manual de Instrução do Módulo do Morador',
   descricao = 'Um guia ilustrado, em linguagem simples, para você entender cada página do seu módulo — do cadastro até a ata da assembleia — e participar das assembleias eletrônicas do Lago Azul com toda a segurança.',
   rotuloRodape = 'Assembleia Eletrônica Lago Azul — apuração conferida pela mesa',
-}) => (
-  <header className="print-block rounded-3xl overflow-hidden border border-[#002B5E]/10 bg-gradient-to-br from-[#002B5E] via-[#013A7A] to-[#0066FF] text-white shadow-lg">
-    <div className="relative p-6 sm:p-10">
-      <div aria-hidden className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5" />
-      <div
-        aria-hidden
-        className="absolute right-10 top-24 h-24 w-24 rounded-full border-2 border-white/10"
-      />
-      <div className="relative">
-        <KoinonSymbol size={72} variant="on-navy" />
-        <div className="mt-4">
-          <KoinonLogo size={50} variant="on-navy" subtitle="Condomínio Lago Azul" />
-        </div>
-        {/* Cor explícita: sem ela o h1 herda o marinho global (#002b5e) e fica
-            apagado sobre o fundo marinho da capa. Branco puro + peso 700. */}
-        <h1 className="mt-6 font-poppins text-2xl sm:text-3xl font-bold leading-tight text-white">
-          {titulo}
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm sm:text-base text-white/85 leading-relaxed">
-          {descricao}
-        </p>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={onImprimir}
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#002B5E] shadow hover:bg-[#F3F7FC] transition-colors"
-          >
-            Versão para impressão (PDF)
-          </button>
-          <a
-            href="#guia-conteudo"
-            className="rounded-xl border border-white/40 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
-          >
-            Começar a ler
-          </a>
+}) => {
+  const lidarRolarParaIa = (ev: React.MouseEvent) => {
+    if (onRolarParaIa) {
+      ev.preventDefault()
+      onRolarParaIa()
+    }
+  }
+
+  return (
+    <header
+      className="print-block manual-capa rounded-3xl overflow-hidden border border-[#002B5E]/10 bg-gradient-to-br from-[#002B5E] via-[#013A7A] to-[#0066FF] text-white shadow-lg [print-color-adjust:exact] [-webkit-print-color-adjust:exact]"
+      style={{
+        backgroundColor: '#002B5E',
+        WebkitPrintColorAdjust: 'exact',
+        printColorAdjust: 'exact',
+      }}
+    >
+      <div className="relative p-6 sm:p-10">
+        <div aria-hidden className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5" />
+        <div
+          aria-hidden
+          className="absolute right-10 top-24 h-24 w-24 rounded-full border-2 border-white/10"
+        />
+        <div className="relative">
+          <KoinonSymbol size={72} variant="on-navy" />
+          <div className="mt-4">
+            <KoinonLogo size={50} variant="on-navy" subtitle="Condomínio Lago Azul" />
+          </div>
+          {/* Cor explícita: sem ela o h1 herda o marinho global (#002b5e) e fica
+              apagado sobre o fundo marinho da capa. Branco puro + peso 700. */}
+          <h1 className="mt-6 font-poppins text-2xl sm:text-3xl font-bold leading-tight text-white">
+            {titulo}
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm sm:text-base text-white/85 leading-relaxed">
+            {descricao}
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-3 print:hidden">
+            <button
+              type="button"
+              onClick={onImprimir}
+              className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#002B5E] shadow hover:bg-[#F3F7FC] transition-colors"
+            >
+              Versão para impressão (PDF)
+            </button>
+            <a
+              href="#guia-conteudo"
+              className="rounded-xl border border-white/40 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
+            >
+              Começar a ler
+            </a>
+            <a
+              href="#ia-koinon"
+              onClick={lidarRolarParaIa}
+              className="rounded-xl border border-white/40 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20 transition-colors inline-flex items-center gap-1.5"
+            >
+              Pergunte para IA
+            </a>
+          </div>
         </div>
       </div>
-    </div>
-    <div className="border-t border-white/15 bg-black/15 px-6 py-4 sm:px-10 flex flex-wrap items-center justify-between gap-3">
-      <EndossoA3One variant="on-navy" />
-      <span className="text-[11px] sm:text-xs text-white/70">{rotuloRodape}</span>
-    </div>
-  </header>
-)
+      <div
+        className="border-t border-white/15 bg-black/15 px-6 py-4 sm:px-10 flex flex-wrap items-center justify-between gap-3 [print-color-adjust:exact] [-webkit-print-color-adjust:exact]"
+        style={{
+          WebkitPrintColorAdjust: 'exact',
+          printColorAdjust: 'exact',
+        }}
+      >
+        <EndossoA3One variant="on-navy" />
+        <span className="text-[11px] sm:text-xs text-white/70">{rotuloRodape}</span>
+      </div>
+    </header>
+  )
+}
 
 /* ---------------- Título de seção + botão Ouvir ---------------- */
 export const TituloSecao: React.FC<{
