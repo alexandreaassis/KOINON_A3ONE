@@ -28,6 +28,7 @@ import ReciboPage from '@/pages/morador/Recibo'
 import DocumentosAssembleiaMoradorPage from '@/pages/morador/DocumentosAssembleia'
 import AtaMoradorPage from '@/pages/morador/AtaMorador'
 import ManualMoradorPage from '@/pages/morador/ManualMorador'
+import ManualMesaPage from '@/pages/mesa/ManualMesa'
 
 // Páginas do Módulo da Mesa Diretora
 import PainelMesaPage from '@/pages/mesa/PainelMesa'
@@ -212,6 +213,18 @@ const App = () => (
                 <ProtectedRoute>
                   <AppLayout>
                     <ManualMoradorPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Manual do Módulo da Mesa Diretora */}
+            <Route
+              path="/mesa/manual"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <ManualMesaPage />
                   </AppLayout>
                 </ProtectedRoute>
               }

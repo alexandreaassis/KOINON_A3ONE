@@ -214,6 +214,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     { label: 'Cadastros da Unidade', path: '/admin/cadastros', icon: Contact },
     { label: 'Deliberações e Pautas', path: '/mesa/deliberacoes', icon: FileSpreadsheet },
     { label: 'Auditoria e Urna', path: '/mesa/auditoria', icon: History },
+    { label: 'Manual da Mesa', path: '/mesa/manual', icon: BookOpen },
   ]
 
   const navAdmin = [
@@ -241,6 +242,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     if (p === '/mesa/credenciamentos') return ['Mesa Diretora', 'Aprovação de Cadastros']
     if (p === '/mesa/deliberacoes') return ['Mesa Diretora', 'Deliberações']
     if (p === '/mesa/auditoria') return ['Mesa Diretora', 'Auditoria & Boletim']
+    if (p === '/mesa/manual') return ['Mesa Diretora', 'Manual da Mesa']
     if (p === '/admin/configuracoes') return ['Administração', 'Configurações']
     if (p === '/admin/cadastros') return ['Administração', 'Cadastros da Unidade']
     if (p === '/admin/usuarios') return ['Administração', 'Usuários']

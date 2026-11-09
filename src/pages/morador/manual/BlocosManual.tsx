@@ -19,7 +19,17 @@ export interface Marcador {
 }
 
 /* ---------------- Capa ---------------- */
-export const CapaManual: React.FC<{ onImprimir: () => void }> = ({ onImprimir }) => (
+export const CapaManual: React.FC<{
+  onImprimir: () => void
+  titulo?: string
+  descricao?: string
+  rotuloRodape?: string
+}> = ({
+  onImprimir,
+  titulo = 'Manual de Instrução do Módulo do Morador',
+  descricao = 'Um guia ilustrado, em linguagem simples, para você entender cada página do seu módulo — do cadastro até a ata da assembleia — e participar das assembleias eletrônicas do Lago Azul com toda a segurança.',
+  rotuloRodape = 'Assembleia Eletrônica Lago Azul — apuração conferida pela mesa',
+}) => (
   <header className="print-block rounded-3xl overflow-hidden border border-[#002B5E]/10 bg-gradient-to-br from-[#002B5E] via-[#013A7A] to-[#0066FF] text-white shadow-lg">
     <div className="relative p-6 sm:p-10">
       <div aria-hidden className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5" />
@@ -32,13 +42,13 @@ export const CapaManual: React.FC<{ onImprimir: () => void }> = ({ onImprimir })
         <div className="mt-4">
           <KoinonLogo size={50} variant="on-navy" subtitle="Condomínio Lago Azul" />
         </div>
-        <h1 className="mt-6 font-poppins text-2xl sm:text-3xl font-bold leading-tight">
-          Manual de Instrução do Módulo do Morador
+        {/* Cor explícita: sem ela o h1 herda o marinho global (#002b5e) e fica
+            apagado sobre o fundo marinho da capa. Branco puro + peso 700. */}
+        <h1 className="mt-6 font-poppins text-2xl sm:text-3xl font-bold leading-tight text-white">
+          {titulo}
         </h1>
         <p className="mt-3 max-w-2xl text-sm sm:text-base text-white/85 leading-relaxed">
-          Um guia ilustrado, em linguagem simples, para você entender cada página do seu módulo — do
-          cadastro até a ata da assembleia — e participar das assembleias eletrônicas do Lago Azul
-          com toda a segurança.
+          {descricao}
         </p>
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <button
@@ -59,9 +69,7 @@ export const CapaManual: React.FC<{ onImprimir: () => void }> = ({ onImprimir })
     </div>
     <div className="border-t border-white/15 bg-black/15 px-6 py-4 sm:px-10 flex flex-wrap items-center justify-between gap-3">
       <EndossoA3One variant="on-navy" />
-      <span className="text-[11px] sm:text-xs text-white/70">
-        Assembleia Eletrônica Lago Azul — apuração conferida pela mesa
-      </span>
+      <span className="text-[11px] sm:text-xs text-white/70">{rotuloRodape}</span>
     </div>
   </header>
 )
