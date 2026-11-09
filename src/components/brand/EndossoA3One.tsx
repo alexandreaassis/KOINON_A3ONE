@@ -1,6 +1,6 @@
 import React from 'react'
 import logoA3OneClaro from '@/assets/a3one-solucoes-integradas-2-5349d.png'
-import logoA3OneEscuro from '@/assets/a3one-luminoso-854a6.png'
+import logoA3OneEscuro from '@/assets/a3one-sem-fundo-93716.png'
 
 export interface EndossoA3OneProps {
   /**

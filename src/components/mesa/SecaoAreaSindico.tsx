@@ -19,21 +19,9 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
-import {
-  Briefcase,
-  Users,
-  Send,
-  Copy,
-  Check,
-  Calendar,
-  Clock,
-  Sparkles,
-  BarChart2,
-  FileText,
-  AlertCircle,
-  ExternalLink,
-} from 'lucide-react'
+import { Briefcase, Send, Copy, Check, Sparkles, BarChart2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { PainelIaSindico } from './PainelIaSindico'
 
 export interface SecaoAreaSindicoProps {
   deliberacaoAtiva: DeliberacaoRecord | null
@@ -132,8 +120,26 @@ Atenciosamente,
     }
   }
 
-  // Últimas 3 assembleias
+  // Últimas assembleias para resumo executivo e contexto
   const ultimasAssembleias = deliberacoes.slice(0, 4)
+
+  // Contexto executivo compacto para enriquecer a primeira mensagem à IA do síndico
+  const contextoExecutivo = `Condomínio: ${nomeCondominio}
+Unidades totais: ${totalUnidades}
+Cadastros aprovados: ${totalCadastradas}
+Cadastros pendentes de aprovação: ${totalCadPendentes}
+Assembleia ativa: ${deliberacaoAtiva ? `${deliberacaoAtiva.titulo} (status: ${deliberacaoAtiva.status})` : 'Nenhuma no momento'}
+Credenciadas na ativa: ${totalCredenciadas}
+Presenças registradas: ${totalPresentes} (${taxaPresenca}%)
+Últimas assembleias registradas:
+${ultimasAssembleias
+  .map(
+    (d) =>
+      `- "${d.titulo}" | Status: ${d.status} | Data: ${
+        d.data_inicio ? new Date(d.data_inicio).toLocaleDateString('pt-BR') : 'Sem data'
+      }`,
+  )
+  .join('\n')}`
 
   return (
     <Card className="border-sky-200/80 shadow-xs bg-gradient-to-b from-sky-50/40 to-white">
@@ -275,6 +281,9 @@ Atenciosamente,
             {copiado ? 'Copiado!' : 'Copiar Mensagem de Convocação'}
           </Button>
         </div>
+
+        {/* Bloco: Assistente de IA do Síndico & Governança */}
+        <PainelIaSindico contextoExecutivo={contextoExecutivo} />
 
         {/* Bloco (c): Histórico resumido das últimas assembleias com resultado */}
         <div>
