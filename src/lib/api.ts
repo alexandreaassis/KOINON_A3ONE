@@ -82,6 +82,7 @@ export interface CondoConfigRecord extends RecordModel {
   default_locatario_vota?: boolean
   default_quorum_materia?: string
   default_tipo_cedula?: string
+  sindico_pode_presidir_mesa?: boolean
   email_oficial?: string
   nome_remetente?: string
   whatsapp_oficial?: string
@@ -131,12 +132,16 @@ export interface DeliberacaoRecord extends RecordModel {
   mesa_presidente_cpf?: string
   mesa_secretario_nome?: string
   mesa_secretario_cpf?: string
+  mesa_eleita_em?: string
+  proprietario_nao_participa_unidades?: string[] | string
 }
 
 export type RegraLocatario =
   | 'somente_proprietario'
   | 'morador_substitui_ausente'
   | 'morador_vota_sempre'
+
+export type TipoPauta = 'despesas_manutencao' | 'proprietarios' | 'geral'
 
 export interface ItemPautaRecord extends RecordModel {
   deliberacao: string
@@ -145,6 +150,7 @@ export interface ItemPautaRecord extends RecordModel {
   texto?: string
   quorum_aplicavel?: string
   regra_locatario?: RegraLocatario
+  tipo_pauta?: TipoPauta
 }
 
 export interface CedulaRecord extends RecordModel {
@@ -158,6 +164,7 @@ export interface CedulaRecord extends RecordModel {
   recibo_codigo: string
   vinculo_votante?: 'proprietario' | 'condomino' | 'locatario'
   regra_aplicada?: string
+  declaracao_representante_legal?: boolean
 }
 
 export type TipoVinculo =
@@ -1615,6 +1622,29 @@ export const api = {
     }>('/backend/v1/notificacoes/reenviar', {
       method: 'POST',
       body: { notificacaoId },
+    })
+  },
+
+  // Disparo de Acesso ao Locatário pela Mesa
+  async dispararAcessoLocatario(payload: {
+    deliberacaoId: string
+    unidadeId: string
+    locatarioEmail?: string
+    locatarioTelefone?: string
+    locatarioNome?: string
+    motivo?: string
+  }) {
+    return pb.send<{
+      success: boolean
+      message: string
+      emailEnviado: boolean
+      destinatarioEmail?: string
+      destinatarioNome?: string
+      destinatarioTelefone?: string
+      whatsappUrl?: string | null
+    }>('/backend/v1/mesa/locatario/disparar-acesso', {
+      method: 'POST',
+      body: payload,
     })
   },
 

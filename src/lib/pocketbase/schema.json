@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-09T21:01:26.095Z",
+  "generatedAt": "2026-11-09T22:41:55.073Z",
   "collections": [
     {
       "name": "users",
@@ -297,6 +297,18 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "mesa_eleita_em",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "proprietario_nao_participa_unidades",
+          "type": "json",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_deliberacoes_status ON deliberacoes (status)"]
@@ -463,6 +475,13 @@
             "morador_substitui_ausente",
             "morador_vota_sempre"
           ]
+        },
+        {
+          "name": "tipo_pauta",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["despesas_manutencao", "proprietarios", "geral"]
         }
       ],
       "indexes": ["CREATE INDEX idx_itens_pauta_deliberacao ON itens_pauta (deliberacao, ordem)"]
@@ -610,6 +629,12 @@
         {
           "name": "regra_aplicada",
           "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "declaracao_representante_legal",
+          "type": "bool",
           "required": false,
           "system": false
         }
@@ -1112,6 +1137,12 @@
         },
         {
           "name": "smtp_ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sindico_pode_presidir_mesa",
           "type": "bool",
           "required": false,
           "system": false
