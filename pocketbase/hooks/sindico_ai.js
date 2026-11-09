@@ -8,10 +8,8 @@
  * executivo ao síndico.
  */
 routerAdd('POST', '/backend/v1/sindico/chat', (e) => {
-  const info = $requestInfo
-  const auth = info?.auth
-
-  if (!auth || !auth.id) {
+  const authRecord = e.auth
+  if (!authRecord || !authRecord.id) {
     return e.json(401, {
       success: false,
       message: 'Faça login para conversar com a IA do Síndico.',
@@ -20,7 +18,7 @@ routerAdd('POST', '/backend/v1/sindico/chat', (e) => {
 
   let body = {}
   try {
-    body = e.readBody() || {}
+    body = (e.requestInfo && e.requestInfo().body) || {}
   } catch (err) {
     body = {}
   }
@@ -49,7 +47,7 @@ routerAdd('POST', '/backend/v1/sindico/chat', (e) => {
 
   try {
     const resposta = $ai.agent('koinon-sindico').chat({
-      user_id: auth.id,
+      user_id: authRecord.id,
       conversation_id: conversaId,
       message: mensagemCompleta,
     })
@@ -60,27 +58,33 @@ routerAdd('POST', '/backend/v1/sindico/chat', (e) => {
       conversa_id: resposta?.conversation_id || '',
     })
   } catch (err) {
-    if (err instanceof SkipAiConfigError) {
-      console.warn('sindico_ai: IA sem gateway configurado', err)
-      return e.json(503, {
-        success: false,
-        message:
-          'A IA do Síndico está indisponível neste momento. Tente novamente em instantes ou contate o suporte A3ONE.',
-      })
-    }
-    if (err instanceof SkipAiAgentsError) {
-      const status = err.status || 500
-      console.warn('sindico_ai: erro do agente', err)
-      return e.json(status, {
-        success: false,
-        message:
-          status >= 500
-            ? 'A IA do Síndico está indisponível neste momento. Tente novamente em instantes ou contate o suporte A3ONE.'
-            : err.message,
-      })
-    }
-    console.warn('sindico_ai: falha no chat do agente', err)
-    return e.json(500, {
+    console.warn('sindico_ai: falha no chat do agente:', err)
+
+    try {
+      if (typeof SkipAiConfigError !== 'undefined' && err instanceof SkipAiConfigError) {
+        return e.json(503, {
+          success: false,
+          message:
+            'A IA do Síndico está indisponível neste momento. Tente novamente em instantes ou contate o suporte A3ONE.',
+        })
+      }
+    } catch (_) {}
+
+    try {
+      if (typeof SkipAiAgentsError !== 'undefined' && err instanceof SkipAiAgentsError) {
+        const status = err.status || 500
+        return e.json(status, {
+          success: false,
+          message:
+            status >= 500
+              ? 'A IA do Síndico está indisponível neste momento. Tente novamente em instantes ou contate o suporte A3ONE.'
+              : err.message,
+        })
+      }
+    } catch (_) {}
+
+    const status = (err && err.status) || 500
+    return e.json(status >= 500 ? 500 : status, {
       success: false,
       message:
         'A IA do Síndico está indisponível neste momento. Tente novamente em instantes ou contate o suporte A3ONE.',

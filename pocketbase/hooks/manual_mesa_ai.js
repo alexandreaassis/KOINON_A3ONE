@@ -15,10 +15,8 @@
  * runtime devolve result.conversation_id para pinçar os turnos seguintes.
  */
 routerAdd('POST', '/backend/v1/manual-mesa/chat', (e) => {
-  const info = $requestInfo
-  const auth = info?.auth
-
-  if (!auth || !auth.id) {
+  const authRecord = e.auth
+  if (!authRecord || !authRecord.id) {
     return e.json(401, {
       success: false,
       message: 'Faça login para conversar com a IA do Koinon.',
@@ -27,7 +25,7 @@ routerAdd('POST', '/backend/v1/manual-mesa/chat', (e) => {
 
   let body = {}
   try {
-    body = e.readBody() || {}
+    body = (e.requestInfo && e.requestInfo().body) || {}
   } catch (err) {
     body = {}
   }
@@ -49,7 +47,7 @@ routerAdd('POST', '/backend/v1/manual-mesa/chat', (e) => {
 
   try {
     const resposta = $ai.agent('koinon-manual-mesa').chat({
-      user_id: auth.id,
+      user_id: authRecord.id,
       conversation_id: conversaId,
       message: pergunta,
     })
@@ -60,27 +58,34 @@ routerAdd('POST', '/backend/v1/manual-mesa/chat', (e) => {
       conversa_id: resposta?.conversation_id || '',
     })
   } catch (err) {
-    if (err instanceof SkipAiConfigError) {
-      console.warn('manual_mesa_ai: IA sem gateway configurado', err)
-      return e.json(503, {
-        success: false,
-        message:
-          'A IA do Koinon está indisponível neste momento. Tente novamente em instantes ou fale com o suporte A3ONE.',
-      })
-    }
-    if (err instanceof SkipAiAgentsError) {
-      const status = err.status || 500
-      console.warn('manual_mesa_ai: erro do agente', err)
-      return e.json(status, {
-        success: false,
-        message:
-          status >= 500
-            ? 'A IA do Koinon está indisponível neste momento. Tente novamente em instantes ou fale com o suporte A3ONE.'
-            : err.message,
-      })
-    }
-    console.warn('manual_mesa_ai: falha no chat do agente', err)
-    return e.json(500, {
+    console.warn('manual_mesa_ai: falha no chat do agente:', err)
+
+    // Proteção contra ReferenceError se classes de erro SkipAi* não estiverem no escopo global
+    try {
+      if (typeof SkipAiConfigError !== 'undefined' && err instanceof SkipAiConfigError) {
+        return e.json(503, {
+          success: false,
+          message:
+            'A IA do Koinon está indisponível neste momento. Tente novamente em instantes ou fale com o suporte A3ONE.',
+        })
+      }
+    } catch (_) {}
+
+    try {
+      if (typeof SkipAiAgentsError !== 'undefined' && err instanceof SkipAiAgentsError) {
+        const status = err.status || 500
+        return e.json(status, {
+          success: false,
+          message:
+            status >= 500
+              ? 'A IA do Koinon está indisponível neste momento. Tente novamente em instantes ou fale com o suporte A3ONE.'
+              : err.message,
+        })
+      }
+    } catch (_) {}
+
+    const status = (err && err.status) || 500
+    return e.json(status >= 500 ? 500 : status, {
       success: false,
       message:
         'A IA do Koinon está indisponível neste momento. Tente novamente em instantes ou fale com o suporte A3ONE.',
