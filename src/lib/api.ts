@@ -665,22 +665,65 @@ export const api = {
   },
 
   async getDeliberacaoAtiva(): Promise<DeliberacaoRecord | null> {
-    try {
-      // 1. Tenta buscar deliberação ativa/em andamento
-      const list = await pb.collection('deliberacoes').getList<DeliberacaoRecord>(1, 1, {
-        filter: "status != 'PUBLICADA' && status != 'ENCERRADA'",
-        sort: '-created',
-      })
-      if (list?.items && list.items.length > 0) return list.items[0]
+    const consultarComRetry = async (
+      tentativas = 2,
+      esperaMs = 800,
+    ): Promise<DeliberacaoRecord | null> => {
+      for (let i = 0; i <= tentativas; i++) {
+        try {
+          // 1. Tenta buscar deliberação ativa/em andamento
+          const list = await pb.collection('deliberacoes').getList<DeliberacaoRecord>(1, 1, {
+            filter: "status != 'PUBLICADA' && status != 'ENCERRADA'",
+            sort: '-created',
+            requestKey: 'delib_ativa_andamento',
+          })
+          if (list?.items && list.items.length > 0) return list.items[0]
 
-      // 2. Se não houver em andamento, retorna a mais recente (ex: já encerrada ou publicada)
-      const anyList = await pb.collection('deliberacoes').getList<DeliberacaoRecord>(1, 1, {
-        sort: '-created',
-      })
-      return anyList?.items?.[0] || null
-    } catch (err: any) {
-      // Degradação graciosa: se não autenticado (401/403), erro de filtro, tabela vazia ou rede instável
-      console.warn('api.getDeliberacaoAtiva: falha ao consultar deliberações:', err?.message || err)
+          // 2. Se não houver em andamento, retorna a mais recente (ex: já encerrada ou publicada)
+          const anyList = await pb.collection('deliberacoes').getList<DeliberacaoRecord>(1, 1, {
+            sort: '-created',
+            requestKey: 'delib_ativa_recente',
+          })
+          return anyList?.items?.[0] || null
+        } catch (err: any) {
+          const isNetwork =
+            err?.name === 'TypeError' ||
+            err?.message?.includes('Failed to fetch') ||
+            err?.message?.includes('NetworkError') ||
+            err?.status === 0 ||
+            !err?.status
+
+          if (isNetwork && i < tentativas) {
+            // Backend temporariamente indisponível ou em reinício: aguarda e tenta novamente em silêncio
+            await new Promise((resolve) => setTimeout(resolve, esperaMs * (i + 1)))
+            continue
+          }
+
+          // Notifica estado de rede se for falha de conectividade sem propagar unhandled exception
+          if (isNetwork && typeof window !== 'undefined') {
+            window.dispatchEvent(
+              new CustomEvent('koinon:network-status', { detail: { online: false, error: err } }),
+            )
+          }
+
+          // Degradação graciosa: se não autenticado (401/403), erro de filtro, tabela vazia ou rede indisponível
+          console.warn(
+            'api.getDeliberacaoAtiva: falha graciosa ao consultar deliberações:',
+            err?.message || err,
+          )
+          return null
+        }
+      }
+      return null
+    }
+
+    try {
+      const res = await consultarComRetry()
+      if (res !== null && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('koinon:network-status', { detail: { online: true } }))
+      }
+      return res
+    } catch {
       return null
     }
   },

@@ -38,16 +38,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true)
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine)
 
-  // Monitoramento de conectividade
+  // Monitoramento de conectividade (rede do navegador e eventos de rede do PocketBase)
   useEffect(() => {
     const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
+    const handleNetworkStatus = (e: Event) => {
+      const custom = e as CustomEvent<{ online: boolean }>
+      if (typeof custom?.detail?.online === 'boolean') {
+        setIsOnline(custom.detail.online)
+      }
+    }
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
+    window.addEventListener('koinon:network-status', handleNetworkStatus)
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('koinon:network-status', handleNetworkStatus)
     }
   }, [])
 

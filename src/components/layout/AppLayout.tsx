@@ -136,19 +136,24 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     })
   }
 
-  // Carregar dados de status da votação
+  // Carregar dados de status da votação com tolerância total a falhas de rede/reconexão
   useEffect(() => {
     let ativo = true
     const carregarStatus = async () => {
       try {
-        const delib = await api.getDeliberacaoAtiva()
+        const delib = await api.getDeliberacaoAtiva().catch((err) => {
+          console.warn('AppLayout: falha tratada em getDeliberacaoAtiva:', err?.message || err)
+          return null
+        })
         if (!ativo) return
         setDeliberacaoAtiva(delib)
 
         if (delib && unidadeSelecionada) {
           try {
             // Checar se já votou
-            const comp = await api.getComparecimento(delib.id, unidadeSelecionada.id)
+            const comp = await api
+              .getComparecimento(delib.id, unidadeSelecionada.id)
+              .catch(() => null)
             if (!ativo) return
             setJaVotou(!!comp)
           } catch (compErr) {
@@ -159,7 +164,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
 
           try {
             // Checar reconciliação física presencial
-            const presencas = await api.getPresencas(delib.id)
+            const presencas = await api.getPresencas(delib.id).catch(() => [])
             if (!ativo) return
             const temPresencial = Array.isArray(presencas)
               ? presencas.some(
@@ -177,7 +182,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
           setIsPresencial(false)
         }
       } catch (err) {
-        // Degradação graciosa: falha na consulta nunca derruba a renderização da aplicação
+        // Degradação graciosa: falha na consulta nunca derruba a renderização da aplicação nem estoura erro de runtime
         console.warn('Erro ao verificar status da deliberação no AppLayout:', err)
         if (ativo) {
           setDeliberacaoAtiva(null)
@@ -684,27 +689,17 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
 
   return (
     <div className="min-h-screen flex bg-[#F3F7FC] text-[#002B5E]">
-      {/* Alerta de Conexão Koinon */}
+      {/* Alerta de Conexão Koinon / Reconexão com o Servidor */}
       {!isOnline && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-[#DC2626] text-[#FFFFFF] text-xs font-semibold py-2 px-4 text-center shadow-md flex items-center justify-center gap-2">
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="shrink-0"
-          >
-            <path
-              d="M1 1L15 15M11.1333 4.86667C12.4497 6.18305 13.2929 7.89286 13.5606 9.73426M1.46667 6.26667C2.46325 5.27008 3.69342 4.54284 5.04412 4.14498M4.2 9.8C4.94586 9.05414 5.92211 8.57143 6.96914 8.42398M11.8 9.8C11.3957 9.39572 10.9169 9.07663 10.3908 8.85764M8 13.3333H8.00667"
-              stroke="currentColor"
-              strokeWidth="1.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-0 left-0 right-0 z-50 bg-[#DC2626] text-[#FFFFFF] text-xs font-semibold py-2.5 px-4 text-center shadow-md flex items-center justify-center gap-2 transition-all animate-in fade-in slide-in-from-top-2 duration-200"
+        >
+          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent shrink-0" />
           <span>
-            Conexão interrompida com o servidor. Ações de voto aguardam restabelecimento da rede.
+            Reconectando ao servidor da assembleia... O sistema tentará reconectar automaticamente e
+            suas ações estão preservadas.
           </span>
         </div>
       )}
