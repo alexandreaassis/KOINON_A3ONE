@@ -85,4 +85,13 @@ export const CabecalhoFake: React.FC<{ titulo: string; sub?: string }> = ({ titu
 export const CardFundo: React.FC<{ children: React.ReactNode; className?: string }> = ({
   children,
   className = '',
-}) => <div className={cn('rounded-xl border border-slate-100 bg-white p-3 shadow-sm', className)} />
+}) => (
+  <div className={cn('rounded-xl border border-slate-100 bg-white p-3 shadow-sm', className)}>
+    {children}
+  </div>
+)
+
+/** Barra esqueleto simulando texto/linha de dados nos mockups. */
+export const BarraFake: React.FC<{ className?: string }> = ({ className = 'w-16' }) => (
+  <span className={cn('inline-block h-2 rounded bg-slate-200/80', className)} aria-hidden />
+)

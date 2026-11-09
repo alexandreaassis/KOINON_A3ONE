@@ -1,6 +1,6 @@
 import React from 'react'
 import { ShieldCheck, Users, Vote, AlertTriangle, CheckCircle2 } from 'lucide-react'
-import { ChipMesa, QuadroMockup, JanelaCabecalho } from './MockupBaseMesa'
+import { ChipMesa, QuadroMockup, JanelaCabecalho, BarraFake } from './MockupBaseMesa'
 
 /** Painel da Mesa — visão geral, pendências e etapa da deliberação ativa. */
 export const MockupPainelMesa: React.FC = () => (

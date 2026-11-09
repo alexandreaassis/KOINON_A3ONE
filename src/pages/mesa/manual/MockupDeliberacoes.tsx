@@ -29,7 +29,7 @@ const MockupDeliberacoes: React.FC = () => (
           <p className="text-[11px] uppercase tracking-wide text-white/60">Assembleia</p>
           <p className="text-sm font-bold">Assembleia Geral Ordinária · 12/03/2026</p>
         </div>
-        <ChipFake cor="emerald">em preparação</ChipFake>
+        <ChipFake cor="verde">em preparação</ChipFake>
       </div>
     </div>
 

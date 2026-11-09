@@ -55,7 +55,7 @@ export const MockupDocumentosEdital: React.FC = () => (
             e propostas anexados.
           </p>
           <div className="mt-2 flex gap-1.5">
-            <ChipMesa tone="navy">6 itens na pauta</ChipMesa>
+            <ChipMesa tone="blue">6 itens na pauta</ChipMesa>
             <ChipMesa tone="slate">4 anexos</ChipMesa>
           </div>
         </CardFundo>
@@ -226,7 +226,7 @@ export const MockupAuditoria: React.FC = () => (
       <CardFundo>
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold text-[#002B5E]">Boletim de Urna — Item 2 da pauta</p>
-          <ChipMesa tone="navy">Apurado</ChipMesa>
+          <ChipMesa tone="blue">Apurado</ChipMesa>
         </div>
         <div className="mt-2 space-y-1.5">
           {[
