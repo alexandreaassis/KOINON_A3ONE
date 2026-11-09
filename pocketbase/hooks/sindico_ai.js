@@ -5,15 +5,7 @@
  *
  * Proxy de chat com o agente nativo "koinon-sindico" (definido na
  * migration 0034 via $ai.agents.define(app, ...)), especialista em apoio
- * executivo ao síndico: redação de convocações (WhatsApp/e-mail), análise de
- * indicadores de engajamento, resumo histórico das assembleias e esclarecimento
- * de quóruns e governança.
- *
- * Requer usuário autenticado (membros da mesa / admin / síndico).
- *
- * Contrato espelhado dos hooks existentes ({ pergunta, conversa_id, contexto? } →
- * { success, resposta, conversa_id }):
- *   const result = $ai.agent('koinon-sindico').chat({ user_id, conversation_id, message })
+ * executivo ao síndico.
  */
 routerAdd(
   'POST',
@@ -50,15 +42,12 @@ routerAdd(
       })
     }
 
-    // Contexto opcional enviado pelo frontend (ex.: dados resumidos da assembleia ativa e engajamento)
     const contexto = typeof body.contexto === 'string' ? body.contexto.trim() : ''
     let mensagemCompleta = pergunta
     if (contexto && !body.conversa_id) {
       mensagemCompleta = `[Contexto Executivo Atual do Condomínio]\n${contexto}\n\n[Solicitação do Síndico]\n${pergunta}`
     }
 
-    // A plataforma é dona dos ids de conversa: na 1ª mensagem vai null e o
-    // runtime cria + devolve o id; nos turnos seguintes pinça o mesmo id.
     const conversaId = body.conversa_id ? String(body.conversa_id) : null
 
     try {

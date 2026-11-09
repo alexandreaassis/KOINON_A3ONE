@@ -5,14 +5,7 @@
  *
  * Proxy de chat com o agente nativo "koinon-manual-morador" (definido na
  * migration 0031 via $ai.agents.define(app, ...)), especialista no Módulo do
- * Morador do Koinon. Requer usuário autenticado (qualquer papel). Nunca expõe
- * dados de outros moradores: o agente não tem acesso a collections — apenas
- * ao system prompt.
- *
- * API oficial (guia skip-cloud/ai-agents):
- *   const result = $ai.agent(slug).chat({ user_id, conversation_id, message })
- * — método síncrono, sem builder; conversation_id null na 1ª mensagem e o
- * runtime devolve result.conversation_id para pinçar os turnos seguintes.
+ * Morador do Koinon. Requer usuário autenticado (qualquer papel).
  */
 routerAdd(
   'POST',
@@ -46,8 +39,6 @@ routerAdd(
       })
     }
 
-    // A plataforma é dona dos ids de conversa: na 1ª mensagem vai null e o
-    // runtime cria + devolve o id; nos turnos seguintes pinça o mesmo id.
     const conversaId = body.conversa_id ? String(body.conversa_id) : null
 
     try {

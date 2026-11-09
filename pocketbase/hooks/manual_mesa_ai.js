@@ -6,7 +6,7 @@
  * Proxy de chat com o agente nativo "koinon-manual-mesa" (definido na
  * migration 0032 via $ai.agents.define(app, ...)), especialista no Módulo da
  * Mesa Diretora do Koinon. Requer usuário autenticado (qualquer papel).
- * Espelha o contrato de manual_morador_ai.pb.js ({ pergunta, conversa_id } →
+ * Espelha o contrato de manual_morador_ai ({ pergunta, conversa_id } →
  * { success, resposta, conversa_id }) para reuso do mesmo painel de chat.
  *
  * API oficial (guia skip-cloud/ai-agents):
