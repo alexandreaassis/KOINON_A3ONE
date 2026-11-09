@@ -157,7 +157,6 @@ export const CredenciaisPendentesPage: React.FC = () => {
   const confirmarRejeicaoCadastro = async () => {
     if (!user || !cadParaRejeitar) return
     setProcessandoCad(true)
-    setProcessando(true)
     try {
       const resp = await api.rejeitarCadastroUnidade(
         cadParaRejeitar.id,
@@ -168,6 +167,7 @@ export const CredenciaisPendentesPage: React.FC = () => {
         description: resp?.message || 'O cadastro foi marcado como rejeitado.',
       })
       setDialogRejeicaoCadAberto(false)
+      setCadParaRejeitar(null)
       carregarDados()
     } catch (err: any) {
       toast({
@@ -176,7 +176,7 @@ export const CredenciaisPendentesPage: React.FC = () => {
         variant: 'destructive',
       })
     } finally {
-      setProcessando(false)
+      setProcessandoCad(false)
     }
   }
 
@@ -899,18 +899,18 @@ export const CredenciaisPendentesPage: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              disabled={processando}
+              disabled={processandoCad}
               onClick={() => setDialogRejeicaoCadAberto(false)}
             >
               Cancelar
             </Button>
             <Button
               size="sm"
-              disabled={processando}
+              disabled={processandoCad}
               onClick={confirmarRejeicaoCadastro}
               className="bg-red-600 hover:bg-red-700 text-white font-semibold"
             >
-              {processando ? 'Gravando...' : 'Confirmar Rejeição'}
+              {processandoCad ? 'Gravando...' : 'Confirmar Rejeição'}
             </Button>
           </DialogFooter>
         </DialogContent>
