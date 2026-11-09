@@ -205,7 +205,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     { label: 'Minha Situação', path: '/', icon: Home },
     { label: 'Ata da Assembleia', path: '/ata-assembleia', icon: FileText },
     { label: 'Documentos da Pauta', path: '/documentos-assembleia', icon: FolderArchive },
-    { label: 'Credenciamento', path: '/credenciamento', icon: UserCheck },
     { label: 'Cabine de Votação', path: '/votacao', icon: Vote },
     { label: 'Meus Recibos', path: '/recibo', icon: Receipt },
     { label: 'Manual do Morador', path: '/morador/manual', icon: BookOpen },
@@ -213,6 +212,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
 
   const navMesa = [
     { label: 'Painel da Mesa', path: '/mesa', icon: ShieldCheck },
+    { label: 'Credenciamento', path: '/mesa/credenciamento', icon: UserCheck },
     { label: 'Ata da Assembleia (IA)', path: '/mesa/ata', icon: FileText },
     { label: 'Documentos & Edital', path: '/mesa/documentos', icon: FolderArchive },
     { label: 'Lista de Presença', path: '/mesa/presenca', icon: UserCheck },
@@ -236,7 +236,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
   const getBreadcrumbs = () => {
     const p = location.pathname
     if (p === '/') return ['Início', 'Minha Situação']
-    if (p === '/credenciamento') return ['Morador', 'Credenciamento']
+    if (p === '/credenciamento' || p === '/mesa/credenciamento')
+      return ['Mesa Diretora', 'Credenciamento']
     if (p === '/votacao') return ['Morador', 'Cabine de Votação']
     if (p === '/recibo') return ['Morador', 'Comprovante']
     if (p === '/mesa') return ['Mesa Diretora', 'Painel Geral']

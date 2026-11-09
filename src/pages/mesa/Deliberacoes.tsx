@@ -87,6 +87,11 @@ export const DeliberacoesPage: React.FC = () => {
     useState<RegraLocatario>('somente_proprietario')
   const [salvandoItem, setSalvandoItem] = useState(false)
 
+  // Disparo de acesso ao locatário
+  const [disparandoLocatario, setDisparandoLocatario] = useState(false)
+  const [modalDisparoLocatarioAberto, setModalDisparoLocatarioAberto] = useState(false)
+  const [ultimoResultadoDisparo, setUltimoResultadoDisparo] = useState<any>(null)
+
   const carregar = async () => {
     setCarregando(true)
     try {
