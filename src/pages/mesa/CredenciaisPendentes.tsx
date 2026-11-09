@@ -13,6 +13,17 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { formatarCpf } from '@/lib/cpf'
+import { formatarTelefone } from '@/lib/telefone'
+import ModalAnaliseCadastro from './ModalAnaliseCadastro'
+import type { CadastroUnidadeRecord } from '@/lib/api'
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -35,6 +46,7 @@ import {
   Globe,
   UserPlus,
   ShieldCheck,
+  Eye,
 } from 'lucide-react'
 
 export const CredenciaisPendentesPage: React.FC = () => {
@@ -42,12 +54,18 @@ export const CredenciaisPendentesPage: React.FC = () => {
   const { rotuloUnidade } = useCondoConfig()
 
   const [credenciamentos, setCredenciamentos] = useState<CredenciamentoRecord[]>([])
-  const [cadastrosPublicos, setCadastrosPublicos] = useState<any[]>([])
+  const [cadastrosPublicos, setCadastrosPublicos] = useState<CadastroUnidadeRecord[]>([])
   const [unidades, setUnidades] = useState<UnidadeRecord[]>([])
   const [abaAtiva, setAbaAtiva] = useState<'cadastros' | 'credenciais'>('cadastros')
   const [filtroStatus, setFiltroStatus] = useState<string>('pendente')
+  const [filtroUnidade, setFiltroUnidade] = useState<string>('todas')
+  const [processandoCad, setProcessandoCad] = useState(false)
   const [busca, setBusca] = useState('')
   const [carregando, setCarregando] = useState(true)
+
+  // Modal de análise completa de cadastro
+  const [modalAnaliseAberto, setModalAnaliseAberto] = useState(false)
+  const [cadEmAnalise, setCadEmAnalise] = useState<CadastroUnidadeRecord | null>(null)
 
   // Dialog de Rejeição Credenciamento
   const [dialogRejeicaoAberto, setDialogRejeicaoAberto] = useState(false)
@@ -104,12 +122,15 @@ export const CredenciaisPendentesPage: React.FC = () => {
   // Ações de aprovação e rejeição de cadastro de morador público
   const aprovarCadastro = async (cad: any) => {
     if (!user) return
+    setProcessandoCad(true)
     try {
       const resp = await api.aprovarCadastroUnidade(cad.id)
       toast({
         title: 'Cadastro Aprovado',
-        description: resp?.message || `Cadastro de "${cad.nome}" homologado com sucesso.`,
+        description:
+          resp?.message || `Cadastro de "${cad.nome}" homologado. Candidato notificado por e-mail.`,
       })
+      setCadEmAnalise(null)
       carregarDados()
     } catch (err: any) {
       toast({
@@ -117,7 +138,14 @@ export const CredenciaisPendentesPage: React.FC = () => {
         description: err?.data?.message || err?.message || 'Falha ao aprovar cadastro.',
         variant: 'destructive',
       })
+    } finally {
+      setProcessandoCad(false)
     }
+  }
+
+  const abrirAnalise = (cad: CadastroUnidadeRecord) => {
+    setCadEmAnalise(cad)
+    setModalAnaliseAberto(true)
   }
 
   const abrirRejeicaoCadastro = (cad: any) => {
@@ -128,6 +156,7 @@ export const CredenciaisPendentesPage: React.FC = () => {
 
   const confirmarRejeicaoCadastro = async () => {
     if (!user || !cadParaRejeitar) return
+    setProcessandoCad(true)
     setProcessando(true)
     try {
       const resp = await api.rejeitarCadastroUnidade(
@@ -183,33 +212,44 @@ export const CredenciaisPendentesPage: React.FC = () => {
     }
   }
 
+  const termoBusca = busca.trim().toLowerCase()
+  const termoBuscaNumeros = termoBusca.replace(/\D/g, '')
+
   // Filtragem Credenciamentos
   const credsFiltrados = credenciamentos.filter((c) => {
     const matchStatus = filtroStatus === 'todos' ? true : c.status === filtroStatus
+    const matchUnidade = filtroUnidade === 'todas' || c.unidade === filtroUnidade
     const unid = unidades.find((u) => u.id === c.unidade)
-    const termo = busca.toLowerCase()
     const matchBusca =
-      !busca ||
-      c.titular_nome.toLowerCase().includes(termo) ||
-      c.cpf.includes(termo) ||
-      (unid?.identificador || '').toLowerCase().includes(termo)
-    return matchStatus && matchBusca
+      !termoBusca ||
+      c.titular_nome.toLowerCase().includes(termoBusca) ||
+      (termoBuscaNumeros && (c.cpf || '').replace(/\D/g, '').includes(termoBuscaNumeros)) ||
+      (unid?.identificador || '').toLowerCase().includes(termoBusca)
+    return matchStatus && matchUnidade && matchBusca
   })
 
-  // Filtragem Cadastros de Moradores
-  const cadastrosFiltrados = cadastrosPublicos.filter((cad) => {
-    const statusCad = cad.status_aprovacao || 'aprovado'
-    const matchStatus = filtroStatus === 'todos' ? true : statusCad === filtroStatus
-    const unid = unidades.find((u) => u.id === cad.unidade)
-    const termo = busca.toLowerCase()
-    const matchBusca =
-      !busca ||
-      (cad.nome || '').toLowerCase().includes(termo) ||
-      (cad.cpf || '').includes(termo) ||
-      (cad.email || '').toLowerCase().includes(termo) ||
-      (unid?.identificador || '').toLowerCase().includes(termo)
-    return matchStatus && matchBusca
-  })
+  // Filtragem Cadastros de Moradores (pendentes primeiro, depois mais recentes)
+  const cadastrosFiltrados = cadastrosPublicos
+    .filter((cad) => {
+      const statusCad = cad.status_aprovacao || 'aprovado'
+      const matchStatus = filtroStatus === 'todos' ? true : statusCad === filtroStatus
+      const matchUnidade = filtroUnidade === 'todas' || cad.unidade === filtroUnidade
+      const unid = unidades.find((u) => u.id === cad.unidade)
+      const matchBusca =
+        !termoBusca ||
+        (cad.nome || '').toLowerCase().includes(termoBusca) ||
+        (termoBuscaNumeros && (cad.cpf || '').replace(/\D/g, '').includes(termoBuscaNumeros)) ||
+        (cad.email || '').toLowerCase().includes(termoBusca) ||
+        (unid?.identificador || '').toLowerCase().includes(termoBusca)
+      return matchStatus && matchUnidade && matchBusca
+    })
+    .sort((a, b) => {
+      const ra = a.status_aprovacao || 'aprovado'
+      const rb = b.status_aprovacao || 'aprovado'
+      if (ra === 'pendente' && rb !== 'pendente') return -1
+      if (rb === 'pendente' && ra !== 'pendente') return 1
+      return (b.created || '').localeCompare(a.created || '')
+    })
 
   const totalCadastrosPendentes = cadastrosPublicos.filter(
     (c) => (c.status_aprovacao || 'aprovado') === 'pendente',
@@ -334,17 +374,35 @@ export const CredenciaisPendentesPage: React.FC = () => {
             Todos
           </Button>
         </div>
-      </div>
 
-      {/* Barra de Busca */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-        <Input
-          placeholder="Buscar por unidade (ex: 101A), titular ou CPF..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          className="pl-9 h-9 text-xs"
-        />
+        {/* Filtro por Unidade */}
+        <Select value={filtroUnidade} onValueChange={setFiltroUnidade}>
+          <SelectTrigger className="w-full sm:w-56 h-9 text-xs">
+            <SelectValue placeholder="Filtrar por unidade" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas as unidades</SelectItem>
+            {unidades
+              .slice()
+              .sort((a, b) => (a.identificador || '').localeCompare(b.identificador || '', 'pt-BR'))
+              .map((u) => {
+                const rotulo = formatarIdentificadorUnidade(
+                  u.identificador,
+                  u.tipo_unidade,
+                  rotuloUnidade,
+                )
+                const bloco = temBlocoReal(u.bloco, u.tipo_unidade)
+                  ? ` (${normalizarBloco(u.bloco, u.tipo_unidade)})`
+                  : ''
+                return (
+                  <SelectItem key={u.id} value={u.id}>
+                    {rotulo}
+                    {bloco}
+                  </SelectItem>
+                )
+              })}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Lista de Registros Conforme a Aba Ativa */}
@@ -387,7 +445,11 @@ export const CredenciaisPendentesPage: React.FC = () => {
               return (
                 <Card
                   key={cad.id}
-                  className="border-slate-200 shadow-xs hover:border-slate-300 transition-all"
+                  className={`shadow-xs transition-all ${
+                    statusCad === 'pendente'
+                      ? 'border-amber-400 border-2 bg-amber-50/40 hover:border-amber-500'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
                 >
                   <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="space-y-1.5 flex-1">
@@ -560,6 +622,14 @@ export const CredenciaisPendentesPage: React.FC = () => {
 
                     {/* Ações da Mesa para Cadastro */}
                     <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => abrirAnalise(cad)}
+                        className="border-[#0066FF]/40 text-[#0066FF] hover:bg-blue-50 text-xs h-8"
+                      >
+                        <Eye className="mr-1 h-3.5 w-3.5" /> Analisar
+                      </Button>
                       {statusCad !== 'aprovado' && (
                         <Button
                           size="sm"
@@ -734,6 +804,27 @@ export const CredenciaisPendentesPage: React.FC = () => {
           })
         )}
       </div>
+
+      {/* Modal de Análise Completa do Cadastro */}
+      <ModalAnaliseCadastro
+        cad={cadEmAnalise}
+        unidade={unidades.find((u) => u.id === cadEmAnalise?.unidade)}
+        rotuloUnidade={rotuloUnidade}
+        aberto={modalAnaliseAberto}
+        processando={processandoCad}
+        onFechar={() => {
+          setModalAnaliseAberto(false)
+          setCadEmAnalise(null)
+        }}
+        onAprovar={(cad) => {
+          setModalAnaliseAberto(false)
+          aprovarCadastro(cad)
+        }}
+        onPedirRejeicao={(cad) => {
+          setModalAnaliseAberto(false)
+          abrirRejeicaoCadastro(cad)
+        }}
+      />
 
       {/* Modal de Rejeição Credenciamento */}
       <Dialog open={dialogRejeicaoAberto} onOpenChange={setDialogRejeicaoAberto}>

@@ -733,11 +733,62 @@ routerAdd('POST', '/backend/v1/admin/cadastros/aprovar', (e) => {
     }
   } catch (_) {}
 
+  const nomeCadastrado = cad.getString('nome') || ''
+
+  // Rótulo legível da unidade (tipo + identificador + bloco quando houver)
+  let rotuloUnidade = ''
+  try {
+    const uRec = e.app.findRecordById('unidades', unidadeId)
+    const iden = uRec.getString('identificador') || ''
+    const blocoU = (uRec.getString('bloco') || '').trim()
+    const tipoU = uRec.getString('tipo_unidade') || 'Unidade'
+    rotuloUnidade = blocoU ? `${tipoU} ${iden} (${blocoU})` : `${tipoU} ${iden}`
+  } catch (_) {}
+
   cad.set('status_aprovacao', 'aprovado')
   cad.set('ativo', true)
   e.app.save(cad)
 
-  // Notificar morador sobre aprovação por e-mail se houver contato
+  // Capturar IP e User-Agent do membro da mesa para auditoria
+  let ipAcao = ''
+  let userAgentAcao = ''
+  try {
+    const reqInfo = e.requestInfo()
+    if (reqInfo && reqInfo.headers) {
+      const xf = reqInfo.headers['x-forwarded-for'] || reqInfo.headers['x-real-ip'] || ''
+      ipAcao = typeof xf === 'string' ? xf.split(',')[0].trim() : ''
+      userAgentAcao = reqInfo.headers['user-agent'] || ''
+    }
+  } catch (_) {}
+
+  // Registrar evento de APROVAÇÃO no Histórico de Alterações (quem, quando, o quê)
+  try {
+    const histCol = e.app.findCollectionByNameOrId('historico_alteracoes')
+    const histRec = new Record(histCol)
+    histRec.set('user', authRecord.id)
+    histRec.set('user_nome', authRecord.getString('name') || authRecord.getString('email'))
+    histRec.set('user_email', authRecord.getString('email') || '')
+    histRec.set('user_role', role)
+    histRec.set('acao', 'atualizacao')
+    histRec.set('entidade', 'cadastros_unidade')
+    histRec.set('registro_id', cadastroId)
+    histRec.set(
+      'registro_rotulo',
+      `Aprovação de cadastro: ${nomeCadastrado} (${vinculo}) — ${rotuloUnidade}`,
+    )
+    histRec.set('campos_alterados', [
+      { campo: 'status_aprovacao', anterior: 'pendente', novo: 'aprovado' },
+      { campo: 'ativo', anterior: false, novo: true },
+    ])
+    histRec.set('ip', ipAcao)
+    histRec.set('user_agent', userAgentAcao)
+    histRec.set('data_hora', new Date().toISOString().replace('T', ' ').substring(0, 19))
+    e.app.save(histRec)
+  } catch (histErr) {
+    console.log('Aviso ao registrar aprovação de cadastro em historico_alteracoes:', histErr)
+  }
+
+  // Notificar o candidato sobre a aprovação por e-mail (canal do condomínio com fallback)
   const emailMorador = (cad.getString('email') || '').trim()
   if (emailMorador && emailMorador.includes('@')) {
     try {
@@ -747,34 +798,42 @@ routerAdd('POST', '/backend/v1/admin/cadastros/aprovar', (e) => {
         nomeCondo = configs[0].getString('nome_condominio') || nomeCondo
       }
 
-      let identU = ''
-      try {
-        const uRec = e.app.findRecordById('unidades', unidadeId)
-        identU = uRec.getString('identificador')
-      } catch (_) {}
+      const rotuloVinculo =
+        vinculo === 'proprietario'
+          ? 'Proprietário (não morador)'
+          : vinculo === 'locatario'
+            ? 'Inquilino (morador)'
+            : 'Condômino (morador)'
 
       const notifCol = e.app.findCollectionByNameOrId('notificacoes')
       const notif = new Record(notifCol)
       notif.set('destinatario', emailMorador)
       notif.set('canal', 'email')
       notif.set('tipo', 'credenciamento_aprovado')
-      notif.set('titulo', `Cadastro Aprovado — Unidade ${identU}`)
+      notif.set('titulo', `Cadastro Aprovado — ${rotuloUnidade}`)
       notif.set(
         'corpo',
-        `Prezado(a) ${cad.getString('nome')},\n\n` +
-          `Seu cadastro para a Unidade ${identU} no ${nomeCondo} foi HOMOLOGADO pela mesa diretora da assembleia condominial.\n\n` +
-          `Vínculo registrado: ${vinculo.toUpperCase()}\n\n` +
-          `Você receberá as comunicações oficiais da assembleia neste e-mail.\n` +
-          `Agradecemos pela colaboração na atualização cadastral.`,
+        `Prezado(a) ${nomeCadastrado},\n\n` +
+          `Temos o prazer de informar: seu cadastro para a ${rotuloUnidade} no ${nomeCondo} foi APROVADO pela mesa diretora.\n\n` +
+          `Vínculo registrado: ${rotuloVinculo}\n\n` +
+          `Você JÁ PODE ACESSAR a Plataforma Virtual Koinon utilizando seu CPF e a senha cadastrada no momento do cadastro.\n` +
+          `Você receberá as comunicações oficiais das assembleias neste e-mail.\n\n` +
+          `Agradecemos pela colaboração na atualização cadastral.\n\n` +
+          `Atenciosamente,\n` +
+          `Mesa Diretora — ${nomeCondo}`,
       )
       notif.set('status', 'pendente')
       e.app.save(notif)
-    } catch (_) {}
+    } catch (notifErr) {
+      console.log('Aviso ao notificar candidato sobre aprovação de cadastro:', notifErr)
+    }
   }
 
   return e.json(200, {
     success: true,
-    message: `Cadastro de "${cad.getString('nome')}" aprovado e ativado com sucesso.`,
+    message:
+      `Cadastro de "${nomeCadastrado}" aprovado e ativado com sucesso.` +
+      (emailMorador ? ' O candidato foi notificado por e-mail.' : ''),
   })
 })
 
@@ -808,6 +867,19 @@ routerAdd('POST', '/backend/v1/admin/cadastros/rejeitar', (e) => {
     return e.json(404, { success: false, message: 'Cadastro não encontrado' })
   }
 
+  const nomeCadastrado = cad.getString('nome') || ''
+  const unidadeIdRej = cad.getString('unidade') || ''
+
+  // Rótulo legível da unidade (tipo + identificador + bloco quando houver)
+  let rotuloUnidadeRej = ''
+  try {
+    const uRecRej = e.app.findRecordById('unidades', unidadeIdRej)
+    const idenRej = uRecRej.getString('identificador') || ''
+    const blocoRej = (uRecRej.getString('bloco') || '').trim()
+    const tipoRej = uRecRej.getString('tipo_unidade') || 'Unidade'
+    rotuloUnidadeRej = blocoRej ? `${tipoRej} ${idenRej} (${blocoRej})` : `${tipoRej} ${idenRej}`
+  } catch (_) {}
+
   cad.set('status_aprovacao', 'rejeitado')
   cad.set('ativo', false)
   if (motivo) {
@@ -816,9 +888,84 @@ routerAdd('POST', '/backend/v1/admin/cadastros/rejeitar', (e) => {
   }
   e.app.save(cad)
 
+  // Capturar IP e User-Agent do membro da mesa para auditoria
+  let ipRej = ''
+  let userAgentRej = ''
+  try {
+    const reqInfoRej = e.requestInfo()
+    if (reqInfoRej && reqInfoRej.headers) {
+      const xfRej = reqInfoRej.headers['x-forwarded-for'] || reqInfoRej.headers['x-real-ip'] || ''
+      ipRej = typeof xfRej === 'string' ? xfRej.split(',')[0].trim() : ''
+      userAgentRej = reqInfoRej.headers['user-agent'] || ''
+    }
+  } catch (_) {}
+
+  // Registrar evento de REJEIÇÃO no Histórico de Alterações (quem, quando, motivo)
+  try {
+    const histCol = e.app.findCollectionByNameOrId('historico_alteracoes')
+    const histRec = new Record(histCol)
+    histRec.set('user', authRecord.id)
+    histRec.set('user_nome', authRecord.getString('name') || authRecord.getString('email'))
+    histRec.set('user_email', authRecord.getString('email') || '')
+    histRec.set('user_role', role)
+    histRec.set('acao', 'atualizacao')
+    histRec.set('entidade', 'cadastros_unidade')
+    histRec.set('registro_id', cadastroId)
+    histRec.set(
+      'registro_rotulo',
+      `Rejeição de cadastro: ${nomeCadastrado} — ${rotuloUnidadeRej}. Motivo: ${motivo}`,
+    )
+    histRec.set('campos_alterados', [
+      { campo: 'status_aprovacao', anterior: 'pendente', novo: 'rejeitado' },
+      { campo: 'ativo', anterior: true, novo: false },
+      { campo: 'motivo', anterior: null, novo: motivo },
+    ])
+    histRec.set('ip', ipRej)
+    histRec.set('user_agent', userAgentRej)
+    histRec.set('data_hora', new Date().toISOString().replace('T', ' ').substring(0, 19))
+    e.app.save(histRec)
+  } catch (histErrRej) {
+    console.log('Aviso ao registrar rejeição de cadastro em historico_alteracoes:', histErrRej)
+  }
+
+  // Notificar o candidato sobre a rejeição por e-mail, com o motivo informado pela mesa
+  const emailCandidato = (cad.getString('email') || '').trim()
+  if (emailCandidato && emailCandidato.includes('@')) {
+    try {
+      let nomeCondoRej = 'Condomínio Residencial Lago Azul'
+      const configsRej = e.app.findRecordsByFilter('configuracoes', '', '-created', 1, 0)
+      if (configsRej && configsRej.length > 0) {
+        nomeCondoRej = configsRej[0].getString('nome_condominio') || nomeCondoRej
+      }
+
+      const notifColRej = e.app.findCollectionByNameOrId('notificacoes')
+      const notifRej = new Record(notifColRej)
+      notifRej.set('destinatario', emailCandidato)
+      notifRej.set('canal', 'email')
+      notifRej.set('tipo', 'credenciamento_rejeitado')
+      notifRej.set('titulo', `Cadastro Não Aprovado — ${rotuloUnidadeRej}`)
+      notifRej.set(
+        'corpo',
+        `Prezado(a) ${nomeCadastrado},\n\n` +
+          `Informamos que seu cadastro para a ${rotuloUnidadeRej} no ${nomeCondoRej} NÃO foi aprovado pela mesa diretora.\n\n` +
+          `Motivo: ${motivo}\n\n` +
+          `Caso discorde do motivo ou possa regularizar a pendência, procure a administração da ` +
+          `unidade ou a mesa diretora para reenviar o cadastro pelo link oficial da unidade.\n\n` +
+          `Atenciosamente,\n` +
+          `Mesa Diretora — ${nomeCondoRej}`,
+      )
+      notifRej.set('status', 'pendente')
+      e.app.save(notifRej)
+    } catch (notifErrRej) {
+      console.log('Aviso ao notificar candidato sobre rejeição de cadastro:', notifErrRej)
+    }
+  }
+
   return e.json(200, {
     success: true,
-    message: `Cadastro de "${cad.getString('nome')}" rejeitado.`,
+    message:
+      `Cadastro de "${nomeCadastrado}" rejeitado.` +
+      (emailCandidato ? ' O candidato foi notificado por e-mail com o motivo.' : ''),
   })
 })
 
