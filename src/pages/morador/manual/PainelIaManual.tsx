@@ -12,10 +12,13 @@ interface Mensagem {
 }
 
 const PERGUNTAS_SUGERIDAS = [
+  'Como credencio minha unidade?',
+  'Onde vejo meu recibo?',
+  'Como funciona o 2FA?',
   'O que é o código OTP?',
-  'Como faço para votar?',
-  'Onde vejo o recibo do meu voto?',
   'Inadimplente pode votar?',
+  'Duas pessoas podem votar pela mesma unidade?',
+  'O síndico pode ver em quem votei?',
 ]
 
 /**

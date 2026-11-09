@@ -55,6 +55,7 @@ import {
   FileText,
   Clock,
 } from 'lucide-react'
+import { SecaoAreaSindico } from '@/components/mesa/SecaoAreaSindico'
 
 export const PainelMesaPage: React.FC = () => {
   const navigate = useNavigate()
@@ -95,6 +96,8 @@ export const PainelMesaPage: React.FC = () => {
   // Pendências da mesa: credenciamentos + cadastros públicos aguardando análise
   const [totalCredPendentes, setTotalCredPendentes] = useState(0)
   const [totalCadPendentes, setTotalCadPendentes] = useState(0)
+  const [todosCadastros, setTodosCadastros] = useState<CadastroUnidadeRecord[]>([])
+  const [todosCredenciamentos, setTodosCredenciamentos] = useState<CredenciamentoRecord[]>([])
 
   const carregarDados = async (isBackgroundPoll = false) => {
     try {
@@ -106,6 +109,8 @@ export const PainelMesaPage: React.FC = () => {
       ])
       setDeliberacoes(delibs)
       setUnidades(unids)
+      setTodosCredenciamentos(creds)
+      setTodosCadastros(cads)
       setTotalCredPendentes(creds.filter((c) => c.status === 'pendente').length)
       setTotalCadPendentes(
         cads.filter((c) => (c.status_aprovacao || 'aprovado') === 'pendente').length,
@@ -745,6 +750,16 @@ export const PainelMesaPage: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* Seção Nova: Área do Síndico & Governança Condominial */}
+      <SecaoAreaSindico
+        deliberacaoAtiva={deliberacaoAtiva}
+        deliberacoes={deliberacoes}
+        unidades={unidades}
+        cadastros={todosCadastros}
+        credenciamentos={todosCredenciamentos}
+        presencas={presencas}
+      />
 
       {/* Modal de Configuração da Mesa Diretora */}
       <Dialog open={modalMesaAberto} onOpenChange={setModalMesaAberto}>

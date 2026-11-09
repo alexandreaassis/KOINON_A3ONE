@@ -13,6 +13,7 @@ import BoletimUrnaDocumentoPage from '@/pages/mesa/BoletimUrnaDocumento'
 import InformativoDeliberacoesPage from '@/pages/mesa/InformativoDeliberacoes'
 import DossieCartorioPage from '@/pages/mesa/DossieCartorio'
 import EditalDocumentoPage from '@/pages/mesa/EditalDocumento'
+import RelatoriosMesaPage from '@/pages/mesa/RelatoriosMesa'
 
 // Páginas de Autenticação
 import LoginPage from '@/pages/auth/Login'
@@ -307,6 +308,16 @@ const App = () => (
                 <ProtectedRoute requireMesa>
                   <AppLayout>
                     <AuditoriaPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/relatorios"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <RelatoriosMesaPage />
                   </AppLayout>
                 </ProtectedRoute>
               }

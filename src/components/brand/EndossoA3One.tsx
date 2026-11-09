@@ -1,11 +1,12 @@
 import React from 'react'
-import logoA3OneOficial from '@/assets/a3one-solucoes-integradas-2-5349d.png'
+import logoA3OneClaro from '@/assets/a3one-solucoes-integradas-2-5349d.png'
+import logoA3OneEscuro from '@/assets/a3one-luminoso-854a6.png'
 
 export interface EndossoA3OneProps {
   /**
    * Variante de cor:
-   * - 'color': sobre fundo claro (frase em cinza #5A6B82, logo A3ONE oficial em azul/marinho)
-   * - 'on-navy': sobre fundo marinho (frase em #8EC0FF, logo A3ONE com proteção de contraste)
+   * - 'color': sobre fundo claro (frase em cinza #5A6B82, logo oficial clara)
+   * - 'on-navy': sobre fundo marinho/azul (frase em #8EC0FF, logo com glow luminoso integrado, sem borda branca)
    * - 'monochrome-white': para fundos escuros monocromáticos
    * - 'monochrome-black': todo em preto
    * @default 'color'
@@ -24,11 +25,13 @@ export interface EndossoA3OneProps {
 /**
  * Selo de Endosso Koinon — "uma solução A3ONE" (Manual da Marca Koinon / Logo Oficial A3ONE Soluções Integradas):
  * - Aplicação:
- *   (a) Abaixo, centralizado, em telas de entrada e capas;
- *   (b) No rodapé das telas do sistema, e-mails e documentos.
- * - Utiliza a imagem oficial anexada da A3ONE:
- *   Wordmark "A3ONE" com "A3" em azul (#0066FF) e "ONE" em marinho (#002B5E),
- *   mais a linha "Soluções Integradas" abaixo em marinho.
+ *   (a) Centralizado em telas de entrada e capas escuras/coloridas;
+ *   (b) No rodapé das telas do sistema (sidebar, footer), e-mails e documentos.
+ * - Versão para fundos escuros/coloridos (on-navy / monochrome-white):
+ *   Usa a logo com acabamento luminoso sobre gradiente azul da marca, integrando-se
+ *   naturalmente sem o bloco/fundo branco reto anterior.
+ * - Versão para fundos claros/brancos (color):
+ *   Mantém a logo original sobre fundo transparente/branco.
  */
 export const EndossoA3One: React.FC<EndossoA3OneProps> = ({
   variant = 'color',
@@ -37,21 +40,16 @@ export const EndossoA3One: React.FC<EndossoA3OneProps> = ({
 }) => {
   const isDark = variant === 'on-navy' || variant === 'monochrome-white'
   const textColor = variant === 'on-navy' ? '#8EC0FF' : isDark ? '#FFFFFF' : '#5A6B82'
+  const logoSrc = isDark ? logoA3OneEscuro : logoA3OneClaro
 
-  // A logo oficial tem texto em azul #0066FF e marinho #002B5E.
-  // Em fundos escuros, uma base leve e suave garante legibilidade sem distorcer as cores da marca.
   const logoImg = (
-    <div
-      className={`inline-flex items-center justify-center shrink-0 ${
-        isDark ? 'bg-white/95 px-2 py-0.5 rounded-[6px] shadow-xs' : ''
-      }`}
-    >
+    <div className="inline-flex items-center justify-center shrink-0">
       <img
-        src={logoA3OneOficial}
+        src={logoSrc}
         alt="A3ONE Soluções Integradas"
         className={`shrink-0 select-none object-contain ${
           layout === 'stacked' ? 'h-7 sm:h-8' : 'h-5 sm:h-6'
-        } w-auto`}
+        } ${isDark ? 'rounded-[4px] shadow-[0_2px_12px_rgba(0,102,255,0.25)]' : ''} w-auto`}
       />
     </div>
   )
