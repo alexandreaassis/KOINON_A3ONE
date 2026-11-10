@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:54:04.780Z",
+  "generatedAt": "2026-11-10T05:04:16.774Z",
   "collections": [
     {
       "name": "users",
@@ -1470,8 +1470,7 @@
           "name": "assinatura_visual",
           "type": "text",
           "required": false,
-          "system": false,
-          "max": 500000
+          "system": false
         },
         {
           "name": "assinatura_texto",
@@ -1591,8 +1590,7 @@
           "name": "assinatura_visual",
           "type": "text",
           "required": false,
-          "system": false,
-          "max": 500000
+          "system": false
         },
         {
           "name": "assinatura_texto",
@@ -1752,8 +1750,7 @@
           "name": "assinatura_visual",
           "type": "text",
           "required": false,
-          "system": false,
-          "max": 500000
+          "system": false
         },
         {
           "name": "assinatura_texto",
@@ -2439,15 +2436,13 @@
           "name": "assinatura_visual",
           "type": "text",
           "required": false,
-          "system": false,
-          "max": 500000
+          "system": false
         },
         {
           "name": "assinatura_texto",
           "type": "text",
           "required": false,
-          "system": false,
-          "max": 5000
+          "system": false
         },
         {
           "name": "ip_dispositivo",
@@ -2459,8 +2454,7 @@
           "name": "user_agent",
           "type": "text",
           "required": false,
-          "system": false,
-          "max": 5000
+          "system": false
         },
         {
           "name": "created",
