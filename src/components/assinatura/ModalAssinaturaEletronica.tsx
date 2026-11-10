@@ -199,12 +199,12 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
 
       if (resp && resp.token) {
         setSessaoToken(resp.token)
-        // A URL do QR deve apontar para o app publicado (produção), não para preview/localhost
+        // A URL do QR pode ser aberta no celular apontando para a mesma origem ou app oficial
+        // Se estiver rodando localmente (localhost), direciona para produção para o celular conseguir abrir
         const hostAtual = window.location.host
-        const originProd =
-          hostAtual.includes('localhost') || hostAtual.includes('preview')
-            ? 'https://koinon.goskip.app'
-            : window.location.origin
+        const originProd = hostAtual.includes('localhost')
+          ? 'https://koinon.goskip.app'
+          : window.location.origin
         const urlCompleta = `${originProd}/assinar/${resp.token}`
         setSessaoUrl(urlCompleta)
       } else {

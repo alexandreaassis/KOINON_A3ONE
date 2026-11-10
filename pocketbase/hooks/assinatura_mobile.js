@@ -21,8 +21,6 @@
  *    Cancela a sessão (ex: usuário fechou o modal no desktop).
  */
 
-const { registrarAuditoria } = require(`${__hooks}/hash_encadeado.js`)
-
 routerAdd('POST', '/backend/v1/assinatura/sessao/criar', (e) => {
   const authRecord = e.auth
   if (!authRecord) {
@@ -100,10 +98,17 @@ routerAdd('GET', '/backend/v1/assinatura/sessao/{token}', (e) => {
     return e.json(400, { success: false, message: 'Token não fornecido.' })
   }
 
-  let rec
+  let rec = null
   try {
-    rec = e.app.findFirstRecordByFilter('sessoes_assinatura', 'token = {:t}', { t: token })
-  } catch (_) {
+    const list = e.app.findRecordsByFilter('sessoes_assinatura', 'token = {:t}', '', 1, 0, {
+      t: token,
+    })
+    if (list && list.length > 0) {
+      rec = list[0]
+    }
+  } catch (_) {}
+
+  if (!rec) {
     return e.json(404, { success: false, message: 'Sessão de assinatura não encontrada.' })
   }
 
@@ -151,10 +156,17 @@ routerAdd('POST', '/backend/v1/assinatura/sessao/{token}/confirmar', (e) => {
     return e.json(400, { success: false, message: 'Token não fornecido.' })
   }
 
-  let rec
+  let rec = null
   try {
-    rec = e.app.findFirstRecordByFilter('sessoes_assinatura', 'token = {:t}', { t: token })
-  } catch (_) {
+    const list = e.app.findRecordsByFilter('sessoes_assinatura', 'token = {:t}', '', 1, 0, {
+      t: token,
+    })
+    if (list && list.length > 0) {
+      rec = list[0]
+    }
+  } catch (_) {}
+
+  if (!rec) {
     return e.json(404, { success: false, message: 'Sessão de assinatura não encontrada.' })
   }
 
@@ -247,11 +259,19 @@ routerAdd('POST', '/backend/v1/assinatura/sessao/{token}/confirmar', (e) => {
           editalRec = e.app.findRecordById('editais_deliberacao', docId)
         } catch (_) {}
       }
-      if (!editalRec) {
+      if (!editalRec && delibId) {
         try {
-          editalRec = e.app.findFirstRecordByFilter('editais_deliberacao', 'deliberacao = {:d}', {
-            d: delibId,
-          })
+          const elist = e.app.findRecordsByFilter(
+            'editais_deliberacao',
+            'deliberacao = {:d}',
+            '',
+            1,
+            0,
+            {
+              d: delibId,
+            },
+          )
+          if (elist && elist.length > 0) editalRec = elist[0]
         } catch (_) {}
       }
 
@@ -275,9 +295,17 @@ routerAdd('POST', '/backend/v1/assinatura/sessao/{token}/confirmar', (e) => {
       }
       if (!ataRec && delibId) {
         try {
-          ataRec = e.app.findFirstRecordByFilter('atas_assembleia', 'deliberacao = {:d}', {
-            d: delibId,
-          })
+          const alist = e.app.findRecordsByFilter(
+            'atas_assembleia',
+            'deliberacao = {:d}',
+            '',
+            1,
+            0,
+            {
+              d: delibId,
+            },
+          )
+          if (alist && alist.length > 0) ataRec = alist[0]
         } catch (_) {}
       }
 
@@ -319,11 +347,37 @@ routerAdd('POST', '/backend/v1/assinatura/sessao/{token}/confirmar', (e) => {
       fatorAuditoria += ` [Hash: ${hashDoc.substring(0, 16)}...]`
     }
 
-    registrarAuditoria(e.app, {
+    const audCol = e.app.findCollectionByNameOrId('auditoria_events')
+    let ultimoHash = '0000000000000000000000000000000000000000000000000000000000000000'
+    let proximoSeq = 1
+    try {
+      const ultimos = e.app.findRecordsByFilter('auditoria_events', '', '-sequencial', 1, 0)
+      if (ultimos && ultimos.length > 0) {
+        ultimoHash = ultimos[0].getString('hash_evento') || ultimoHash
+        proximoSeq = (ultimos[0].getInt('sequencial') || 0) + 1
+      }
+    } catch (_) {}
+
+    const payloadAud = JSON.stringify({
       evento: 'assinatura_registrada_mobile',
+      data_hora: agoraIso,
+      unidade: '',
       fator: fatorAuditoria,
       dispositivo: `${userAgent} (IP: ${clientIp})`,
+      sequencial: proximoSeq,
+      hash_anterior: ultimoHash,
     })
+    const hashEvento = $security.sha256(ultimoHash + ':' + payloadAud)
+
+    const audRec = new Record(audCol)
+    audRec.set('evento', 'assinatura_registrada_mobile')
+    audRec.set('data_hora', agoraDb)
+    audRec.set('fator', fatorAuditoria)
+    audRec.set('dispositivo', `${userAgent} (IP: ${clientIp})`)
+    audRec.set('sequencial', proximoSeq)
+    audRec.set('hash_evento', hashEvento)
+    audRec.set('hash_anterior', ultimoHash)
+    e.app.save(audRec)
   } catch (errAud) {
     console.log('Aviso ao gravar auditoria de assinatura mobile:', errAud)
   }
@@ -343,12 +397,18 @@ routerAdd('POST', '/backend/v1/assinatura/sessao/{token}/cancelar', (e) => {
   }
 
   try {
-    const rec = e.app.findFirstRecordByFilter('sessoes_assinatura', 'token = {:t}', { t: token })
-    if (rec.getString('status') === 'pendente') {
-      rec.set('status', 'cancelada')
-      e.app.save(rec)
+    const list = e.app.findRecordsByFilter('sessoes_assinatura', 'token = {:t}', '', 1, 0, {
+      t: token,
+    })
+    if (list && list.length > 0) {
+      const rec = list[0]
+      if (rec.getString('status') === 'pendente') {
+        rec.set('status', 'cancelada')
+        e.app.save(rec)
+      }
+      return e.json(200, { success: true, message: 'Sessão cancelada.' })
     }
-    return e.json(200, { success: true, message: 'Sessão cancelada.' })
+    return e.json(404, { success: false, message: 'Sessão não encontrada.' })
   } catch (_) {
     return e.json(404, { success: false, message: 'Sessão não encontrada.' })
   }
