@@ -1925,4 +1925,88 @@ export const api = {
       method: 'POST',
     })
   },
+
+  // 16. Sessões de Assinatura Eletrônica Mobile (QR Code)
+  async criarSessaoAssinaturaMobile(dados: {
+    documentoId?: string
+    documentoTipo: 'edital' | 'ata' | 'lista_presenca' | 'dossie'
+    deliberacaoId?: string
+    tituloDocumento: string
+    hashDocumento: string
+    signatarioNome?: string
+    signatarioCpf?: string
+    signatarioCargo?: string
+    permitirDataHistorica?: boolean
+    dataHoraDeclarada?: string
+  }) {
+    return pb.send<{
+      success: boolean
+      token: string
+      expiraEm: string
+      tituloDocumento: string
+      documentoTipo: string
+      message?: string
+    }>('/backend/v1/assinatura/sessao/criar', {
+      method: 'POST',
+      body: dados,
+    })
+  },
+
+  async consultarSessaoAssinatura(token: string) {
+    return pb.send<{
+      success: boolean
+      token: string
+      status: 'pendente' | 'assinada' | 'expirada' | 'cancelada'
+      documentoId?: string
+      documentoTipo: string
+      deliberacaoId?: string
+      tituloDocumento: string
+      hashDocumento: string
+      signatarioNome: string
+      signatarioCpf: string
+      signatarioCargo: string
+      permitirDataHistorica: boolean
+      dataHoraDeclarada?: string
+      expiraEm: string
+      assinadoEm?: string
+      formatoAssinatura?: 'desenho' | 'texto' | 'em_branco'
+      assinaturaTexto?: string
+      assinaturaVisual?: string
+      canalAssinatura?: string
+      message?: string
+    }>(`/backend/v1/assinatura/sessao/${encodeURIComponent(token)}`, {
+      method: 'GET',
+    })
+  },
+
+  async confirmarAssinaturaMobile(
+    token: string,
+    dados: {
+      nome: string
+      cpf?: string
+      formato: 'desenho' | 'texto' | 'em_branco'
+      assinaturaVisual?: string
+      assinaturaTexto?: string
+      dataHoraDeclarada?: string
+    },
+  ) {
+    return pb.send<{
+      success: boolean
+      message: string
+      assinadoEm: string
+      canal: string
+    }>(`/backend/v1/assinatura/sessao/${encodeURIComponent(token)}/confirmar`, {
+      method: 'POST',
+      body: dados,
+    })
+  },
+
+  async cancelarSessaoAssinatura(token: string) {
+    return pb.send<{
+      success: boolean
+      message: string
+    }>(`/backend/v1/assinatura/sessao/${encodeURIComponent(token)}/cancelar`, {
+      method: 'POST',
+    })
+  },
 }

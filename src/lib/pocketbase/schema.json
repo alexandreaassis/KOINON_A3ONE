@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T03:31:46.975Z",
+  "generatedAt": "2026-11-10T04:06:07.101Z",
   "collections": [
     {
       "name": "users",
@@ -2312,6 +2312,168 @@
         "CREATE INDEX idx_hist_alt_acao ON historico_alteracoes (acao)",
         "CREATE INDEX idx_hist_alt_user ON historico_alteracoes (user)",
         "CREATE INDEX idx_hist_alt_reg_id ON historico_alteracoes (registro_id)"
+      ]
+    },
+    {
+      "name": "sessoes_assinatura",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "",
+        "update": "",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "token",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "documento_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "documento_tipo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "titulo_documento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hash_documento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "signatario_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "signatario_cpf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "signatario_cargo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "permitir_data_historica",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_hora_declarada",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pendente", "assinada", "expirada", "cancelada"]
+        },
+        {
+          "name": "expira_em",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "assinado_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "assinado_por_usuario",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "canal_assinatura",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "formato_assinatura",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["desenho", "texto", "em_branco"]
+        },
+        {
+          "name": "assinatura_visual",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "assinatura_texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ip_dispositivo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user_agent",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_sessoes_ass_token ON sessoes_assinatura (token)",
+        "CREATE INDEX idx_sessoes_ass_status ON sessoes_assinatura (status)",
+        "CREATE INDEX idx_sessoes_ass_doc ON sessoes_assinatura (documento_id)"
       ]
     }
   ]

@@ -50,6 +50,7 @@ import ParametrosConvencaoPage from '@/pages/admin/ParametrosConvencao'
 import CadastrosUnidadesPage from '@/pages/admin/CadastrosUnidades'
 import ManualCadastroLinkPage from '@/pages/admin/ManualCadastroLink'
 import CadastroMoradorPublicoPage from '@/pages/public/CadastroMoradorPublico'
+import AssinaturaMobilePublicaPage from '@/pages/public/AssinaturaMobilePublica'
 import ApresentacaoVideoCadastroPage from '@/pages/video/ApresentacaoVideoCadastro'
 
 import NotFound from '@/pages/NotFound'
@@ -130,6 +131,7 @@ const App = () => (
 
             {/* Rota Pública de Cadastro de Moradores por Unidade */}
             <Route path="/cadastro/:token" element={<CadastroMoradorPublicoPage />} />
+            <Route path="/assinar/:token" element={<AssinaturaMobilePublicaPage />} />
             <Route path="/auth/confirm-verification" element={<VerificarEmailPage />} />
             <Route path="/auth/confirm-verification/:token" element={<VerificarEmailPage />} />
 
