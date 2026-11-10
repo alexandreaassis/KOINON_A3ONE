@@ -466,8 +466,15 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
 
                   {sessaoUrl && (
                     <div className="flex justify-center py-2">
-                      <div className="p-3 bg-white border border-slate-200 rounded-[12px] shadow-sm">
-                        <QrCodeSvg value={sessaoUrl} size={200} />
+                      <div className="p-3 bg-white border border-slate-200 rounded-[12px] shadow-sm flex items-center justify-center">
+                        <QrCodeSvg
+                          value={sessaoUrl}
+                          size={220}
+                          className="mx-auto"
+                          bgColor="#FFFFFF"
+                          fgColor="#002B5E"
+                          includeMargin
+                        />
                       </div>
                     </div>
                   )}
