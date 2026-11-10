@@ -18,6 +18,7 @@ import pb from '@/lib/pocketbase/client'
 import { toast } from '@/hooks/use-toast'
 import { imprimirOuBaixarPdfEdital, type DadosEditalPdf } from '@/lib/pdfEdital'
 import { BlocoAssinaturaCompacto } from '@/components/assinatura/BlocoAssinaturaCompacto'
+import { SeloAssinaturaCriptografica } from '@/components/assinatura/SeloAssinaturaCriptografica'
 import { ModalAssinaturaEletronica } from '@/components/assinatura/ModalAssinaturaEletronica'
 import {
   Card,
@@ -1575,39 +1576,48 @@ export const DocumentosEditalPage: React.FC = () => {
 
                       {/* Carimbo da Assinatura Eletrônica */}
                       {editalAssinadoHash && !hashDesatualizado ? (
-                        <div className="mt-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-left space-y-1 font-mono text-[10px]">
-                          <div className="flex items-center gap-1.5 text-emerald-800 font-bold">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                            <span>DOCUMENTO ASSINADO DIGITALMENTE (SHA-256)</span>
-                          </div>
-                          <p className="text-slate-600 break-all">
-                            <strong>Hash:</strong> {editalAssinadoHash}
-                          </p>
-                          <p className="text-slate-500">
-                            <strong>Data da Assinatura:</strong>{' '}
-                            {editalAssinadoData
-                              ? new Date(editalAssinadoData).toLocaleString('pt-BR')
-                              : 'Registrada no ato'}
-                          </p>
+                        <div className="mt-6 text-left">
+                          <SeloAssinaturaCriptografica
+                            tipoDocumento="edital"
+                            nomeSignatario={editalForm.sindicoNome || 'Síndico / Mesa Diretora'}
+                            cpfSignatario={editalForm.sindicoCpf}
+                            cargoSignatario={editalForm.cargoConvocante}
+                            hashSha256={editalAssinadoHash}
+                            dataHoraAssinatura={editalAssinadoData}
+                            status="valido"
+                          />
                         </div>
                       ) : hashDesatualizado ? (
-                        <div className="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-300 text-left font-sans text-[11px] text-amber-900 space-y-1">
-                          <span className="font-bold flex items-center gap-1.5">
-                            <AlertTriangle className="h-4 w-4 text-amber-600" />
-                            Assinatura Eletrônica Pendente de Atualização
-                          </span>
-                          <p className="text-slate-600">
-                            O edital foi editado após a assinatura anterior (Hash anterior:{' '}
-                            <code className="text-[10px] bg-slate-100 px-1 py-0.5 rounded">
-                              {editalAssinadoHash?.substring(0, 16)}...
-                            </code>
-                            ). Assine novamente para validar o documento final.
-                          </p>
+                        <div className="mt-6 text-left space-y-3">
+                          <div className="p-3.5 rounded-lg bg-amber-50 border border-amber-300 font-sans text-xs text-amber-900 space-y-1.5">
+                            <span className="font-bold flex items-center gap-1.5 text-amber-950">
+                              <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                              Assinatura Eletrônica Pendente de Atualização
+                            </span>
+                            <p className="text-slate-700 text-[11px] leading-relaxed">
+                              O edital foi editado após a assinatura anterior. Para restabelecer o
+                              selo criptográfico válido, assine novamente o documento.
+                            </p>
+                          </div>
+                          <SeloAssinaturaCriptografica
+                            tipoDocumento="edital"
+                            nomeSignatario={editalForm.sindicoNome || 'Síndico / Mesa Diretora'}
+                            cpfSignatario={editalForm.sindicoCpf}
+                            cargoSignatario={editalForm.cargoConvocante}
+                            hashSha256={editalAssinadoHash}
+                            dataHoraAssinatura={editalAssinadoData}
+                            status="desatualizado"
+                          />
                         </div>
                       ) : (
-                        <div className="mt-4 p-3 rounded-lg border border-dashed border-slate-300 text-center font-sans text-xs text-slate-500 italic">
-                          Documento em elaboração / rascunho. Aguarda assinatura eletrônica do
-                          convocante.
+                        <div className="mt-6">
+                          <SeloAssinaturaCriptografica
+                            tipoDocumento="edital"
+                            nomeSignatario={editalForm.sindicoNome || 'Síndico / Mesa Diretora'}
+                            cpfSignatario={editalForm.sindicoCpf}
+                            cargoSignatario={editalForm.cargoConvocante}
+                            status="pendente"
+                          />
                         </div>
                       )}
                     </div>

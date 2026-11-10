@@ -1657,17 +1657,58 @@ export const AtaAssembleiaPage: React.FC = () => {
                   />
                 </div>
 
-                {/* Caixa Criptográfica */}
-                <div className="mt-8 p-3 bg-slate-50 border border-slate-200 rounded text-[10px] font-mono text-slate-700 space-y-1 font-sans">
-                  <p className="font-bold text-slate-900 flex items-center gap-1">
-                    <ShieldCheck className="h-3.5 w-3.5 text-cyan-700" />
-                    CERTIFICAÇÃO E INTEGRIDADE CRIPTOGRÁFICA (SHA-256):
+                {/* Caixa Criptográfica Padronizada Koinon */}
+                <div className="mt-8 p-4 bg-gradient-to-br from-[#F3F7FC] to-white border border-[#0066FF] rounded-lg text-slate-800 space-y-2.5 font-sans shadow-sm">
+                  <div className="flex items-center justify-between border-b border-blue-100 pb-2">
+                    <p className="font-bold text-xs uppercase tracking-wider text-[#002B5E] flex items-center gap-1.5">
+                      <ShieldCheck className="h-4 w-4 text-[#0066FF]" />
+                      Certificação e Integridade Criptográfica (SHA-256)
+                    </p>
+                    <span className="text-[10px] font-bold text-[#0066FF] font-mono tracking-wider">
+                      ICP-BRASIL / KOINON
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="bg-white/80 border border-slate-200 rounded p-2">
+                      <span className="block text-[10px] font-bold uppercase text-slate-500">
+                        Hash Raiz da Urna
+                      </span>
+                      <span className="font-mono text-[11px] text-[#002B5E] break-all">
+                        {hashRaizUrna ||
+                          deliberacaoAtiva.hash_raiz ||
+                          'Em consolidação no encerramento'}
+                      </span>
+                    </div>
+
+                    <div className="bg-white/80 border border-slate-200 rounded p-2">
+                      <span className="block text-[10px] font-bold uppercase text-slate-500">
+                        Status da Homologação
+                      </span>
+                      <span className="font-sans text-[11px] font-medium text-[#002B5E]">
+                        {hashAta
+                          ? 'Ata assinada e selada pela Mesa Diretora'
+                          : 'Minuta aguardando assinatura da Mesa'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {hashAta && (
+                    <div className="bg-white border border-slate-300 rounded p-2.5 space-y-1">
+                      <div className="flex items-center justify-between text-[10px] font-bold uppercase text-[#002B5E]">
+                        <span>Carimbo SHA-256 da Ata Homologada</span>
+                        <span className="font-mono text-slate-500 text-[9px]">256-bit Digest</span>
+                      </div>
+                      <div className="font-mono text-[11px] text-[#002B5E] break-all bg-slate-50 p-2 rounded border border-slate-200 font-semibold tracking-wide">
+                        {hashAta}
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="text-[10px] text-slate-500 leading-relaxed">
+                    Esta ata foi lavrada sob a fé pública da Mesa Diretora eleita, com integridade
+                    garantida por assinatura eletrônica e trilha de auditoria digital encadeada.
                   </p>
-                  <p>
-                    Hash Raiz da Urna:{' '}
-                    {hashRaizUrna || deliberacaoAtiva.hash_raiz || 'Em consolidação'}
-                  </p>
-                  {hashAta && <p>Carimbo SHA-256 da Ata: {hashAta}</p>}
                 </div>
 
                 {/* Bloco de Assinaturas da Mesa */}

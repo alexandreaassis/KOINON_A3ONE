@@ -37,46 +37,46 @@ export const BlocoAssinaturaCompacto: React.FC<BlocoAssinaturaCompactoProps> = (
 
   return (
     <div className={`inline-block ${alinhamentoClass} ${className} font-sans`}>
-      {/* Área gráfica de assinatura (com a assinatura visual sobre a linha de base) */}
-      <div className="min-h-10 flex items-end justify-center overflow-hidden mb-0.5 pointer-events-none select-none">
+      {/* Área gráfica de assinatura (com a assinatura visual destacada e nítida sobre a linha de base) */}
+      <div className="min-h-12 flex items-end justify-center overflow-hidden mb-1 pointer-events-none select-none">
         {temDesenho ? (
           <img
             src={assinaturaVisual}
             alt={`Assinatura de ${nome}`}
-            className="max-h-12 max-w-[240px] object-contain drop-shadow-xs -mb-[1px]"
+            className="max-h-16 max-w-[260px] object-contain drop-shadow-xs -mb-[1px] transition-transform"
             loading="eager"
           />
         ) : temTexto ? (
           <span
             style={{ fontFamily: '"Dancing Script", "Great Vibes", cursive' }}
-            className="text-2xl text-[#002B5E] font-bold leading-none truncate max-w-[240px] px-2 block pb-0.5"
+            className="text-3xl sm:text-[32px] text-[#002B5E] font-bold leading-none truncate max-w-[260px] px-2 block pb-0.5"
           >
             {assinaturaTexto}
           </span>
         ) : (
           // Em branco: preserva o espaço vazio acima da linha
-          <div className="h-4 w-full" />
+          <div className="h-6 w-full" />
         )}
       </div>
 
       {/* Linha horizontal para assinatura (preserva o alinhamento de base do documento) */}
       {mostrarLinhaSeEmBranco && (
         <div
-          className={`${larguraLinha} border-t ${corLinha} ${alinhamento === 'center' ? 'mx-auto' : ''} mb-1`}
+          className={`${larguraLinha} border-t-2 ${corLinha} ${alinhamento === 'center' ? 'mx-auto' : ''} mb-1.5`}
         />
       )}
 
-      {/* Bloco compacto de identificação */}
-      <div className="space-y-0 leading-tight">
-        <p className="text-xs font-semibold uppercase text-[#002B5E] m-0 p-0 leading-tight">
+      {/* Bloco de identificação bem legível e estruturado */}
+      <div className="space-y-0.5 leading-tight">
+        <p className="text-xs sm:text-[13px] font-bold uppercase text-[#002B5E] m-0 p-0 tracking-wide">
           {nome}
         </p>
         {cpf && (
-          <p className="text-[10px] text-[#5A6B82] font-mono m-0 p-0 leading-tight">
+          <p className="text-[11px] text-[#5A6B82] font-mono m-0 p-0 font-medium">
             CPF: {formatarCpf(cpf)}
           </p>
         )}
-        {cargo && <p className="text-[10px] text-[#5A6B82] m-0 p-0 leading-tight">{cargo}</p>}{' '}
+        {cargo && <p className="text-[11px] text-[#5A6B82] m-0 p-0 font-medium">{cargo}</p>}
       </div>
     </div>
   )

@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SafeHtml } from '@/components/editor/SafeHtml'
 import { BlocoAssinaturaCompacto } from '@/components/assinatura/BlocoAssinaturaCompacto'
+import { SeloAssinaturaCriptografica } from '@/components/assinatura/SeloAssinaturaCriptografica'
 import {
   Printer,
   Download,
@@ -330,24 +331,26 @@ export const EditalDocumentoPage: React.FC = () => {
 
           {/* Selo Criptográfico de Assinatura */}
           {dadosConsolidados.hashAssinatura ? (
-            <div className="mt-4 p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-left space-y-1 font-mono text-[10px]">
-              <div className="flex items-center gap-1.5 text-emerald-800 font-bold">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                <span>DOCUMENTO ASSINADO DIGITALMENTE (SHA-256)</span>
-              </div>
-              <p className="text-slate-600 break-all">
-                <strong>Hash:</strong> {dadosConsolidados.hashAssinatura}
-              </p>
-              <p className="text-slate-500">
-                <strong>Data da Assinatura:</strong>{' '}
-                {dadosConsolidados.dataAssinatura
-                  ? new Date(dadosConsolidados.dataAssinatura).toLocaleString('pt-BR')
-                  : 'Registrada no ato'}
-              </p>
+            <div className="mt-6 text-left">
+              <SeloAssinaturaCriptografica
+                tipoDocumento="edital"
+                nomeSignatario={dadosConsolidados.sindicoNome}
+                cpfSignatario={dadosConsolidados.sindicoCpf}
+                cargoSignatario={dadosConsolidados.cargoConvocante}
+                hashSha256={dadosConsolidados.hashAssinatura}
+                dataHoraAssinatura={dadosConsolidados.dataAssinatura}
+                status="valido"
+              />
             </div>
           ) : (
-            <div className="mt-4 p-2.5 rounded border border-dashed border-slate-300 text-[11px] text-slate-500 italic">
-              Documento em rascunho / aguardando assinatura eletrônica do convocante.
+            <div className="mt-6">
+              <SeloAssinaturaCriptografica
+                tipoDocumento="edital"
+                nomeSignatario={dadosConsolidados.sindicoNome}
+                cpfSignatario={dadosConsolidados.sindicoCpf}
+                cargoSignatario={dadosConsolidados.cargoConvocante}
+                status="pendente"
+              />
             </div>
           )}
         </div>

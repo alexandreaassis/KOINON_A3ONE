@@ -37,22 +37,34 @@ export interface DadosAtaPdf {
   secretarioHash?: string | null
 }
 
+// Formatar hash em blocos de 8 caracteres para quebra limpa
+function formatarHashBlocosAta(h?: string | null): string {
+  if (!h) return ''
+  const limpo = h.trim()
+  if (limpo.length !== 64) return limpo
+  const blocos: string[] = []
+  for (let i = 0; i < limpo.length; i += 8) {
+    blocos.push(limpo.substring(i, i + 8))
+  }
+  return blocos.join(' ')
+}
+
 function renderAssinaturaVisual(
   formato?: FormatoAssinatura,
   visual?: string,
   texto?: string,
 ): string {
   if (formato === 'desenho' && visual) {
-    return `<div style="min-height: 46px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: -1px;">
-      <img src="${visual}" alt="Assinatura" style="max-height: 46px; max-width: 220px; object-fit: contain;" />
+    return `<div style="min-height: 56px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: -1px;">
+      <img src="${visual}" alt="Assinatura" style="max-height: 56px; max-width: 260px; object-fit: contain;" />
     </div>`
   }
   if (formato === 'texto' && texto) {
-    return `<div style="height: 44px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 2px;">
-      <span style="font-family: 'Dancing Script', 'Great Vibes', cursive; font-size: 22pt; color: #020617; font-weight: bold; line-height: 1;">${texto}</span>
+    return `<div style="height: 52px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 2px;">
+      <span style="font-family: 'Dancing Script', 'Great Vibes', cursive; font-size: 26pt; color: #002B5E; font-weight: bold; line-height: 1;">${texto}</span>
     </div>`
   }
-  return `<div style="height: 20px;"></div>`
+  return `<div style="height: 24px;"></div>`
 }
 
 export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
@@ -231,30 +243,35 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
       font-style: italic;
     }
     .crypto-box {
-      margin: 20px 0;
-      padding: 12px 16px;
-      background-color: #F3F7FC;
-      border: 1px solid #E2E8F0;
-      border-left: 4px solid #0066FF;
-      border-radius: 6px;
-      font-family: monospace;
+      margin-top: 28px;
+      padding: 14px 18px;
+      background: linear-gradient(135deg, #F3F7FC 0%, #FFFFFF 100%);
+      border: 1.5px solid #0066FF;
+      border-radius: 8px;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 8.5pt;
       color: #002B5E;
       line-height: 1.4;
       page-break-inside: avoid;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
     .crypto-box-title {
-      font-weight: bold;
+      font-weight: 700;
       color: #002B5E;
-      margin-bottom: 4px;
+      margin-bottom: 8px;
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 9pt;
-      font-family: 'Poppins', sans-serif;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0, 102, 255, 0.2);
+      padding-bottom: 6px;
+      font-size: 9.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .signatures-section {
-      margin-top: 30px;
+      margin-top: 36px;
+      padding-top: 20px;
+      border-top: 2px solid #002B5E;
       page-break-inside: avoid;
       font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
@@ -270,39 +287,45 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
       width: 100%;
     }
     .signature-line {
-      width: 240px;
-      border-top: 1.5px solid #002B5E;
-      margin: 0 auto 4px auto;
+      width: 260px;
+      border-top: 2px solid #002B5E;
+      margin: 0 auto 6px auto;
     }
     .signature-name {
-      font-size: 10pt;
-      font-weight: bold;
+      font-size: 10.5pt;
+      font-weight: 700;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
       color: #002B5E;
       margin: 0;
-      line-height: 1.15;
+      line-height: 1.2;
     }
     .signature-cpf {
-      font-size: 8.5pt;
+      font-size: 9pt;
       color: #5A6B82;
       font-family: monospace;
-      margin: 0;
-      line-height: 1.15;
+      font-weight: 600;
+      margin: 2px 0 0 0;
+      line-height: 1.2;
     }
     .signature-role {
-      font-size: 8pt;
+      font-size: 8.5pt;
       color: #5A6B82;
-      margin: 0;
-      line-height: 1.15;
+      font-weight: 500;
+      margin: 2px 0 0 0;
+      line-height: 1.2;
     }
     .signature-hash-stamp {
-      margin-top: 4px;
-      font-size: 7pt;
+      margin-top: 6px;
+      padding: 4px 6px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 4px;
+      font-size: 7.5pt;
       color: #0066FF;
       font-family: monospace;
       word-break: break-all;
-    }
-    .footer-note {
+    }    .footer-note {
       margin-top: 28px;
       padding-top: 12px;
       border-top: 1px solid #E2E8F0;
@@ -376,20 +399,36 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
     <!-- Bloco Criptográfico de Auditoria da Urna e da Ata -->
     <div class="crypto-box">
       <div class="crypto-box-title">
-        <span>CERTIFICAÇÃO E INTEGRIDADE CRIPTOGRÁFICA (ICP-BRASIL / SHA-256)</span>
+        <span style="display: flex; align-items: center; gap: 6px;">
+          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0066FF;"></span>
+          Certificação e Integridade Criptográfica (SHA-256)
+        </span>
+        <span style="font-size: 8pt; color: #0066FF; font-weight: 700; font-family: monospace;">ICP-BRASIL / KOINON</span>
       </div>
-      <div><strong>Hash Raiz da Urna Auditada:</strong> ${dados.hashRaizUrna || 'Cédulas consolidadas no encerramento'}</div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; font-size: 8.5pt;">
+        <div style="background: rgba(255,255,255,0.85); padding: 6px 10px; border-radius: 4px; border: 1px solid #E2E8F0;">
+          <span style="display: block; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #5A6B82;">Urna Auditada</span>
+          <span style="font-family: monospace; font-size: 8pt; color: #002B5E; word-break: break-all;">${dados.hashRaizUrna || 'Cédulas consolidadas no encerramento'}</span>
+        </div>
+        <div style="background: rgba(255,255,255,0.85); padding: 6px 10px; border-radius: 4px; border: 1px solid #E2E8F0;">
+          <span style="display: block; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #5A6B82;">Publicação Oficial</span>
+          <span style="font-size: 8pt; color: #002B5E; font-family: monospace;">${dados.dataPublicacao ? new Date(dados.dataPublicacao).toLocaleString('pt-BR') : 'Aguardando publicação'}</span>
+        </div>
+      </div>
+
       ${
         dados.hashAta
-          ? `<div><strong>Carimbo SHA-256 da Ata:</strong> ${dados.hashAta}</div>`
-          : '<div><strong>Status Criptográfico:</strong> Minuta aguardando assinatura final da mesa</div>'
+          ? `
+            <div style="background: #ffffff; padding: 6px 10px; border-radius: 4px; border: 1px solid #CBD5E1; margin-bottom: 6px;">
+              <span style="display: block; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #002B5E; margin-bottom: 2px;">Carimbo SHA-256 da Ata Homologada:</span>
+              <div style="font-family: monospace; font-size: 8pt; color: #002B5E; word-break: break-all; letter-spacing: 0.5px;">${formatarHashBlocosAta(dados.hashAta)}</div>
+            </div>
+          `
+          : '<div style="font-size: 8pt; color: #5A6B82; padding: 4px 0;"><strong>Status:</strong> Minuta aguardando homologação e assinatura da mesa diretora.</div>'
       }
-      ${
-        dados.dataPublicacao
-          ? `<div><strong>Data/Hora de Publicação Oficial:</strong> ${new Date(dados.dataPublicacao).toLocaleString('pt-BR')}</div>`
-          : ''
-      }
-      <div style="color: #64748b; font-size: 7.5pt; margin-top: 4px;">
+
+      <div style="color: #5A6B82; font-size: 7.5pt; margin-top: 4px; line-height: 1.25;">
         Esta ata foi lavrada sob a fé pública da Mesa Diretora eleita, com integridade garantida por assinatura eletrônica e trilha de auditoria digital encadeada.
       </div>
     </div>

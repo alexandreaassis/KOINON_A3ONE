@@ -87,21 +87,85 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
           }
         </ol>`
 
+  // Formatar hash em blocos de 8 caracteres para quebra limpa e não estourar a página A4
+  const formatarHashBlocos = (h?: string | null): string => {
+    if (!h) return ''
+    const limpo = h.trim()
+    if (limpo.length !== 64) return limpo
+    const blocos: string[] = []
+    for (let i = 0; i < limpo.length; i += 8) {
+      blocos.push(limpo.substring(i, i + 8))
+    }
+    return blocos.join(' ')
+  }
+
+  const formatarDataAssinatura = (dataIso?: string | null): string => {
+    if (!dataIso) return 'Registrada no ato de assinatura'
+    try {
+      const d = new Date(dataIso)
+      if (isNaN(d.getTime())) return dataIso
+      return d.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+    } catch {
+      return dataIso
+    }
+  }
+
   const seloAssinatura = dados.hashAssinatura
     ? `
-      <div style="margin-top: 20px; padding: 12px 16px; border: 1.5px solid #059669; background: #ecfdf5; border-radius: 6px; font-family: monospace; font-size: 8.5pt; text-align: left; line-height: 1.4; color: #065f46;">
-        <div style="font-weight: bold; font-size: 9pt; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-          <span>✓ DOCUMENTO ASSINADO DIGITALMENTE (SHA-256)</span>
+      <div style="margin-top: 24px; padding: 14px 18px; border: 1.5px solid #0066FF; background: linear-gradient(135deg, #F3F7FC 0%, #FFFFFF 100%); border-radius: 8px; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: left; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(0, 102, 255, 0.2); padding-bottom: 8px; margin-bottom: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 22px; height: 22px; border-radius: 50%; background: #0066FF; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 11pt; font-weight: bold; line-height: 1;">✓</div>
+            <div>
+              <span style="font-size: 9.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #002B5E;">Documento Assinado Eletronicamente</span>
+              <span style="display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; background: rgba(0, 102, 255, 0.12); color: #0066FF; font-size: 8pt; font-weight: 700; font-family: monospace;">SHA-256</span>
+            </div>
+          </div>
+          <div style="text-align: right; font-size: 8pt; font-weight: 700; color: #0066FF; letter-spacing: 0.5px;">
+            VIA AUTENTICADA
+          </div>
         </div>
-        <div><strong>Assinante:</strong> ${dados.sindicoNome} ${dados.sindicoCpf ? `(CPF: ${dados.sindicoCpf})` : ''}</div>
-        <div style="word-break: break-all;"><strong>Hash SHA-256:</strong> ${dados.hashAssinatura}</div>
-        <div><strong>Data da Assinatura:</strong> ${dados.dataAssinatura ? new Date(dados.dataAssinatura).toLocaleString('pt-BR') : 'Registrada no ato'}</div>
-        <div style="color: #047857; margin-top: 4px; font-size: 7.5pt;">Integridade e autenticidade registradas na trilha de auditoria criptográfica.</div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; font-size: 8.5pt;">
+          <div style="background: rgba(255,255,255,0.8); border: 1px solid #E2E8F0; border-radius: 6px; padding: 8px 10px;">
+            <span style="display: block; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #5A6B82; letter-spacing: 0.5px; margin-bottom: 2px;">Signatário Oficial</span>
+            <strong style="color: #002B5E; font-size: 9.5pt;">${dados.sindicoNome || 'Síndico(a) / Mesa'}</strong>
+            <div style="color: #5A6B82; font-size: 8pt; margin-top: 1px;">
+              ${dados.cargoConvocante || 'Convocante'}${dados.sindicoCpf ? ` • <span style="font-family: monospace;">CPF: ${dados.sindicoCpf}</span>` : ''}
+            </div>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.8); border: 1px solid #E2E8F0; border-radius: 6px; padding: 8px 10px;">
+            <span style="display: block; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #5A6B82; letter-spacing: 0.5px; margin-bottom: 2px;">Datação & Carimbo de Auditoria</span>
+            <strong style="color: #002B5E; font-size: 9.5pt; font-family: monospace;">${formatarDataAssinatura(dados.dataAssinatura)}</strong>
+            <div style="color: #5A6B82; font-size: 8pt; margin-top: 1px;">Registro oficial de assinatura eletrônica</div>
+          </div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #CBD5E1; border-radius: 6px; padding: 8px 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+            <span style="font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #002B5E; letter-spacing: 0.5px;">Hash Criptográfico de Integridade (SHA-256)</span>
+            <span style="font-size: 7pt; color: #5A6B82; font-family: monospace;">256-bit Digest</span>
+          </div>
+          <div style="font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 8.5pt; color: #002B5E; font-weight: 600; line-height: 1.4; word-break: break-all; letter-spacing: 0.5px; background: #F8FAFC; padding: 6px 8px; border-radius: 4px; border: 1px solid #E2E8F0;">
+            ${formatarHashBlocos(dados.hashAssinatura)}
+          </div>
+          <div style="color: #5A6B82; font-size: 7.5pt; margin-top: 4px; line-height: 1.2;">
+            Assinatura em conformidade com o Código Civil e MP 2.200-2/2001. A alteração de qualquer caractere invalida a verificação deste hash.
+          </div>
+        </div>
       </div>
     `
     : `
-      <div style="margin-top: 20px; padding: 10px 14px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px; font-family: sans-serif; font-size: 9pt; color: #64748b; text-align: center;">
-        Documento em fase de rascunho / aguardando assinatura eletrônica do convocante.
+      <div style="margin-top: 24px; padding: 12px 16px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 9pt; color: #64748b; text-align: center;">
+        Documento em fase de elaboração / aguardando assinatura eletrônica oficial do convocante.
       </div>
     `
 
@@ -109,14 +173,14 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
   const temTexto = dados.formatoAssinatura === 'texto' && !!dados.assinaturaTexto
 
   const areaGraficaAssinatura = temDesenho
-    ? `<div style="min-height: 46px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: -1px;">
-         <img src="${dados.assinaturaVisual}" alt="Assinatura" style="max-height: 46px; max-width: 240px; object-fit: contain;" />
+    ? `<div style="min-height: 56px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: -1px;">
+         <img src="${dados.assinaturaVisual}" alt="Assinatura" style="max-height: 56px; max-width: 260px; object-fit: contain;" />
        </div>`
     : temTexto
-      ? `<div style="height: 44px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 2px;">
-           <span style="font-family: 'Dancing Script', 'Great Vibes', cursive; font-size: 24pt; color: #020617; font-weight: bold; line-height: 1;">${dados.assinaturaTexto}</span>
+      ? `<div style="height: 52px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 2px;">
+           <span style="font-family: 'Dancing Script', 'Great Vibes', cursive; font-size: 28pt; color: #002B5E; font-weight: bold; line-height: 1;">${dados.assinaturaTexto}</span>
          </div>`
-      : `<div style="height: 18px;"></div>`
+      : `<div style="height: 24px;"></div>`
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -303,7 +367,9 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
       padding-bottom: 3px;
     }
     .signature-area {
-      margin-top: 28px;
+      margin-top: 36px;
+      padding-top: 20px;
+      border-top: 2px solid #002B5E;
       text-align: center;
       font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       page-break-inside: avoid;
@@ -311,36 +377,39 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
     .signature-box {
       display: inline-block;
       text-align: center;
-      line-height: 1.15;
+      line-height: 1.2;
     }
     .signature-line {
-      width: 260px;
-      border-top: 1.5px solid #002B5E;
-      margin: 0 auto 4px auto;
+      width: 280px;
+      border-top: 2px solid #002B5E;
+      margin: 0 auto 6px auto;
     }
     .signature-name {
-      font-size: 10.5pt;
-      font-weight: bold;
+      font-size: 11pt;
+      font-weight: 700;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
       color: #002B5E;
       margin: 0;
       padding: 0;
-      line-height: 1.15;
+      line-height: 1.2;
     }
     .signature-cpf {
-      font-size: 9pt;
+      font-size: 9.5pt;
       color: #5A6B82;
       font-family: monospace;
-      margin: 0;
+      font-weight: 600;
+      margin: 2px 0 0 0;
       padding: 0;
-      line-height: 1.15;
+      line-height: 1.2;
     }
     .signature-role {
-      font-size: 8.5pt;
+      font-size: 9pt;
       color: #5A6B82;
-      margin: 0;
+      font-weight: 500;
+      margin: 2px 0 0 0;
       padding: 0;
-      line-height: 1.15;
+      line-height: 1.2;
     }
     .footer-note {
       margin-top: 24px;
