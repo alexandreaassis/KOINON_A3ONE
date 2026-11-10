@@ -220,17 +220,33 @@ routerAdd('POST', '/backend/v1/assinatura/sessao/{token}/confirmar', (e) => {
     headers['cf-connecting-ip'] ||
     'desconhecido'
 
+  // Sanitizar tamanhos máximos de campos textuais para nunca violar regras do PocketBase
+  const assinaturaVisualSanitizada =
+    typeof assinaturaVisual === 'string' && assinaturaVisual.length > 500000
+      ? assinaturaVisual.substring(0, 500000)
+      : assinaturaVisual
+  const userAgentSanitizado =
+    typeof userAgent === 'string' && userAgent.length > 1000
+      ? userAgent.substring(0, 1000)
+      : userAgent
+  const clientIpSanitizado =
+    typeof clientIp === 'string' && clientIp.length > 100 ? clientIp.substring(0, 100) : clientIp
+  const assinaturaTextoSanitizada =
+    typeof assinaturaTexto === 'string' && assinaturaTexto.length > 2000
+      ? assinaturaTexto.substring(0, 2000)
+      : assinaturaTexto
+
   // Atualizar sessão
   rec.set('status', 'assinada')
   rec.set('signatario_nome', nomeSignatario)
   rec.set('signatario_cpf', cpfSignatario)
   rec.set('formato_assinatura', formato)
-  rec.set('assinatura_visual', assinaturaVisual)
-  rec.set('assinatura_texto', assinaturaTexto)
+  rec.set('assinatura_visual', assinaturaVisualSanitizada)
+  rec.set('assinatura_texto', assinaturaTextoSanitizada)
   rec.set('assinado_em', agoraDb)
   rec.set('canal_assinatura', 'assinado via mobile')
-  rec.set('ip_dispositivo', clientIp)
-  rec.set('user_agent', userAgent)
+  rec.set('ip_dispositivo', clientIpSanitizado)
+  rec.set('user_agent', userAgentSanitizado)
 
   if (dataHoraDeclarada) {
     rec.set('data_hora_declarada', dataHoraDeclarada)
@@ -282,8 +298,8 @@ routerAdd('POST', '/backend/v1/assinatura/sessao/{token}/confirmar', (e) => {
         editalRec.set('sindico_nome', nomeSignatario)
         if (cpfSignatario) editalRec.set('sindico_cpf', cpfSignatario)
         editalRec.set('formato_assinatura', formato)
-        editalRec.set('assinatura_visual', assinaturaVisual)
-        editalRec.set('assinatura_texto', assinaturaTexto)
+        editalRec.set('assinatura_visual', assinaturaVisualSanitizada)
+        editalRec.set('assinatura_texto', assinaturaTextoSanitizada)
         e.app.save(editalRec)
       }
     } else if (docTipo === 'ata' && (docId || delibId)) {
@@ -314,8 +330,8 @@ routerAdd('POST', '/backend/v1/assinatura/sessao/{token}/confirmar', (e) => {
         ataRec.set('data_assinatura', dataEfetivaDb)
         if (hashDoc) ataRec.set('hash_assinado', hashDoc)
         ataRec.set('formato_assinatura', formato)
-        ataRec.set('assinatura_visual', assinaturaVisual)
-        ataRec.set('assinatura_texto', assinaturaTexto)
+        ataRec.set('assinatura_visual', assinaturaVisualSanitizada)
+        ataRec.set('assinatura_texto', assinaturaTextoSanitizada)
         e.app.save(ataRec)
       }
     }
@@ -372,8 +388,15 @@ routerAdd('POST', '/backend/v1/assinatura/sessao/{token}/confirmar', (e) => {
     const audRec = new Record(audCol)
     audRec.set('evento', 'assinatura_registrada_mobile')
     audRec.set('data_hora', agoraDb)
-    audRec.set('fator', fatorAuditoria)
-    audRec.set('dispositivo', `${userAgent} (IP: ${clientIp})`)
+    audRec.set(
+      'fator',
+      fatorAuditoria.length > 2000 ? fatorAuditoria.substring(0, 2000) : fatorAuditoria,
+    )
+    const dispAuditoria = `${userAgentSanitizado} (IP: ${clientIpSanitizado})`
+    audRec.set(
+      'dispositivo',
+      dispAuditoria.length > 500 ? dispAuditoria.substring(0, 500) : dispAuditoria,
+    )
     audRec.set('sequencial', proximoSeq)
     audRec.set('hash_evento', hashEvento)
     audRec.set('hash_anterior', ultimoHash)

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:35:30.769Z",
+  "generatedAt": "2026-11-10T04:54:04.780Z",
   "collections": [
     {
       "name": "users",
@@ -851,7 +851,8 @@
             "ata_assinada_mesa",
             "ata_publicada",
             "audio_transcricao",
-            "documento_extracao"
+            "documento_extracao",
+            "assinatura_registrada_mobile"
           ]
         },
         {
@@ -1469,7 +1470,8 @@
           "name": "assinatura_visual",
           "type": "text",
           "required": false,
-          "system": false
+          "system": false,
+          "max": 500000
         },
         {
           "name": "assinatura_texto",
@@ -1589,7 +1591,8 @@
           "name": "assinatura_visual",
           "type": "text",
           "required": false,
-          "system": false
+          "system": false,
+          "max": 500000
         },
         {
           "name": "assinatura_texto",
@@ -1749,7 +1752,8 @@
           "name": "assinatura_visual",
           "type": "text",
           "required": false,
-          "system": false
+          "system": false,
+          "max": 500000
         },
         {
           "name": "assinatura_texto",
@@ -2435,13 +2439,15 @@
           "name": "assinatura_visual",
           "type": "text",
           "required": false,
-          "system": false
+          "system": false,
+          "max": 500000
         },
         {
           "name": "assinatura_texto",
           "type": "text",
           "required": false,
-          "system": false
+          "system": false,
+          "max": 5000
         },
         {
           "name": "ip_dispositivo",
@@ -2453,7 +2459,8 @@
           "name": "user_agent",
           "type": "text",
           "required": false,
-          "system": false
+          "system": false,
+          "max": 5000
         },
         {
           "name": "created",
