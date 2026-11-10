@@ -203,7 +203,7 @@ export const SeloAssinaturaCriptografica: React.FC<SeloAssinaturaCriptograficaPr
           <p className="text-[9px] text-[#5A6B82] m-0">
             {dataDeclaradaSignatario
               ? `Data registrada pela plataforma: ${dataFormatada} (sem carimbo temporal ICP)`
-              : 'Registro com datação e carimbo temporal de auditoria'}
+              : `Registrada pela plataforma: ${dataFormatada}`}
           </p>
         </div>
       </div>

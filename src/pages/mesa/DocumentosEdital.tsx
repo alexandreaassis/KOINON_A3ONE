@@ -17,9 +17,19 @@ import { formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
 import pb from '@/lib/pocketbase/client'
 import { toast } from '@/hooks/use-toast'
 import { imprimirOuBaixarPdfEdital, type DadosEditalPdf } from '@/lib/pdfEdital'
+import { gerarPdfEditalComHash, type ProvaEditalPdf } from '@/lib/pdf/gerarPdfEditalBytes'
+import {
+  decidirSelo,
+  validarInstrucoesEdital,
+  type InstrucoesAcessoVotacao,
+} from '@/lib/selo/honestidade'
+import { MARCA_VALIDACAO_ADVOGADO, gerarClausulaAceite } from '@/lib/organizacao/config'
 import { BlocoAssinaturaCompacto } from '@/components/assinatura/BlocoAssinaturaCompacto'
 import { SeloAssinaturaCriptografica } from '@/components/assinatura/SeloAssinaturaCriptografica'
 import { ModalAssinaturaEletronica } from '@/components/assinatura/ModalAssinaturaEletronica'
+import { CardInstrucoesAcesso } from '@/pages/mesa/documentos/CardInstrucoesAcesso'
+import { ProvasEnvio } from '@/pages/mesa/documentos/ProvasEnvio'
+import { ClausulaAceite } from '@/pages/mesa/documentos/ClausulaAceite'
 import {
   Card,
   CardHeader,
@@ -134,6 +144,19 @@ export const DocumentosEditalPage: React.FC = () => {
   const [arquivoFile, setArquivoFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
 
+  // Item 1 — data declarada pelo signatário (distinta do registro técnico da plataforma)
+  const [dataDeclaradaSignatario, setDataDeclaradaSignatario] = useState<string | null>(null)
+
+  // Item 2 — Instruções de Acesso e Votação Eletrônica (8 campos, persistidos em configuracoes)
+  const [instrucoesAcesso, setInstrucoesAcesso] = useState<InstrucoesAcessoVotacao | null>(null)
+  const [salvandoInstrucoes, setSalvandoInstrucoes] = useState(false)
+  const [configuracaoId, setConfiguracaoId] = useState<string | null>(null)
+
+  // Item 5 — Cláusula de aceite registrada na configuração
+  const [clausulaAceiteTexto, setClausulaAceiteTexto] = useState<string | null>(null)
+  const [clausulaAceiteVersao, setClausulaAceiteVersao] = useState<string | null>(null)
+  const [clausulaAceiteStatus, setClausulaAceiteStatus] = useState<string | null>(null)
+
   // Refs de controle para isolar debounce, corrida e bloqueio de transição/modal
   const editalFormRef = useRef(editalForm)
   editalFormRef.current = editalForm
@@ -228,6 +251,35 @@ export const DocumentosEditalPage: React.FC = () => {
         setItensPauta(itens)
         setDocumentos(docs)
         setNotificacoes(notifs)
+
+        // Itens 2 e 5 — carregar instruções de acesso e cláusula de aceite da configuração
+        try {
+          const cfg = await api.getConfiguracao()
+          if (cfg) {
+            setConfiguracaoId(cfg.id)
+            const ia = (cfg as Record<string, unknown>).instrucoes_acesso
+            if (typeof ia === 'string' && ia.trim()) {
+              try {
+                setInstrucoesAcesso(JSON.parse(ia) as InstrucoesAcessoVotacao)
+              } catch {
+                setInstrucoesAcesso(null)
+              }
+            } else {
+              setInstrucoesAcesso(null)
+            }
+            setClausulaAceiteTexto(
+              ((cfg as Record<string, unknown>).clausula_aceite_texto as string) || null,
+            )
+            setClausulaAceiteVersao(
+              ((cfg as Record<string, unknown>).clausula_aceite_versao as string) || null,
+            )
+            setClausulaAceiteStatus(
+              ((cfg as Record<string, unknown>).clausula_aceite_status as string) || null,
+            )
+          }
+        } catch (errCfg) {
+          console.warn('Configuração da organização indisponível para instruções/cláusula:', errCfg)
+        }
 
         const defaultTextoAbertura = `O Síndico e a Mesa Diretora do ${nomeCondominio}, no uso de suas atribuições legais conferidas pelo Código Civil Brasileiro (Lei nº 10.406/2002, art. 1.350) e pela Convenção Condominial, vêm por meio deste CONVOCAR todos os senhores condôminos titulares de unidades autônomas a se reunirem em Assembleia Geral, que será realizada sob as seguintes condições:`
 
@@ -649,6 +701,8 @@ export const DocumentosEditalPage: React.FC = () => {
       setEditalDbId(salvo.id)
       setEditalAssinadoHash(hash)
       setEditalAssinadoData(dataAssinaturaIso)
+      // Item 1: data declarada pelo signatário no modal (pode ser histórica)
+      setDataDeclaradaSignatario(dadosAssinatura.dataHoraAssinatura || dataAssinaturaIso)
       setSnapshotAssinado(novoSnapshot)
       setFormatoAssinatura(dadosAssinatura.formato)
       setAssinaturaVisual(dadosAssinatura.assinaturaVisual)
@@ -721,6 +775,18 @@ export const DocumentosEditalPage: React.FC = () => {
       return
     }
 
+    // Item 2 — bloqueio: instruções de acesso e votação eletrônica incompletas
+    const faltantesInstrucoes = validarInstrucoesEdital(instrucoesAcesso)
+    if (faltantesInstrucoes.length > 0) {
+      toast({
+        title: 'Emissão bloqueada — instruções incompletas',
+        description: `Preencha os 8 campos de Instruções de Acesso e Votação Eletrônica. Faltando: ${faltantesInstrucoes.join('; ')}.`,
+        variant: 'destructive',
+        duration: 8000,
+      })
+      return
+    }
+
     if (
       !confirm(
         `Confirma o envio do Edital de Convocação por e-mail para todos os moradores ativos cadastrados no ${nomeCondominio}?`,
@@ -735,12 +801,33 @@ export const DocumentosEditalPage: React.FC = () => {
         editalForm.ordemDiaCustom.trim() ||
         itensPauta.map((it) => `${it.ordem}. ${it.titulo}`).join('\n')
 
+      // Item 3 — gerar o PDF assinado em bytes, calcular SHA-256 e anexar ao disparo
+      let pdfBase64: string | undefined
+      let pdfNome: string | undefined
+      let hashDocumento: string | undefined
+      try {
+        const prova: ProvaEditalPdf = await gerarPdfEditalComHash(dadosParaPdf)
+        pdfBase64 = prova.pdfBase64
+        pdfNome = prova.nomeArquivo
+        hashDocumento = prova.hashSha256
+      } catch (errPdf) {
+        console.error('Falha ao gerar PDF em bytes para anexo:', errPdf)
+        toast({
+          title: 'PDF não pôde ser anexado',
+          description:
+            'O disparo continuará sem anexo. Verifique o console para detalhes do erro de geração.',
+        })
+      }
+
       const resp = await api.dispararEditalConvocacao({
         deliberacaoId: deliberacaoAtiva.id,
         tituloEdital: `Convocação: ${editalForm.titulo || deliberacaoAtiva.titulo}`,
         resumoPauta,
         dataAssembleia: editalForm.dataAssembleia || 'Conforme Edital Oficial',
         linkApp: window.location.origin,
+        pdfBase64,
+        pdfNome,
+        hashDocumento,
       })
 
       // Atualizar status para publicado
@@ -795,6 +882,7 @@ export const DocumentosEditalPage: React.FC = () => {
     formatoAssinatura: hashDesatualizado ? 'em_branco' : formatoAssinatura,
     assinaturaVisual: hashDesatualizado ? undefined : assinaturaVisual,
     assinaturaTexto: hashDesatualizado ? undefined : assinaturaTexto,
+    instrucoesAcesso: instrucoesAcesso,
   }
 
   // Ação: Baixar PDF
@@ -851,6 +939,65 @@ export const DocumentosEditalPage: React.FC = () => {
     } catch (err: any) {
       toast({
         title: 'Falha ao reenviar',
+        description: err?.message,
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Item 2 — salvar instruções de acesso na configuração da organização (valem para todos os editais)
+  const handleSalvarInstrucoesAcesso = async () => {
+    if (!configuracaoId) {
+      toast({
+        title: 'Configuração não encontrada',
+        description: 'Não foi possível identificar a configuração da organização para salvar.',
+        variant: 'destructive',
+      })
+      return
+    }
+    try {
+      setSalvandoInstrucoes(true)
+      await api.updateConfiguracao(configuracaoId, {
+        instrucoes_acesso: JSON.stringify(instrucoesAcesso ?? {}),
+      })
+      toast({ title: 'Instruções de acesso salvas' })
+    } catch (err: any) {
+      console.error('Erro ao salvar instruções de acesso:', err)
+      toast({
+        title: 'Erro ao salvar instruções',
+        description: err?.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setSalvandoInstrucoes(false)
+    }
+  }
+
+  // Item 5 — registrar cláusula de aceite gerada na configuração da organização
+  const handleRegistrarClausulaAceite = async (texto: string) => {
+    if (!configuracaoId) {
+      toast({
+        title: 'Configuração não encontrada',
+        description: 'Não foi possível identificar a configuração da organização para registrar.',
+        variant: 'destructive',
+      })
+      return
+    }
+    try {
+      const versao = `v1-${new Date().toISOString().slice(0, 10)}`
+      await api.updateConfiguracao(configuracaoId, {
+        clausula_aceite_texto: texto,
+        clausula_aceite_versao: versao,
+        clausula_aceite_status: 'rascunho',
+      })
+      setClausulaAceiteTexto(texto)
+      setClausulaAceiteVersao(versao)
+      setClausulaAceiteStatus('rascunho')
+      toast({ title: 'Cláusula de aceite registrada na configuração' })
+    } catch (err: any) {
+      console.error('Erro ao registrar cláusula de aceite:', err)
+      toast({
+        title: 'Erro ao registrar cláusula',
         description: err?.message,
         variant: 'destructive',
       })
@@ -1031,7 +1178,7 @@ export const DocumentosEditalPage: React.FC = () => {
 
       {/* Tabs Principais */}
       <Tabs defaultValue="edital" className="w-full">
-        <TabsList className="bg-slate-200/80 p-1 border border-slate-200 grid grid-cols-3 max-w-xl">
+        <TabsList className="bg-slate-200/80 p-1 border border-slate-200 grid grid-cols-4 max-w-3xl">
           <TabsTrigger value="edital" className="text-xs font-semibold">
             Edital de Convocação
           </TabsTrigger>
@@ -1040,6 +1187,9 @@ export const DocumentosEditalPage: React.FC = () => {
           </TabsTrigger>
           <TabsTrigger value="notificacoes" className="text-xs font-semibold">
             Notificações E-mail ({notificacoes.length})
+          </TabsTrigger>
+          <TabsTrigger value="clausula-aceite" className="text-xs font-semibold">
+            Cláusula de Aceite
           </TabsTrigger>
         </TabsList>
 
@@ -1414,11 +1564,29 @@ export const DocumentosEditalPage: React.FC = () => {
                       onClick={handlePublicarENotificar}
                       disabled={disparandoEmails || !editalAssinadoHash || hashDesatualizado}
                     >
-                      <Send className="h-4 w-4 mr-1.5" />
-                      Publicar Edital e Notificar Moradores
+                      {disparandoEmails ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                          Disparando convocação…
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-1.5" />
+                          Publicar Edital e Notificar Moradores
+                        </>
+                      )}
                     </Button>
                   </CardFooter>
                 </Card>
+
+                {/* Item 2 — Instruções de Acesso e Votação Eletrônica (8 campos) */}
+                <CardInstrucoesAcesso
+                  instrucoes={instrucoesAcesso}
+                  salvando={salvandoInstrucoes}
+                  onChange={setInstrucoesAcesso}
+                  onSalvar={handleSalvarInstrucoesAcesso}
+                  faltantes={validarInstrucoesEdital(instrucoesAcesso)}
+                />
               </div>
 
               {/* Coluna de Visualização Profissional A4 em Tempo Real (7 cols) */}
@@ -1598,6 +1766,7 @@ export const DocumentosEditalPage: React.FC = () => {
                             cargoSignatario={editalForm.cargoConvocante}
                             hashSha256={editalAssinadoHash}
                             dataHoraAssinatura={editalAssinadoData}
+                            dataDeclaradaSignatario={dataDeclaradaSignatario}
                             status="valido"
                           />
                         </div>
@@ -1620,6 +1789,7 @@ export const DocumentosEditalPage: React.FC = () => {
                             cargoSignatario={editalForm.cargoConvocante}
                             hashSha256={editalAssinadoHash}
                             dataHoraAssinatura={editalAssinadoData}
+                            dataDeclaradaSignatario={dataDeclaradaSignatario}
                             status="desatualizado"
                           />
                         </div>
@@ -1630,6 +1800,7 @@ export const DocumentosEditalPage: React.FC = () => {
                             nomeSignatario={editalForm.sindicoNome || 'Síndico / Mesa Diretora'}
                             cpfSignatario={editalForm.sindicoCpf}
                             cargoSignatario={editalForm.cargoConvocante}
+                            dataDeclaradaSignatario={dataDeclaradaSignatario}
                             status="pendente"
                           />
                         </div>
@@ -1892,6 +2063,24 @@ export const DocumentosEditalPage: React.FC = () => {
               </table>
             </div>
           </div>
+
+          {/* Seção "Provas de envio" — trilha prova_* gravada pelo hook no disparo */}
+          <ProvasEnvio notificacoes={notificacoes} />
+        </TabsContent>
+
+        {/* ABA 4: CLÁUSULA DE ACEITE */}
+        <TabsContent value="clausula-aceite" className="space-y-6 pt-3">
+          <ClausulaAceite
+            nomeOrganizacao={nomeCondominio}
+            nomeDocumentoNormativo={
+              editalForm.titulo || deliberacaoAtiva?.titulo || 'Edital de Convocação'
+            }
+            cargoSignatario={editalForm.cargoConvocante}
+            clausulaSalva={clausulaAceiteTexto}
+            versaoSalva={clausulaAceiteVersao}
+            statusSalvo={clausulaAceiteStatus}
+            onSalvar={handleRegistrarClausulaAceite}
+          />
         </TabsContent>
       </Tabs>
 
