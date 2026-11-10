@@ -91,6 +91,11 @@ export interface CondoConfigRecord extends RecordModel {
   smtp_user?: string
   smtp_encryption?: SmtpEncryption
   smtp_ativo?: boolean
+  // Fase 2 - Selo honesto (migration 0040)
+  instrucoes_acesso?: Record<string, unknown> | string
+  clausula_aceite_versao?: string
+  clausula_aceite_status?: string
+  clausula_aceite_texto?: string
 }
 
 export interface UnidadeRecord extends RecordModel {
@@ -466,6 +471,13 @@ export interface NotificacaoRecord extends RecordModel {
   mensagem_erro?: string
   tentativas?: number
   enviada_em?: string
+  // Prova de envio (migration 0040)
+  prova_canal?: string
+  prova_status?: string
+  prova_data_hora?: string
+  prova_hash_documento?: string
+  prova_payload?: string
+  prova_deliberacao?: string
   expand?: {
     deliberacao?: DeliberacaoRecord
   }
@@ -1602,6 +1614,10 @@ export const api = {
     resumoPauta?: string
     dataAssembleia?: string
     linkApp?: string
+    pdfBase64?: string
+    pdfNome?: string
+    hashDocumento?: string
+    whatsappLinks?: string[]
   }) {
     return pb.send<{
       success: boolean
