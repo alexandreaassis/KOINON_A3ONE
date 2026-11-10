@@ -1,19 +1,19 @@
 import React from 'react'
 import { formatarCpf } from '@/lib/cpf'
-import { FormatoAssinatura } from '@/lib/api'
+import type { FormatoAssinatura } from '@/lib/api'
 
 export interface BlocoAssinaturaCompactoProps {
   nome: string
-  cpf?: string
-  cargo?: string
+  cpf?: string | null
+  cargo?: string | null
   formato?: FormatoAssinatura
-  assinaturaVisual?: string // dataURL da imagem desenhada
-  assinaturaTexto?: string // texto manuscrito
-  larguraLinha?: string // default w-64 ou w-4/5
-  corLinha?: string // default border-slate-900
-  alinhamento?: 'center' | 'left'
-  className?: string
+  assinaturaVisual?: string
+  assinaturaTexto?: string
+  alinhamento?: 'left' | 'center'
+  corLinha?: string
+  larguraLinha?: string
   mostrarLinhaSeEmBranco?: boolean
+  className?: string
 }
 
 export const BlocoAssinaturaCompacto: React.FC<BlocoAssinaturaCompactoProps> = ({
@@ -23,33 +23,33 @@ export const BlocoAssinaturaCompacto: React.FC<BlocoAssinaturaCompactoProps> = (
   formato = 'em_branco',
   assinaturaVisual,
   assinaturaTexto,
-  larguraLinha = 'w-64',
-  corLinha = 'border-[#002B5E]',
   alinhamento = 'center',
-  className = '',
+  corLinha = 'border-[#002B5E]',
+  larguraLinha = 'w-72 sm:w-80',
   mostrarLinhaSeEmBranco = true,
+  className = '',
 }) => {
-  const alinhamentoClass = alinhamento === 'center' ? 'text-center mx-auto' : 'text-left'
+  const alinhamentoClass = alinhamento === 'center' ? 'text-center' : 'text-left'
 
-  // Decidir o que exibir na área gráfica acima da linha (altura compacta fixa para não empurrar layout)
   const temDesenho = formato === 'desenho' && !!assinaturaVisual
   const temTexto = formato === 'texto' && !!assinaturaTexto
 
   return (
     <div className={`inline-block ${alinhamentoClass} ${className} font-sans`}>
-      {/* Área gráfica de assinatura (com a assinatura visual destacada e nítida sobre a linha de base) */}
-      <div className="min-h-12 flex items-end justify-center overflow-hidden mb-1 pointer-events-none select-none">
+      {/* Área gráfica de assinatura (+33% proporcional: traço aumentado de 56/64px para 75/85px e largura máxima de 260px para 346px, rigorosamente assentado sobre a linha regimental) */}
+      <div className="min-h-[75px] flex items-end justify-center overflow-visible mb-1 pointer-events-none select-none">
         {temDesenho ? (
           <img
             src={assinaturaVisual}
             alt={`Assinatura de ${nome}`}
-            className="max-h-16 max-w-[260px] object-contain drop-shadow-xs block transition-transform -mb-[1px]"
+            className="max-h-[85px] max-w-[346px] object-contain object-bottom drop-shadow-xs block transition-transform -mb-[1px]"
             loading="eager"
           />
         ) : temTexto ? (
           <span
             style={{ fontFamily: '"Dancing Script", "Great Vibes", cursive' }}
-            className="text-3xl sm:text-[32px] text-[#002B5E] font-bold leading-none truncate max-w-[260px] px-2 block pb-0.5"
+            className="text-[38px] sm:text-[42px] text-[#002B5E] font-bold leading-none truncate max-w-[346px] px-2 block pb-0.5 -mb-[1px]"
+            title={assinaturaTexto}
           >
             {assinaturaTexto}
           </span>

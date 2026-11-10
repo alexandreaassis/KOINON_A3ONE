@@ -55,13 +55,13 @@ function renderAssinaturaVisual(
   texto?: string,
 ): string {
   if (formato === 'desenho' && visual) {
-    return `<div style="min-height: 56px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: -1px;">
-      <img src="${visual}" alt="Assinatura" style="max-height: 56px; max-width: 260px; object-fit: contain;" />
+    return `<div style="min-height: 75px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: -1px;">
+      <img src="${visual}" alt="Assinatura" style="max-height: 75px; max-width: 346px; object-fit: contain; object-position: bottom center;" />
     </div>`
   }
   if (formato === 'texto' && texto) {
-    return `<div style="height: 52px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 2px;">
-      <span style="font-family: 'Dancing Script', 'Great Vibes', cursive; font-size: 26pt; color: #002B5E; font-weight: bold; line-height: 1;">${texto}</span>
+    return `<div style="height: 69px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: -1px;">
+      <span style="font-family: 'Dancing Script', 'Great Vibes', cursive; font-size: 35pt; color: #002B5E; font-weight: bold; line-height: 1;">${texto}</span>
     </div>`
   }
   return `<div style="height: 24px;"></div>`
@@ -306,11 +306,10 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
       width: 100%;
     }
     .signature-line {
-      width: 260px;
-      border-top: 2px solid #002B5E;
-      margin: 0 auto 6px auto;
-    }
-    .signature-name {
+      width: 346px;
+      border-top: 1.5px solid #002B5E;
+      margin: 8px auto 6px auto;
+    }    .signature-name {
       font-size: 10.5pt;
       font-weight: 700;
       text-transform: uppercase;

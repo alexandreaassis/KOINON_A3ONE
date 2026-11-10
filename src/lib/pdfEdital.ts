@@ -215,12 +215,12 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
   const temTexto = dados.formatoAssinatura === 'texto' && !!dados.assinaturaTexto
 
   const areaGraficaAssinatura = temDesenho
-    ? `<div style="min-height: 56px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: -1px;">
-         <img src="${dados.assinaturaVisual}" alt="Assinatura" style="max-height: 56px; max-width: 260px; object-fit: contain;" />
+    ? `<div style="min-height: 75px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: -1px;">
+         <img src="${dados.assinaturaVisual}" alt="Assinatura" style="max-height: 75px; max-width: 346px; object-fit: contain; object-position: bottom center;" />
        </div>`
     : temTexto
-      ? `<div style="height: 52px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 2px;">
-           <span style="font-family: 'Dancing Script', 'Great Vibes', cursive; font-size: 28pt; color: #002B5E; font-weight: bold; line-height: 1;">${dados.assinaturaTexto}</span>
+      ? `<div style="height: 69px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: -1px;">
+           <span style="font-family: 'Dancing Script', 'Great Vibes', cursive; font-size: 37pt; color: #002B5E; font-weight: bold; line-height: 1;">${dados.assinaturaTexto}</span>
          </div>`
       : `<div style="height: 24px;"></div>`
 
@@ -422,11 +422,10 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
       line-height: 1.2;
     }
     .signature-line {
-      width: 280px;
-      border-top: 2px solid #002B5E;
-      margin: 0 auto 6px auto;
-    }
-    .signature-name {
+      width: 346px;
+      border-top: 1.5px solid #002B5E;
+      margin: 6px auto;
+    }    .signature-name {
       font-size: 11pt;
       font-weight: 700;
       text-transform: uppercase;
