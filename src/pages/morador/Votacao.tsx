@@ -49,6 +49,7 @@ import {
 } from 'lucide-react'
 import { urnaAudio } from '@/lib/urnaAudio'
 import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 
 type PassoVotacao = '2fa_cpf' | '2fa_otp' | 'cabine' | 'revisao' | 'concluido'
 type OpcaoVoto = 'favoravel' | 'contrario' | 'abstencao'
@@ -82,6 +83,7 @@ export const VotacaoPage: React.FC = () => {
   // Estados dos votos { [itemId]: 'favoravel' | 'contrario' | 'abstencao' }
   const [votosSelecionados, setVotosSelecionados] = useState<Record<string, OpcaoVoto>>({})
   const [dialogConfirmacaoAberto, setDialogConfirmacaoAberto] = useState(false)
+  const [declaracaoRepresentanteLegal, setDeclaracaoRepresentanteLegal] = useState(false)
   const [enviandoVoto, setEnviandoVoto] = useState(false)
   const [somUrnaAtivo, setSomUrnaAtivo] = useState(() => urnaAudio.isSomAtivado())
   const [resultadoRecibo, setResultadoRecibo] = useState<{
@@ -277,6 +279,22 @@ export const VotacaoPage: React.FC = () => {
     }))
   }
 
+  // Determinar se o votante é inquilino/locatário pelo credenciamento
+  const isLocatario = credenciamento?.tipo_vinculo === 'locatario'
+
+  // Determinar se a pauta/deliberação ativa possui item restrito a proprietários
+  // Verifica se algum item da pauta possui tipo_pauta === 'proprietarios' ou regra_locatario === 'somente_proprietario'
+  // ou se a própria deliberação não permite voto de locatário por padrão
+  const temPautaSomenteProprietarios =
+    itensPauta.some(
+      (item) =>
+        item.tipo_pauta === 'proprietarios' || item.regra_locatario === 'somente_proprietario',
+    ) ||
+    (deliberacao?.locatario_pode_votar === false && itensPauta.length > 0)
+
+  // Exigir declaração de representante legal quando votante for locatário E houver pauta restrita a proprietários
+  const exigeDeclaracaoRepresentante = isLocatario && temPautaSomenteProprietarios
+
   // Verificar se todos os itens foram votados
   const todosVotados =
     itensPauta.length > 0 && itensPauta.every((item) => votosSelecionados[item.id])
@@ -293,11 +311,22 @@ export const VotacaoPage: React.FC = () => {
       return
     }
 
+    if (exigeDeclaracaoRepresentante && !declaracaoRepresentanteLegal) {
+      toast({
+        title: 'Declaração Obrigatória',
+        description:
+          'Inquilinos devem confirmar a declaração de representante legal do proprietário antes de confirmar o voto.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setEnviandoVoto(true)
     try {
       const listaVotos = itensPauta.map((item) => ({
         itemId: item.id,
         opcao: votosSelecionados[item.id],
+        declaracaoRepresentanteLegal: exigeDeclaracaoRepresentante ? true : undefined,
       }))
 
       const resp = await api.registrarVoto({
@@ -305,6 +334,7 @@ export const VotacaoPage: React.FC = () => {
         deliberacaoId: deliberacao.id,
         votos: listaVotos,
         dispositivoId: navigator.userAgent,
+        declaracaoRepresentanteLegal: exigeDeclaracaoRepresentante ? true : undefined,
       })
 
       setResultadoRecibo({
@@ -875,6 +905,39 @@ export const VotacaoPage: React.FC = () => {
             })}
           </div>
 
+          {/* Declaração Regimental de Representante Legal (Obrigatório para Inquilinos em Pauta de Proprietários) */}
+          {exigeDeclaracaoRepresentante && (
+            <Card className="border-amber-300 bg-amber-50/70 p-4 shadow-xs">
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="declaracao-representante-cabine"
+                  checked={declaracaoRepresentanteLegal}
+                  onCheckedChange={(checked) => setDeclaracaoRepresentanteLegal(Boolean(checked))}
+                  className="mt-1 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600 border-amber-400"
+                />
+                <div className="space-y-1 text-xs">
+                  <Label
+                    htmlFor="declaracao-representante-cabine"
+                    className="font-bold text-amber-950 cursor-pointer block leading-snug"
+                  >
+                    Declaração Regimental de Representação Legal (Obrigatória)
+                  </Label>
+                  <p className="text-amber-900 leading-relaxed">
+                    Declaro, sob as penas da lei e do Regimento Interno do Condomínio Lago Azul, que
+                    atuo na presente deliberação devidamente investido como representante legal do
+                    proprietário desta unidade para a votação de matérias restritas a proprietários.
+                  </p>
+                  {!declaracaoRepresentanteLegal && (
+                    <p className="text-[11px] font-semibold text-amber-800 flex items-center gap-1 pt-1">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                      Marque esta declaração para liberar a revisão e confirmação do voto.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Aviso de Sigilo & Irretratabilidade */}
           <Alert className="border-cyan-200 bg-cyan-50/70 text-cyan-950">
             <Lock className="h-4 w-4 text-cyan-700" />
@@ -889,18 +952,22 @@ export const VotacaoPage: React.FC = () => {
           </Alert>
 
           {/* Botão de Revisão */}
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
             <span className="text-xs text-slate-500">
-              {todosVotados
-                ? 'Todos os itens foram assinalados.'
-                : `Selecione a opção de voto para todos os ${itensPauta.length} itens.`}
+              {!todosVotados
+                ? `Selecione a opção de voto para todos os ${itensPauta.length} itens.`
+                : exigeDeclaracaoRepresentante && !declaracaoRepresentanteLegal
+                  ? 'Assinale a declaração de representante legal acima para prosseguir.'
+                  : 'Todos os itens assinalados. Pronto para revisar e confirmar.'}
             </span>
 
             <Button
               size="lg"
-              disabled={!todosVotados}
+              disabled={
+                !todosVotados || (exigeDeclaracaoRepresentante && !declaracaoRepresentanteLegal)
+              }
               onClick={() => setDialogConfirmacaoAberto(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md w-full sm:w-auto"
             >
               <Vote className="mr-2 h-5 w-5" /> Revisar e Confirmar Voto
             </Button>
@@ -950,7 +1017,34 @@ export const VotacaoPage: React.FC = () => {
             })}
           </div>
 
-          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+          {exigeDeclaracaoRepresentante && (
+            <div className="p-3 rounded-lg bg-amber-50 border border-amber-300 text-amber-950 text-xs space-y-2">
+              <div className="flex items-start gap-2.5">
+                <Checkbox
+                  id="declaracao-representante-modal"
+                  checked={declaracaoRepresentanteLegal}
+                  onCheckedChange={(checked) => setDeclaracaoRepresentanteLegal(Boolean(checked))}
+                  className="mt-0.5 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600 border-amber-400"
+                />
+                <Label
+                  htmlFor="declaracao-representante-modal"
+                  className="font-medium text-amber-950 cursor-pointer leading-relaxed text-xs block"
+                >
+                  <strong>Declaração regimental:</strong> Declaro que atuo como representante legal
+                  do proprietário desta unidade para a votação de matérias restritas a
+                  proprietários.
+                </Label>
+              </div>
+              {!declaracaoRepresentanteLegal && (
+                <p className="text-[11px] font-semibold text-amber-800 flex items-center gap-1 pl-6">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  Confirmação obrigatória para inquilinos em pauta de proprietários.
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 text-xs">
             <strong>Atenção:</strong> Ao clicar em &ldquo;Gravar Voto Definitivo&rdquo;, seu token
             de voto será consumido e um recibo de conferência de 8 caracteres será gerado para sua
             guarda.
@@ -967,7 +1061,9 @@ export const VotacaoPage: React.FC = () => {
             </Button>
             <Button
               size="sm"
-              disabled={enviandoVoto}
+              disabled={
+                enviandoVoto || (exigeDeclaracaoRepresentante && !declaracaoRepresentanteLegal)
+              }
               onClick={handleConfirmarVotoFinal}
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
             >
