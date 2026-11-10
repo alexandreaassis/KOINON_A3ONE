@@ -95,7 +95,7 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
         </div>
         <div><strong>Assinante:</strong> ${dados.sindicoNome} ${dados.sindicoCpf ? `(CPF: ${dados.sindicoCpf})` : ''}</div>
         <div style="word-break: break-all;"><strong>Hash SHA-256:</strong> ${dados.hashAssinatura}</div>
-        <div><strong>Carimbo de Data/Hora:</strong> ${dados.dataAssinatura ? new Date(dados.dataAssinatura).toLocaleString('pt-BR') : 'Registrado no ato'}</div>
+        <div><strong>Data da Assinatura:</strong> ${dados.dataAssinatura ? new Date(dados.dataAssinatura).toLocaleString('pt-BR') : 'Registrada no ato'}</div>
         <div style="color: #047857; margin-top: 4px; font-size: 7.5pt;">Integridade e autenticidade registradas na trilha de auditoria criptográfica.</div>
       </div>
     `

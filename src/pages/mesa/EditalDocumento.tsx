@@ -339,10 +339,10 @@ export const EditalDocumentoPage: React.FC = () => {
                 <strong>Hash:</strong> {dadosConsolidados.hashAssinatura}
               </p>
               <p className="text-slate-500">
-                <strong>Data/Hora do Carimbo:</strong>{' '}
+                <strong>Data da Assinatura:</strong>{' '}
                 {dadosConsolidados.dataAssinatura
                   ? new Date(dadosConsolidados.dataAssinatura).toLocaleString('pt-BR')
-                  : 'Registrado no ato'}
+                  : 'Registrada no ato'}
               </p>
             </div>
           ) : (

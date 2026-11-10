@@ -554,12 +554,16 @@ export const DocumentosEditalPage: React.FC = () => {
     formato: FormatoAssinatura
     assinaturaVisual?: string
     assinaturaTexto?: string
+    dataHoraAssinatura?: string
   }) => {
     if (!deliberacaoAtiva) return
 
     setAssinandoEdital(true)
     try {
-      const dataHoraIso = new Date().toISOString()
+      // Momento técnico da operação no sistema
+      const momentoTecnicoIso = new Date().toISOString()
+      // Data declarada da assinatura (histórica ou momento presente se omitida)
+      const dataAssinaturaIso = dadosAssinatura.dataHoraAssinatura || momentoTecnicoIso
       const rawCpf = dadosAssinatura.cpf.replace(/\D/g, '')
 
       // Atualizar estado do form com os dados confirmados
@@ -571,7 +575,7 @@ export const DocumentosEditalPage: React.FC = () => {
       }
       setEditalForm(formAtualizado)
 
-      // Conteúdo estrito a ser carimbado incluindo dados e modo da assinatura
+      // Conteúdo estrito a ser carimbado incluindo dados, data declarada e modo da assinatura
       const conteudoEdital = JSON.stringify({
         condominio: nomeCondominio,
         deliberacaoId: deliberacaoAtiva.id,
@@ -590,7 +594,7 @@ export const DocumentosEditalPage: React.FC = () => {
         sindicoCpf: rawCpf,
         cargo: dadosAssinatura.cargo || formAtualizado.cargoConvocante.trim(),
         formatoAssinatura: dadosAssinatura.formato,
-        momentoAssinatura: dataHoraIso,
+        momentoAssinatura: dataAssinaturaIso,
       })
 
       const hash = await calcularSha256Browser(conteudoEdital)
@@ -604,7 +608,7 @@ export const DocumentosEditalPage: React.FC = () => {
         assinante_cpf: rawCpf,
         tipo: 'sindico',
         hash_documento: hash,
-        data_hora: dataHoraIso,
+        data_hora: dataAssinaturaIso,
         usuario: user?.id,
         ip_dispositivo: navigator.userAgent,
         formato_assinatura: dadosAssinatura.formato,
@@ -632,7 +636,7 @@ export const DocumentosEditalPage: React.FC = () => {
           cargo_convocante: dadosAssinatura.cargo || formAtualizado.cargoConvocante.trim(),
           status: 'assinado',
           hash_assinado: hash,
-          data_assinatura: dataHoraIso,
+          data_assinatura: dataAssinaturaIso,
           conteudo_assinado_snapshot: novoSnapshot,
           formato_assinatura: dadosAssinatura.formato,
           assinatura_visual: dadosAssinatura.assinaturaVisual,
@@ -643,16 +647,22 @@ export const DocumentosEditalPage: React.FC = () => {
 
       setEditalDbId(salvo.id)
       setEditalAssinadoHash(hash)
-      setEditalAssinadoData(dataHoraIso)
+      setEditalAssinadoData(dataAssinaturaIso)
       setSnapshotAssinado(novoSnapshot)
       setFormatoAssinatura(dadosAssinatura.formato)
       setAssinaturaVisual(dadosAssinatura.assinaturaVisual)
       setAssinaturaTexto(dadosAssinatura.assinaturaTexto)
 
-      // 3. Registrar na trilha de auditoria encadeada
+      // 3. Registrar na trilha de auditoria encadeada mantendo data declarada e momento técnico
+      const dataDeclaradaFmt = new Date(dataAssinaturaIso).toLocaleString('pt-BR')
+      const momentoTecnicoFmt = new Date(momentoTecnicoIso).toLocaleString('pt-BR')
+      const fatorAuditoria = dadosAssinatura.dataHoraAssinatura
+        ? `Convocante: ${dadosAssinatura.nome} assinou eletronicamente o Edital (${dadosAssinatura.formato}) da deliberação ${deliberacaoAtiva.id} com Data Declarada de Assinatura: ${dataDeclaradaFmt} (Registro técnico na plataforma: ${momentoTecnicoFmt}, Hash: ${hash.substring(0, 16)}...)`
+        : `Convocante: ${dadosAssinatura.nome} assinou eletronicamente o Edital (${dadosAssinatura.formato}) da deliberação ${deliberacaoAtiva.id} (Hash: ${hash.substring(0, 16)}...)`
+
       await api.registrarEventoAuditoria({
         evento: 'assinatura_registrada',
-        fator: `Convocante: ${dadosAssinatura.nome} assinou eletronicamente o Edital (${dadosAssinatura.formato}) da deliberação ${deliberacaoAtiva.id} (Hash: ${hash.substring(0, 16)}...)`,
+        fator: fatorAuditoria,
         dispositivo: navigator.userAgent,
       })
 
@@ -1039,8 +1049,18 @@ export const DocumentosEditalPage: React.FC = () => {
                           Assinatura Desatualizada
                         </Badge>
                       ) : editalAssinadoHash ? (
-                        <Badge className="text-[10px] bg-emerald-600 hover:bg-emerald-700">
+                        <Badge
+                          className="text-[10px] bg-emerald-600 hover:bg-emerald-700"
+                          title={
+                            editalAssinadoData
+                              ? `Assinado em ${new Date(editalAssinadoData).toLocaleString('pt-BR')}`
+                              : undefined
+                          }
+                        >
                           Assinado
+                          {editalAssinadoData
+                            ? ` • ${new Date(editalAssinadoData).toLocaleString('pt-BR')}`
+                            : ''}
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="text-[10px] border-slate-300">
@@ -1564,10 +1584,10 @@ export const DocumentosEditalPage: React.FC = () => {
                             <strong>Hash:</strong> {editalAssinadoHash}
                           </p>
                           <p className="text-slate-500">
-                            <strong>Data/Hora do Carimbo:</strong>{' '}
+                            <strong>Data da Assinatura:</strong>{' '}
                             {editalAssinadoData
                               ? new Date(editalAssinadoData).toLocaleString('pt-BR')
-                              : 'Registrado no ato'}
+                              : 'Registrada no ato'}
                           </p>
                         </div>
                       ) : hashDesatualizado ? (
@@ -1865,6 +1885,8 @@ export const DocumentosEditalPage: React.FC = () => {
         assinaturaTextoInicial={assinaturaTexto}
         salvando={assinandoEdital}
         permitirEditarIdentificacao={true}
+        permitirDataHoraHistorica={true}
+        dataHoraInicial={editalAssinadoData || undefined}
         onConfirmar={handleConfirmarAssinaturaComModo}
       />
 
