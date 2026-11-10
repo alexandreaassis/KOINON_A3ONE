@@ -655,8 +655,22 @@ export const DocumentosEditalPage: React.FC = () => {
       setAssinaturaTexto(dadosAssinatura.assinaturaTexto)
 
       // 3. Registrar na trilha de auditoria encadeada mantendo data declarada e momento técnico
-      const dataDeclaradaFmt = new Date(dataAssinaturaIso).toLocaleString('pt-BR')
-      const momentoTecnicoFmt = new Date(momentoTecnicoIso).toLocaleString('pt-BR')
+      const dataDeclaradaFmt = new Date(dataAssinaturaIso).toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+      const momentoTecnicoFmt = new Date(momentoTecnicoIso).toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })
       const fatorAuditoria = dadosAssinatura.dataHoraAssinatura
         ? `Convocante: ${dadosAssinatura.nome} assinou eletronicamente o Edital (${dadosAssinatura.formato}) da deliberação ${deliberacaoAtiva.id} com Data Declarada de Assinatura: ${dataDeclaradaFmt} (Registro técnico na plataforma: ${momentoTecnicoFmt}, Hash: ${hash.substring(0, 16)}...)`
         : `Convocante: ${dadosAssinatura.nome} assinou eletronicamente o Edital (${dadosAssinatura.formato}) da deliberação ${deliberacaoAtiva.id} (Hash: ${hash.substring(0, 16)}...)`
@@ -1054,13 +1068,13 @@ export const DocumentosEditalPage: React.FC = () => {
                           className="text-[10px] bg-emerald-600 hover:bg-emerald-700"
                           title={
                             editalAssinadoData
-                              ? `Assinado em ${new Date(editalAssinadoData).toLocaleString('pt-BR')}`
+                              ? `Assinado em ${new Date(editalAssinadoData).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
                               : undefined
                           }
                         >
                           Assinado
                           {editalAssinadoData
-                            ? ` • ${new Date(editalAssinadoData).toLocaleString('pt-BR')}`
+                            ? ` • ${new Date(editalAssinadoData).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
                             : ''}
                         </Badge>
                       ) : (

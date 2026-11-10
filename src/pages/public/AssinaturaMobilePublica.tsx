@@ -341,9 +341,10 @@ export function AssinaturaMobilePublicaPage() {
                   </p>
                   <Input
                     type="datetime-local"
+                    step="1"
                     value={dataHoraHistorica}
                     onChange={(e) => setDataHoraHistorica(e.target.value)}
-                    className="bg-white text-xs mt-1"
+                    className="bg-white text-xs mt-1 font-mono"
                   />
                 </div>
               )}

@@ -1499,7 +1499,14 @@ export const AtaAssembleiaPage: React.FC = () => {
                           <div className="mt-2 p-2 bg-emerald-50 rounded border border-emerald-200 text-[10px] text-emerald-900 font-mono space-y-0.5">
                             <p className="font-semibold">
                               Assinado em:{' '}
-                              {new Date(presidenteAssinadoEm || '').toLocaleString('pt-BR')}
+                              {new Date(presidenteAssinadoEm || '').toLocaleString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                              })}
                             </p>
                             <p className="truncate">Hash SHA-256: {presidenteHash}</p>
                           </div>
@@ -1559,7 +1566,14 @@ export const AtaAssembleiaPage: React.FC = () => {
                           <div className="mt-2 p-2 bg-emerald-50 rounded border border-emerald-200 text-[10px] text-emerald-900 font-mono space-y-0.5">
                             <p className="font-semibold">
                               Assinado em:{' '}
-                              {new Date(secretarioAssinadoEm || '').toLocaleString('pt-BR')}
+                              {new Date(secretarioAssinadoEm || '').toLocaleString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                              })}
                             </p>
                             <p className="truncate">Hash SHA-256: {secretarioHash}</p>
                           </div>
@@ -1786,6 +1800,11 @@ export const AtaAssembleiaPage: React.FC = () => {
         salvando={salvandoAssinatura}
         permitirEditarIdentificacao={true}
         permitirDataHoraHistorica={true}
+        dataHoraInicial={
+          modalAssinaturaMesa === 'presidente'
+            ? presidenteAssinadoEm || undefined
+            : secretarioAssinadoEm || undefined
+        }
       />
 
       {/* MODAL CONFIRMAÇÃO PARA CANCELAR E DESCARTAR GRAVAÇÃO DE ÁUDIO */}
