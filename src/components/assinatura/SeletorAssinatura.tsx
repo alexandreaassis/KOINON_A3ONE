@@ -90,9 +90,11 @@ export function otimizarCanvasAssinatura(canvas: HTMLCanvasElement): string | un
   if (cropWidth <= 0 || cropHeight <= 0) return undefined
 
   // Redimensionar proporcionalmente para altura máx 70px e largura máx 260px.
-  // BlocoAssinaturaCompacto e os PDFs exibem a imagem sobre a linha de base.
-  // Incluímos a linha de base (horizontal baseline) na parte inferior da imagem gerada,
-  // exatamente onde a assinatura se assenta no documento oficial.
+  // O documento oficial (SeloAssinaturaCriptografica, BlocoAssinaturaCompacto, pdfEdital, pdfAta)
+  // possui sua própria linha de base regimental.
+  // A imagem PNG exportada deve conter ESTRITAMENTE os traços da assinatura (tinta pura)
+  // sobre fundo transparente, sem linha de base, sem grade e sem fundo embutido.
+  // A linha-guia continua existindo visualmente apenas na tela de captura durante o desenho.
   const maxTargetHeight = 70
   const maxTargetWidth = 260
 
@@ -101,18 +103,9 @@ export function otimizarCanvasAssinatura(canvas: HTMLCanvasElement): string | un
   const targetWidth = Math.max(1, Math.round(cropWidth * scale))
   const targetHeight = Math.max(1, Math.round(cropHeight * scale))
 
-  // Linha de base discreta e elegante: reservamos 6px adicionais na parte inferior
-  const linhaEspessura = 1.5
-  const espacoAbaixoLinha = 3
-  const alturaTotal = targetHeight + espacoAbaixoLinha + Math.ceil(linhaEspessura)
-
-  // A linha de base se estende com uma margem elegante nas laterais
-  const margemLinha = Math.min(16, Math.max(8, Math.round(targetWidth * 0.08)))
-  const larguraTotal = targetWidth + margemLinha * 2
-
   const tempCanvas = document.createElement('canvas')
-  tempCanvas.width = larguraTotal
-  tempCanvas.height = alturaTotal
+  tempCanvas.width = targetWidth
+  tempCanvas.height = targetHeight
 
   const tempCtx = tempCanvas.getContext('2d')
   if (!tempCtx) return undefined
@@ -120,28 +113,8 @@ export function otimizarCanvasAssinatura(canvas: HTMLCanvasElement): string | un
   tempCtx.imageSmoothingEnabled = true
   tempCtx.imageSmoothingQuality = 'high'
 
-  // 1. Desenhar o traço da assinatura centralizado horizontalmente acima da linha
-  tempCtx.drawImage(
-    canvas,
-    cropX,
-    cropY,
-    cropWidth,
-    cropHeight,
-    margemLinha,
-    0,
-    targetWidth,
-    targetHeight,
-  )
-
-  // 2. Desenhar a linha de base horizontal (#002B5E com opacidade suave ou cinza escuro regimental)
-  const yLinha = targetHeight + 0.5
-  tempCtx.strokeStyle = '#002B5E'
-  tempCtx.lineWidth = linhaEspessura
-  tempCtx.lineCap = 'round'
-  tempCtx.beginPath()
-  tempCtx.moveTo(4, yLinha)
-  tempCtx.lineTo(larguraTotal - 4, yLinha)
-  tempCtx.stroke()
+  // Desenhar apenas os traços da assinatura (tinta pura sobre fundo transparente)
+  tempCtx.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, targetWidth, targetHeight)
 
   // Exportar como PNG preservando transparência
   const dataUrl = tempCanvas.toDataURL('image/png')

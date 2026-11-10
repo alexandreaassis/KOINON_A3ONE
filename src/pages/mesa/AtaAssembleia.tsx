@@ -822,6 +822,7 @@ export const AtaAssembleiaPage: React.FC = () => {
     formato: FormatoAssinatura
     assinaturaVisual?: string
     assinaturaTexto?: string
+    dataHoraAssinatura?: string
   }) => {
     if (!deliberacaoAtiva || !modalAssinaturaMesa) return
 
@@ -830,7 +831,7 @@ export const AtaAssembleiaPage: React.FC = () => {
       // 1. Garantir que a ata está salva antes de assinar
       await persistirAtaNoBanco(false)
 
-      const dataHoraIso = new Date().toISOString()
+      const dataHoraIso = dados.dataHoraAssinatura || new Date().toISOString()
       const snapshotParaAssinatura = JSON.stringify({
         titulo: tituloAta.trim(),
         conteudo: sanitizeHtml(conteudoHtml).trim(),
@@ -1784,6 +1785,7 @@ export const AtaAssembleiaPage: React.FC = () => {
         onConfirmar={handleConfirmarAssinaturaMesa}
         salvando={salvandoAssinatura}
         permitirEditarIdentificacao={true}
+        permitirDataHoraHistorica={true}
       />
 
       {/* MODAL CONFIRMAÇÃO PARA CANCELAR E DESCARTAR GRAVAÇÃO DE ÁUDIO */}

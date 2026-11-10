@@ -43,7 +43,7 @@ export const BlocoAssinaturaCompacto: React.FC<BlocoAssinaturaCompactoProps> = (
           <img
             src={assinaturaVisual}
             alt={`Assinatura de ${nome}`}
-            className="max-h-16 max-w-[260px] object-contain drop-shadow-xs -mb-[1px] transition-transform"
+            className="max-h-16 max-w-[260px] object-contain drop-shadow-xs block transition-transform -mb-[1px]"
             loading="eager"
           />
         ) : temTexto ? (

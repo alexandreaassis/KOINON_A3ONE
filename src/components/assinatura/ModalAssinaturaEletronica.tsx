@@ -636,10 +636,25 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
                       </div>
 
                       <div className="space-y-1">
-                        <Label className="text-[11px] text-[#002B5E] font-medium flex items-center gap-1">
-                          <Clock className="h-3 w-3 text-[#5A6B82]" />
-                          Hora (HH:mm:ss)
-                        </Label>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[11px] text-[#002B5E] font-medium flex items-center gap-1">
+                            <Clock className="h-3 w-3 text-[#5A6B82]" />
+                            Hora (HH:mm:ss com segundos)
+                          </Label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const agora = extrairDataHoraLocal()
+                              setDataAssinaturaCustom(agora.data)
+                              setHoraAssinaturaCustom(agora.hora)
+                              setDataHoraErro(null)
+                            }}
+                            className="text-[10px] font-semibold text-[#0066FF] hover:underline"
+                            disabled={salvando}
+                          >
+                            Usar agora com segundos
+                          </button>
+                        </div>
                         <Input
                           type="time"
                           step="1"
@@ -649,15 +664,18 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
                             setDataHoraErro(null)
                           }}
                           disabled={salvando}
-                          className="text-xs h-8 bg-white border-[#5A6B82]/25 rounded-[10px]"
+                          className="text-xs h-8 bg-white border-[#5A6B82]/25 rounded-[10px] font-mono"
                         />
                       </div>
                     </div>
 
                     <p className="text-[10px] text-[#5A6B82] leading-tight">
-                      A data e hora informadas serão carimbadas no documento como{' '}
-                      <strong className="text-[#002B5E]">Data da Assinatura</strong>. A auditoria
-                      técnica continuará registrando o momento exato da operação no sistema.
+                      A data e hora informadas (incluindo segundos, ex.:{' '}
+                      <span className="font-mono text-[#002B5E]">21:42:34</span>) serão carimbadas
+                      no documento como{' '}
+                      <strong className="text-[#002B5E]">Data da Assinatura</strong> e integrarão o
+                      cálculo do hash SHA-256. A auditoria técnica continuará registrando o momento
+                      exato da operação no sistema.
                     </p>
 
                     {dataHoraErro && (

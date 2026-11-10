@@ -68,6 +68,25 @@ function renderAssinaturaVisual(
 }
 
 export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
+  // Formatar data/hora no padrão institucional com segundos
+  const formatarDataAssinaturaAta = (dataIso?: string | null): string => {
+    if (!dataIso) return ''
+    try {
+      const d = new Date(dataIso)
+      if (isNaN(d.getTime())) return dataIso
+      return d.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+    } catch {
+      return dataIso
+    }
+  }
+
   const dataHoje =
     dados.dataEmissao ||
     new Date().toLocaleDateString('pt-BR', {
@@ -449,7 +468,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
           <div class="signature-role">Presidente da Assembleia</div>
           ${
             dados.presidenteHash
-              ? `<div class="signature-hash-stamp">Assinado em ${dados.presidenteAssinadoEm ? new Date(dados.presidenteAssinadoEm).toLocaleString('pt-BR') : ''}<br>SHA: ${dados.presidenteHash.substring(0, 24)}...</div>`
+              ? `<div class="signature-hash-stamp">Assinado em ${formatarDataAssinaturaAta(dados.presidenteAssinadoEm)}<br>SHA: ${dados.presidenteHash.substring(0, 24)}...</div>`
               : '<div style="font-size: 7.5pt; color: #94a3b8; margin-top: 2px;">Aguardando assinatura</div>'
           }
         </div>
@@ -467,7 +486,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
           <div class="signature-role">Secretário(a) da Assembleia</div>
           ${
             dados.secretarioHash
-              ? `<div class="signature-hash-stamp">Assinado em ${dados.secretarioAssinadoEm ? new Date(dados.secretarioAssinadoEm).toLocaleString('pt-BR') : ''}<br>SHA: ${dados.secretarioHash.substring(0, 24)}...</div>`
+              ? `<div class="signature-hash-stamp">Assinado em ${formatarDataAssinaturaAta(dados.secretarioAssinadoEm)}<br>SHA: ${dados.secretarioHash.substring(0, 24)}...</div>`
               : '<div style="font-size: 7.5pt; color: #94a3b8; margin-top: 2px;">Aguardando assinatura</div>'
           }
         </div>
