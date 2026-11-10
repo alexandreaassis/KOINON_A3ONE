@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Switch } from '@/components/ui/switch'
 import {
   Dialog,
   DialogContent,
@@ -95,6 +96,7 @@ export const ConfiguracoesPage: React.FC = () => {
   const [somVotoFile, setSomVotoFile] = useState<File | null>(null)
   const [somVotoPreviewUrl, setSomVotoPreviewUrl] = useState<string | null>(null)
   const [removerSomVoto, setRemoverSomVoto] = useState(false)
+  const [sindicoPodePresidirMesa, setSindicoPodePresidirMesa] = useState(false)
   const [salvandoGeral, setSalvandoGeral] = useState(false)
 
   // Estados da estrutura de unidades
@@ -154,6 +156,7 @@ export const ConfiguracoesPage: React.FC = () => {
   useEffect(() => {
     if (config) {
       setNomeCondominio(config.nome_condominio || 'Condomínio Residencial Lago Azul')
+      setSindicoPodePresidirMesa(config.sindico_pode_presidir_mesa ?? false)
       const tipo = (config.tipo_condominio as TipoCondominio) || 'vertical'
       setTipoCondominio(tipo)
 
@@ -520,6 +523,7 @@ export const ConfiguracoesPage: React.FC = () => {
         formData.append('nome_condominio', nomeCondominio.trim())
         formData.append('rotulo_unidade', rotuloEfetivo)
         formData.append('tipo_condominio', tipoCondominio)
+        formData.append('sindico_pode_presidir_mesa', String(sindicoPodePresidirMesa))
         if (logoFile) {
           formData.append('logo', logoFile)
         }
@@ -534,6 +538,7 @@ export const ConfiguracoesPage: React.FC = () => {
           nome_condominio: nomeCondominio.trim(),
           rotulo_unidade: rotuloEfetivo,
           tipo_condominio: tipoCondominio,
+          sindico_pode_presidir_mesa: sindicoPodePresidirMesa,
         })
       }
 
@@ -667,6 +672,33 @@ export const ConfiguracoesPage: React.FC = () => {
                       )}
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Regra de Composição da Mesa Diretora (Convenção) */}
+              <div className="pt-2 border-t border-slate-100 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50/70">
+                  <div className="space-y-1 max-w-xl">
+                    <Label
+                      htmlFor="sindico_pode_presidir_mesa"
+                      className="text-xs font-bold text-slate-800 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Scale className="h-4 w-4 text-[#0066FF]" />
+                      A convenção permite síndico e/ou familiares até 3ª geração ser presidente da
+                      mesa ou secretário?
+                    </Label>
+                    <p className="text-[11px] text-slate-500">
+                      Convenção do Lago Azul e Código Civil (art. 1.348): por transparência e
+                      prestação de contas, a regra geral veda que o síndico presida a assembleia de
+                      suas próprias contas. Quando desmarcado, o sistema destaca e bloqueia o
+                      síndico e parentes na eleição da Mesa Diretora.
+                    </p>
+                  </div>
+                  <Switch
+                    id="sindico_pode_presidir_mesa"
+                    checked={sindicoPodePresidirMesa}
+                    onCheckedChange={setSindicoPodePresidirMesa}
+                  />
                 </div>
               </div>
 

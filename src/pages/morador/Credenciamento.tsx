@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { useCondoConfig } from '@/context/CondoConfigContext'
-import { api, type CredenciamentoRecord } from '@/lib/api'
+import {
+  api,
+  type CredenciamentoRecord,
+  type DeliberacaoRecord,
+  type EditalDeliberacaoRecord,
+} from '@/lib/api'
+import { Link } from 'react-router-dom'
 import {
   Card,
   CardHeader,
@@ -49,6 +55,52 @@ export const CredenciamentoPage: React.FC = () => {
   const [arquivos, setArquivos] = useState<FileList | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [carregando, setCarregando] = useState(true)
+
+  // Estado da Convocação / Edital publicado da deliberação ativa
+  const [deliberacaoAtiva, setDeliberacaoAtiva] = useState<DeliberacaoRecord | null>(null)
+  const [editalAtivo, setEditalAtivo] = useState<EditalDeliberacaoRecord | null>(null)
+  const [convocacaoPublicada, setConvocacaoPublicada] = useState<boolean>(false)
+  const [verificandoEdital, setVerificandoEdital] = useState<boolean>(true)
+
+  // Carrega deliberação ativa e valida se a convocação/edital está publicado
+  useEffect(() => {
+    let ativo = true
+    const verificarConvocacao = async () => {
+      setVerificandoEdital(true)
+      try {
+        const delib = await api.getDeliberacaoAtiva()
+        if (!ativo) return
+        setDeliberacaoAtiva(delib)
+
+        if (delib) {
+          const edital = await api.getEditalPorDeliberacao(delib.id)
+          if (!ativo) return
+          setEditalAtivo(edital)
+          // Considera convocação publicada se o edital tiver status "publicado" ou se a deliberação já estiver CONVOCADA/EM_VOTACAO/ENCERRADA/PUBLICADA
+          const isPublicado =
+            edital?.status === 'publicado' ||
+            delib.status === 'CONVOCADA' ||
+            delib.status === 'EM_VOTACAO' ||
+            delib.status === 'ENCERRADA' ||
+            delib.status === 'PUBLICADA'
+          setConvocacaoPublicada(isPublicado)
+        } else {
+          setEditalAtivo(null)
+          setConvocacaoPublicada(false)
+        }
+      } catch (err) {
+        console.error('Erro ao verificar convocação publicada:', err)
+        if (ativo) setConvocacaoPublicada(false)
+      } finally {
+        if (ativo) setVerificandoEdital(false)
+      }
+    }
+
+    verificarConvocacao()
+    return () => {
+      ativo = false
+    }
+  }, [])
 
   // Carrega credenciamento existente para a unidade selecionada
   useEffect(() => {
@@ -110,6 +162,15 @@ export const CredenciamentoPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!convocacaoPublicada) {
+      toast({
+        title: 'Credenciamento Bloqueado',
+        description: 'Gere/publicize a convocação antes de credenciar.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     if (!unidadeSelecionada) {
       toast({
         title: 'Unidade não selecionada',
@@ -186,6 +247,38 @@ export const CredenciamentoPage: React.FC = () => {
           promitente ou procurador).
         </p>
       </div>
+
+      {/* Alerta de Bloqueio: Convocação Não Publicada */}
+      {!verificandoEdital && !convocacaoPublicada && (
+        <Alert className="border-amber-300 bg-amber-50/90 text-amber-950 p-4 shadow-sm">
+          <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+          <div className="ml-2">
+            <AlertTitle className="text-sm font-bold text-amber-900">
+              Gere/publicize a convocação antes de credenciar
+            </AlertTitle>
+            <AlertDescription className="text-xs text-amber-800 mt-1 leading-relaxed">
+              O credenciamento de unidades e votantes só pode ser realizado após a publicação formal
+              do edital de convocação da assembleia. A convocação precede o credenciamento para
+              garantir a legalidade e publicidade do ato condominial.
+              <div className="mt-3 flex items-center gap-2">
+                <Button
+                  asChild
+                  size="sm"
+                  className="bg-amber-700 hover:bg-amber-800 text-white font-medium text-xs h-8"
+                >
+                  <Link to="/mesa/edital">Ir para Edital e Convocação</Link>
+                </Button>
+                {deliberacaoAtiva && (
+                  <span className="text-[11px] text-amber-700">
+                    Assembleia ativa: <strong>{deliberacaoAtiva.titulo}</strong> (Status:{' '}
+                    {deliberacaoAtiva.status})
+                  </span>
+                )}
+              </div>
+            </AlertDescription>
+          </div>
+        </Alert>
+      )}
 
       {/* Status Atual do Credenciamento */}
       {credExistente && (
@@ -422,14 +515,19 @@ export const CredenciamentoPage: React.FC = () => {
             </span>
             <Button
               type="submit"
-              disabled={enviando}
-              className="bg-cyan-700 hover:bg-cyan-800 text-white font-semibold"
+              disabled={enviando || (!verificandoEdital && !convocacaoPublicada)}
+              className="bg-cyan-700 hover:bg-cyan-800 text-white font-semibold disabled:opacity-50"
+              title={
+                !convocacaoPublicada ? 'Gere/publicize a convocação antes de credenciar' : undefined
+              }
             >
               {enviando
                 ? 'Enviando Documentos...'
-                : credExistente
-                  ? 'Atualizar Credenciamento'
-                  : 'Submeter Credenciamento'}
+                : !convocacaoPublicada
+                  ? 'Bloqueado (Aguardando Convocação)'
+                  : credExistente
+                    ? 'Atualizar Credenciamento'
+                    : 'Submeter Credenciamento'}
             </Button>
           </CardFooter>
         </form>

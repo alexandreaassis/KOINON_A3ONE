@@ -59,7 +59,7 @@ import { SecaoAreaSindico } from '@/components/mesa/SecaoAreaSindico'
 
 export const PainelMesaPage: React.FC = () => {
   const navigate = useNavigate()
-  const { rotuloUnidade } = useCondoConfig()
+  const { rotuloUnidade, config } = useCondoConfig()
   const [deliberacoes, setDeliberacoes] = useState<DeliberacaoRecord[]>([])
   const [deliberacaoAtiva, setDeliberacaoAtiva] = useState<DeliberacaoRecord | null>(null)
   const [presencas, setPresencas] = useState<PresencaRecord[]>([])
@@ -190,10 +190,93 @@ export const PainelMesaPage: React.FC = () => {
   const percentualQuorum = Math.min(100, Math.round((totalPresentes / quorumExigido) * 100))
   const quorumAtingido = totalPresentes >= quorumExigido
 
+  // Lista de credenciados presentes elegíveis para a Mesa Diretora
+  const sindicoPodePresidir = config?.sindico_pode_presidir_mesa ?? false
+
+  // Identificação do síndico / administração do condomínio para conferência de impedimento
+  const identificadoresSindico = ['sindico', 'síndico', 'subsíndico', 'subsindico', 'administrador']
+
+  const presentesElegiveisMesa = React.useMemo(() => {
+    // Cruzar presenças registradas com credenciamentos aprovados ou cadastros de unidades
+    const map = new Map<
+      string,
+      {
+        nome: string
+        cpf: string
+        unidadeIdentificador: string
+        impedido: boolean
+        motivoImpedimento?: string
+      }
+    >()
+
+    presencas.forEach((p) => {
+      const unId = p.unidade
+      const unid = unidades.find((u) => u.id === unId)
+      const cred = todosCredenciamentos.find((c) => c.unidade === unId && c.status === 'aprovado')
+      const cad = todosCadastros.find(
+        (c) => c.unidade === unId && (c.status_aprovacao || 'aprovado') === 'aprovado',
+      )
+
+      const nome = cred?.titular_nome || cad?.nome || unid?.responsavel_nome || ''
+      const cpf = cred?.cpf || cad?.cpf || ''
+      const unNome = unid?.identificador ? `${rotuloUnidade} ${unid.identificador}` : 'Unidade'
+
+      if (nome.trim()) {
+        const nomeLower = nome.toLowerCase()
+        const ehSindico =
+          identificadoresSindico.some((termo) => nomeLower.includes(termo)) ||
+          cad?.observacoes?.toLowerCase().includes('síndico') ||
+          cad?.observacoes?.toLowerCase().includes('sindico')
+
+        const impedido = !sindicoPodePresidir && Boolean(ehSindico)
+        const chave = `${nome}-${cpf}`
+
+        if (!map.has(chave)) {
+          map.set(chave, {
+            nome: nome.trim(),
+            cpf: cpf.trim(),
+            unidadeIdentificador: unNome,
+            impedido,
+            motivoImpedimento: impedido
+              ? 'Impedido por convenção (Síndico/Parentes até 3º grau)'
+              : undefined,
+          })
+        }
+      }
+    })
+
+    return Array.from(map.values())
+  }, [
+    presencas,
+    unidades,
+    todosCredenciamentos,
+    todosCadastros,
+    rotuloUnidade,
+    sindicoPodePresidir,
+  ])
+
   // Salvar Mesa Diretora
   const handleSalvarMesaDiretora = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!deliberacaoAtiva) return
+
+    // Validação regimental de impedimento do síndico/parentes quando a convenção veda
+    if (!sindicoPodePresidir) {
+      const presLower = mesaPresNome.toLowerCase()
+      const secLower = mesaSecNome.toLowerCase()
+      const presImpedido = identificadoresSindico.some((termo) => presLower.includes(termo))
+      const secImpedido = identificadoresSindico.some((termo) => secLower.includes(termo))
+
+      if (presImpedido || secImpedido) {
+        toast({
+          title: 'Impedimento Regimental da Mesa',
+          description:
+            'A convenção em vigor veda que o síndico ou familiares exerçam a Presidência ou Secretaria da Mesa.',
+          variant: 'destructive',
+        })
+        return
+      }
+    }
 
     // Validação de CPF (se preenchido, deve ser válido de acordo com o cálculo da Receita Federal)
     let temErro = false
@@ -224,11 +307,13 @@ export const PainelMesaPage: React.FC = () => {
 
     setSalvandoMesa(true)
     try {
+      const dataHoraEleicao = new Date().toISOString()
       const atualizada = await api.updateDeliberacao(deliberacaoAtiva.id, {
         mesa_presidente_nome: mesaPresNome.trim(),
         mesa_presidente_cpf: mesaPresCpf.trim(),
         mesa_secretario_nome: mesaSecNome.trim(),
         mesa_secretario_cpf: mesaSecCpf.trim(),
+        mesa_eleita_em: dataHoraEleicao,
       })
       setDeliberacaoAtiva(atualizada)
       setDeliberacoes((prev) => prev.map((d) => (d.id === atualizada.id ? atualizada : d)))
@@ -774,12 +859,117 @@ export const PainelMesaPage: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
 
+          {/* Aviso regimental sobre impedimento do síndico */}
+          <div
+            className={`p-3 rounded-xl border text-xs ${
+              sindicoPodePresidir
+                ? 'bg-blue-50/70 border-blue-200 text-blue-900'
+                : 'bg-amber-50/70 border-amber-200 text-amber-950'
+            }`}
+          >
+            <p className="font-semibold flex items-center gap-1.5">
+              <Scale className="h-4 w-4 shrink-0" />
+              Regra da Convenção:{' '}
+              {sindicoPodePresidir
+                ? 'Síndico permitido na mesa'
+                : 'Impedimento Regimental do Síndico'}
+            </p>
+            <p className="text-[11px] mt-0.5 opacity-90">
+              {sindicoPodePresidir
+                ? 'A convenção do condomínio permite que o síndico seja eleito Presidente ou Secretário da mesa.'
+                : 'A convenção veda síndico, subsíndico ou parentes até 3º grau na Mesa Diretora (prestação de contas isenta). Apenas condôminos ou procuradores presentes e credenciados devem compor a mesa.'}
+            </p>
+          </div>
+
+          {/* Seleção rápida entre os presentes credenciados */}
+          {presentesElegiveisMesa.length > 0 && (
+            <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1">
+                <Users className="h-3.5 w-3.5 text-blue-600" />
+                Eleição entre os Presentes Credenciados ({presentesElegiveisMesa.length})
+              </span>
+              <p className="text-[11px] text-slate-500">
+                Selecione um participante presente para preencher rapidamente a mesa:
+              </p>
+              <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
+                {presentesElegiveisMesa.map((p, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex items-center justify-between p-2 rounded-lg text-xs border ${
+                      p.impedido
+                        ? 'bg-red-50/80 border-red-200 text-red-800'
+                        : 'bg-white border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <div>
+                      <p className="font-semibold">{p.nome}</p>
+                      <p className="text-[10px] text-slate-500">
+                        {p.unidadeIdentificador} {p.cpf && `• CPF ${formatarCpf(p.cpf)}`}
+                      </p>
+                      {p.impedido && (
+                        <p className="text-[10px] font-bold text-red-600 flex items-center gap-1 mt-0.5">
+                          <AlertTriangle className="h-3 w-3" /> {p.motivoImpedimento}
+                        </p>
+                      )}
+                    </div>
+                    {!p.impedido ? (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-[10px] px-2"
+                          onClick={() => {
+                            setMesaPresNome(p.nome)
+                            if (p.cpf) {
+                              setMesaPresCpf(formatarCpf(p.cpf))
+                              setMesaPresCpfErro(null)
+                            }
+                          }}
+                        >
+                          Presidente
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-[10px] px-2"
+                          onClick={() => {
+                            setMesaSecNome(p.nome)
+                            if (p.cpf) {
+                              setMesaSecCpf(formatarCpf(p.cpf))
+                              setMesaSecCpfErro(null)
+                            }
+                          }}
+                        >
+                          Secretário
+                        </Button>
+                      </div>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="border-red-300 text-red-700 bg-red-100 text-[10px] h-5"
+                      >
+                        Bloqueado
+                      </Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSalvarMesaDiretora} className="space-y-4 py-2 text-xs">
             {/* Presidente */}
             <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
-              <span className="text-[11px] uppercase font-bold text-slate-700 block">
-                Presidente da Mesa
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] uppercase font-bold text-slate-700 block">
+                  Presidente da Mesa
+                </span>
+                {!sindicoPodePresidir && (
+                  <span className="text-[10px] text-amber-700 font-medium">Síndico vedado</span>
+                )}
+              </div>
               <div className="space-y-1">
                 <Label className="text-[11px] font-semibold text-slate-700">Nome Completo</Label>
                 <Input
@@ -828,9 +1018,14 @@ export const PainelMesaPage: React.FC = () => {
 
             {/* Secretário(a) */}
             <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
-              <span className="text-[11px] uppercase font-bold text-slate-700 block">
-                Secretário(a) da Mesa
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] uppercase font-bold text-slate-700 block">
+                  Secretário(a) da Mesa
+                </span>
+                {!sindicoPodePresidir && (
+                  <span className="text-[10px] text-amber-700 font-medium">Síndico vedado</span>
+                )}
+              </div>
               <div className="space-y-1">
                 <Label className="text-[11px] font-semibold text-slate-700">Nome Completo</Label>
                 <Input

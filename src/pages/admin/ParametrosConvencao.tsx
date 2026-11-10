@@ -23,7 +23,15 @@ import {
 } from '@/components/ui/select'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { toast } from '@/hooks/use-toast'
-import { BookOpen, Scale, Save, CheckCircle2, Info, SlidersHorizontal } from 'lucide-react'
+import {
+  BookOpen,
+  Scale,
+  Save,
+  CheckCircle2,
+  Info,
+  SlidersHorizontal,
+  UserCheck,
+} from 'lucide-react'
 
 export const ParametrosConvencaoPage: React.FC = () => {
   const { config, recarregarConfig } = useCondoConfig()
@@ -31,6 +39,7 @@ export const ParametrosConvencaoPage: React.FC = () => {
 
   const [inadimplenteVota, setInadimplenteVota] = useState(true)
   const [locatarioVota, setLocatarioVota] = useState(false)
+  const [sindicoPodePresidirMesa, setSindicoPodePresidirMesa] = useState(false)
   const [quorumMateria, setQuorumMateria] = useState('Maioria simples dos presentes')
   const [tipoCedula, setTipoCedula] = useState('secreta')
   const [salvando, setSalvando] = useState(false)
@@ -39,6 +48,7 @@ export const ParametrosConvencaoPage: React.FC = () => {
     if (config) {
       setInadimplenteVota(config.default_inadimplente_vota ?? true)
       setLocatarioVota(config.default_locatario_vota ?? false)
+      setSindicoPodePresidirMesa(config.sindico_pode_presidir_mesa ?? false)
       setQuorumMateria(config.default_quorum_materia || 'Maioria simples dos presentes')
       setTipoCedula(config.default_tipo_cedula || 'secreta')
     }
@@ -53,6 +63,7 @@ export const ParametrosConvencaoPage: React.FC = () => {
       await api.updateConfiguracao(config.id, {
         default_inadimplente_vota: inadimplenteVota,
         default_locatario_vota: locatarioVota,
+        sindico_pode_presidir_mesa: sindicoPodePresidirMesa,
         default_quorum_materia: quorumMateria.trim(),
         default_tipo_cedula: tipoCedula,
       })
@@ -141,6 +152,28 @@ export const ParametrosConvencaoPage: React.FC = () => {
                 </p>
               </div>
               <Switch checked={locatarioVota} onCheckedChange={setLocatarioVota} />
+            </div>
+
+            {/* 2.1 Síndico e familiares podem presidir ou secretariar a mesa? */}
+            <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/50 flex items-center justify-between gap-4">
+              <div className="space-y-0.5 max-w-lg">
+                <div className="flex items-center gap-2">
+                  <UserCheck className="h-4 w-4 text-purple-700" />
+                  <p className="font-bold text-slate-900 text-sm">
+                    A convenção permite síndico e/ou familiares até 3ª geração ser presidente da
+                    mesa ou secretário?
+                  </p>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Quando desativado (padrão de boas práticas e da convenção do Lago Azul), o sistema
+                  bloqueia e destaca o impedimento do síndico, cônjuge e parentes até 3º grau na
+                  composição da Mesa Diretora.
+                </p>
+              </div>
+              <Switch
+                checked={sindicoPodePresidirMesa}
+                onCheckedChange={setSindicoPodePresidirMesa}
+              />
             </div>
 
             {/* 3. Tipo padrão de cédula e Quórum padrão */}
