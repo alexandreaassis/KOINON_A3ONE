@@ -13,6 +13,15 @@ import {
   User,
   PenTool,
 } from 'lucide-react'
+
+function extrairDataHoraLocal(isoOuData?: string) {
+  const d = isoOuData ? new Date(isoOuData) : new Date()
+  const dataValida = !isNaN(d.getTime()) ? d : new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const data = `${dataValida.getFullYear()}-${pad(dataValida.getMonth() + 1)}-${pad(dataValida.getDate())}`
+  const hora = `${pad(dataValida.getHours())}:${pad(dataValida.getMinutes())}:${pad(dataValida.getSeconds())}`
+  return { data, hora }
+}
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -59,7 +68,9 @@ export function AssinaturaMobilePublicaPage() {
   const [nome, setNome] = useState('')
   const [cpf, setCpf] = useState('')
   const [usarDataHistorica, setUsarDataHistorica] = useState(false)
-  const [dataHoraHistorica, setDataHoraHistorica] = useState('')
+  const [dataAssinaturaCustom, setDataAssinaturaCustom] = useState('')
+  const [horaAssinaturaCustom, setHoraAssinaturaCustom] = useState('')
+  const [dataHoraErro, setDataHoraErro] = useState<string | null>(null)
 
   // Captura da assinatura
   const [dadosCaptura, setDadosCaptura] = useState<DadosCapturaAssinatura>({
@@ -101,7 +112,13 @@ export function AssinaturaMobilePublicaPage() {
 
         if (resp.dataHoraDeclarada) {
           setUsarDataHistorica(true)
-          setDataHoraHistorica(resp.dataHoraDeclarada)
+          const inicial = extrairDataHoraLocal(resp.dataHoraDeclarada)
+          setDataAssinaturaCustom(inicial.data)
+          setHoraAssinaturaCustom(inicial.hora)
+        } else {
+          const agora = extrairDataHoraLocal()
+          setDataAssinaturaCustom(agora.data)
+          setHoraAssinaturaCustom(agora.hora)
         }
       } catch (err: any) {
         console.error('Erro ao consultar sessão:', err)
@@ -139,13 +156,32 @@ export function AssinaturaMobilePublicaPage() {
       return
     }
 
+    let dataHoraFinal: string | undefined = undefined
+    if (usarDataHistorica) {
+      if (!dataAssinaturaCustom || !horaAssinaturaCustom) {
+        setDataHoraErro('Informe a data e o horário completo (HH:mm:ss).')
+        return
+      }
+
+      const partesHora = horaAssinaturaCustom.trim().split(':')
+      const hh = partesHora[0]?.padStart(2, '0') || '00'
+      const mm = partesHora[1]?.padStart(2, '0') || '00'
+      const ss = partesHora[2] ? partesHora[2].padStart(2, '0') : '00'
+
+      const isoCandidate = `${dataAssinaturaCustom}T${hh}:${mm}:${ss}`
+      const dateObj = new Date(isoCandidate)
+      if (isNaN(dateObj.getTime())) {
+        setDataHoraErro('Data ou hora inválida.')
+        return
+      }
+      dataHoraFinal = dateObj.toISOString()
+    }
+
     setEnviando(true)
     setErroEnvio(null)
+    setDataHoraErro(null)
 
     try {
-      const dataHoraFinal =
-        usarDataHistorica && dataHoraHistorica.trim() ? dataHoraHistorica : undefined
-
       const resp = await api.confirmarAssinaturaMobile(token, {
         nome: nome.trim(),
         cpf: cpf.trim() ? cpf.replace(/\D/g, '') : undefined,
@@ -229,6 +265,32 @@ export function AssinaturaMobilePublicaPage() {
                   {nome || sessao.signatarioNome}
                 </span>
               </div>
+              {(usarDataHistorica && dataAssinaturaCustom && horaAssinaturaCustom) ||
+              sessao.dataHoraDeclarada ? (
+                <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
+                  <span className="text-slate-500">Data declarada:</span>
+                  <span className="font-semibold text-slate-800 font-mono">
+                    {(() => {
+                      const dataRef =
+                        usarDataHistorica && dataAssinaturaCustom && horaAssinaturaCustom
+                          ? `${dataAssinaturaCustom}T${horaAssinaturaCustom}`
+                          : sessao.dataHoraDeclarada
+                      if (!dataRef) return ''
+                      const d = new Date(dataRef)
+                      return isNaN(d.getTime())
+                        ? dataRef
+                        : d.toLocaleString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                          })
+                    })()}
+                  </span>
+                </div>
+              ) : null}
               <div className="flex justify-between items-center py-1 border-b border-slate-200/60">
                 <span className="text-slate-500">Canal:</span>
                 <span className="font-semibold text-emerald-700">assinado via mobile</span>
@@ -330,22 +392,100 @@ export function AssinaturaMobilePublicaPage() {
 
               {/* Data declarada histórica (se configurada na sessão) */}
               {sessao.permitirDataHistorica && (
-                <div className="space-y-2 bg-amber-50/60 p-3 rounded-xl border border-amber-200 text-xs">
-                  <div className="flex items-center gap-2 font-medium text-amber-900">
-                    <Calendar className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Data Declarada da Assinatura</span>
+                <div className="space-y-2.5 bg-amber-50/60 p-3.5 rounded-xl border border-amber-200 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-semibold text-amber-950">
+                      <Calendar className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Data e Hora da Assinatura</span>
+                    </div>
+                    <label className="flex items-center gap-1.5 text-[11px] text-amber-900 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={usarDataHistorica}
+                        onChange={(e) => {
+                          setUsarDataHistorica(e.target.checked)
+                          setDataHoraErro(null)
+                        }}
+                        className="rounded border-amber-300 text-[#0066FF] focus:ring-[#0066FF] h-3.5 w-3.5"
+                        disabled={enviando}
+                      />
+                      <span>Declarar data/hora</span>
+                    </label>
                   </div>
-                  <p className="text-[11px] text-amber-800">
-                    Esta sessão possui data de assinatura histórica declarada. O registro preservará
-                    a auditoria técnica de momento no servidor.
-                  </p>
-                  <Input
-                    type="datetime-local"
-                    step="1"
-                    value={dataHoraHistorica}
-                    onChange={(e) => setDataHoraHistorica(e.target.value)}
-                    className="bg-white text-xs mt-1 font-mono"
-                  />
+
+                  {usarDataHistorica ? (
+                    <div className="space-y-2 pt-1 border-t border-amber-200/70">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-amber-950 font-medium flex items-center gap-1">
+                            <Calendar className="h-3 w-3 text-amber-700" />
+                            Data da Assinatura
+                          </Label>
+                          <Input
+                            type="date"
+                            value={dataAssinaturaCustom}
+                            onChange={(e) => {
+                              setDataAssinaturaCustom(e.target.value)
+                              setDataHoraErro(null)
+                            }}
+                            disabled={enviando}
+                            className="text-xs h-9 bg-white border-amber-300/80 rounded-lg text-slate-800"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-[11px] text-amber-950 font-medium flex items-center gap-1">
+                              <Clock className="h-3 w-3 text-amber-700" />
+                              Hora (HH:mm:ss com segundos)
+                            </Label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const agora = extrairDataHoraLocal()
+                                setDataAssinaturaCustom(agora.data)
+                                setHoraAssinaturaCustom(agora.hora)
+                                setDataHoraErro(null)
+                              }}
+                              className="text-[10px] font-semibold text-[#0066FF] hover:underline"
+                              disabled={enviando}
+                            >
+                              Usar agora com segundos
+                            </button>
+                          </div>
+                          <Input
+                            type="time"
+                            step="1"
+                            value={horaAssinaturaCustom}
+                            onChange={(e) => {
+                              setHoraAssinaturaCustom(e.target.value)
+                              setDataHoraErro(null)
+                            }}
+                            disabled={enviando}
+                            className="text-xs h-9 bg-white border-amber-300/80 rounded-lg font-mono text-slate-800"
+                          />
+                        </div>
+                      </div>
+
+                      <p className="text-[10px] text-amber-900 leading-tight">
+                        A data e hora informadas (incluindo segundos, ex.:{' '}
+                        <span className="font-mono font-semibold text-amber-950">21:42:34</span>)
+                        serão carimbadas no documento como{' '}
+                        <strong className="text-amber-950">Data da Assinatura</strong> e integrarão
+                        o cálculo do hash SHA-256. A auditoria técnica continuará registrando o
+                        momento exato da operação no servidor.
+                      </p>
+
+                      {dataHoraErro && (
+                        <p className="text-[11px] text-red-600 font-medium">{dataHoraErro}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-amber-900">
+                      Será registrado o <strong className="text-amber-950">momento atual</strong>{' '}
+                      como data e hora da assinatura.
+                    </p>
+                  )}
                 </div>
               )}
 
