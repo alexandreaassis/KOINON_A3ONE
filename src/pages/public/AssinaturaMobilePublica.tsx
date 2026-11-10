@@ -356,9 +356,8 @@ export function AssinaturaMobilePublicaPage() {
                 </Label>
                 <div className="border border-slate-200 rounded-xl p-3 bg-white">
                   <SeletorAssinatura
-                    nomeSignatario={nome || sessao.signatarioNome}
+                    nomeSugerido={nome || sessao.signatarioNome}
                     onChange={setDadosCaptura}
-                    permitirEmBranco={true}
                   />
                 </div>
               </div>
@@ -392,7 +391,7 @@ export function AssinaturaMobilePublicaPage() {
       </main>
 
       <footer className="max-w-lg mx-auto w-full pt-4 pb-2 text-center">
-        <EndossoA3One tamanho="pequeno" className="justify-center" />
+        <EndossoA3One variant="color" layout="inline" className="justify-center" />
       </footer>
     </div>
   )

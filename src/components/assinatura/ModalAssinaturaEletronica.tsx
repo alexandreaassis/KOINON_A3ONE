@@ -193,7 +193,7 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
         signatarioNome: nome.trim(),
         signatarioCpf: cpf.replace(/\D/g, ''),
         signatarioCargo: cargo.trim(),
-        permitirDataHistorica: permitirDataHistorica,
+        permitirDataHistorica: permitirDataHoraHistorica,
         dataHoraDeclarada: dataHoraIso,
       })
 
