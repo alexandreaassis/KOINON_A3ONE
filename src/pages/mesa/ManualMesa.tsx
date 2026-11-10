@@ -10,6 +10,8 @@ import {
   ShieldCheck,
   Printer,
   ArrowRight,
+  Building,
+  BarChart3,
   MessageCircleQuestion,
   HelpCircle,
 } from 'lucide-react'
@@ -33,6 +35,11 @@ import {
   MockupCicloMesa,
 } from './manual/MockupsMesa'
 import MockupDeliberacoes from './manual/MockupDeliberacoes'
+import {
+  MockupAprovacaoCadastrosMesa,
+  MockupCadastroUnidadeMesa,
+  MockupRelatoriosAssembleiaMesa,
+} from './manual/MockupNovasSecoesMesa'
 import { useNarracao } from '@/hooks/useNarracao'
 import { KoinonSymbol } from '@/components/brand/KoinonSymbol'
 import { EndossoA3One } from '@/components/brand/EndossoA3One'
@@ -52,6 +59,12 @@ const NARRACOES: Record<string, string> = {
   ata: 'A Ata é o registro oficial da assembleia. Nela, a mesa escreve com o editor rico, que tem negrito, listas e citações, e pode pedir ajuda à inteligência artificial para redigir os resultados — sempre revisando antes de usar. Feito o texto, os membros da mesa assinam eletronicamente, desenhando, digitando ou carimando, e cada assinatura recebe um carimbo de hash. Publicada a ata, todos os moradores têm acesso ao documento completo.',
   deliberacoes:
     'Em Deliberações e Pautas, a mesa cadastra a assembleia, monta a pauta item a item e conduz cada deliberação: abre a votação, acompanha em tempo real, encerra e apura. É também daqui que sai a botoeira que o Painel espelha. Cada transição de etapa fica registrada com data e hora para a auditoria.',
+  aprovacao_cadastros:
+    'Em Aprovação de Cadastros, a mesa analisa as solicitações enviadas pelos moradores através do link público da unidade. A mesa confere o nome, CPF, e-mail, telefone e o vínculo declarado — seja proprietário, condômino, inquilino ou procurador. Se os dados estiverem corretos, aprova e o morador recebe acesso. Se houver divergência, rejeita com motivo formal registrado.',
+  cadastro_unidade:
+    'O Cadastro da Unidade reúne o mapa predial do condomínio: números das unidades, blocos opcionais, frações ideais e os moradores ativos. Daqui a mesa e a administração geram o link exclusivo de autoatendimento com token para envio via WhatsApp ou e-mail, além de importar planilhas em massa.',
+  relatorios:
+    'Os Relatórios de Assembleia consolidam todo o evento em números e gráficos oficiais. Eles mostram o índice de comparecimento, taxa de quórum atingida, apuração percentual e nominal de cada item da pauta e o hash raiz da urna, permitindo impressão e download de PDF oficial para cartório e condôminos.',
   auditoria:
     'A Auditoria é a prova de transparência do sistema. Cada voto gera um hash, uma impressão digital eletrônica, ligada ao voto anterior, formando uma corrente: se alguém alterar um voto, o elo quebra e a auditoria mostra exatamente onde. Ali também ficam o boletim da urna de cada item, com os números e percentuais apurados, e o dossiê completo para cartório, assinado pela mesa. É da auditoria que sai a certeza de que o resultado confere.',
   ia: 'Ficou com alguma dúvida sobre o módulo da mesa? Use a IA do Koinon no fim deste manual. Ela explica cada página em linguagem simples, mas não decide deliberação e não enxerga dados dos moradores.',
@@ -68,6 +81,22 @@ const SECOES: SecaoManual[] = [
     icone: LayoutDashboard,
     resumo:
       'Visão geral do dia da assembleia: pendências, quórum ao vivo e a deliberação ativa em uma só tela.',
+  },
+  {
+    id: 'aprovacao_cadastros',
+    titulo: 'Aprovação de Cadastros — validação de quem entra',
+    rota: '/mesa/credenciamentos',
+    icone: UserCheck,
+    resumo:
+      'Análise criteriosa dos cadastros públicos enviados por link de autoatendimento: conferência de vínculo, aprovação ou rejeição motivada.',
+  },
+  {
+    id: 'cadastro_unidade',
+    titulo: 'Cadastro da Unidade — base predial e moradores',
+    rota: '/admin/cadastros',
+    icone: Building,
+    resumo:
+      'Gestão de unidades, blocos e vínculos, geração e envio de links de cadastro com token via WhatsApp e e-mail, e importação de planilhas.',
   },
   {
     id: 'credenciamentos',
@@ -110,6 +139,14 @@ const SECOES: SecaoManual[] = [
       'Cadastro da assembleia, pauta item a item e condução de cada deliberação: abrir, acompanhar, encerrar e apurar.',
   },
   {
+    id: 'relatorios',
+    titulo: 'Relatórios de Assembleia — consolidação oficial',
+    rota: '/mesa/relatorios',
+    icone: BarChart3,
+    resumo:
+      'Relatório consolidado de presença, quórum, resultados da urna por item, gráficos comparativos e emissão de PDF para cartório.',
+  },
+  {
     id: 'auditoria',
     titulo: 'Auditoria — a corrente de confiança',
     rota: '/mesa/auditoria',
@@ -149,6 +186,23 @@ const MARCADORES: Record<string, { n: number; x: number; y: number }[]> = {
     { n: 2, x: 76, y: 42 },
     { n: 3, x: 30, y: 70 },
     { n: 4, x: 70, y: 88 },
+  ],
+  aprovacao_cadastros: [
+    { n: 1, x: 18, y: 30 },
+    { n: 2, x: 50, y: 30 },
+    { n: 3, x: 82, y: 30 },
+    { n: 4, x: 80, y: 68 },
+  ],
+  cadastro_unidade: [
+    { n: 1, x: 30, y: 36 },
+    { n: 2, x: 70, y: 36 },
+    { n: 3, x: 50, y: 78 },
+  ],
+  relatorios: [
+    { n: 1, x: 20, y: 32 },
+    { n: 2, x: 50, y: 32 },
+    { n: 3, x: 80, y: 32 },
+    { n: 4, x: 50, y: 76 },
   ],
   deliberacoes: [
     { n: 1, x: 50, y: 42 },
@@ -280,14 +334,119 @@ const ManualMesaPage: React.FC = () => {
                 marcadores={MARCADORES[s.id] ?? []}
               >
                 {s.id === 'painel' && <MockupPainelMesa />}
+                {s.id === 'aprovacao_cadastros' && <MockupAprovacaoCadastrosMesa />}
+                {s.id === 'cadastro_unidade' && <MockupCadastroUnidadeMesa />}
                 {s.id === 'credenciamentos' && <MockupCredenciamentosMesa />}
                 {s.id === 'presenca' && <MockupListaPresenca />}
                 {s.id === 'documentos' && <MockupDocumentosEdital />}
                 {s.id === 'ata' && <MockupAtaMesa />}
                 {s.id === 'deliberacoes' && <MockupDeliberacoes />}
+                {s.id === 'relatorios' && <MockupRelatoriosAssembleiaMesa />}
                 {s.id === 'auditoria' && <MockupAuditoria />}
               </MockupTela>
               {/* legendas por seção */}
+              {s.id === 'aprovacao_cadastros' && (
+                <>
+                  <LegendaNumerada
+                    itens={[
+                      {
+                        n: 1,
+                        titulo: 'Fila de Pendentes',
+                        texto:
+                          'Cadastros preenchidos pelo morador via link público da unidade aguardando conferência da mesa.',
+                      },
+                      {
+                        n: 2,
+                        titulo: 'Aprovados',
+                        texto:
+                          'Moradores validados com acesso liberado para credenciamento e acompanhamento da assembleia.',
+                      },
+                      {
+                        n: 3,
+                        titulo: 'Rejeição Motivada',
+                        texto:
+                          'A rejeição exige justificativa formal da mesa e fica registrada para transparência do condomínio.',
+                      },
+                      {
+                        n: 4,
+                        titulo: 'Ação Individual',
+                        texto:
+                          'Botões de ação rápida com confirmação de segurança para evitar aprovações ou recusas acidentais.',
+                      },
+                    ]}
+                  />
+                  <CaixaImportante>
+                    A mesa deve atentar para o tipo de vínculo: inquilinos e procuradores necessitam
+                    de documentação de representação legal de acordo com a convenção do condomínio.
+                  </CaixaImportante>
+                </>
+              )}
+              {s.id === 'cadastro_unidade' && (
+                <>
+                  <LegendaNumerada
+                    itens={[
+                      {
+                        n: 1,
+                        titulo: 'Links com Token Exclusivo',
+                        texto:
+                          'Cada apartamento ou casa tem seu token único para autoatendimento sem senhas complexas.',
+                      },
+                      {
+                        n: 2,
+                        titulo: 'Carga em Massa',
+                        texto:
+                          'Importação fácil de arquivos CSV ou Excel com frações ideais e relação de proprietários.',
+                      },
+                      {
+                        n: 3,
+                        titulo: 'Visão Predial',
+                        texto:
+                          'Estrutura em blocos opcionais (ou torre única) com status de adimplência e histórico de moradores.',
+                      },
+                    ]}
+                  />
+                  <CaixaDica>
+                    O disparo de links de cadastro pode ser feito diretamente via WhatsApp com um
+                    clique no botão wa.me ou por e-mail em massa.
+                  </CaixaDica>
+                </>
+              )}
+              {s.id === 'relatorios' && (
+                <>
+                  <LegendaNumerada
+                    itens={[
+                      {
+                        n: 1,
+                        titulo: 'Taxa de Comparecimento',
+                        texto:
+                          'Percentual de presença calculado sobre o total de frações ou unidades, com validação de quórum.',
+                      },
+                      {
+                        n: 2,
+                        titulo: 'Urna 100% Auditada',
+                        texto:
+                          'Totalização de votos válidos, brancos e nulos com a garantia criptográfica de integridade.',
+                      },
+                      {
+                        n: 3,
+                        titulo: 'Exportação para Cartório',
+                        texto:
+                          'Geração de PDF oficial consolidado pronto para impressão ou arquivamento digital de registro.',
+                      },
+                      {
+                        n: 4,
+                        titulo: 'Hash Raiz de Cada Item',
+                        texto:
+                          'Identificador digital imutável que sela a apuração de cada pauta deliberada.',
+                      },
+                    ]}
+                  />
+                  <CaixaDica>
+                    O Relatório Consolidado pode ser baixado em PDF imediatamente após a apuração
+                    para leitura em plenária antes do encerramento da sessão.
+                  </CaixaDica>
+                </>
+              )}
               {s.id === 'painel' && (
                 <LegendaNumerada
                   itens={[

@@ -58,6 +58,8 @@ import {
   History,
   Clock,
   RotateCw,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 
 const ITENS_POR_PAGINA = 10
@@ -81,6 +83,7 @@ export const GestaoUsuariosPage: React.FC = () => {
   const [novoNome, setNovoNome] = useState('')
   const [novoEmail, setNovoEmail] = useState('')
   const [novoSenha, setNovoSenha] = useState('')
+  const [mostrarNovoSenha, setMostrarNovoSenha] = useState(false)
   const [novoCpf, setNovoCpf] = useState('')
   const [novoCpfErro, setNovoCpfErro] = useState<string | null>(null)
   const [novoRole, setNovoRole] = useState<UserRole>('morador')
@@ -1045,13 +1048,24 @@ export const GestaoUsuariosPage: React.FC = () => {
                 </Label>
                 <span className="text-[10px] text-[#5C6B7A]">Mínimo 8 caracteres</span>
               </div>
-              <Input
-                type="password"
-                value={novoSenha}
-                onChange={(e) => setNovoSenha(e.target.value)}
-                placeholder="Deixe em branco para gerar senha temporária segura"
-                className="text-xs h-9 border-[#D5DCE5] bg-white rounded-[10px]"
-              />
+              <div className="relative">
+                <Input
+                  type={mostrarNovoSenha ? 'text' : 'password'}
+                  value={novoSenha}
+                  onChange={(e) => setNovoSenha(e.target.value)}
+                  placeholder="Deixe em branco para gerar senha temporária segura"
+                  className="pr-10 text-xs h-9 border-[#D5DCE5] bg-white rounded-[10px]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrarNovoSenha(!mostrarNovoSenha)}
+                  className="absolute right-2.5 top-2 text-[#5C6B7A] hover:text-[#12314F] p-0.5 rounded transition-colors"
+                  title={mostrarNovoSenha ? 'Ocultar senha' : 'Ver senha'}
+                  tabIndex={-1}
+                >
+                  {mostrarNovoSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               <p className="text-[10px] text-[#5C6B7A]">
                 Se deixada em branco, uma senha forte aleatória será gerada e enviada via convite.
               </p>

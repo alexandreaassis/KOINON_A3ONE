@@ -338,7 +338,7 @@ export const QrCodeSvg: React.FC<QrCodeSvgProps> = ({
   const totalSize = matrixSize + margin * 2
 
   // Criar path com todos os módulos escuros para renderização nítida em alta definição
-  const cells: JSX.Element[] = []
+  const cells: React.ReactElement[] = []
   for (let r = 0; r < matrixSize; r++) {
     for (let c = 0; c < matrixSize; c++) {
       if (matrix[r][c]) {

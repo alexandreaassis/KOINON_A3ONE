@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { KoinonLogo } from '@/components/brand/KoinonLogo'
 import { KoinonSymbol } from '@/components/brand/KoinonSymbol'
-import { Mail, Lock, AlertTriangle, ArrowRight, ShieldCheck, User } from 'lucide-react'
+import { Mail, Lock, AlertTriangle, ArrowRight, ShieldCheck, User, Eye, EyeOff } from 'lucide-react'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { EndossoA3One } from '@/components/brand/EndossoA3One'
 
@@ -28,6 +28,7 @@ export const LoginPage: React.FC = () => {
 
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
+  const [mostrarSenha, setMostrarSenha] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [carregando, setCarregando] = useState(false)
 
@@ -155,13 +156,22 @@ export const LoginPage: React.FC = () => {
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-[#5A6B82]" />
                     <Input
                       id="senha"
-                      type="password"
+                      type={mostrarSenha ? 'text' : 'password'}
                       required
                       placeholder="••••••••"
                       value={senha}
                       onChange={(e) => setSenha(e.target.value)}
-                      className="pl-10 h-10 border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF] focus-visible:border-[#0066FF]"
+                      className="pl-10 pr-10 h-10 border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF] focus-visible:border-[#0066FF]"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setMostrarSenha(!mostrarSenha)}
+                      className="absolute right-3 top-2.5 text-[#5A6B82] hover:text-[#002B5E] p-0.5 rounded transition-colors"
+                      title={mostrarSenha ? 'Ocultar senha' : 'Ver senha'}
+                      tabIndex={-1}
+                    >
+                      {mostrarSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
 

@@ -63,6 +63,8 @@ import {
   MessageSquare,
   AlertCircle,
   ExternalLink,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
@@ -242,6 +244,7 @@ export const CadastrosUnidadesPage: React.FC = () => {
   const [cadastroParaExcluir, setCadastroParaExcluir] = useState<CadastroUnidadeRecord | null>(null)
   const [authEmailExclusao, setAuthEmailExclusao] = useState('')
   const [authSenhaExclusao, setAuthSenhaExclusao] = useState('')
+  const [mostrarSenhaExclusao, setMostrarSenhaExclusao] = useState(false)
   const [excluindoCadastro, setExcluindoCadastro] = useState(false)
   const [erroExclusao, setErroExclusao] = useState<string | null>(null)
 
@@ -2376,14 +2379,29 @@ export const CadastrosUnidadesPage: React.FC = () => {
                   <Label className="text-xs font-semibold text-slate-700">
                     Senha do Administrador *
                   </Label>
-                  <Input
-                    type="password"
-                    required
-                    value={authSenhaExclusao}
-                    onChange={(e) => setAuthSenhaExclusao(e.target.value)}
-                    placeholder="Digite sua senha de acesso"
-                    className="text-xs h-9 bg-white"
-                  />
+                  <div className="relative">
+                    <Input
+                      type={mostrarSenhaExclusao ? 'text' : 'password'}
+                      required
+                      value={authSenhaExclusao}
+                      onChange={(e) => setAuthSenhaExclusao(e.target.value)}
+                      placeholder="Digite sua senha de acesso"
+                      className="pr-10 text-xs h-9 bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setMostrarSenhaExclusao(!mostrarSenhaExclusao)}
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 p-0.5 rounded transition-colors"
+                      title={mostrarSenhaExclusao ? 'Ocultar senha' : 'Ver senha'}
+                      tabIndex={-1}
+                    >
+                      {mostrarSenhaExclusao ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {erroExclusao && (

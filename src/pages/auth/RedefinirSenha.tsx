@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { KoinonLogo } from '@/components/brand/KoinonLogo'
 import { KoinonSymbol } from '@/components/brand/KoinonSymbol'
-import { Lock, CheckCircle2, AlertTriangle, ArrowLeft } from 'lucide-react'
+import { Lock, CheckCircle2, AlertTriangle, ArrowLeft, Eye, EyeOff } from 'lucide-react'
 import { EndossoA3One } from '@/components/brand/EndossoA3One'
 
 export const RedefinirSenhaPage: React.FC = () => {
@@ -63,6 +63,8 @@ export const RedefinirSenhaPage: React.FC = () => {
 
   const [novaSenha, setNovaSenha] = useState('')
   const [confirmacao, setConfirmacao] = useState('')
+  const [mostrarNovaSenha, setMostrarNovaSenha] = useState(false)
+  const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false)
   const [sucesso, setSucesso] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const [carregando, setCarregando] = useState(false)
@@ -175,13 +177,26 @@ export const RedefinirSenhaPage: React.FC = () => {
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-[#5A6B82]" />
                       <Input
                         id="novaSenha"
-                        type="password"
+                        type={mostrarNovaSenha ? 'text' : 'password'}
                         required
                         placeholder="••••••••"
                         value={novaSenha}
                         onChange={(e) => setNovaSenha(e.target.value)}
-                        className="pl-10 h-10 border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF]"
+                        className="pl-10 pr-10 h-10 border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF]"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setMostrarNovaSenha(!mostrarNovaSenha)}
+                        className="absolute right-3 top-2.5 text-[#5A6B82] hover:text-[#002B5E] p-0.5 rounded transition-colors"
+                        title={mostrarNovaSenha ? 'Ocultar senha' : 'Ver senha'}
+                        tabIndex={-1}
+                      >
+                        {mostrarNovaSenha ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
 
@@ -193,13 +208,26 @@ export const RedefinirSenhaPage: React.FC = () => {
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-[#5A6B82]" />
                       <Input
                         id="confirmacao"
-                        type="password"
+                        type={mostrarConfirmacao ? 'text' : 'password'}
                         required
                         placeholder="••••••••"
                         value={confirmacao}
                         onChange={(e) => setConfirmacao(e.target.value)}
-                        className="pl-10 h-10 border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF]"
+                        className="pl-10 pr-10 h-10 border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF]"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setMostrarConfirmacao(!mostrarConfirmacao)}
+                        className="absolute right-3 top-2.5 text-[#5A6B82] hover:text-[#002B5E] p-0.5 rounded transition-colors"
+                        title={mostrarConfirmacao ? 'Ocultar senha' : 'Ver senha'}
+                        tabIndex={-1}
+                      >
+                        {mostrarConfirmacao ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
 
