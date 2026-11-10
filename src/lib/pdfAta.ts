@@ -422,7 +422,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
           <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0066FF;"></span>
           Certificação e Integridade Criptográfica (SHA-256)
         </span>
-        <span style="font-size: 8pt; color: #0066FF; font-weight: 700; font-family: monospace;">ICP-BRASIL / KOINON</span>
+        <span style="font-size: 8pt; color: #0066FF; font-weight: 700; font-family: monospace;">KOINON</span>
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; font-size: 8.5pt;">
