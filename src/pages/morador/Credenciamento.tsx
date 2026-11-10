@@ -76,12 +76,13 @@ export const CredenciamentoPage: React.FC = () => {
           const edital = await api.getEditalPorDeliberacao(delib.id)
           if (!ativo) return
           setEditalAtivo(edital)
-          // Considera convocação publicada se o edital tiver status "publicado" ou se a deliberação já estiver CONVOCADA/EM_VOTACAO/ENCERRADA/PUBLICADA
+          // Considera convocação publicada se o edital tiver status "publicado" ou se a deliberação já estiver em andamento/publicada
           const isPublicado =
             edital?.status === 'publicado' ||
-            delib.status === 'CONVOCADA' ||
+            delib.status === 'ABERTA' ||
             delib.status === 'EM_VOTACAO' ||
             delib.status === 'ENCERRADA' ||
+            delib.status === 'APURADA' ||
             delib.status === 'PUBLICADA'
           setConvocacaoPublicada(isPublicado)
         } else {

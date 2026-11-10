@@ -54,6 +54,8 @@ import {
   Save,
   FileText,
   Clock,
+  Scale,
+  AlertTriangle,
 } from 'lucide-react'
 import { SecaoAreaSindico } from '@/components/mesa/SecaoAreaSindico'
 
