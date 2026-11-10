@@ -148,7 +148,7 @@ verificar('undefined → simples', decidirSelo(undefined).nivel === 'simples')
 
 if (falhas > 0) {
   console.error(`\n${falhas} verificação(ões) falharam.`)
-  process.exit(1)
+  throw new Error(`${falhas} verificação(ões) de honestidade do selo falharam.`)
 } else {
   console.log('\nTodos os testes de honestidade do selo passaram.')
 }
