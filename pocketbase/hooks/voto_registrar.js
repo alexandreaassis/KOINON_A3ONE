@@ -79,8 +79,9 @@ routerAdd('POST', '/backend/v1/votos/registrar', (e) => {
   const body = e.requestInfo().body || {}
   const tokenVoto = (body.tokenVoto || '').trim()
   const deliberacaoId = body.deliberacaoId
-  const votos = body.votos || [] // array de { itemId, opcao }
+  const votos = body.votos || [] // array de { itemId, opcao, declaracaoRepresentanteLegal }
   const dispositivoId = body.dispositivoId || e.requestInfo().headers['user-agent'] || 'web-browser'
+  const declaracaoGlobal = !!body.declaracaoRepresentanteLegal
 
   if (!tokenVoto || !deliberacaoId || !Array.isArray(votos) || votos.length === 0) {
     return e.json(400, {
@@ -389,6 +390,11 @@ routerAdd('POST', '/backend/v1/votos/registrar', (e) => {
       cedRec.set('recibo_codigo', reciboCodigo)
       cedRec.set('vinculo_votante', vinculoVotante)
       cedRec.set('regra_aplicada', regraAplicadaItem)
+      const declarouRepresentante =
+        v.declaracaoRepresentanteLegal !== undefined
+          ? !!v.declaracaoRepresentanteLegal
+          : declaracaoGlobal
+      cedRec.set('declaracao_representante_legal', declarouRepresentante)
       txApp.save(cedRec)
     }
 

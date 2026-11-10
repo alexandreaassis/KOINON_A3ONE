@@ -1088,8 +1088,9 @@ export const api = {
   async registrarVoto(dados: {
     tokenVoto: string
     deliberacaoId: string
-    votos: Array<{ itemId: string; opcao: string }>
+    votos: Array<{ itemId: string; opcao: string; declaracaoRepresentanteLegal?: boolean }>
     dispositivoId?: string
+    declaracaoRepresentanteLegal?: boolean
   }) {
     return pb.send<{
       success: boolean

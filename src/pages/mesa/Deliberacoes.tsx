@@ -48,7 +48,14 @@ import {
   AlertCircle,
   HelpCircle,
   Vote,
+  Send,
+  Mail,
+  MessageSquare,
+  CheckCircle2,
+  Users,
+  ExternalLink,
 } from 'lucide-react'
+import { formatarUnidadeComBloco } from '@/lib/formatadorUnidade'
 
 export const DeliberacoesPage: React.FC = () => {
   const [deliberacoes, setDeliberacoes] = useState<DeliberacaoRecord[]>([])
@@ -85,9 +92,17 @@ export const DeliberacoesPage: React.FC = () => {
   const [itemQuorum, setItemQuorum] = useState('Maioria simples dos presentes')
   const [itemRegraLocatario, setItemRegraLocatario] =
     useState<RegraLocatario>('somente_proprietario')
+  const [itemTipoPauta, setItemTipoPauta] = useState<TipoPauta>('despesas_manutencao')
   const [salvandoItem, setSalvandoItem] = useState(false)
 
+  // Unidades e ausências de proprietários
+  const [unidadesCadastradas, setUnidadesCadastradas] = useState<UnidadeRecord[]>([])
+  const [unidadesAusentes, setUnidadesAusentes] = useState<string[]>([])
+  const [salvandoAusencias, setSalvandoAusencias] = useState(false)
+
   // Disparo de acesso ao locatário
+  const [unidadeSelecionadaDisparo, setUnidadeSelecionadaDisparo] = useState<string>('')
+  const [confirmarDisparoAberto, setConfirmarDisparoAberto] = useState(false)
   const [disparandoLocatario, setDisparandoLocatario] = useState(false)
   const [modalDisparoLocatarioAberto, setModalDisparoLocatarioAberto] = useState(false)
   const [ultimoResultadoDisparo, setUltimoResultadoDisparo] = useState<any>(null)
@@ -95,15 +110,28 @@ export const DeliberacoesPage: React.FC = () => {
   const carregar = async () => {
     setCarregando(true)
     try {
-      const delibs = await api.getDeliberacoes()
+      const [delibs, unidades] = await Promise.all([
+        api.getDeliberacoes(),
+        api.getUnidades().catch(() => [] as UnidadeRecord[]),
+      ])
       setDeliberacoes(delibs)
+      setUnidadesCadastradas(unidades)
+
+      let delibAlvo: DeliberacaoRecord | null = null
       if (delibs.length > 0 && !deliberacaoSelecionada) {
-        setDeliberacaoSelecionada(delibs[0])
-        const itens = await api.getItensPauta(delibs[0].id)
-        setItensPauta(itens)
+        delibAlvo = delibs[0]
       } else if (deliberacaoSelecionada) {
-        const itens = await api.getItensPauta(deliberacaoSelecionada.id)
+        delibAlvo = delibs.find((d) => d.id === deliberacaoSelecionada.id) || deliberacaoSelecionada
+      }
+
+      if (delibAlvo) {
+        setDeliberacaoSelecionada(delibAlvo)
+        const itens = await api.getItensPauta(delibAlvo.id)
         setItensPauta(itens)
+        const ausentes = Array.isArray(delibAlvo.proprietario_nao_participa_unidades)
+          ? delibAlvo.proprietario_nao_participa_unidades
+          : []
+        setUnidadesAusentes(ausentes)
       }
     } catch (err) {
       console.error('Erro ao carregar deliberações:', err)
@@ -120,6 +148,10 @@ export const DeliberacoesPage: React.FC = () => {
     setDeliberacaoSelecionada(d)
     const itens = await api.getItensPauta(d.id)
     setItensPauta(itens)
+    const ausentes = Array.isArray(d.proprietario_nao_participa_unidades)
+      ? d.proprietario_nao_participa_unidades
+      : []
+    setUnidadesAusentes(ausentes)
   }
 
   const abrirNovaDeliberacao = async () => {
@@ -287,6 +319,7 @@ export const DeliberacoesPage: React.FC = () => {
       ? 'morador_vota_sempre'
       : 'somente_proprietario'
     setItemRegraLocatario(defaultRegra)
+    setItemTipoPauta('despesas_manutencao')
     setModalItemAberto(true)
   }
 
@@ -300,6 +333,7 @@ export const DeliberacoesPage: React.FC = () => {
       ? 'morador_vota_sempre'
       : 'somente_proprietario'
     setItemRegraLocatario(item.regra_locatario || fallbackRegra)
+    setItemTipoPauta(item.tipo_pauta || 'despesas_manutencao')
     setModalItemAberto(true)
   }
 
@@ -316,6 +350,7 @@ export const DeliberacoesPage: React.FC = () => {
           texto: itemTexto,
           quorum_aplicavel: itemQuorum,
           regra_locatario: itemRegraLocatario,
+          tipo_pauta: itemTipoPauta,
         })
         toast({ title: 'Item de Pauta Atualizado' })
       } else {
@@ -326,6 +361,7 @@ export const DeliberacoesPage: React.FC = () => {
           texto: itemTexto,
           quorum_aplicavel: itemQuorum,
           regra_locatario: itemRegraLocatario,
+          tipo_pauta: itemTipoPauta,
         })
         toast({ title: 'Item de Pauta Adicionado' })
       }
@@ -340,6 +376,76 @@ export const DeliberacoesPage: React.FC = () => {
       })
     } finally {
       setSalvandoItem(false)
+    }
+  }
+
+  // Gestão de ausência de proprietários em despesas de manutenção
+  const alternarAusenciaProprietario = async (unidadeId: string) => {
+    if (!deliberacaoSelecionada) return
+    const existe = unidadesAusentes.includes(unidadeId)
+    const novas = existe
+      ? unidadesAusentes.filter((id) => id !== unidadeId)
+      : [...unidadesAusentes, unidadeId]
+
+    setUnidadesAusentes(novas)
+    setSalvandoAusencias(true)
+    try {
+      await api.updateDeliberacao(deliberacaoSelecionada.id, {
+        proprietario_nao_participa_unidades: novas,
+      })
+      setDeliberacaoSelecionada({
+        ...deliberacaoSelecionada,
+        proprietario_nao_participa_unidades: novas,
+      })
+      toast({
+        title: existe ? 'Unidade removida da lista' : 'Ausência de proprietário registrada',
+        description: existe
+          ? 'Proprietário voltou a constar como participante potencial.'
+          : 'Proprietário manifestou ausência. O locatário pode receber disparo de acesso.',
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao atualizar ausência',
+        description: err?.message || 'Falha ao salvar no banco.',
+        variant: 'destructive',
+      })
+      // reverter
+      setUnidadesAusentes(unidadesAusentes)
+    } finally {
+      setSalvandoAusencias(false)
+    }
+  }
+
+  // Abertura da confirmação antes do disparo
+  const abrirConfirmacaoDisparo = (unidadeId: string) => {
+    setUnidadeSelecionadaDisparo(unidadeId)
+    setConfirmarDisparoAberto(true)
+  }
+
+  // Disparo de acesso ao locatário via api.dispararAcessoLocatario
+  const executarDisparoLocatario = async () => {
+    if (!deliberacaoSelecionada || !unidadeSelecionadaDisparo) return
+    setDisparandoLocatario(true)
+    try {
+      const resp = await api.dispararAcessoLocatario({
+        deliberacaoId: deliberacaoSelecionada.id,
+        unidadeId: unidadeSelecionadaDisparo,
+      })
+      setUltimoResultadoDisparo(resp)
+      setConfirmarDisparoAberto(false)
+      setModalDisparoLocatarioAberto(true)
+      toast({
+        title: 'Disparo de Acesso Realizado',
+        description: resp.message || 'E-mail enviado e link de WhatsApp gerado.',
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Falha no disparo',
+        description: err?.message || 'Não foi possível disparar acesso ao locatário.',
+        variant: 'destructive',
+      })
+    } finally {
+      setDisparandoLocatario(false)
     }
   }
 
@@ -588,6 +694,122 @@ export const DeliberacoesPage: React.FC = () => {
                 </CardContent>
               </Card>
 
+              {/* Painel do Locatário: Pauta de Despesas de Manutenção e Ausência de Proprietários */}
+              <Card className="border-emerald-200 bg-emerald-50/20 shadow-xs">
+                <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-sm font-bold text-emerald-950 flex items-center gap-1.5">
+                        <Users className="h-4 w-4 text-emerald-700" />
+                        Locatários em Pauta de Manutenção
+                      </CardTitle>
+                      {itensPauta.some((it) => it.tipo_pauta === 'despesas_manutencao') ? (
+                        <Badge className="bg-emerald-600 text-white text-[10px]">
+                          Pauta de manutenção ativa
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-slate-500 text-[10px]">
+                          Nenhum item marcado como manutenção
+                        </Badge>
+                      )}
+                    </div>
+                    <CardDescription className="text-xs text-slate-600 mt-1">
+                      Conforme art. 24 da Lei 4.591/64 e convenção, nas despesas
+                      ordinárias/manutenção o locatário pode votar caso o proprietário não
+                      participe. Gerencie as ausências manifestadas e dispare as credenciais.
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-3 pt-0 text-xs">
+                  <div className="bg-white rounded-lg border border-emerald-100 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-slate-800">
+                        Unidades com Proprietário Ausente ({unidadesAusentes.length})
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Selecione as unidades que informaram que o proprietário não votará
+                      </span>
+                    </div>
+
+                    {unidadesCadastradas.length === 0 ? (
+                      <p className="text-slate-400 italic py-2">
+                        Nenhuma unidade cadastrada no sistema.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1 border rounded bg-slate-50">
+                        {unidadesCadastradas.map((u) => {
+                          const ausente = unidadesAusentes.includes(u.id)
+                          return (
+                            <button
+                              key={u.id}
+                              type="button"
+                              disabled={salvandoAusencias}
+                              onClick={() => alternarAusenciaProprietario(u.id)}
+                              className={`px-2 py-1 rounded text-[11px] font-medium transition-colors border flex items-center gap-1 ${
+                                ausente
+                                  ? 'bg-amber-100 text-amber-900 border-amber-300 font-bold shadow-xs'
+                                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                              }`}
+                              title={
+                                ausente
+                                  ? 'Proprietário manifestou ausência. Clique para desmarcar.'
+                                  : 'Clique para marcar proprietário como ausente.'
+                              }
+                            >
+                              <span>{formatarUnidadeComBloco(u)}</span>
+                              {ausente && (
+                                <span className="text-amber-700 text-[10px]">✕ ausente</span>
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Lista de Ações de Disparo por Unidade Ausente */}
+                  {unidadesAusentes.length > 0 && (
+                    <div className="space-y-2 pt-1">
+                      <h4 className="font-bold text-slate-800 text-xs flex items-center gap-1">
+                        <Send className="h-3.5 w-3.5 text-cyan-700" />
+                        Disparo de Acesso para Locatários Elegíveis
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {unidadesAusentes.map((uid) => {
+                          const u = unidadesCadastradas.find((item) => item.id === uid)
+                          const label = u
+                            ? formatarUnidadeComBloco(u)
+                            : `Unidade ${uid.slice(0, 6)}`
+                          return (
+                            <div
+                              key={uid}
+                              className="p-2.5 rounded-lg border border-slate-200 bg-white flex items-center justify-between gap-2 shadow-2xs"
+                            >
+                              <div>
+                                <p className="font-bold text-slate-800">{label}</p>
+                                <p className="text-[11px] text-slate-500">
+                                  Proprietário ausente manifesto
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => abrirConfirmacaoDisparo(uid)}
+                                className="h-7 text-xs bg-cyan-50 hover:bg-cyan-100 border-cyan-300 text-cyan-900 flex items-center gap-1 shrink-0"
+                              >
+                                <Send className="h-3 w-3" />
+                                Disparar Acesso
+                              </Button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Card de Itens de Pauta */}
               <Card className="border-slate-200 shadow-xs">
                 <CardHeader className="pb-3 flex flex-row items-center justify-between">
@@ -626,6 +848,32 @@ export const DeliberacoesPage: React.FC = () => {
                               Item {item.ordem}
                             </span>
                             <span className="font-bold text-slate-900">{item.titulo}</span>
+                            {/* Badge do Tipo de Pauta */}
+                            {item.tipo_pauta === 'despesas_manutencao' && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] text-emerald-700 border-emerald-300 bg-emerald-50"
+                              >
+                                Despesas de Manutenção
+                              </Badge>
+                            )}
+                            {item.tipo_pauta === 'proprietarios' && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] text-amber-800 border-amber-300 bg-amber-50"
+                              >
+                                Somente Proprietários
+                              </Badge>
+                            )}
+                            {item.tipo_pauta === 'geral' && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] text-slate-700 border-slate-300 bg-slate-100"
+                              >
+                                Pauta Geral
+                              </Badge>
+                            )}
+
                             {/* Badge da Regra do Locatário */}
                             {(!item.regra_locatario ||
                               item.regra_locatario === 'somente_proprietario') && (
@@ -633,7 +881,7 @@ export const DeliberacoesPage: React.FC = () => {
                                 variant="outline"
                                 className="text-[10px] text-amber-700 border-amber-300 bg-amber-50"
                               >
-                                Somente Proprietário
+                                Regra: Somente Proprietário
                               </Badge>
                             )}
                             {item.regra_locatario === 'morador_substitui_ausente' && (
@@ -641,7 +889,7 @@ export const DeliberacoesPage: React.FC = () => {
                                 variant="outline"
                                 className="text-[10px] text-blue-700 border-blue-300 bg-blue-50"
                               >
-                                Morador substitui ausente
+                                Regra: Morador substitui ausente
                               </Badge>
                             )}
                             {item.regra_locatario === 'morador_vota_sempre' && (
@@ -649,7 +897,7 @@ export const DeliberacoesPage: React.FC = () => {
                                 variant="outline"
                                 className="text-[10px] text-purple-700 border-purple-300 bg-purple-50"
                               >
-                                Morador vota sempre (Despesas correntes)
+                                Regra: Morador vota sempre
                               </Badge>
                             )}
                           </div>
@@ -991,6 +1239,37 @@ export const DeliberacoesPage: React.FC = () => {
               />
             </div>
 
+            {/* Seletor do Tipo de Pauta */}
+            <div className="p-2.5 rounded bg-blue-50/70 border border-blue-200 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-blue-950">Tipo de Pauta</Label>
+                <span className="text-[10px] text-blue-700 font-semibold">
+                  Regimento / Locatário
+                </span>
+              </div>
+              <Select
+                value={itemTipoPauta}
+                onValueChange={(val) => setItemTipoPauta(val as TipoPauta)}
+              >
+                <SelectTrigger className="text-xs h-9 bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="text-xs">
+                  <SelectItem value="despesas_manutencao">
+                    Despesas de manutenção (locatário vota se proprietário for ausente)
+                  </SelectItem>
+                  <SelectItem value="proprietarios">
+                    Somente proprietários (inquilino exige procuração / declaração de representante)
+                  </SelectItem>
+                  <SelectItem value="geral">Geral (matérias gerais do condomínio)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-slate-500">
+                Define o comportamento da matéria para condôminos inquilinos conforme art. da
+                Convenção e Lei 4.591/64.
+              </p>
+            </div>
+
             <div className="p-2.5 rounded bg-amber-50/70 border border-amber-200 space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-bold text-amber-950">
@@ -1049,6 +1328,178 @@ export const DeliberacoesPage: React.FC = () => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmação antes do Disparo ao Locatário */}
+      <Dialog open={confirmarDisparoAberto} onOpenChange={setConfirmarDisparoAberto}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Send className="h-4 w-4 text-cyan-700" />
+              Confirmar Disparo de Acesso ao Locatário
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600">
+              O proprietário desta unidade se manifestou ausente nesta assembleia de despesas de
+              manutenção.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2 text-xs space-y-3">
+            <div className="p-3 bg-slate-50 border rounded-lg space-y-1">
+              <p className="font-semibold text-slate-700">
+                Unidade selecionada:{' '}
+                <span className="font-bold text-slate-900">
+                  {(() => {
+                    const u = unidadesCadastradas.find((x) => x.id === unidadeSelecionadaDisparo)
+                    return u ? formatarUnidadeComBloco(u) : unidadeSelecionadaDisparo
+                  })()}
+                </span>
+              </p>
+              <p className="text-slate-500 text-[11px]">
+                Assembleia: <span className="font-medium">{deliberacaoSelecionada?.titulo}</span>
+              </p>
+            </div>
+
+            <div className="p-2.5 bg-cyan-50/70 border border-cyan-200 rounded text-cyan-950 text-[11px] space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-cyan-700" />
+                Canais de Envio Ativados
+              </p>
+              <ul className="list-disc list-inside space-y-0.5 text-slate-700">
+                <li>
+                  <strong>E-mail Institucional:</strong> Enfileirado e enviado com credenciais e
+                  link de votação.
+                </li>
+                <li>
+                  <strong>WhatsApp (wa.me):</strong> Link pré-formatado pronto para envio direto
+                  pela mesa.
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={disparandoLocatario}
+              onClick={() => setConfirmarDisparoAberto(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={disparandoLocatario}
+              onClick={executarDisparoLocatario}
+              className="bg-cyan-700 hover:bg-cyan-800 text-white font-semibold flex items-center gap-1.5"
+            >
+              {disparandoLocatario ? (
+                'Disparando...'
+              ) : (
+                <>
+                  <Send className="h-3.5 w-3.5" />
+                  Confirmar e Disparar
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal com Resultado do Disparo (E-mail + WhatsApp) */}
+      <Dialog open={modalDisparoLocatarioAberto} onOpenChange={setModalDisparoLocatarioAberto}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              Disparo de Acesso ao Locatário Concluído
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600">
+              Confira os canais de envio gerados para o inquilino da unidade.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2 text-xs space-y-3">
+            {ultimoResultadoDisparo && (
+              <>
+                <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-700">Destinatário:</span>
+                    <span className="font-bold text-slate-900">
+                      {ultimoResultadoDisparo.destinatario?.nome || 'Locatário'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">E-mail:</span>
+                    <span className="font-mono text-slate-800">
+                      {ultimoResultadoDisparo.destinatario?.email || '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Telefone:</span>
+                    <span className="font-mono text-slate-800">
+                      {ultimoResultadoDisparo.destinatario?.telefone || '—'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Status E-mail */}
+                <div className="p-3 rounded-lg border border-blue-200 bg-blue-50/50 flex items-start gap-2.5">
+                  <Mail className="h-4 w-4 text-blue-700 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-blue-950">E-mail Institucional</p>
+                    <p className="text-slate-600 text-[11px]">
+                      {ultimoResultadoDisparo.email?.status === 'enviado'
+                        ? 'E-mail enviado e registrado no log de e-mails do sistema.'
+                        : 'E-mail enfileirado para entrega ao locatário.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Status WhatsApp */}
+                <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50/50 space-y-2">
+                  <div className="flex items-start gap-2.5">
+                    <MessageSquare className="h-4 w-4 text-emerald-700 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-bold text-emerald-950">WhatsApp Direto</p>
+                      <p className="text-slate-600 text-[11px]">
+                        Mensagem com link direto de votação pronta para envio instantâneo.
+                      </p>
+                    </div>
+                  </div>
+
+                  {ultimoResultadoDisparo.whatsapp?.link_whatsapp && (
+                    <div className="pt-1 flex justify-end">
+                      <a
+                        href={ultimoResultadoDisparo.whatsapp.link_whatsapp}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        Abrir WhatsApp do Locatário
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setModalDisparoLocatarioAberto(false)}
+              className="bg-slate-800 hover:bg-slate-900 text-white"
+            >
+              Fechar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
