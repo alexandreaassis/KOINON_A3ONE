@@ -3,6 +3,8 @@
  * Utiliza o pipeline nativo de alta fidelidade e styling A4 via janela limpa de impressão
  * e trigger do driver de PDF/impressora do browser.
  */
+import { gerarHtmlInstrucoesAcesso, type InstrucoesAcessoVotacao } from '@/lib/selo/honestidade'
+import { TEXTO_LEGAL_SELO } from '@/lib/selo/honestidade'
 
 export interface DadosEditalPdf {
   nomeCondominio: string
@@ -24,7 +26,20 @@ export interface DadosEditalPdf {
   status?: string
   hashAssinatura?: string | null
   dataAssinatura?: string | null
+  /** Data/hora declarada pelo signatário no ato (recurso existente); exibida como tal */
+  dataDeclaradaSignatario?: string | null
   dataEmissao?: string
+  /** true quando esta via é uma reemissão (2ª via / cópia) */
+  segundaVia?: boolean
+  /** Referência ao original assinado para a 2ª via (hash + data original) */
+  referenciaOriginal?: { hash: string; dataAssinatura: string } | null
+  /** Frase curta: a organização adota a assinatura eletrônica descrita e onde conferi-la */
+  fraseAdocaoAssinatura?: string
+  /** Menção de que a convocação eletrônica não é vedada pelo documento normativo (artigo informado pela organização) */
+  mencaoNormativaConvocacaoEletronica?: string
+  /** Texto da regra de procuração escolhida pela organização (gerarTextoProcuracao) */
+  textoProcuracao?: string
+  instrucoesAcesso?: InstrucoesAcessoVotacao | null
   formatoAssinatura?: 'desenho' | 'texto' | 'em_branco'
   assinaturaVisual?: string
   assinaturaTexto?: string
@@ -63,6 +78,18 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
     hour: '2-digit',
     minute: '2-digit',
   })
+
+  // Bloco OBRIGATÓRIO de instruções de acesso e votação eletrônica
+  const blocoInstrucoesAcesso = dados.instrucoesAcesso
+    ? gerarHtmlInstrucoesAcesso(dados.instrucoesAcesso)
+    : ''
+
+  // Frase curta de adoção do método de assinatura + referência de conferência
+  const fraseAdocao = dados.fraseAdocaoAssinatura?.trim()
+    ? `<div style="border: 1px solid #E2E8F0; border-radius: 6px; padding: 8px 12px; margin: 12px 0; font-size: 9pt; color: #334155; background: #F8FAFC;">
+         ${converterTextoParaHtmlSeguro(dados.fraseAdocaoAssinatura)}
+       </div>`
+    : ''
 
   const pautaRender =
     dados.ordemDiaCustom && dados.ordemDiaCustom.trim().length > 0
@@ -129,9 +156,17 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
             </div>
           </div>
           <div style="text-align: right; font-size: 8pt; font-weight: 700; color: #0066FF; letter-spacing: 0.5px;">
-            VIA AUTENTICADA
+            ${dados.segundaVia ? '2ª VIA / CÓPIA' : 'VIA AUTENTICADA'}
           </div>
         </div>
+
+        ${
+          dados.segundaVia
+            ? `<div style="background: #FFF7ED; border: 1px solid #FDBA74; border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; font-size: 8.5pt; color: #7C2D12;">
+                 <strong>2ª via / cópia</strong> — não é o original assinado. Referência do original: hash <span style="font-family: monospace;">${formatarHashBlocos(dados.referenciaOriginal?.hash || dados.hashAssinatura)}</span>, assinado em ${formatarDataAssinatura(dados.referenciaOriginal?.dataAssinatura || dados.dataAssinatura)}.
+               </div>`
+            : ''
+        }
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; font-size: 8.5pt;">
           <div style="background: rgba(255,255,255,0.8); border: 1px solid #E2E8F0; border-radius: 6px; padding: 8px 10px;">
@@ -143,10 +178,17 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
           </div>
 
           <div style="background: rgba(255,255,255,0.8); border: 1px solid #E2E8F0; border-radius: 6px; padding: 8px 10px;">
-            <span style="display: block; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #5A6B82; letter-spacing: 0.5px; margin-bottom: 2px;">Datação & Carimbo de Auditoria</span>
+            <span style="display: block; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #5A6B82; letter-spacing: 0.5px; margin-bottom: 2px;">Data de assinatura (registrada pela plataforma)</span>
             <strong style="color: #002B5E; font-size: 9.5pt; font-family: monospace;">${formatarDataAssinatura(dados.dataAssinatura)}</strong>
-            <div style="color: #5A6B82; font-size: 8pt; margin-top: 1px;">Registro oficial de assinatura eletrônica</div>
+            ${dados.dataDeclaradaSignatario ? `<div style="color: #7C2D12; font-size: 8pt; margin-top: 2px;"><strong>Data declarada pelo signatário:</strong> ${formatarDataAssinatura(dados.dataDeclaradaSignatario)}</div>` : ''}
+            <div style="color: #5A6B82; font-size: 8pt; margin-top: 1px;">Registro da assinatura eletrônica, com segundos</div>
           </div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.8); border: 1px solid #E2E8F0; border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; font-size: 8.5pt;">
+          <span style="display: block; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #5A6B82; letter-spacing: 0.5px; margin-bottom: 2px;">Data de emissão desta via</span>
+          <strong style="color: #002B5E; font-size: 9.5pt; font-family: monospace;">${dataHoje} às ${horaHoje}</strong>
+          <div style="color: #5A6B82; font-size: 8pt; margin-top: 1px;">Momento da geração deste documento (independe da assinatura)</div>
         </div>
 
         <div style="background: #ffffff; border: 1px solid #CBD5E1; border-radius: 6px; padding: 8px 10px;">
@@ -158,7 +200,7 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
             ${formatarHashBlocos(dados.hashAssinatura)}
           </div>
           <div style="color: #5A6B82; font-size: 7.5pt; margin-top: 4px; line-height: 1.2;">
-            Assinatura em conformidade com o Código Civil e MP 2.200-2/2001. A alteração de qualquer caractere invalida a verificação deste hash.
+            Assinatura eletrônica: autoria e integridade comprovadas por outro meio com a anuência das partes (art. 10, §2º da MP 2.200-2/2001) — referência: Lei 14.063/2020. A alteração de qualquer caractere invalida a verificação deste hash.
           </div>
         </div>
       </div>
@@ -465,9 +507,9 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
           <p class="header-sub">Assembleia Geral de Condôminos</p>
         </div>
         <div class="emission-badge">
-          <div><strong>Emissão:</strong> ${dataHoje}</div>
+          <div><strong>Emissão desta via:</strong> ${dataHoje}</div>
           <div>${horaHoje}</div>
-          <div style="margin-top: 3px; color: #0066FF; font-weight: bold;">VIA OFICIAL</div>
+          <div style="margin-top: 3px; color: #0066FF; font-weight: bold;">${dados.segundaVia ? '2ª VIA / CÓPIA' : 'VIA OFICIAL'}</div>
         </div>
       </div>
     </header>
@@ -508,6 +550,23 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
     `
         : ''
     }
+
+    <div class="section-title">Procurações</div>
+    <div class="text-body rendered-document-html" style="font-size: 10pt; color: #334155; margin-bottom: 10px;">
+      ${converterTextoParaHtmlSeguro(dados.textoProcuracao || '')}
+    </div>
+
+    ${
+      dados.mencaoNormativaConvocacaoEletronica?.trim()
+        ? `<div class="text-body rendered-document-html" style="font-size: 9.5pt; color: #475569; margin-bottom: 10px;">
+             ${converterTextoParaHtmlSeguro(dados.mencaoNormativaConvocacaoEletronica)}
+           </div>`
+        : ''
+    }
+
+    ${blocoInstrucoesAcesso}
+
+    ${fraseAdocao}
 
     <div class="signature-area">
       <div class="signature-box">

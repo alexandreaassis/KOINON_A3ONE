@@ -357,6 +357,11 @@ routerAdd('POST', '/backend/v1/notificacoes/disparar-edital', (e) => {
   const resumoPauta = body.resumoPauta || ''
   const dataAssembleia = body.dataAssembleia || ''
   const linkApp = body.linkApp || ''
+  // Prova de envio (Fase 2C): PDF assinado + hash embarcados na convocação
+  const pdfBase64 = body.pdfBase64 || ''
+  const pdfNome = (body.pdfNome || 'edital-assinado.pdf').substring(0, 200)
+  const hashDocumento = (body.hashDocumento || '').substring(0, 128)
+  const canalWhatsApp = Array.isArray(body.whatsappLinks) ? body.whatsappLinks : []
 
   if (!deliberacaoId) {
     return e.json(400, { success: false, message: 'deliberacaoId é obrigatório' })
@@ -425,7 +430,20 @@ routerAdd('POST', '/backend/v1/notificacoes/disparar-edital', (e) => {
     (dataAssembleia ? `• Data/Período: ${dataAssembleia}\n` : '') +
     (resumoPauta ? `• Pauta resumida:\n${resumoPauta}\n\n` : '') +
     `Acesse o aplicativo de votação para consultar o Edital na íntegra, os documentos da pauta e realizar seu credenciamento prévio.\n` +
-    (linkApp ? `Link de acesso: ${linkApp}\n` : '')
+    (linkApp ? `Link de acesso: ${linkApp}\n` : '') +
+    (hashDocumento
+      ? `\nIntegridade do documento: hash SHA-256 ${hashDocumento}. O PDF assinado acompanha este e-mail em anexo.`
+      : '')
+
+  // Registro do hash do documento assinado na deliberação (prova de envio Fase 2C)
+  if (hashDocumento && delib.getString('hash_edital_enviado') !== hashDocumento) {
+    try {
+      delib.set('hash_edital_enviado', hashDocumento)
+      e.app.save(delib)
+    } catch (err) {
+      console.log('Erro ao registrar hash do edital na deliberação:', err)
+    }
+  }
 
   for (let dest of emailsDest) {
     try {
@@ -437,10 +455,94 @@ routerAdd('POST', '/backend/v1/notificacoes/disparar-edital', (e) => {
       notif.set('corpo', corpoEdital)
       notif.set('deliberacao', deliberacaoId)
       notif.set('status', 'pendente')
+      // Prova de envio (Fase 2C)
+      notif.set('prova_canal', 'email')
+      notif.set('prova_status', 'pendente')
+      notif.set('prova_data_hora', new Date().toISOString())
+      notif.set('prova_hash_documento', hashDocumento || '')
+      notif.set('prova_deliberacao', deliberacaoId)
+      notif.set(
+        'prova_payload',
+        JSON.stringify({
+          tipo: 'convocacao_edital',
+          anexo: pdfNome,
+          anexo_presente: Boolean(pdfBase64),
+          hash_documento: hashDocumento,
+        }),
+      )
       e.app.save(notif)
       totalCriados++
     } catch (err) {
       console.log('Erro ao criar notificação de edital para ' + dest + ':', err)
+    }
+  }
+
+  // Anexos: PDF assinado (e-mail) e registro dos links WhatsApp (sem integração)
+  if (pdfBase64 && totalCriados > 0) {
+    try {
+      const settings = e.app.settings()
+      const fallbackAddr =
+        (settings && settings.meta && settings.meta.senderAddress) || 'nao-responda@lagoazul.condo'
+      const subject = `[CONVOCAÇÃO] ${delib.getString('titulo')} — ${nomeCondo}`
+      const binario = $security.base64Decode(pdfBase64)
+      for (let dest of emailsDest) {
+        try {
+          const msg = new MailerMessage({
+            from: { address: fallbackAddr, name: nomeCondo },
+            to: [{ address: dest }],
+            subject: subject,
+            html:
+              `<p>Segue em anexo o Edital de Convocação assinado eletronicamente.</p>` +
+              `<p>Hash SHA-256 do documento: <code>${hashDocumento}</code></p>`,
+            attachments: [{ filename: pdfNome, data: binario, contentType: 'application/pdf' }],
+          })
+          e.app.newMailClient().send(msg)
+        } catch (err) {
+          console.log('Erro ao enviar anexo do edital para ' + dest + ':', err)
+        }
+      }
+    } catch (err) {
+      console.log('Erro ao preparar anexos do edital:', err)
+    }
+  }
+
+  // WhatsApp — apenas link, sem integração (prova formal de entrega fica no e-mail)
+  if (canalWhatsApp.length > 0) {
+    try {
+      const waCol = e.app.findCollectionByNameOrId('notificacoes')
+      for (let wa of canalWhatsApp) {
+        const destino = (wa && wa.telefone) || ''
+        const link = (wa && wa.link) || ''
+        if (!destino || !link) continue
+        try {
+          const notifWa = new Record(waCol)
+          notifWa.set('destinatario', 'whatsapp-disparo@koinon.local')
+          notifWa.set('canal', 'email')
+          notifWa.set('tipo', 'edital_convocado')
+          notifWa.set('titulo', `[CONVOCAÇÃO via WhatsApp] ${delib.getString('titulo')}`)
+          notifWa.set(
+            'corpo',
+            'Link de convocação enviado por WhatsApp (sem prova formal de entrega): ' + link,
+          )
+          notifWa.set('deliberacao', deliberacaoId)
+          notifWa.set('status', 'enviada')
+          notifWa.set('enviada_em', new Date().toISOString().replace('T', ' ').substring(0, 19))
+          notifWa.set('prova_canal', 'whatsapp_link')
+          notifWa.set('prova_status', 'disparado')
+          notifWa.set('prova_data_hora', new Date().toISOString())
+          notifWa.set('prova_hash_documento', hashDocumento || '')
+          notifWa.set('prova_deliberacao', deliberacaoId)
+          notifWa.set(
+            'prova_payload',
+            JSON.stringify({ tipo: 'convocacao_whatsapp_link', telefone: destino, link }),
+          )
+          e.app.save(notifWa)
+        } catch (err) {
+          console.log('Erro ao registrar disparo WhatsApp:', err)
+        }
+      }
+    } catch (err) {
+      console.log('Erro ao registrar disparos WhatsApp do edital:', err)
     }
   }
 

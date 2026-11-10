@@ -1,11 +1,16 @@
 import React from 'react'
-import { CheckCircle2, ShieldCheck, Clock, FileCheck, Hash } from 'lucide-react'
+import { CheckCircle2, ShieldCheck, Clock, FileCheck, Hash, AlertTriangle } from 'lucide-react'
+import { decidirSelo, type RequisitosAssinatura, type SeloDecidido } from '@/lib/selo/honestidade'
 
 export interface SeloAssinaturaCriptograficaProps {
   hash?: string | null
   hashSha256?: string | null
   dataAssinatura?: string | null
   dataHoraAssinatura?: string | null
+  /** Data/hora DECLARADA pelo signatário no ato (recurso existente) — exibida como tal */
+  dataDeclaradaSignatario?: string | null
+  /** Requisitos efetivamente verificados — decide "simples" vs "avançada" (honestidade.ts) */
+  requisitos?: RequisitosAssinatura | null
   nomeSignatario?: string
   cpfSignatario?: string
   cargoSignatario?: string
@@ -64,6 +69,8 @@ export const SeloAssinaturaCriptografica: React.FC<SeloAssinaturaCriptograficaPr
   hashSha256,
   dataAssinatura,
   dataHoraAssinatura,
+  dataDeclaradaSignatario,
+  requisitos,
   nomeSignatario,
   cpfSignatario,
   cargoSignatario,
@@ -74,6 +81,9 @@ export const SeloAssinaturaCriptografica: React.FC<SeloAssinaturaCriptograficaPr
 }) => {
   const hashEfetivo = hash || hashSha256
   const dataEfetiva = dataAssinatura || dataHoraAssinatura
+
+  // Decisão honesta do selo: "simples" por padrão; "avançada" só com requisitos verificados
+  const selo: SeloDecidido = decidirSelo(requisitos ?? null)
 
   if (status === 'pendente' || !hashEfetivo) {
     return (
@@ -114,7 +124,11 @@ export const SeloAssinaturaCriptografica: React.FC<SeloAssinaturaCriptograficaPr
                 : 'bg-[#0066FF]/10 text-[#0066FF] ring-[#0066FF]/25'
             } flex items-center justify-center shrink-0 ring-1`}
           >
-            <ShieldCheck className="h-4 w-4" />
+            {isDesatualizado ? (
+              <AlertTriangle className="h-4 w-4" />
+            ) : (
+              <ShieldCheck className="h-4 w-4" />
+            )}
           </div>
           <div>
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -128,14 +142,15 @@ export const SeloAssinaturaCriptografica: React.FC<SeloAssinaturaCriptograficaPr
                   isDesatualizado ? 'bg-amber-100 text-amber-800' : 'bg-[#0066FF]/10 text-[#0066FF]'
                 }`}
               >
-                <CheckCircle2 className="h-2.5 w-2.5 inline" /> SHA-256
+                <CheckCircle2 className="h-2.5 w-2.5 inline" /> {selo.rotulo}
               </span>
+              {typeof selo.nivel === 'string' && selo.nivel === 'avancada' && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-emerald-100 text-emerald-800">
+                  {selo.nivel}
+                </span>
+              )}
             </div>
-            <p className="text-[10px] text-[#5A6B82] leading-tight">
-              {isDesatualizado
-                ? 'O conteúdo foi modificado após esta assinatura. Requer nova assinatura para homologar.'
-                : 'Autenticidade e integridade garantidas pela Plataforma Virtual Koinon'}
-            </p>
+            <p className="text-[10px] text-[#5A6B82] leading-tight">{selo.descricao}</p>
           </div>
         </div>
 
@@ -172,15 +187,23 @@ export const SeloAssinaturaCriptografica: React.FC<SeloAssinaturaCriptograficaPr
           </div>
         )}
 
-        {/* Data e Hora da Assinatura */}
+        {/* Data e Hora da Assinatura — registrada pela plataforma vs. declarada pelo signatário */}
         <div className="space-y-0.5 bg-white/70 rounded p-2 border border-slate-200/60">
           <span className="text-[9px] uppercase font-bold text-[#5A6B82] block tracking-wider flex items-center gap-1">
             <Clock className="h-2.5 w-2.5 text-[#0066FF]" />
-            Data e Hora da Assinatura
+            {dataDeclaradaSignatario
+              ? 'Data/hora declarada pelo signatário'
+              : 'Data e Hora da Assinatura'}
           </span>
-          <p className="font-semibold text-[#002B5E] text-xs font-mono m-0">{dataFormatada}</p>
+          <p className="font-semibold text-[#002B5E] text-xs font-mono m-0">
+            {dataDeclaradaSignatario
+              ? formatarDataHoraAssinatura(dataDeclaradaSignatario)
+              : dataFormatada}
+          </p>
           <p className="text-[9px] text-[#5A6B82] m-0">
-            Registro com datação e carimbo temporal de auditoria
+            {dataDeclaradaSignatario
+              ? `Data registrada pela plataforma: ${dataFormatada} (sem carimbo temporal ICP)`
+              : 'Registro com datação e carimbo temporal de auditoria'}
           </p>
         </div>
       </div>
@@ -202,6 +225,11 @@ export const SeloAssinaturaCriptografica: React.FC<SeloAssinaturaCriptograficaPr
           carimbo.
         </p>
       </div>
+
+      {/* Base legal honesta — apenas o que realmente se aplica */}
+      <p className="text-[8.5px] text-[#5A6B82] leading-snug m-0 pt-2 mt-1 border-t border-slate-200/70">
+        {selo.rodapeLegal}
+      </p>
     </div>
   )
 }

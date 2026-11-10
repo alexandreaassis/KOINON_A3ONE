@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T15:50:45.979Z",
+  "generatedAt": "2026-11-10T17:07:27.152Z",
   "collections": [
     {
       "name": "users",
@@ -307,6 +307,12 @@
         {
           "name": "proprietario_nao_participa_unidades",
           "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hash_edital_enviado",
+          "type": "text",
           "required": false,
           "system": false
         }
@@ -1147,6 +1153,93 @@
           "type": "bool",
           "required": false,
           "system": false
+        },
+        {
+          "name": "organization_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo_organizacao",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["condominio", "associacao", "outro"]
+        },
+        {
+          "name": "cargo_signatario",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "nome_documento_normativo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "artigo_documento_normativo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "citacao_legal_assembleia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "prazo_minimo_convocacao_dias",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "regra_procuracao",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["firma_ou_eletronica_avancada", "procuracao_simples"]
+        },
+        {
+          "name": "link_verificacao_assinatura",
+          "type": "url",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "clausula_aceite_versao",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "clausula_aceite_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["rascunho_aprovado_mesa", "incorporada_normativo"]
+        },
+        {
+          "name": "clausula_aceite_texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "instrucoes_acesso",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "segunda_organizacao_bloqueada",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
@@ -1248,6 +1341,42 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "prova_canal",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "prova_status",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "prova_data_hora",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "prova_hash_documento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "prova_payload",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "prova_deliberacao",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -2475,6 +2604,79 @@
         "CREATE UNIQUE INDEX idx_sessoes_ass_token ON sessoes_assinatura (token)",
         "CREATE INDEX idx_sessoes_ass_status ON sessoes_assinatura (status)",
         "CREATE INDEX idx_sessoes_ass_doc ON sessoes_assinatura (documento_id)"
+      ]
+    },
+    {
+      "name": "organizacoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.role = 'mesa')",
+        "view": "@request.auth.id != '' && (@request.auth.role = 'admin' || @request.auth.role = 'mesa')",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["condominio", "associacao", "outro"]
+        },
+        {
+          "name": "organization_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "ativa",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "isolamento_verificado",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "bloqueada_motivo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "credenciais_externas_cifradas",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_organizacoes_organization_id ON organizacoes (organization_id)"
       ]
     }
   ]

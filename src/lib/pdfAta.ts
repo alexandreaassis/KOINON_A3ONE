@@ -495,7 +495,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
 
     <div class="footer-note">
       Documento lavrado e homologado através da Plataforma Virtual Koinon.<br>
-      A integridade jurídica e a conformidade deste instrumento são atestadas pelas assinaturas digitais da Mesa Diretora e pelo Hash Raiz SHA-256 auditado.
+      A integridade deste instrumento é atestada pelas assinaturas eletrônicas da Mesa Diretora e pelo Hash Raiz SHA-256 auditado — autoria e integridade comprovadas por outro meio com a anuência das partes (art. 10, §2º da MP 2.200-2/2001); referência: Lei 14.063/2020.
       <div>
         <span class="seal-a3one">
           <strong>KOINON</strong> • uma solução <span class="brand-a3one">A3ONE</span>
