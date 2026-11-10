@@ -89,21 +89,30 @@ export function otimizarCanvasAssinatura(canvas: HTMLCanvasElement): string | un
 
   if (cropWidth <= 0 || cropHeight <= 0) return undefined
 
-  // Redimensionar proporcionalmente para altura máx 60px e largura máx 240px.
-  // BlocoAssinaturaCompacto exibe a imagem em max-h-10 (40px) e max-w-[220px].
-  // 60px de altura garante traço nítido em telas retina/mobile e documentos A4/impressão,
-  // mantendo o payload PNG minúsculo (~2KB a 5KB em base64) para tráfego seguro em rede móvel.
-  const maxTargetHeight = 60
-  const maxTargetWidth = 240
+  // Redimensionar proporcionalmente para altura máx 70px e largura máx 260px.
+  // BlocoAssinaturaCompacto e os PDFs exibem a imagem sobre a linha de base.
+  // Incluímos a linha de base (horizontal baseline) na parte inferior da imagem gerada,
+  // exatamente onde a assinatura se assenta no documento oficial.
+  const maxTargetHeight = 70
+  const maxTargetWidth = 260
 
   const scale = Math.min(1, maxTargetWidth / cropWidth, maxTargetHeight / cropHeight)
 
   const targetWidth = Math.max(1, Math.round(cropWidth * scale))
   const targetHeight = Math.max(1, Math.round(cropHeight * scale))
 
+  // Linha de base discreta e elegante: reservamos 6px adicionais na parte inferior
+  const linhaEspessura = 1.5
+  const espacoAbaixoLinha = 3
+  const alturaTotal = targetHeight + espacoAbaixoLinha + Math.ceil(linhaEspessura)
+
+  // A linha de base se estende com uma margem elegante nas laterais
+  const margemLinha = Math.min(16, Math.max(8, Math.round(targetWidth * 0.08)))
+  const larguraTotal = targetWidth + margemLinha * 2
+
   const tempCanvas = document.createElement('canvas')
-  tempCanvas.width = targetWidth
-  tempCanvas.height = targetHeight
+  tempCanvas.width = larguraTotal
+  tempCanvas.height = alturaTotal
 
   const tempCtx = tempCanvas.getContext('2d')
   if (!tempCtx) return undefined
@@ -111,7 +120,28 @@ export function otimizarCanvasAssinatura(canvas: HTMLCanvasElement): string | un
   tempCtx.imageSmoothingEnabled = true
   tempCtx.imageSmoothingQuality = 'high'
 
-  tempCtx.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, targetWidth, targetHeight)
+  // 1. Desenhar o traço da assinatura centralizado horizontalmente acima da linha
+  tempCtx.drawImage(
+    canvas,
+    cropX,
+    cropY,
+    cropWidth,
+    cropHeight,
+    margemLinha,
+    0,
+    targetWidth,
+    targetHeight,
+  )
+
+  // 2. Desenhar a linha de base horizontal (#002B5E com opacidade suave ou cinza escuro regimental)
+  const yLinha = targetHeight + 0.5
+  tempCtx.strokeStyle = '#002B5E'
+  tempCtx.lineWidth = linhaEspessura
+  tempCtx.lineCap = 'round'
+  tempCtx.beginPath()
+  tempCtx.moveTo(4, yLinha)
+  tempCtx.lineTo(larguraTotal - 4, yLinha)
+  tempCtx.stroke()
 
   // Exportar como PNG preservando transparência
   const dataUrl = tempCanvas.toDataURL('image/png')
@@ -167,29 +197,72 @@ export const SeletorAssinatura: React.FC<SeletorAssinaturaProps> = ({
     }
   }, [formato, textoNome, temDesenho])
 
-  // Configurar e restaurar canvas ao montar ou alterar tamanho
+  // Configurar e restaurar canvas ao montar ou alterar tamanho (com ResizeObserver para manter resolução)
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Ajustar resolução para telas com alta densidade de pixels (Retina / Mobile)
-    const rect = canvas.getBoundingClientRect()
-    const dpr = window.devicePixelRatio || 1
-    canvas.width = (rect.width || 380) * dpr
-    canvas.height = (rect.height || 120) * dpr
-    ctx.scale(dpr, dpr)
+    const inicializarTamanho = () => {
+      const rect = canvas.getBoundingClientRect()
+      const dpr = window.devicePixelRatio || 1
+      const larguraLogica = Math.max(260, Math.round(rect.width || 380))
+      const alturaLogica = Math.max(180, Math.round(rect.height || 220))
 
-    // Se já havia imagem prévia salva
-    if (valorInicial?.assinaturaVisual && formato === 'desenho') {
-      const img = new Image()
-      img.onload = () => {
-        ctx.clearRect(0, 0, rect.width, rect.height)
-        ctx.drawImage(img, 0, 0, rect.width, rect.height)
-        setTemDesenho(true)
+      // Se a resolução interna já confere, não resetar o contexto nem apagar o desenho
+      const targetW = Math.round(larguraLogica * dpr)
+      const targetH = Math.round(alturaLogica * dpr)
+      if (canvas.width === targetW && canvas.height === targetH) {
+        return
       }
-      img.src = valorInicial.assinaturaVisual
+
+      // Salvar conteúdo desenhado antes de redimensionar caso o usuário gire a tela
+      let backup: HTMLCanvasElement | null = null
+      if (canvas.width > 0 && canvas.height > 0 && isDrawingRef.current === false) {
+        backup = document.createElement('canvas')
+        backup.width = canvas.width
+        backup.height = canvas.height
+        const bCtx = backup.getContext('2d')
+        if (bCtx) bCtx.drawImage(canvas, 0, 0)
+      }
+
+      canvas.width = targetW
+      canvas.height = targetH
+      ctx.scale(dpr, dpr)
+
+      // Restaurar o traço prévio se redimensionou
+      if (backup && backup.width > 0) {
+        ctx.drawImage(backup, 0, 0, targetW, targetH, 0, 0, larguraLogica, alturaLogica)
+      } else if (valorInicial?.assinaturaVisual && formato === 'desenho') {
+        const img = new Image()
+        img.onload = () => {
+          ctx.clearRect(0, 0, larguraLogica, alturaLogica)
+          const aspect = img.width / (img.height || 1)
+          const renderHeight = Math.min(alturaLogica * 0.65, 110)
+          const renderWidth = Math.min(larguraLogica * 0.85, renderHeight * aspect)
+          const renderX = (larguraLogica - renderWidth) / 2
+          const renderY = alturaLogica * 0.72 - renderHeight
+          ctx.drawImage(img, renderX, renderY, renderWidth, renderHeight)
+          setTemDesenho(true)
+        }
+        img.src = valorInicial.assinaturaVisual
+      }
+    }
+
+    inicializarTamanho()
+
+    // Observar redimensionamento responsivo (ex: mudança de orientação no celular)
+    let ro: ResizeObserver | null = null
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => {
+        inicializarTamanho()
+      })
+      ro.observe(canvas)
+    }
+
+    return () => {
+      if (ro) ro.disconnect()
     }
   }, [formato])
 
@@ -253,8 +326,10 @@ export const SeletorAssinatura: React.FC<SeletorAssinaturaProps> = ({
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    const rect = canvas.getBoundingClientRect()
-    ctx.clearRect(0, 0, rect.width * 2, rect.height * 2)
+    ctx.save()
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.restore()
     setTemDesenho(false)
     onChange({
       formato: 'desenho',
@@ -306,10 +381,18 @@ export const SeletorAssinatura: React.FC<SeletorAssinaturaProps> = ({
 
         {/* 1. Assinar na Tela (Canvas) */}
         <TabsContent value="desenho" className="pt-2 space-y-2">
-          <div className="relative border-2 border-dashed border-slate-300 rounded-md bg-white overflow-hidden touch-none">
+          <div className="relative border-2 border-dashed border-slate-300 rounded-lg bg-white overflow-hidden touch-none select-none shadow-inner">
+            {/* Linha de base visual (baseline de formulário de papel) */}
+            <div className="absolute left-6 right-6 bottom-10 pointer-events-none flex items-center justify-between border-b-2 border-slate-300/80 z-0">
+              <span className="text-[10px] font-medium text-slate-400/90 -mb-4 tracking-wider uppercase select-none">
+                Linha de assinatura
+              </span>
+              <span className="text-[10px] text-slate-400/80 -mb-4 select-none">✕</span>
+            </div>
+
             <canvas
               ref={canvasRef}
-              className="w-full h-28 block cursor-crosshair"
+              className="w-full h-56 sm:h-52 block cursor-crosshair relative z-10"
               onMouseDown={(e) => startDrawing(e.clientX, e.clientY)}
               onMouseMove={(e) => draw(e.clientX, e.clientY)}
               onMouseUp={stopDrawing}
@@ -326,8 +409,13 @@ export const SeletorAssinatura: React.FC<SeletorAssinaturaProps> = ({
             />
 
             {!temDesenho && (
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-slate-400 text-xs italic">
-                Desenhe aqui com o mouse ou toque do dedo
+              <div className="absolute inset-x-4 top-8 pointer-events-none flex flex-col items-center justify-center text-center text-slate-400 text-xs italic gap-1 z-0">
+                <span className="font-medium text-slate-500 not-italic">
+                  Espaço ampliado para assinar com o dedo ou mouse
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  Assine sobre a linha de base indicada abaixo
+                </span>
               </div>
             )}
           </div>

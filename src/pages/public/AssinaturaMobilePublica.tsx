@@ -350,11 +350,14 @@ export function AssinaturaMobilePublicaPage() {
 
               {/* Desenho ou Texto da Assinatura */}
               <div className="space-y-2">
-                <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                  <PenTool className="w-3.5 h-3.5 text-[#0066FF]" />
-                  <span>Assinatura (desenhe no celular ou digite)</span>
-                </Label>
-                <div className="border border-slate-200 rounded-xl p-3 bg-white">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <PenTool className="w-3.5 h-3.5 text-[#0066FF]" />
+                    <span>Assinatura Digital (desenhe na tela com o dedo)</span>
+                  </Label>
+                  <span className="text-[10px] text-blue-600 font-medium">Área ampliada</span>
+                </div>
+                <div className="border border-slate-200 rounded-xl p-2.5 sm:p-3 bg-white shadow-xs">
                   <SeletorAssinatura
                     nomeSugerido={nome || sessao.signatarioNome}
                     onChange={setDadosCaptura}

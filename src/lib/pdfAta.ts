@@ -43,8 +43,8 @@ function renderAssinaturaVisual(
   texto?: string,
 ): string {
   if (formato === 'desenho' && visual) {
-    return `<div style="height: 44px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 2px;">
-      <img src="${visual}" alt="Assinatura" style="max-height: 42px; max-width: 200px; object-fit: contain;" />
+    return `<div style="min-height: 46px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: -1px;">
+      <img src="${visual}" alt="Assinatura" style="max-height: 46px; max-width: 220px; object-fit: contain;" />
     </div>`
   }
   if (formato === 'texto' && texto) {

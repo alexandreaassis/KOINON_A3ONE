@@ -349,7 +349,7 @@ export const ModalAssinaturaEletronica: React.FC<ModalAssinaturaEletronicaProps>
 
   return (
     <Dialog open={aberto} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[92vh] overflow-y-auto bg-white border-[#5A6B82]/25 rounded-[14px] shadow-[0_4px_24px_rgba(0,43,94,0.06)] text-[#002B5E]">
+      <DialogContent className="sm:max-w-xl max-h-[94vh] overflow-y-auto bg-white border-[#5A6B82]/25 rounded-[14px] shadow-[0_4px_24px_rgba(0,43,94,0.06)] text-[#002B5E]">
         <DialogHeader>
           <div className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-[8px] bg-[#0066FF]/10 border border-[#0066FF]/25 flex items-center justify-center text-[#002B5E]">

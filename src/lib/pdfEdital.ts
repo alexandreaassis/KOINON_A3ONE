@@ -109,8 +109,8 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
   const temTexto = dados.formatoAssinatura === 'texto' && !!dados.assinaturaTexto
 
   const areaGraficaAssinatura = temDesenho
-    ? `<div style="height: 44px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 2px;">
-         <img src="${dados.assinaturaVisual}" alt="Assinatura" style="max-height: 42px; max-width: 220px; object-fit: contain;" />
+    ? `<div style="min-height: 46px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: -1px;">
+         <img src="${dados.assinaturaVisual}" alt="Assinatura" style="max-height: 46px; max-width: 240px; object-fit: contain;" />
        </div>`
     : temTexto
       ? `<div style="height: 44px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 2px;">
