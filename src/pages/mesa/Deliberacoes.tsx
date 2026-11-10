@@ -5,6 +5,8 @@ import {
   type ItemPautaRecord,
   type DeliberacaoStatus,
   type RegraLocatario,
+  type TipoPauta,
+  type UnidadeRecord,
 } from '@/lib/api'
 import pb from '@/lib/pocketbase/client'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
