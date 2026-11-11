@@ -18,6 +18,10 @@ export interface DadosAtaPdf {
   hashRaizUrna?: string | null
   dataPublicacao?: string | null
 
+  // Fallback ou modo de assinatura
+  viaAssinaturaManual?: boolean
+  motivoFallbackManual?: string
+
   // Presidente da Mesa
   presidenteNome: string
   presidenteCpf?: string
@@ -404,6 +408,22 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
       </div>
     </header>
 
+    ${
+      dados.viaAssinaturaManual
+        ? `
+        <div style="margin: 12px 0 16px 0; padding: 10px 14px; background: #FFFBEB; border: 1.5px solid #F59E0B; border-radius: 6px; text-align: center; color: #92400E; font-family: 'Poppins', sans-serif;">
+          <div style="font-weight: 700; font-size: 9.5pt; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">
+            ⚠️ VIA PARA ASSINATURA MANUAL (IMPRESSÃO)
+          </div>
+          <div style="font-size: 8pt; line-height: 1.35;">
+            Este documento destina-se à coleta física de assinaturas a caneta pela Mesa Diretora. Não possui selo de certificação eletrônica externa neste exemplar impresso.
+            ${dados.motivoFallbackManual ? `<br><span style="font-size: 7.5pt; color: #B45309;">(Motivo de contingência: ${dados.motivoFallbackManual})</span>` : ''}
+          </div>
+        </div>
+        `
+        : ''
+    }
+
     <div class="doc-headline">
       <h2>${dados.titulo || 'ATA DA ASSEMBLEIA GERAL ORDINÁRIA/EXTRAORDINÁRIA'}</h2>
       ${dados.subtitulo ? `<p>${dados.subtitulo}</p>` : ''}
@@ -414,42 +434,54 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
       ${dados.conteudoHtml || '<p>Ata em elaboração pela mesa diretora.</p>'}
     </div>
 
-    <!-- Bloco Criptográfico de Auditoria da Urna e da Ata -->
-    <div class="crypto-box">
-      <div class="crypto-box-title">
-        <span style="display: flex; align-items: center; gap: 6px;">
-          <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0066FF;"></span>
-          Certificação e Integridade Criptográfica (SHA-256)
-        </span>
-        <span style="font-size: 8pt; color: #0066FF; font-weight: 700; font-family: monospace;">KOINON</span>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; font-size: 8.5pt;">
-        <div style="background: rgba(255,255,255,0.85); padding: 6px 10px; border-radius: 4px; border: 1px solid #E2E8F0;">
-          <span style="display: block; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #5A6B82;">Urna Auditada</span>
-          <span style="font-family: monospace; font-size: 8pt; color: #002B5E; word-break: break-all;">${dados.hashRaizUrna || 'Cédulas consolidadas no encerramento'}</span>
+    <!-- Bloco Criptográfico de Auditoria da Urna e da Ata (Omitido ou adaptado quando for via para assinatura manual) -->
+    ${
+      dados.viaAssinaturaManual
+        ? `
+        <div style="margin-top: 24px; padding: 10px 14px; background: #F8FAFC; border: 1px dashed #94A3B8; border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 8pt; color: #475569;">
+          <strong>Nota de Registro Cartorário/Manual:</strong>
+          Via gerada para subscrição física de punho próprio pelos membros da mesa diretora designados abaixo. A integridade das cédulas digitais apuradas na urna eletrônica permanece resguardada no sistema com o hash:
+          <span style="font-family: monospace; font-size: 7.5pt; color: #002B5E;">${dados.hashRaizUrna || 'Cédulas consolidadas no encerramento'}</span>.
         </div>
-        <div style="background: rgba(255,255,255,0.85); padding: 6px 10px; border-radius: 4px; border: 1px solid #E2E8F0;">
-          <span style="display: block; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #5A6B82;">Publicação Oficial</span>
-          <span style="font-size: 8pt; color: #002B5E; font-family: monospace;">${dados.dataPublicacao ? new Date(dados.dataPublicacao).toLocaleString('pt-BR') : 'Aguardando publicação'}</span>
-        </div>
-      </div>
+        `
+        : `
+        <div class="crypto-box">
+          <div class="crypto-box-title">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0066FF;"></span>
+              Certificação e Integridade Criptográfica (SHA-256)
+            </span>
+            <span style="font-size: 8pt; color: #0066FF; font-weight: 700; font-family: monospace;">KOINON</span>
+          </div>
 
-      ${
-        dados.hashAta
-          ? `
-            <div style="background: #ffffff; padding: 6px 10px; border-radius: 4px; border: 1px solid #CBD5E1; margin-bottom: 6px;">
-              <span style="display: block; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #002B5E; margin-bottom: 2px;">Carimbo SHA-256 da Ata Homologada:</span>
-              <div style="font-family: monospace; font-size: 8pt; color: #002B5E; word-break: break-all; letter-spacing: 0.5px;">${formatarHashBlocosAta(dados.hashAta)}</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; font-size: 8.5pt;">
+            <div style="background: rgba(255,255,255,0.85); padding: 6px 10px; border-radius: 4px; border: 1px solid #E2E8F0;">
+              <span style="display: block; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #5A6B82;">Urna Auditada</span>
+              <span style="font-family: monospace; font-size: 8pt; color: #002B5E; word-break: break-all;">${dados.hashRaizUrna || 'Cédulas consolidadas no encerramento'}</span>
             </div>
-          `
-          : '<div style="font-size: 8pt; color: #5A6B82; padding: 4px 0;"><strong>Status:</strong> Minuta aguardando homologação e assinatura da mesa diretora.</div>'
-      }
+            <div style="background: rgba(255,255,255,0.85); padding: 6px 10px; border-radius: 4px; border: 1px solid #E2E8F0;">
+              <span style="display: block; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #5A6B82;">Publicação Oficial</span>
+              <span style="font-size: 8pt; color: #002B5E; font-family: monospace;">${dados.dataPublicacao ? new Date(dados.dataPublicacao).toLocaleString('pt-BR') : 'Aguardando publicação'}</span>
+            </div>
+          </div>
 
-      <div style="color: #5A6B82; font-size: 7.5pt; margin-top: 4px; line-height: 1.25;">
-        Esta ata foi lavrada sob a fé pública da Mesa Diretora eleita, com integridade garantida por assinatura eletrônica e trilha de auditoria digital encadeada.
-      </div>
-    </div>
+          ${
+            dados.hashAta
+              ? `
+                <div style="background: #ffffff; padding: 6px 10px; border-radius: 4px; border: 1px solid #CBD5E1; margin-bottom: 6px;">
+                  <span style="display: block; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #002B5E; margin-bottom: 2px;">Carimbo SHA-256 da Ata Homologada:</span>
+                  <div style="font-family: monospace; font-size: 8pt; color: #002B5E; word-break: break-all; letter-spacing: 0.5px;">${formatarHashBlocosAta(dados.hashAta)}</div>
+                </div>
+              `
+              : '<div style="font-size: 8pt; color: #5A6B82; padding: 4px 0;"><strong>Status:</strong> Minuta aguardando homologação e assinatura da mesa diretora.</div>'
+          }
+
+          <div style="color: #5A6B82; font-size: 7.5pt; margin-top: 4px; line-height: 1.25;">
+            Esta ata foi lavrada sob a fé pública da Mesa Diretora eleita, com integridade garantida por assinatura eletrônica e trilha de auditoria digital encadeada.
+          </div>
+        </div>
+        `
+    }
 
     <!-- Bloco de Assinaturas da Mesa Diretora (Presidente e Secretário) -->
     <div class="signatures-section">
@@ -494,7 +526,11 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
 
     <div class="footer-note">
       Documento lavrado e homologado através da Plataforma Virtual Koinon.<br>
-      A integridade deste instrumento é atestada pelas assinaturas eletrônicas da Mesa Diretora e pelo Hash Raiz SHA-256 auditado — autoria e integridade comprovadas por outro meio com a anuência das partes (art. 10, §2º da MP 2.200-2/2001); referência: Lei 14.063/2020.
+      ${
+        dados.viaAssinaturaManual
+          ? 'Via emitida para assinatura manual e física (impressão). Dispensado de selo de certificação eletrônica externa neste suporte físico.'
+          : 'A integridade deste instrumento é atestada pelas assinaturas eletrônicas da Mesa Diretora e pelo Hash Raiz SHA-256 auditado — autoria e integridade comprovadas por outro meio com a anuência das partes (art. 10, §2º da MP 2.200-2/2001); referência: Lei 14.063/2020.'
+      }
       <div>
         <span class="seal-a3one">
           <strong>KOINON</strong> • uma solução <span class="brand-a3one">A3ONE</span>

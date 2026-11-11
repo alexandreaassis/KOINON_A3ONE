@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T21:06:54.789Z",
+  "generatedAt": "2026-11-11T02:19:57.853Z",
   "collections": [
     {
       "name": "users",
@@ -858,7 +858,11 @@
             "ata_publicada",
             "audio_transcricao",
             "documento_extracao",
-            "assinatura_registrada_mobile"
+            "assinatura_registrada_mobile",
+            "zapsign_documento_criado",
+            "zapsign_assinatura_parcial",
+            "zapsign_documento_concluido",
+            "zapsign_fallback_manual"
           ]
         },
         {
@@ -2058,6 +2062,67 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "zapsign_documento_token",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_status",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_urls",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_enviado_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_concluido_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_pdf_assinado_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_pdf_assinado_hash",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_motivo_falha",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "modo_assinatura",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["eletronica_nativa", "zapsign", "manual_impressao"]
+        },
+        {
+          "name": "zapsign_pdf_assinado",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
