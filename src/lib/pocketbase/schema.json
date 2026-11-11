@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-11T18:58:05.907Z",
+  "generatedAt": "2026-11-11T20:18:16.810Z",
   "collections": [
     {
       "name": "users",
@@ -1890,6 +1890,60 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "zapsign_documento_token",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_status",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_urls",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_enviado_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_concluido_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_pdf_assinado_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_pdf_assinado_hash",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_motivo_falha",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_pdf_assinado",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -2742,6 +2796,140 @@
       ],
       "indexes": [
         "CREATE UNIQUE INDEX idx_organizacoes_organization_id ON organizacoes (organization_id)"
+      ]
+    },
+    {
+      "name": "listas_presenca",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && @request.auth.role = 'mesa' || @request.auth.id != '' && @request.auth.role = 'admin'",
+        "view": "@request.auth.id != '' && @request.auth.role = 'mesa' || @request.auth.id != '' && @request.auth.role = 'admin'",
+        "create": "@request.auth.id != '' && @request.auth.role = 'mesa' || @request.auth.id != '' && @request.auth.role = 'admin'",
+        "update": "@request.auth.id != '' && @request.auth.role = 'mesa' || @request.auth.id != '' && @request.auth.role = 'admin'",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "participantes",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "totais",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "assinaturas_visuais",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["rascunho", "assinado", "publicado"]
+        },
+        {
+          "name": "hash_assinado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_assinatura",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_documento_token",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_status",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_urls",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_enviado_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_concluido_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_pdf_assinado_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_pdf_assinado_hash",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_motivo_falha",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "zapsign_pdf_assinado",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_listas_presenca_deliberacao ON listas_presenca (deliberacao)"
       ]
     }
   ]

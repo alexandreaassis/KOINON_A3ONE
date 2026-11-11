@@ -369,6 +369,18 @@ export interface EditalDeliberacaoRecord extends RecordModel {
   formato_assinatura?: FormatoAssinatura
   assinatura_visual?: string
   assinatura_texto?: string
+
+  // Integração ZapSign (mesmo padrão da ata)
+  zapsign_documento_token?: string
+  zapsign_status?: string
+  zapsign_urls?: ZapSignSignatarioUrl[]
+  zapsign_enviado_em?: string
+  zapsign_concluido_em?: string
+  zapsign_pdf_assinado_url?: string
+  zapsign_pdf_assinado_hash?: string
+  zapsign_motivo_falha?: string
+  zapsign_pdf_assinado?: string
+
   expand?: {
     deliberacao?: DeliberacaoRecord
   }
@@ -377,6 +389,28 @@ export interface EditalDeliberacaoRecord extends RecordModel {
 export type StatusAtaAssembleia = 'rascunho' | 'assinada' | 'publicada'
 
 export type ModoAssinaturaAta = 'eletronica_nativa' | 'zapsign' | 'manual_impressao'
+
+// Status/links de ZapSign compartilhados entre ata, edital e lista de presença
+export interface ListaPresencaDocumentoRecord extends RecordModel {
+  deliberacao: string
+  titulo?: string
+  participantes?: unknown[]
+  totais?: Record<string, unknown>
+  status?: 'rascunho' | 'assinado' | 'publicado'
+  hash_assinado?: string
+  data_assinatura?: string
+
+  // Integração ZapSign (mesmo padrão da ata)
+  zapsign_documento_token?: string
+  zapsign_status?: string
+  zapsign_urls?: ZapSignSignatarioUrl[]
+  zapsign_enviado_em?: string
+  zapsign_concluido_em?: string
+  zapsign_pdf_assinado_url?: string
+  zapsign_pdf_assinado_hash?: string
+  zapsign_motivo_falha?: string
+  zapsign_pdf_assinado?: string
+}
 
 export interface ZapSignSignatarioUrl {
   nome: string
@@ -2133,5 +2167,95 @@ export const api = {
       method: 'POST',
       body,
     })
+  },
+
+  async enviarEditalZapsign(
+    editalId: string,
+    payload: {
+      pdf_base64: string
+      signatarios: Array<{ nome: string; email?: string; cpf?: string; telefone?: string }>
+    },
+  ): Promise<{
+    success: boolean
+    fallback: boolean
+    motivo?: string
+    message: string
+    documento_token?: string
+    status?: string
+    signatarios?: ZapSignSignatarioUrl[]
+  }> {
+    return pb.send<{
+      success: boolean
+      fallback: boolean
+      motivo?: string
+      message: string
+      documento_token?: string
+      status?: string
+      signatarios?: ZapSignSignatarioUrl[]
+    }>(`/backend/v1/editais/${encodeURIComponent(editalId)}/enviar-zapsign`, {
+      method: 'POST',
+      body: payload,
+    })
+  },
+
+  async enviarListaPresencaZapsign(
+    deliberacaoId: string,
+    payload: {
+      pdf_base64: string
+      signatarios: Array<{ nome: string; email?: string; cpf?: string; telefone?: string }>
+    },
+  ): Promise<{
+    success: boolean
+    fallback: boolean
+    motivo?: string
+    message: string
+    documento_token?: string
+    status?: string
+    signatarios?: ZapSignSignatarioUrl[]
+  }> {
+    return pb.send<{
+      success: boolean
+      fallback: boolean
+      motivo?: string
+      message: string
+      documento_token?: string
+      status?: string
+      signatarios?: ZapSignSignatarioUrl[]
+    }>(`/backend/v1/listas-presenca/${encodeURIComponent(deliberacaoId)}/enviar-zapsign`, {
+      method: 'POST',
+      body: payload,
+    })
+  },
+
+  async obterListaPresencaDocumento(
+    deliberacaoId: string,
+  ): Promise<ListaPresencaDocumentoRecord | null> {
+    try {
+      const list = await pb
+        .collection('listas_presenca')
+        .getList<ListaPresencaDocumentoRecord>(1, 1, {
+          filter: pb.filter('deliberacao = {:delib}', { delib: deliberacaoId }),
+          sort: '-created',
+        })
+      return list.items[0] || null
+    } catch {
+      return null
+    }
+  },
+
+  async salvarListaPresencaDocumento(
+    deliberacaoId: string,
+    dados: Partial<ListaPresencaDocumentoRecord>,
+    idExistente?: string,
+  ): Promise<ListaPresencaDocumentoRecord> {
+    const payload = { ...dados, deliberacao: deliberacaoId }
+    if (idExistente) {
+      return pb
+        .collection('listas_presenca')
+        .update<ListaPresencaDocumentoRecord>(idExistente, payload, { requestKey: null })
+    }
+    return pb
+      .collection('listas_presenca')
+      .create<ListaPresencaDocumentoRecord>(payload, { requestKey: null })
   },
 }

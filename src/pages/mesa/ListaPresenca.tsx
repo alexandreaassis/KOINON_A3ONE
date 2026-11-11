@@ -49,6 +49,7 @@ import {
 import {
   Printer,
   BookOpen,
+  PenLine,
   UserCheck,
   CheckCircle2,
   FileText,
@@ -67,6 +68,11 @@ import {
 } from '@/components/assinatura/SeletorAssinatura'
 import { ModalAssinaturaEletronica } from '@/components/assinatura/ModalAssinaturaEletronica'
 import { FormatoAssinatura } from '@/lib/api'
+import { bytesToBase64 } from '@/lib/pdf/gerarPdfListaPresencaBytes'
+import { ModalZapsignLinks } from '@/components/assinatura/ModalZapsignLinks'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { gerarPdfListaPresencaComHash } from '@/lib/pdfListaPresenca'
+import type { ZapSignSignatarioUrl } from '@/lib/api'
 
 export const ListaPresencaPage: React.FC = () => {
   const navigate = useNavigate()
@@ -112,6 +118,15 @@ export const ListaPresencaPage: React.FC = () => {
   const [assinaturaSecretario, setAssinaturaSecretario] =
     useState<AssinaturaDocumentoRecord | null>(null)
 
+  // ZapSign (mesmo padrão da ata): status/links persistidos na collection listas_presenca
+  const [zapsignStatus, setZapsignStatus] = useState<string>('')
+  const [zapsignDocToken, setZapsignDocToken] = useState<string | null>(null)
+  const [zapsignSignatarios, setZapsignSignatarios] = useState<ZapSignSignatarioUrl[] | null>(null)
+  const [zapsignEnviando, setZapsignEnviando] = useState(false)
+  const [zapsignMotivo, setZapsignMotivo] = useState<string | null>(null)
+  const [modalZapsignAberto, setModalZapsignAberto] = useState(false)
+  const [listaDbId, setListaDbId] = useState<string | null>(null)
+
   // Carregar dados
   const carregarDados = async (delibId?: string) => {
     setCarregando(true)
@@ -156,6 +171,29 @@ export const ListaPresencaPage: React.FC = () => {
         )
         setAssinaturaPresidente(presMesa || null)
         setAssinaturaSecretario(secMesa || null)
+
+        // Restaurar estado ZapSign persistido no registro da lista de presença
+        try {
+          const listas = await api.getListasPresenca(`deliberacao = "${delib.id}"`, 1)
+          const lista = listas.items?.[0]
+          if (lista) {
+            setListaDbId(lista.id)
+            setZapsignStatus(lista.zapsign_status || '')
+            setZapsignDocToken(lista.zapsign_documento_token || null)
+            setZapsignSignatarios(
+              (lista.zapsign_urls as ZapSignSignatarioUrl[] | undefined) || null,
+            )
+            setZapsignMotivo(lista.zapsign_motivo_erro || null)
+          } else {
+            setListaDbId(null)
+            setZapsignStatus('')
+            setZapsignDocToken(null)
+            setZapsignSignatarios(null)
+            setZapsignMotivo(null)
+          }
+        } catch {
+          /* collection ainda sem registro para esta deliberação — estado limpo */
+        }
       }
     } catch (err: any) {
       console.error('Erro ao carregar lista de presença:', err)
@@ -578,6 +616,121 @@ export const ListaPresencaPage: React.FC = () => {
   const totalRemoto = presencasAssinadas.filter((p) => p.forma === 'remoto').length
   const totalProcuracao = presencasAssinadas.filter((p) => p.forma === 'procuracao').length
 
+  // Enviar a Lista de Presença para assinatura via ZapSign (mesmo padrão da ata)
+  const handleEnviarZapsign = async () => {
+    if (!deliberacaoAtiva) {
+      toast({ title: 'Selecione uma deliberação', variant: 'destructive' })
+      return
+    }
+    if (presencasAssinadas.length === 0) {
+      toast({
+        title: 'Nenhuma presença registrada',
+        description: 'Registre ao menos uma presença antes de enviar à ZapSign.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setZapsignEnviando(true)
+    try {
+      // 1. Garantir registro da lista no banco (persistência de status/links)
+      let listaId = listaDbId
+      if (!listaId) {
+        const criada = await api.criarListaPresenca({ deliberacao: deliberacaoAtiva.id })
+        listaId = criada.id
+        setListaDbId(listaId)
+      }
+
+      // 2. Gerar PDF completo em bytes (margens oficiais Koinon)
+      const linhas = presencasAssinadas.map((p) => {
+        const unid = unidades.find((u) => u.id === p.unidade)
+        return {
+          identificadorUnidade: unid
+            ? formatarIdentificadorUnidade(unid, rotuloUnidade)
+            : p.unidade,
+          nomeParticipante: p.nome || '—',
+          forma: p.forma || 'presencial',
+          nomeProcurador: p.nome_procurador || undefined,
+          dataHora: p.data_hora_assinatura
+            ? new Date(p.data_hora_assinatura).toLocaleString('pt-BR')
+            : '',
+          modoAssinatura: p.formato_assinatura || undefined,
+        }
+      })
+
+      const bytes = await gerarPdfListaPresencaComHash({
+        nomeCondominio: nomeCondominio || 'Condomínio',
+        logoDataUrl: logoUrl || null,
+        tituloDeliberacao: deliberacaoAtiva.titulo || 'Lista de Presença',
+        dataAssembleia: deliberacaoAtiva.data_assembleia
+          ? new Date(deliberacaoAtiva.data_assembleia).toLocaleDateString('pt-BR')
+          : null,
+        localAssembleia: deliberacaoAtiva.local_assembleia || null,
+        linhas,
+        presidente: assinaturaPresidente
+          ? { nome: assinaturaPresidente.assinante_nome, cpf: assinaturaPresidente.assinante_cpf }
+          : null,
+        secretario: assinaturaSecretario
+          ? { nome: assinaturaSecretario.assinante_nome, cpf: assinaturaSecretario.assinante_cpf }
+          : null,
+        viaZapsign: true,
+      })
+
+      const base64 = bytesToBase64(bytes)
+
+      // 3. Enviar ao hook ZapSign
+      const resp = await api.enviarListaPresencaZapsign({
+        deliberacaoId: deliberacaoAtiva.id,
+        listaPresencaId: listaId,
+        pdfBase64: base64,
+        nomeDocumento: `Lista de Presença — ${deliberacaoAtiva.titulo || 'Assembleia'}`,
+        signatarios: [
+          {
+            nome: assinaturaPresidente?.assinante_nome || user?.name || 'Presidente da Assembleia',
+            email: user?.email || '',
+          },
+          ...(assinaturaSecretario
+            ? [
+                {
+                  nome: assinaturaSecretario.assinante_nome,
+                  email: user?.email || '',
+                },
+              ]
+            : []),
+        ],
+      })
+
+      setZapsignStatus(resp.zapsign_status)
+      setZapsignDocToken(resp.documento_token)
+      setZapsignSignatarios(resp.zapsign_urls)
+      setZapsignMotivo(resp.message || null)
+      setModalZapsignAberto(true)
+
+      await api.registrarEventoAuditoria({
+        evento: 'documento_upload',
+        fator: `Mesa: Lista de Presença enviada à ZapSign (${resp.zapsign_status}) - token ${resp.documento_token || 'n/d'}`,
+        dispositivo: navigator.userAgent,
+      })
+
+      toast({
+        title:
+          resp.zapsign_status === 'enviado'
+            ? 'Lista de Presença enviada à ZapSign'
+            : 'Falha no envio à ZapSign',
+        description: resp.message || undefined,
+        variant: resp.zapsign_status === 'enviado' ? 'default' : 'destructive',
+      })
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err, 'Falha ao enviar a Lista de Presença à ZapSign.')
+      setZapsignMotivo(msg)
+      setZapsignStatus('erro')
+      setModalZapsignAberto(true)
+      toast({ title: 'Erro ao enviar à ZapSign', description: msg, variant: 'destructive' })
+    } finally {
+      setZapsignEnviando(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Cabeçalho de Tela (Oculto em impressão) */}
@@ -632,6 +785,30 @@ export const ListaPresencaPage: React.FC = () => {
             className="text-xs h-9 border-slate-300"
           >
             <Printer className="h-4 w-4 mr-1.5" /> Imprimir Documento A4
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={handleEnviarZapsign}
+            disabled={zapsignEnviando || !deliberacaoAtiva}
+            variant="outline"
+            className="text-xs h-9 border-[#0066FF] text-[#0066FF] hover:bg-blue-50 font-medium"
+            title="Enviar a Lista de Presença para assinatura eletrônica via ZapSign"
+          >
+            {zapsignEnviando ? (
+              <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" />
+            ) : (
+              <PenLine className="h-4 w-4 mr-1.5" />
+            )}
+            Enviar para assinatura (ZapSign)
+            {zapsignStatus === 'enviado' && (
+              <Badge className="ml-1.5 bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px]">
+                Enviado
+              </Badge>
+            )}
+            {(zapsignStatus === 'assinado' || zapsignStatus === 'concluido') && (
+              <Badge className="ml-1.5 bg-emerald-600 text-white text-[10px]">Assinado</Badge>
+            )}
           </Button>
 
           <Button

@@ -27,6 +27,10 @@ import { MARCA_VALIDACAO_ADVOGADO, gerarClausulaAceite } from '@/lib/organizacao
 import { BlocoAssinaturaCompacto } from '@/components/assinatura/BlocoAssinaturaCompacto'
 import { SeloAssinaturaCriptografica } from '@/components/assinatura/SeloAssinaturaCriptografica'
 import { ModalAssinaturaEletronica } from '@/components/assinatura/ModalAssinaturaEletronica'
+import { ModalZapsignLinks } from '@/components/assinatura/ModalZapsignLinks'
+import type { ZapSignSignatarioUrl } from '@/lib/api'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { FileSignature } from 'lucide-react'
 import { CardInstrucoesAcesso } from '@/pages/mesa/documentos/CardInstrucoesAcesso'
 import { ProvasEnvio } from '@/pages/mesa/documentos/ProvasEnvio'
 import { ClausulaAceite } from '@/pages/mesa/documentos/ClausulaAceite'
@@ -118,6 +122,14 @@ export const DocumentosEditalPage: React.FC = () => {
   const [salvandoEdital, setSalvandoEdital] = useState(false)
   const [assinandoEdital, setAssinandoEdital] = useState(false)
   const [disparandoEmails, setDisparandoEmails] = useState(false)
+
+  // Integração ZapSign (mesmo padrão da ata)
+  const [zapsignStatus, setZapsignStatus] = useState<string>('')
+  const [zapsignDocToken, setZapsignDocToken] = useState<string | null>(null)
+  const [zapsignSignatarios, setZapsignSignatarios] = useState<ZapSignSignatarioUrl[] | null>(null)
+  const [zapsignEnviando, setZapsignEnviando] = useState(false)
+  const [zapsignMotivo, setZapsignMotivo] = useState<string | null>(null)
+  const [modalZapsignAberto, setModalZapsignAberto] = useState(false)
   const [modalAssinaturaAberto, setModalAssinaturaAberto] = useState(false)
 
   // Estado do Autosave
@@ -326,6 +338,14 @@ export const DocumentosEditalPage: React.FC = () => {
 
           const hash = editalSalvo.hash_assinado || assEdital?.hash_documento || null
           setEditalAssinadoHash(hash)
+
+          // Restaurar estado ZapSign persistido no registro do edital
+          setZapsignStatus(editalSalvo.zapsign_status || '')
+          setZapsignDocToken(editalSalvo.zapsign_documento_token || null)
+          setZapsignSignatarios(
+            (editalSalvo.zapsign_urls as ZapSignSignatarioUrl[] | undefined) || null,
+          )
+          setZapsignMotivo(editalSalvo.zapsign_motivo_erro || null)
           setEditalAssinadoData(
             editalSalvo.data_assinatura || assEdital?.data_hora || assEdital?.created || null,
           )
@@ -342,6 +362,10 @@ export const DocumentosEditalPage: React.FC = () => {
         } else {
           // Nenhum edital salvo previamente: inicializar com padrões inteligentes
           setEditalDbId(null)
+          setZapsignStatus('')
+          setZapsignDocToken(null)
+          setZapsignSignatarios(null)
+          setZapsignMotivo(null)
           setEditalForm({
             titulo: delibAtual.titulo,
             subtitulo: 'Convocação Formal aos Senhores Condôminos e Moradores',
@@ -851,6 +875,81 @@ export const DocumentosEditalPage: React.FC = () => {
       })
     } finally {
       setDisparandoEmails(false)
+    }
+  }
+
+  // Integração ZapSign: enviar o PDF completo do edital (margens oficiais) para assinatura eletrônica
+  const handleEnviarZapsignEdital = async () => {
+    if (!deliberacaoAtiva) return
+    if (!editalForm.sindicoNome.trim() || !editalForm.sindicoCpf.replace(/\D/g, '')) {
+      toast({
+        title: 'Informe o convocante',
+        description: 'Preencha nome e CPF do convocante antes de enviar à ZapSign.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setZapsignEnviando(true)
+    try {
+      // Salvar rascunho para garantir persistência do edital antes do envio
+      try {
+        await handleSalvarRascunho(true)
+      } catch {
+        /* falha de rascunho não impede o envio */
+      }
+
+      const dadosZapsign: DadosEditalPdf = {
+        ...dadosParaPdf,
+        viaZapsign: true,
+      }
+      const prova: ProvaEditalPdf = await gerarPdfEditalComHash(dadosZapsign)
+
+      const resp = await api.enviarEditalZapsign({
+        deliberacaoId: deliberacaoAtiva.id,
+        editalId: editalDbId || undefined,
+        nomeDocumento: `Edital de Convocação — ${nomeCondominio}`,
+        pdfBase64: prova.pdfBase64,
+        signatarios: [
+          {
+            nome: editalForm.sindicoNome.trim(),
+            cpf: editalForm.sindicoCpf.replace(/\D/g, ''),
+            cargo: editalForm.cargoConvocante || 'Convocante',
+          },
+        ],
+      })
+
+      setZapsignStatus(resp.zapsign_status)
+      setZapsignDocToken(resp.documento_token)
+      setZapsignSignatarios(resp.zapsign_urls)
+      setZapsignMotivo(resp.message || null)
+      setModalZapsignAberto(true)
+
+      await api.registrarEventoAuditoria({
+        evento: 'documento_upload',
+        fator: `Mesa: edital enviado para assinatura externa (ZapSign) — documento ${resp.documento_token || 'sem token'}`,
+        dispositivo: navigator.userAgent,
+      })
+
+      toast({
+        title:
+          resp.zapsign_status === 'fallback_manual'
+            ? 'ZapSign não criou o documento — via manual liberada'
+            : 'Edital enviado para assinatura',
+        description:
+          resp.zapsign_status === 'fallback_manual'
+            ? resp.message || 'A ZapSign retornou erro; verifique o motivo exibido no modal.'
+            : 'Os links individuais de assinatura estão disponíveis no modal.',
+        variant: resp.zapsign_status === 'fallback_manual' ? 'destructive' : 'default',
+      })
+    } catch (err) {
+      toast({
+        title: 'Falha no envio à ZapSign',
+        description: getErrorMessage(err, 'Não foi possível enviar o edital para assinatura.'),
+        variant: 'destructive',
+      })
+    } finally {
+      setZapsignEnviando(false)
     }
   }
 
@@ -1576,6 +1675,51 @@ export const DocumentosEditalPage: React.FC = () => {
                         </>
                       )}
                     </Button>
+
+                    {/* Assinatura externa via ZapSign (mesmo padrão da ata) */}
+                    {zapsignStatus && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
+                        <FileSignature className="h-3.5 w-3.5 text-cyan-700" />
+                        <span>
+                          Assinatura externa:{' '}
+                          {zapsignStatus === 'assinado'
+                            ? 'concluída'
+                            : zapsignStatus === 'fallback_manual'
+                              ? 'falhou — via manual liberada'
+                              : zapsignStatus === 'aguardando'
+                                ? 'aguardando signatários'
+                                : 'enviada'}
+                          {zapsignSignatarios && zapsignSignatarios.length > 0 && (
+                            <button
+                              type="button"
+                              className="ml-1 underline text-cyan-700"
+                              onClick={() => setModalZapsignAberto(true)}
+                            >
+                              ver links
+                            </button>
+                          )}
+                        </span>
+                      </div>
+                    )}
+
+                    <Button
+                      variant="outline"
+                      className="w-full border-cyan-700 text-cyan-800 hover:bg-cyan-50 text-xs h-9"
+                      onClick={handleEnviarZapsignEdital}
+                      disabled={zapsignEnviando || hashDesatualizado}
+                    >
+                      {zapsignEnviando ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                          Enviando à ZapSign…
+                        </>
+                      ) : (
+                        <>
+                          <FileSignature className="h-4 w-4 mr-1.5" />
+                          Enviar para assinatura (ZapSign)
+                        </>
+                      )}
+                    </Button>
                   </CardFooter>
                 </Card>
 
@@ -2101,6 +2245,16 @@ export const DocumentosEditalPage: React.FC = () => {
         permitirDataHoraHistorica={true}
         dataHoraInicial={editalAssinadoData || undefined}
         onConfirmar={handleConfirmarAssinaturaComModo}
+      />
+
+      {/* Modal ZapSign: links individuais por signatário (mesmo padrão da ata) */}
+      <ModalZapsignLinks
+        aberto={modalZapsignAberto}
+        onOpenChange={setModalZapsignAberto}
+        tituloDocumento={editalForm.titulo || deliberacaoAtiva?.titulo || 'Edital de Convocação'}
+        signatarios={zapsignSignatarios}
+        status={zapsignStatus}
+        motivo={zapsignMotivo}
       />
 
       {/* Modal de Upload de Documento da Pauta */}
