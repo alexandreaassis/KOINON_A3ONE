@@ -681,9 +681,8 @@ export const ListaPresencaPage: React.FC = () => {
       const base64 = bytesToBase64(bytes)
 
       // 3. Enviar ao hook ZapSign
-      const resp = await api.enviarListaPresencaZapsign({
+      const resp = await api.enviarListaPresencaZapsign(listaId, {
         deliberacaoId: deliberacaoAtiva.id,
-        listaPresencaId: listaId,
         pdfBase64: base64,
         nomeDocumento: `Lista de Presença — ${deliberacaoAtiva.titulo || 'Assembleia'}`,
         signatarios: [

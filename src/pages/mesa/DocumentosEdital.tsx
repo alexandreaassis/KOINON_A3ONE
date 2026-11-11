@@ -905,9 +905,12 @@ export const DocumentosEditalPage: React.FC = () => {
       }
       const prova: ProvaEditalPdf = await gerarPdfEditalComHash(dadosZapsign)
 
-      const resp = await api.enviarEditalZapsign({
+      const editalIdParaEnvio = editalDbIdRef.current || editalDbId
+      if (!editalIdParaEnvio) {
+        throw new Error('Salve o edital antes de enviar para assinatura.')
+      }
+      const resp = await api.enviarEditalZapsign(editalIdParaEnvio, {
         deliberacaoId: deliberacaoAtiva.id,
-        editalId: editalDbId || undefined,
         nomeDocumento: `Edital de Convocação — ${nomeCondominio}`,
         pdfBase64: prova.pdfBase64,
         signatarios: [

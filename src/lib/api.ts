@@ -2169,19 +2169,21 @@ export const api = {
     })
   },
 
-  async enviarEditalZapsign(payload: {
-    deliberacaoId: string
-    editalId?: string
-    nomeDocumento?: string
-    pdfBase64: string
-    signatarios: Array<{
-      nome: string
-      cpf?: string
-      email?: string
-      telefone?: string
-      cargo?: string
-    }>
-  }): Promise<{
+  async enviarEditalZapsign(
+    editalId: string,
+    payload: {
+      deliberacaoId: string
+      nomeDocumento?: string
+      pdfBase64: string
+      signatarios: Array<{
+        nome: string
+        cpf?: string
+        email?: string
+        telefone?: string
+        cargo?: string
+      }>
+    },
+  ): Promise<{
     success: boolean
     fallback: boolean
     motivo?: string
@@ -2200,25 +2202,27 @@ export const api = {
       status?: string
       zapsign_status?: string
       zapsign_urls?: ZapSignSignatarioUrl[]
-    }>('/backend/v1/editais/enviar-zapsign', {
+    }>(`/backend/v1/editais/${encodeURIComponent(editalId)}/enviar-zapsign`, {
       method: 'POST',
       body: payload,
     })
   },
 
-  async enviarListaPresencaZapsign(payload: {
-    deliberacaoId: string
-    listaPresencaId?: string
-    nomeDocumento?: string
-    pdfBase64: string
-    signatarios: Array<{
-      nome: string
-      cpf?: string
-      email?: string
-      telefone?: string
-      cargo?: string
-    }>
-  }): Promise<{
+  async enviarListaPresencaZapsign(
+    listaPresencaId: string,
+    payload: {
+      deliberacaoId: string
+      nomeDocumento?: string
+      pdfBase64: string
+      signatarios: Array<{
+        nome: string
+        cpf?: string
+        email?: string
+        telefone?: string
+        cargo?: string
+      }>
+    },
+  ): Promise<{
     success: boolean
     fallback: boolean
     motivo?: string
@@ -2237,7 +2241,7 @@ export const api = {
       status?: string
       zapsign_status?: string
       zapsign_urls?: ZapSignSignatarioUrl[]
-    }>('/backend/v1/listas-presenca/enviar-zapsign', {
+    }>(`/backend/v1/listas-presenca/${encodeURIComponent(listaPresencaId)}/enviar-zapsign`, {
       method: 'POST',
       body: payload,
     })
