@@ -11,6 +11,12 @@
  * 2. POST /backend/v1/admin/zapsign/config       - Grava token, ambiente e webhook secret cifrados em configuracoes_backend
  * 3. POST /backend/v1/atas/{id}/enviar-zapsign   - Envia ata para assinatura na ZapSign (ou fallback manual)
  * 4. POST /backend/v1/zapsign/webhook           - Webhook idempotente da ZapSign com validação de segredo e download imediato
+ *
+ * IMPORTANTE (runtime Skip Cloud/PocketBase): o campo `resp.rawText` de $http.send chega
+ * VAZIO nesta plataforma. Todo acesso ao corpo da resposta usa `resp.json` (JSON já
+ * interpretado) com fallback para `resp.body` (bytes → JSON parse ou texto bruto). Ler
+ * `rawText` foi a causa dos links de assinatura vazios (zapsign_urls: []) e do hash vazio
+ * na auditoria.
  */
 
 // -------------------------------------------------------------
@@ -299,6 +305,46 @@ routerAdd('POST', '/backend/v1/atas/{id}/enviar-zapsign', (e) => {
     }
   }
 
+  // Extrai o corpo interpretado de uma resposta $http.send neste runtime.
+  // `resp.rawText` chega VAZIO no Skip Cloud (causa real dos links/hash vazios),
+  // então o JSON correto vem em `resp.json`; quando só houver bytes, decodificamos
+  // `resp.body` e tentamos interpretar como JSON, com o texto bruto como último recurso.
+  const extrairCorpoRespostaHttp = (respX) => {
+    if (!respX) return null
+    if (respX.json !== undefined && respX.json !== null) return respX.json
+    if (!respX.body) return null
+    let texto = ''
+    try {
+      if (typeof respX.body === 'string') {
+        texto = respX.body
+      } else if (typeof respX.body === 'object' && respX.body.byteLength !== undefined) {
+        texto = String.fromCharCode.apply(null, new Uint8Array(respX.body))
+      } else {
+        texto = String(respX.body)
+      }
+    } catch (_) {
+      return null
+    }
+    try {
+      return JSON.parse(texto)
+    } catch (_) {
+      return texto
+    }
+  }
+
+  // Corpo da resposta como TEXTO (para mensagens de erro mostrarem o motivo real da ZapSign).
+  const extrairTextoRespostaHttp = (respX) => {
+    if (!respX) return ''
+    const corpo = extrairCorpoRespostaHttp(respX)
+    if (corpo === null || corpo === undefined) return ''
+    if (typeof corpo === 'string') return corpo
+    try {
+      return JSON.stringify(corpo)
+    } catch (_) {
+      return String(corpo)
+    }
+  }
+
   // Obter configurações
   let token = ''
   let ambiente = 'sandbox'
@@ -420,9 +466,13 @@ routerAdd('POST', '/backend/v1/atas/{id}/enviar-zapsign', (e) => {
 
   if (!resp || resp.statusCode >= 400) {
     const statusCod = resp ? resp.statusCode : 500
-    const rawBody = resp ? resp.rawText || '' : erroHttp
+    const corpoErro = resp ? extrairTextoRespostaHttp(resp) : ''
+    const rawBody = corpoErro || erroHttp
     const motivo =
-      'Falha ao comunicar com a ZapSign (HTTP ' + statusCod + '): ' + rawBody.slice(0, 500)
+      'Falha ao comunicar com a ZapSign (HTTP ' +
+      statusCod +
+      '): ' +
+      (rawBody || 'sem detalhes no corpo da resposta').slice(0, 500)
 
     // FALLBACK MARCADO
     ata.set('modo_assinatura', 'manual_impressao')
@@ -445,10 +495,9 @@ routerAdd('POST', '/backend/v1/atas/{id}/enviar-zapsign', (e) => {
     })
   }
 
-  let dadosZap = {}
-  try {
-    dadosZap = JSON.parse(resp.rawText || '{}')
-  } catch (_) {
+  // Corpo interpretado: resp.json primeiro; rawText não existe neste runtime (Bug 3)
+  let dadosZap = extrairCorpoRespostaHttp(resp)
+  if (dadosZap === null || typeof dadosZap !== 'object') {
     dadosZap = {}
   }
 
@@ -461,6 +510,39 @@ routerAdd('POST', '/backend/v1/atas/{id}/enviar-zapsign', (e) => {
     sign_url: s.sign_url || (s.token ? 'https://app.zapsign.com.br/verificar/' + s.token : ''),
     status: s.status || 'pending',
   }))
+
+  // HTTP 200 sem token no corpo = FALHA HONESTA: a ZapSign respondeu, mas não criou
+  // documento utilizável. Nunca gravar "aguardando_assinaturas" com zapsign_urls vazio.
+  const signersComToken = urlsPorSignatario.filter((s) => s.token || s.sign_url)
+  if (!docToken || signersComToken.length === 0) {
+    const corpoTexto = extrairTextoRespostaHttp(resp)
+    const motivo =
+      'A ZapSign respondeu HTTP ' +
+      resp.statusCode +
+      ' sem token de documento ou sem links de signatários no corpo. Corpo da resposta: ' +
+      (corpoTexto || 'vazio').slice(0, 500)
+
+    ata.set('modo_assinatura', 'manual_impressao')
+    ata.set('zapsign_status', 'fallback_manual')
+    ata.set('zapsign_motivo_falha', motivo)
+    ata.set('zapsign_documento_token', '')
+    ata.set('zapsign_urls', [])
+    e.app.save(ata)
+
+    registrarAuditoria(
+      'zapsign_fallback_manual',
+      'Fallback acionado na Ata ' + ataId + ': ' + motivo,
+    )
+
+    return e.json(200, {
+      success: false,
+      fallback: true,
+      modo_assinatura: 'manual_impressao',
+      motivo: motivo,
+      message:
+        'A ZapSign respondeu, mas não retornou token do documento nem links de assinatura. Ata marcada para assinatura manual (impressão) em vez de gravar links vazios.',
+    })
+  }
 
   ata.set('modo_assinatura', 'zapsign')
   ata.set('zapsign_documento_token', docToken)
@@ -666,10 +748,30 @@ routerAdd('POST', '/backend/v1/zapsign/webhook', (e) => {
           timeout: 60,
         })
 
-        if (respPdf && respPdf.statusCode === 200 && respPdf.rawText) {
-          hashPdf = $security.sha256(respPdf.rawText)
-          ata.set('zapsign_pdf_assinado_hash', hashPdf)
-          ata.set('hash_ata', hashPdf)
+        // rawText chega vazio neste runtime: o conteúdo do PDF vem em resp.body (bytes)
+        // ou, em último caso, em resp.json como texto. O hash é sempre do conteúdo real.
+        if (respPdf && respPdf.statusCode === 200) {
+          let conteudoPdf = ''
+          if (respPdf.body) {
+            const bytes = new Uint8Array(respPdf.body)
+            const BLOCO = 8192
+            const partes = []
+            for (let i = 0; i < bytes.length; i += BLOCO) {
+              partes.push(String.fromCharCode.apply(null, bytes.subarray(i, i + BLOCO)))
+            }
+            conteudoPdf = partes.join('')
+          } else if (typeof respPdf.json === 'string' && respPdf.json.length > 0) {
+            conteudoPdf = respPdf.json
+          }
+          if (conteudoPdf.length > 0) {
+            hashPdf = $security.sha256(conteudoPdf)
+            ata.set('zapsign_pdf_assinado_hash', hashPdf)
+            ata.set('hash_ata', hashPdf)
+          } else {
+            console.log(
+              'Aviso: PDF assinado da ZapSign veio com corpo vazio; hash SHA-256 não calculado.',
+            )
+          }
         }
 
         try {
