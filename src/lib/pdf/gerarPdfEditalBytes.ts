@@ -63,8 +63,22 @@ export async function gerarPdfEditalComHash(
   container.style.width = `${LARGURA_UTIL_A4_PX}px`
   container.style.background = '#ffffff'
   // Extrai o conteúdo do body do documento A4 gerado (evita aninhar <html>/<body>)
+  // O HTML do edital carrega TODO o visual (header flex, doc-headline, tabelas,
+  // caixas de destaque) em um <style> no <head> — sem ele o html2canvas renderiza
+  // o documento sem classes e o PDF chega desconfigurado na ZapSign (mesmo
+  // defeito já corrigido na ata em v0.0.141).
   const documento = new DOMParser().parseFromString(html, 'text/html')
-  container.innerHTML = documento.body.innerHTML
+  const estilo = documento.querySelector('style')
+  if (estilo) {
+    container.appendChild(estilo.cloneNode(true))
+  }
+  // O <style> do edital define `body { font/cores }`; como o container não é um
+  // <body>, replica as propriedades base inline para herança funcionar.
+  container.style.fontFamily = '"Georgia", "Cambria", "Times New Roman", serif'
+  container.style.color = '#002B5E'
+  container.style.lineHeight = '1.5'
+  container.style.fontSize = '11pt'
+  container.innerHTML += documento.body.innerHTML
   document.body.appendChild(container)
 
   try {
