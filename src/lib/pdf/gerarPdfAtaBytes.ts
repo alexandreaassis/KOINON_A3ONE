@@ -52,8 +52,21 @@ export async function gerarPdfAtaComHash(
   container.style.width = `${LARGURA_A4_PX}px`
   container.style.background = '#ffffff'
   // Extrai o conteúdo do body do documento A4 gerado (evita aninhar <html>/<body>)
+  // O HTML da ata carrega TODO o visual (cabeçalho flex, grid de assinaturas,
+  // crypto-box, tarja de fallback) em um <style> no <head> — sem ele o
+  // html2canvas renderiza o documento sem classes e o PDF sai desconfigurado.
   const documento = new DOMParser().parseFromString(html, 'text/html')
-  container.innerHTML = documento.body.innerHTML
+  const estilo = documento.querySelector('style')
+  if (estilo) {
+    container.appendChild(estilo.cloneNode(true))
+  }
+  // O <style> da ata define `body { font/cores }`; como o container não é um
+  // <body>, replica as propriedades base inline para herança funcionar.
+  container.style.fontFamily = '"Georgia", "Cambria", "Times New Roman", serif'
+  container.style.color = '#002B5E'
+  container.style.lineHeight = '1.6'
+  container.style.fontSize = '11pt'
+  container.innerHTML += documento.body.innerHTML
   document.body.appendChild(container)
 
   try {

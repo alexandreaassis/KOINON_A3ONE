@@ -13,7 +13,9 @@ import { formatarCpf } from '@/lib/cpf'
 import pb from '@/lib/pocketbase/client'
 import { toast } from '@/hooks/use-toast'
 import { imprimirOuBaixarPdfAta, type DadosAtaPdf } from '@/lib/pdfAta'
-import { gerarPdfAtaComHash } from '@/lib/pdf/gerarPdfAtaBytes'
+import { gerarPdfAtaComHash, type ProvaAtaPdf } from '@/lib/pdf/gerarPdfAtaBytes'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
+import type { ZapSignSignatarioUrl } from '@/lib/api'
 import { BlocoAssinaturaCompacto } from '@/components/assinatura/BlocoAssinaturaCompacto'
 import { ModalAssinaturaEletronica } from '@/components/assinatura/ModalAssinaturaEletronica'
 import { RichTextEditor } from '@/components/editor/RichTextEditor'
@@ -118,14 +120,7 @@ export const AtaAssembleiaPage: React.FC = () => {
   const [zapsignStatus, setZapsignStatus] = useState<string | null>(null)
   const [zapsignDocToken, setZapsignDocToken] = useState<string | null>(null)
   const [zapsignModoAssinatura, setZapsignModoAssinatura] = useState<string | null>(null)
-  const [zapsignSignatarios, setZapsignSignatarios] = useState<Array<{
-    nome: string
-    email?: string
-    telefone?: string
-    sign_url?: string
-    status?: string
-    signed?: boolean
-  }> | null>(null)
+  const [zapsignSignatarios, setZapsignSignatarios] = useState<ZapSignSignatarioUrl[] | null>(null)
   const [zapsignAssinadoEm, setZapsignAssinadoEm] = useState<string | null>(null)
   const [zapsignPdfUrl, setZapsignPdfUrl] = useState<string | null>(null)
   const [zapsignPdfHash, setZapsignPdfHash] = useState<string | null>(null)
@@ -195,6 +190,51 @@ export const AtaAssembleiaPage: React.FC = () => {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isSavingRef = useRef(false)
   const needsResaveRef = useRef(false)
+
+  // Normaliza a lista de signatários retornada pela ZapSign (campos com nomes
+  // divergentes: nome vs name, signed vs status) em ZapSignSignatarioUrl.
+  const normalizarSignatarios = useCallback((lista: unknown): ZapSignSignatarioUrl[] => {
+    if (!Array.isArray(lista)) return []
+    return lista
+      .filter((s): s is Record<string, unknown> => !!s && typeof s === 'object')
+      .map((s, idx) => {
+        const nome = typeof s.nome === 'string' ? s.nome : typeof s.name === 'string' ? s.name : ''
+        const email = typeof s.email === 'string' ? s.email : undefined
+        const telefone =
+          typeof s.phone === 'string'
+            ? s.phone
+            : typeof s.telefone === 'string'
+              ? s.telefone
+              : undefined
+        const token = typeof s.token === 'string' ? s.token : undefined
+        const signUrl =
+          typeof s.sign_url === 'string' && s.sign_url
+            ? s.sign_url
+            : token
+              ? `https://app.zapsign.com.br/verificar/${token}`
+              : typeof s.signUrl === 'string'
+                ? s.signUrl
+                : undefined
+        const status = typeof s.status === 'string' ? s.status : undefined
+        const signed =
+          s.signed === true || s.signed === 'true' || s.signed === 'Signed' || status === 'signed'
+        return {
+          nome: nome || `Signatário ${idx + 1}`,
+          email,
+          telefone,
+          token,
+          sign_url: signUrl || undefined,
+          status,
+          signed_at:
+            typeof s.signed_at === 'string'
+              ? s.signed_at
+              : s.signedAt && typeof s.signedAt === 'string'
+                ? s.signedAt
+                : null,
+          ...(signed ? { signed: true } : {}),
+        } as ZapSignSignatarioUrl & { signed?: boolean }
+      })
+  }, [])
 
   // Gerar Hash SHA-256 no browser
   const calcularSha256 = async (texto: string): Promise<string> => {
@@ -597,10 +637,10 @@ export const AtaAssembleiaPage: React.FC = () => {
 
           // ZapSign
           setZapsignStatus(ataSalva.zapsign_status || null)
-          setZapsignDocToken(ataSalva.zapsign_doc_token || null)
+          setZapsignDocToken(ataSalva.zapsign_documento_token || null)
           setZapsignModoAssinatura(ataSalva.modo_assinatura || null)
-          setZapsignSignatarios(ataSalva.zapsign_signatarios || null)
-          setZapsignAssinadoEm(ataSalva.zapsign_assinado_em || null)
+          setZapsignSignatarios(normalizarSignatarios(ataSalva.zapsign_urls))
+          setZapsignAssinadoEm(ataSalva.zapsign_concluido_em || null)
           setZapsignPdfUrl(ataSalva.zapsign_pdf_assinado_url || null)
           setZapsignPdfHash(ataSalva.zapsign_pdf_assinado_hash || null)
         } else {
@@ -681,7 +721,7 @@ export const AtaAssembleiaPage: React.FC = () => {
       }
 
       // Montar lista de signatários da mesa
-      const signatariosEnvio: Array<{ nome: string; email?: string; telefone?: string }> = []
+      let signatariosEnvio: Array<{ nome: string; email?: string; telefone?: string }> = []
       if (presidenteNome.trim()) {
         signatariosEnvio.push({
           nome: presidenteNome.trim(),
@@ -698,15 +738,18 @@ export const AtaAssembleiaPage: React.FC = () => {
       // Anexar o PDF completo da ata (mesma estrutura do PDF de impressão),
       // gerado em bytes no navegador — sem ele a ZapSign renderiza apenas o título.
       let pdfBase64: string | undefined
+      let provaPdf: ProvaAtaPdf | null = null
       try {
-        const prova = await gerarPdfAtaComHash(dadosPdf)
-        pdfBase64 = prova.pdfBase64
-      } catch (errPdf) {
+        provaPdf = await gerarPdfAtaComHash(dadosPdf)
+        pdfBase64 = provaPdf.pdfBase64
+      } catch (errPdf: unknown) {
         console.error('Falha ao gerar PDF da ata em bytes para ZapSign:', errPdf)
         toast({
           title: 'PDF da ata não pôde ser anexado',
           description:
-            'O envio continuará sem o anexo — a ZapSign receberá apenas o texto simples da ata. Verifique o console para detalhes.',
+            getErrorMessage(errPdf, 'Falha desconhecida na geração do PDF.') +
+            ' O envio continuará sem o anexo — a ZapSign receberá apenas o texto simples da ata.',
+          variant: 'destructive',
         })
       }
 
@@ -714,6 +757,13 @@ export const AtaAssembleiaPage: React.FC = () => {
         pdf_base64: pdfBase64,
         signatarios: signatariosEnvio,
       })
+
+      // A lista da ZapSign usa "name"/"sign_url" — o front-end espera
+      // "nome"/"sign_url". Normalizar ANTES de usar em qualquer lugar.
+      const signatariosNormalizados = normalizarSignatarios(resp.signatarios)
+      if (signatariosNormalizados.length > 0) {
+        signatariosEnvio = signatariosNormalizados
+      }
 
       if (resp.modo_assinatura === 'manual_impressao' || resp.fallback) {
         setZapsignModoAssinatura('manual_impressao')
@@ -732,24 +782,75 @@ export const AtaAssembleiaPage: React.FC = () => {
         }
         imprimirOuBaixarPdfAta(dadosPdfManual)
       } else {
-        setZapsignStatus(resp.status || 'aguardando')
-        setZapsignDocToken(resp.doc_token || null)
-        setZapsignModoAssinatura('zapsign')
-        if (resp.signatarios && Array.isArray(resp.signatarios)) {
-          setZapsignSignatarios(resp.signatarios)
+        // O hook pode retornar o token como "documento_token" ou "doc_token";
+        // aceitar ambos evita modal sem token e sem links.
+        let docToken: string | null = resp.doc_token || resp.documento_token || null
+        let signatariosRetornados: ZapSignSignatarioUrl[] | null =
+          signatariosNormalizados.length > 0 ? signatariosNormalizados : null
+
+        // Se a resposta não trouxe os signatários no corpo, recarrega a ata:
+        // o hook persiste token e lista de links em zapsign_urls.
+        if (!signatariosRetornados || signatariosRetornados.length === 0 || !docToken) {
+          try {
+            const ataAtualizada = await api.getAta(ataIdTarget)
+            if (!docToken && ataAtualizada?.zapsign_documento_token) {
+              docToken = ataAtualizada.zapsign_documento_token
+            }
+            const urlsRecarregadas = normalizarSignatarios(ataAtualizada?.zapsign_urls)
+            if (urlsRecarregadas.length > 0) {
+              signatariosRetornados = urlsRecarregadas
+            }
+          } catch (errRecarga) {
+            console.error('Não foi possível recarregar os dados ZapSign da ata:', errRecarga)
+          }
         }
+
+        setZapsignStatus(resp.status || 'aguardando')
+        setZapsignDocToken(docToken)
+        setZapsignModoAssinatura('zapsign')
+        setZapsignSignatarios(normalizarSignatarios(signatariosRetornados))
+
+        // Persistir token + links na ata para sobreviverem ao recarregamento
+        try {
+          await api.salvarAta(ataIdTarget, {
+            zapsign_documento_token: docToken || undefined,
+            zapsign_urls: signatariosRetornados || undefined,
+          })
+        } catch (errPersist: unknown) {
+          console.error('Falha ao persistir links ZapSign na ata:', errPersist)
+          toast({
+            title: 'Não foi possível salvar os links ZapSign na ata',
+            description: getErrorMessage(
+              errPersist,
+              'Os links continuam disponíveis neste modal — copie-os antes de fechar.',
+            ),
+            variant: 'destructive',
+          })
+        }
+
         setModalZapsignAberto(true)
         toast({
           title: 'Documento ZapSign Criado!',
           description:
             'A ata foi enviada à ZapSign. Copie os links de assinatura ou aguarde o retorno do webhook.',
         })
+
+        // Aviso honesto: documento criado, mas nenhum link individual voltou
+        const semLinks = !signatariosRetornados || signatariosRetornados.length === 0
+        if (semLinks) {
+          toast({
+            title: 'Links individuais não retornados',
+            description:
+              'O documento foi criado na ZapSign, mas a resposta não trouxe os links de assinatura. Clique em "Reenviar / Atualizar ZapSign" para buscar novamente.',
+            variant: 'destructive',
+          })
+        }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao enviar ata para ZapSign:', err)
       toast({
         title: 'Erro ao enviar para ZapSign',
-        description: err?.message || 'Falha ao contatar o servidor para envio ZapSign.',
+        description: getErrorMessage(err, 'Falha ao contatar o servidor para envio ZapSign.'),
         variant: 'destructive',
       })
     } finally {
@@ -1783,30 +1884,38 @@ export const AtaAssembleiaPage: React.FC = () => {
                                 </div>
 
                                 {sig.sign_url ? (
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(sig.sign_url || '')
-                                        toast({
-                                          title: 'Link copiado!',
-                                          description: `Link de assinatura de ${sig.nome} copiado para a área de transferência.`,
-                                        })
-                                      }}
-                                      className="text-xs h-7 gap-1 border-slate-300"
+                                  <div className="flex flex-col items-stretch sm:items-end gap-1.5 shrink-0">
+                                    <span
+                                      className="text-[10px] font-mono text-slate-500 break-all max-w-full sm:max-w-xs"
+                                      title={sig.sign_url}
                                     >
-                                      <Copy className="h-3 w-3" /> Copiar Link
-                                    </Button>
-                                    <a
-                                      href={sig.sign_url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#0066FF] hover:bg-[#0052cc] text-white text-xs font-medium h-7"
-                                    >
-                                      <ExternalLink className="h-3 w-3" /> Assinar Agora
-                                    </a>
+                                      {sig.sign_url}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(sig.sign_url || '')
+                                          toast({
+                                            title: 'Link copiado!',
+                                            description: `Link de assinatura de ${sig.nome} copiado para a área de transferência.`,
+                                          })
+                                        }}
+                                        className="text-xs h-7 gap-1 border-slate-300"
+                                      >
+                                        <Copy className="h-3 w-3" /> Copiar Link
+                                      </Button>
+                                      <a
+                                        href={sig.sign_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#0066FF] hover:bg-[#0052cc] text-white text-xs font-medium h-7"
+                                      >
+                                        <ExternalLink className="h-3 w-3" /> Assinar Agora
+                                      </a>
+                                    </div>
                                   </div>
                                 ) : (
                                   <span className="text-[11px] text-slate-400 italic">
@@ -2350,6 +2459,21 @@ export const AtaAssembleiaPage: React.FC = () => {
           </DialogHeader>
 
           <div className="py-2 space-y-3">
+            {(!zapsignSignatarios || zapsignSignatarios.length === 0) && (
+              <div className="p-3 rounded-lg border border-amber-300 bg-amber-50 text-xs text-amber-900 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold">Nenhum link de assinatura retornado pela ZapSign</p>
+                  <p className="leading-relaxed">
+                    O documento foi criado, mas a ZapSign não devolveu os links individuais nesta
+                    resposta. Feche este aviso e clique em{' '}
+                    <strong>Reenviar / Atualizar ZapSign</strong> para buscar os links novamente, ou
+                    distribua os convites diretamente pelo painel da ZapSign.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {zapsignDocToken && (
               <div className="p-2.5 rounded bg-slate-50 border border-slate-200 text-xs">
                 <span className="text-[10px] uppercase font-bold text-slate-500 block">
@@ -2370,16 +2494,16 @@ export const AtaAssembleiaPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-slate-900">{sig.nome}</span>
                     <Badge variant="outline" className="text-[10px]">
-                      {sig.signed ? '✓ Assinado' : 'Pendente'}
+                      {sig.signed || sig.status === 'signed' ? '✓ Assinado' : 'Pendente'}
                     </Badge>
                   </div>
                   {sig.sign_url && (
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1">
                       <input
                         type="text"
                         readOnly
                         value={sig.sign_url}
-                        className="w-full text-[11px] font-mono bg-slate-50 border border-slate-200 rounded px-2 py-1 select-all"
+                        className="w-full min-w-0 flex-1 text-[11px] font-mono bg-slate-50 border border-slate-200 rounded px-2 py-1 select-all break-all"
                       />
                       <Button
                         type="button"
