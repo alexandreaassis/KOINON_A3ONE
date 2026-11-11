@@ -22,6 +22,11 @@ export interface DadosAtaPdf {
   viaAssinaturaManual?: boolean
   motivoFallbackManual?: string
 
+  // Via destinada à assinatura eletrônica (ZapSign): omite o bloco
+  // criptográfico e as caixas de publicação/homologação, usando nota enxuta
+  // com o hash da urna (padrão espelhado da via manual).
+  viaZapsign?: boolean
+
   // Presidente da Mesa
   presidenteNome: string
   presidenteCpf?: string
@@ -447,7 +452,15 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
           <span style="font-family: monospace; font-size: 7.5pt; color: #002B5E;">${dados.hashRaizUrna || 'Cédulas consolidadas no encerramento'}</span>.
         </div>
         `
-        : `
+        : dados.viaZapsign
+          ? `
+        <div style="margin-top: 24px; padding: 10px 14px; background: #F8FAFC; border: 1px dashed #94A3B8; border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 8pt; color: #475569;">
+          <strong>Nota de Assinatura Eletrônica (ZapSign):</strong>
+          Via destinada à assinatura eletrônica via ZapSign; integridade da urna garantida pelo hash:
+          <span style="font-family: monospace; font-size: 7.5pt; color: #002B5E;">${dados.hashRaizUrna || 'Cédulas consolidadas no encerramento'}</span>.
+        </div>
+        `
+          : `
         <div class="crypto-box">
           <div class="crypto-box-title">
             <span style="display: flex; align-items: center; gap: 6px;">
@@ -532,7 +545,9 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
       ${
         dados.viaAssinaturaManual
           ? 'Via emitida para assinatura manual e física (impressão). Dispensado de selo de certificação eletrônica externa neste suporte físico.'
-          : 'A integridade deste instrumento é atestada pelas assinaturas eletrônicas da Mesa Diretora e pelo Hash Raiz SHA-256 auditado — autoria e integridade comprovadas por outro meio com a anuência das partes (art. 10, §2º da MP 2.200-2/2001); referência: Lei 14.063/2020.'
+          : dados.viaZapsign
+            ? 'Via destinada à assinatura eletrônica via ZapSign; integridade da urna garantida pelo hash.'
+            : 'A integridade deste instrumento é atestada pelas assinaturas eletrônicas da Mesa Diretora e pelo Hash Raiz SHA-256 auditado — autoria e integridade comprovadas por outro meio com a anuência das partes (art. 10, §2º da MP 2.200-2/2001); referência: Lei 14.063/2020.'
       }
       <div>
         <span class="seal-a3one">

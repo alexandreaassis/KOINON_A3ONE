@@ -9,6 +9,11 @@
  * Usado no envio da ata à ZapSign: sem este anexo (base64_pdf), a ZapSign cai
  * no fallback de markdown_text e renderiza apenas o título do documento.
  *
+ * Este gerador é EXCLUSIVO da via ZapSign: força viaZapsign, que omite o bloco
+ * "Certificação e Integridade Criptográfica" e as caixas de publicação/
+ * homologação, substituindo-os por nota enxuta com o hash da urna no rodapé
+ * (padrão espelhado da via manual em gerarHtmlDocumentoAta).
+ *
  * Margens oficiais do documento (idênticas ao @page de gerarHtmlDocumentoAta):
  * 8,5mm no topo, 15mm nas laterais e 15mm no rodapé — aplicadas na paginação
  * (área útil de desenho do jsPDF), valendo para TODAS as páginas.
@@ -53,7 +58,7 @@ export async function gerarPdfAtaComHash(
   dados: DadosAtaPdf,
   nomeArquivo?: string,
 ): Promise<ProvaAtaPdf> {
-  const html = gerarHtmlDocumentoAta(dados)
+  const html = gerarHtmlDocumentoAta({ ...dados, viaZapsign: true })
 
   const container = document.createElement('div')
   container.style.position = 'fixed'
