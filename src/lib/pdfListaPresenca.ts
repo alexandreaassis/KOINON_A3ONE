@@ -1,6 +1,8 @@
 import {
   gerarPdfListaPresencaBytes,
   type DadosListaPresencaPdf,
+  type LinhaPresencaPdf,
+  type SignatarioListaPresenca,
 } from '@/lib/pdf/gerarPdfListaPresencaBytes'
 
 export type { DadosListaPresencaPdf, LinhaPresencaPdf, SignatarioListaPresenca }

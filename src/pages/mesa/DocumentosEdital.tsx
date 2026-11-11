@@ -914,14 +914,15 @@ export const DocumentosEditalPage: React.FC = () => {
           {
             nome: editalForm.sindicoNome.trim(),
             cpf: editalForm.sindicoCpf.replace(/\D/g, ''),
+            email: user?.email || '',
             cargo: editalForm.cargoConvocante || 'Convocante',
           },
         ],
       })
 
-      setZapsignStatus(resp.zapsign_status)
+      setZapsignStatus(resp.zapsign_status || resp.status || '')
       setZapsignDocToken(resp.documento_token)
-      setZapsignSignatarios(resp.zapsign_urls)
+      setZapsignSignatarios(resp.zapsign_urls || resp.signatarios || null)
       setZapsignMotivo(resp.message || null)
       setModalZapsignAberto(true)
 

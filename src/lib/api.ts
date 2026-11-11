@@ -2169,20 +2169,21 @@ export const api = {
     })
   },
 
-  async enviarEditalZapsign(
-    editalId: string,
-    payload: {
-      pdf_base64: string
-      signatarios: Array<{ nome: string; email?: string; cpf?: string; telefone?: string }>
-    },
-  ): Promise<{
+  async enviarEditalZapsign(payload: {
+    deliberacaoId: string
+    editalId?: string
+    nomeDocumento?: string
+    pdfBase64: string
+    signatarios: Array<{ nome: string; cpf?: string; email?: string; telefone?: string; cargo?: string }>
+  }): Promise<{
     success: boolean
     fallback: boolean
     motivo?: string
     message: string
     documento_token?: string
     status?: string
-    signatarios?: ZapSignSignatarioUrl[]
+    zapsign_status?: string
+    zapsign_urls?: ZapSignSignatarioUrl[]
   }> {
     return pb.send<{
       success: boolean
@@ -2191,27 +2192,29 @@ export const api = {
       message: string
       documento_token?: string
       status?: string
-      signatarios?: ZapSignSignatarioUrl[]
-    }>(`/backend/v1/editais/${encodeURIComponent(editalId)}/enviar-zapsign`, {
+      zapsign_status?: string
+      zapsign_urls?: ZapSignSignatarioUrl[]
+    }>('/backend/v1/editais/enviar-zapsign', {
       method: 'POST',
       body: payload,
     })
   },
 
-  async enviarListaPresencaZapsign(
-    deliberacaoId: string,
-    payload: {
-      pdf_base64: string
-      signatarios: Array<{ nome: string; email?: string; cpf?: string; telefone?: string }>
-    },
-  ): Promise<{
+  async enviarListaPresencaZapsign(payload: {
+    deliberacaoId: string
+    listaPresencaId?: string
+    nomeDocumento?: string
+    pdfBase64: string
+    signatarios: Array<{ nome: string; cpf?: string; email?: string; telefone?: string; cargo?: string }>
+  }): Promise<{
     success: boolean
     fallback: boolean
     motivo?: string
     message: string
     documento_token?: string
     status?: string
-    signatarios?: ZapSignSignatarioUrl[]
+    zapsign_status?: string
+    zapsign_urls?: ZapSignSignatarioUrl[]
   }> {
     return pb.send<{
       success: boolean
@@ -2220,11 +2223,22 @@ export const api = {
       message: string
       documento_token?: string
       status?: string
-      signatarios?: ZapSignSignatarioUrl[]
-    }>(`/backend/v1/listas-presenca/${encodeURIComponent(deliberacaoId)}/enviar-zapsign`, {
+      zapsign_status?: string
+      zapsign_urls?: ZapSignSignatarioUrl[]
+    }>('/backend/v1/listas-presenca/enviar-zapsign', {
       method: 'POST',
       body: payload,
     })
+  },
+
+  async criarListaPresenca(dados: {
+    deliberacao: string
+    titulo?: string
+    status?: 'rascunho' | 'assinado' | 'publicado'
+  }): Promise<ListaPresencaDocumentoRecord> {
+    return pb
+      .collection('listas_presenca')
+      .create<ListaPresencaDocumentoRecord>(dados, { requestKey: null })
   },
 
   async obterListaPresencaDocumento(

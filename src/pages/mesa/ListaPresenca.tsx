@@ -174,8 +174,7 @@ export const ListaPresencaPage: React.FC = () => {
 
         // Restaurar estado ZapSign persistido no registro da lista de presença
         try {
-          const listas = await api.getListasPresenca(`deliberacao = "${delib.id}"`, 1)
-          const lista = listas.items?.[0]
+          const lista = await api.obterListaPresencaDocumento(delib.id)
           if (lista) {
             setListaDbId(lista.id)
             setZapsignStatus(lista.zapsign_status || '')
@@ -183,7 +182,7 @@ export const ListaPresencaPage: React.FC = () => {
             setZapsignSignatarios(
               (lista.zapsign_urls as ZapSignSignatarioUrl[] | undefined) || null,
             )
-            setZapsignMotivo(lista.zapsign_motivo_erro || null)
+            setZapsignMotivo(lista.zapsign_motivo_falha || null)
           } else {
             setListaDbId(null)
             setZapsignStatus('')
@@ -636,7 +635,10 @@ export const ListaPresencaPage: React.FC = () => {
       // 1. Garantir registro da lista no banco (persistência de status/links)
       let listaId = listaDbId
       if (!listaId) {
-        const criada = await api.criarListaPresenca({ deliberacao: deliberacaoAtiva.id })
+        const criada = await api.criarListaPresenca({
+          deliberacao: deliberacaoAtiva.id,
+          titulo: deliberacaoAtiva.titulo || 'Lista de Presença',
+        })
         listaId = criada.id
         setListaDbId(listaId)
       }
@@ -700,9 +702,9 @@ export const ListaPresencaPage: React.FC = () => {
         ],
       })
 
-      setZapsignStatus(resp.zapsign_status)
+      setZapsignStatus(resp.zapsign_status || resp.status || '')
       setZapsignDocToken(resp.documento_token)
-      setZapsignSignatarios(resp.zapsign_urls)
+      setZapsignSignatarios(resp.zapsign_urls || resp.signatarios || null)
       setZapsignMotivo(resp.message || null)
       setModalZapsignAberto(true)
 
@@ -712,13 +714,17 @@ export const ListaPresencaPage: React.FC = () => {
         dispositivo: navigator.userAgent,
       })
 
+      const statusFinal = resp.zapsign_status || resp.status || ''
       toast({
         title:
-          resp.zapsign_status === 'enviado'
-            ? 'Lista de Presença enviada à ZapSign'
-            : 'Falha no envio à ZapSign',
-        description: resp.message || undefined,
-        variant: resp.zapsign_status === 'enviado' ? 'default' : 'destructive',
+          statusFinal === 'fallback_manual'
+            ? 'ZapSign não criou o documento — via manual liberada'
+            : 'Lista de Presença enviada à ZapSign',
+        description:
+          statusFinal === 'fallback_manual'
+            ? resp.motivo || resp.message || 'Verifique o motivo exibido no modal.'
+            : resp.message || undefined,
+        variant: statusFinal === 'fallback_manual' ? 'destructive' : 'default',
       })
     } catch (err: unknown) {
       const msg = getErrorMessage(err, 'Falha ao enviar a Lista de Presença à ZapSign.')
@@ -1356,6 +1362,20 @@ export const ListaPresencaPage: React.FC = () => {
           onConfirmar={handleConfirmarAssinaturaMesa}
         />
       )}
+
+      {/* Modal ZapSign: links individuais por signatário (mesmo padrão do edital) */}
+      <ModalZapsignLinks
+        aberto={modalZapsignAberto}
+        onOpenChange={setModalZapsignAberto}
+        tituloDocumento={
+          deliberacaoAtiva?.titulo
+            ? `Lista de Presença — ${deliberacaoAtiva.titulo}`
+            : 'Lista de Presença'
+        }
+        signatarios={zapsignSignatarios}
+        status={zapsignStatus}
+        motivo={zapsignMotivo}
+      />
 
       {/* Modal Registrar Presença / Assinatura */}
       <Dialog open={modalPresencaAberto} onOpenChange={setModalPresencaAberto}>

@@ -9,8 +9,10 @@
  * Endpoints:
  * 1. GET  /backend/v1/admin/zapsign/config       - Status da configuração (nunca os segredos em claro)
  * 2. POST /backend/v1/admin/zapsign/config       - Grava token, ambiente e webhook secret cifrados em configuracoes_backend
- * 3. POST /backend/v1/atas/{id}/enviar-zapsign   - Envia ata para assinatura na ZapSign (ou fallback manual)
- * 4. POST /backend/v1/zapsign/webhook           - Webhook idempotente da ZapSign com validação de segredo e download imediato
+ * 3. POST /backend/v1/atas/{id}/enviar-zapsign               - Envia ata para assinatura na ZapSign (ou fallback manual)
+ * 3b. POST /backend/v1/editais/{id}/enviar-zapsign           - Edital de convocação (collection editais_deliberacao)
+ * 3c. POST /backend/v1/listas-presenca/{id}/enviar-zapsign   - Lista de presença (collection listas_presenca)
+ * 4. POST /backend/v1/zapsign/webhook                        - Webhook idempotente da ZapSign com validação de segredo e download imediato (identifica ata/edital/lista pelo token do documento)
  *
  * IMPORTANTE (runtime Skip Cloud/PocketBase): o campo `resp.rawText` de $http.send chega
  * VAZIO nesta plataforma. Todo acesso ao corpo da resposta usa `resp.json` (JSON já
@@ -568,11 +570,36 @@ routerAdd('POST', '/backend/v1/atas/{id}/enviar-zapsign', (e) => {
     fallback: false,
     modo_assinatura: 'zapsign',
     documento_token: docToken,
-    status: 'aguardando_assinaturas',
-    signatarios: urlsPorSignatario,
+    zapsign_status: 'aguardando_assinaturas',
+    zapsign_urls: urlsPorSignatario,
     message: 'Documento enviado com sucesso para a ZapSign!',
   })
 })
+
+// -------------------------------------------------------------
+// 3b. POST /backend/v1/editais/{id}/enviar-zapsign — Edital de Convocação
+// -------------------------------------------------------------
+routerAdd('POST', '/backend/v1/editais/{id}/enviar-zapsign', (e) => {
+  const doc = prepararEnvioDocumentoGenerico(e, 'editais_deliberacao', 'edital')
+  if (doc.respostaAntecipada) return doc.respostaAntecipada
+  return concluirCriacaoDocumentoZapSign(e, doc.registro, 'edital')
+})
+
+// -------------------------------------------------------------
+// 3c. POST /backend/v1/listas-presenca/{id}/enviar-zapsign — Lista de Presença
+// -------------------------------------------------------------
+routerAdd('POST', '/backend/v1/listas-presenca/{id}/enviar-zapsign', (e) => {
+  const doc = prepararEnvioDocumentoGenerico(e, 'listas_presenca', 'lista_presenca')
+  if (doc.respostaAntecipada) return doc.respostaAntecipada
+  return concluirCriacaoDocumentoZapSign(e, doc.registro, 'lista_presenca')
+})
+
+// -------------------------------------------------------------
+// Auxiliares compartilhados por edital e lista de presença.
+// ATENÇÃO (modelo de pool JSVM): funções auxiliares NÃO podem ficar em top-level
+// do pb_hooks — cada callback roda em um pool separado. Por isso elas são
+// clonadas aqui DENTRO de cada callback e não reutilizadas entre callbacks.
+// -------------------------------------------------------------
 
 // -------------------------------------------------------------
 // 4. POST /backend/v1/zapsign/webhook

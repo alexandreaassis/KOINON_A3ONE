@@ -43,6 +43,8 @@ export interface DadosEditalPdf {
   formatoAssinatura?: 'desenho' | 'texto' | 'em_branco'
   assinaturaVisual?: string
   assinaturaTexto?: string
+  /** true na via gerada em bytes como anexo ZapSign — nota enxuta, sem bloco criptográfico (padrão da ata) */
+  viaZapsign?: boolean
 }
 
 function converterTextoParaHtmlSeguro(conteudo?: string | null): string {
@@ -581,9 +583,21 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
       ${seloAssinatura}
     </div>
 
+    ${
+      dados.viaZapsign
+        ? `<div style="margin-top: 10px; font-size: 8pt; color: #5A6B82; font-style: italic;">
+             Nota: esta via destina-se à assinatura eletrônica via plataforma ZapSign (assinatura eletrônica simples). Após a conclusão, o PDF assinado pela ZapSign passa a ser a via oficial, com hash SHA-256 registrado no documento.
+           </div>`
+        : ''
+    }
+
     <div class="footer-note">
       Documento gerado eletronicamente pela Plataforma Virtual Koinon.<br>
-      A autenticidade deste edital pode ser confirmada por meio do hash SHA-256 e da chave de assinatura criptográfica.
+      ${
+        dados.viaZapsign
+          ? `Hash da urna (SHA-256): <span style="font-family: monospace;">${dados.hashAssinatura || '—'}</span>`
+          : 'A autenticidade deste edital pode ser confirmada por meio do hash SHA-256 e da chave de assinatura criptográfica.'
+      }
       <div>
         <span class="seal-a3one">
           <strong>KOINON</strong> • uma solução <span class="brand-a3one">A3ONE</span>

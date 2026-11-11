@@ -12,13 +12,16 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { AlertTriangle, Check, Copy, ExternalLink, FileSignature } from 'lucide-react'
 import type { ZapSignSignatarioUrl } from '@/lib/api'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 interface ModalZapsignLinksProps {
   aberto: boolean
   onOpenChange: (aberto: boolean) => void
   tituloDocumento: string
   docToken?: string | null
-  signatarios: ZapSignSignatarioUrl[]
+  signatarios: ZapSignSignatarioUrl[] | null
+  status?: string
+  motivo?: string | null
 }
 
 /**
@@ -31,6 +34,8 @@ export function ModalZapsignLinks({
   tituloDocumento,
   docToken,
   signatarios,
+  status: _status,
+  motivo,
 }: ModalZapsignLinksProps) {
   const { toast } = useToast()
   const [copiandoIdx, setCopiandoIdx] = useState<number | null>(null)
@@ -41,10 +46,10 @@ export function ModalZapsignLinks({
       setCopiandoIdx(idx)
       toast({ title: 'Copiado!', description: `Link de ${nome} copiado.` })
       setTimeout(() => setCopiandoIdx(null), 1500)
-    } catch {
+    } catch (error: unknown) {
       toast({
         title: 'Não foi possível copiar',
-        description: 'Selecione o texto do link manualmente para copiar.',
+        description: getErrorMessage(error, 'Selecione o texto do link manualmente para copiar.'),
         variant: 'destructive',
       })
     }
@@ -74,6 +79,16 @@ export function ModalZapsignLinks({
                   resposta. Distribua os convites diretamente pelo painel da ZapSign ou tente enviar
                   novamente.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {motivo && (
+            <div className="p-2.5 rounded bg-red-50 border border-red-200 text-xs text-red-900 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-red-600 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold">Motivo do erro no envio</p>
+                <p className="leading-relaxed break-words">{motivo}</p>
               </div>
             </div>
           )}
