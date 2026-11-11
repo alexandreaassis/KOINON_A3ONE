@@ -254,6 +254,13 @@ export const AtaAssembleiaPage: React.FC = () => {
     })
   }, [tituloAta, conteudoHtml])
 
+  // A ata está em processo/via de assinatura pela ZapSign (zapsign_status preenchido
+  // com um status real de processo — não confundir com fallback manual).
+  const viaZapsignAtiva = useMemo(
+    () => !!zapsignStatus && zapsignStatus !== 'nao_enviado' && zapsignStatus !== 'fallback_manual',
+    [zapsignStatus],
+  )
+
   // Checar se a assinatura da mesa está desatualizada (alerta visual)
   const assinaturaDesatualizada = useMemo(() => {
     if (!presidenteHash && !secretarioHash) return false
@@ -1956,6 +1963,17 @@ export const AtaAssembleiaPage: React.FC = () => {
                 </CardHeader>
 
                 <CardContent className="pt-4">
+                  {/* Aviso de contexto: assinatura da mesa em andamento via ZapSign */}
+                  {viaZapsignAtiva && (
+                    <div className="mb-4 p-3 rounded-md border border-blue-200 bg-blue-50/80 text-[11px] text-blue-900 leading-relaxed">
+                      <span className="font-semibold text-blue-950 block mb-0.5">
+                        Assinatura da mesa sendo colhida via ZapSign:
+                      </span>
+                      {zapsignStatus === 'signed'
+                        ? 'A ata foi assinada eletronicamente pela ZapSign (ver aba ZapSign). A assinatura nativa abaixo é opcional/complementar — serve apenas como registro adicional colhido pela plataforma Koinon.'
+                        : 'A ata foi enviada para assinatura eletrônica pela ZapSign e aguarda os signatários (ver aba ZapSign). A assinatura nativa abaixo é opcional/complementar — serve apenas como registro adicional colhido pela plataforma Koinon.'}
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
                     {/* Presidente da Mesa */}
                     <div className="space-y-3 p-4 bg-white rounded-md border border-slate-200 flex flex-col justify-between">
@@ -1975,6 +1993,11 @@ export const AtaAssembleiaPage: React.FC = () => {
                             >
                               Pendente
                             </Badge>
+                          )}
+                          {viaZapsignAtiva && (
+                            <span className="text-[9px] font-semibold uppercase tracking-wider text-blue-800 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5">
+                              Via ZapSign — nativa opcional
+                            </span>
                           )}
                         </div>
 
@@ -2043,6 +2066,11 @@ export const AtaAssembleiaPage: React.FC = () => {
                               Pendente
                             </Badge>
                           )}
+                          {viaZapsignAtiva && (
+                            <span className="text-[9px] font-semibold uppercase tracking-wider text-blue-800 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5">
+                              Via ZapSign — nativa opcional
+                            </span>
+                          )}
                         </div>
 
                         {/* Bloco Compacto Padronizado */}
@@ -2095,12 +2123,27 @@ export const AtaAssembleiaPage: React.FC = () => {
                   {/* Ressalva Jurídica Padronizada */}
                   <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-md text-[11px] text-slate-600 leading-relaxed">
                     <span className="font-semibold text-slate-900 block mb-0.5">
-                      Validade Jurídica e ICP-Brasil:
+                      Validade Jurídica:
                     </span>
-                    As assinaturas eletrônicas apostas neste documento atendem aos requisitos do
-                    Código Civil Brasileiro (arts. 1.331 e 1.350) e da Medida Provisória nº
-                    2.200-2/2001, possuindo integridade e tempestividade auditáveis mediante carimbo
-                    SHA-256 encadeado à urna de votação.
+                    {viaZapsignAtiva ? (
+                      <>
+                        As assinaturas colhidas pela via ZapSign seguem a certificação da própria
+                        ZapSign, impressa no PDF por ela devolvido. Já a via de assinatura nativa
+                        abaixo, quando utilizada, consiste em assinaturas eletrônicas simples
+                        coletadas pela plataforma Koinon, com integridade e tempestividade
+                        auditáveis mediante carimbo SHA-256 encadeado à urna de votação, conforme o
+                        Código Civil Brasileiro (arts. 1.331 e 1.350, referentes a quem lavra e
+                        assina a ata).
+                      </>
+                    ) : (
+                      <>
+                        As assinaturas eletrônicas apostas nesta via são assinaturas eletrônicas
+                        simples coletadas pela plataforma Koinon, com integridade e tempestividade
+                        auditáveis mediante carimbo SHA-256 encadeado à urna de votação, conforme o
+                        Código Civil Brasileiro (arts. 1.331 e 1.350, referentes a quem lavra e
+                        assina a ata).
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -2176,7 +2219,7 @@ export const AtaAssembleiaPage: React.FC = () => {
                       Certificação e Integridade Criptográfica (SHA-256)
                     </p>
                     <span className="text-[10px] font-bold text-[#0066FF] font-mono tracking-wider">
-                      ICP-BRASIL / KOINON
+                      KOINON
                     </span>
                   </div>
 
