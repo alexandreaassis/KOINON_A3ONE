@@ -2174,7 +2174,13 @@ export const api = {
     editalId?: string
     nomeDocumento?: string
     pdfBase64: string
-    signatarios: Array<{ nome: string; cpf?: string; email?: string; telefone?: string; cargo?: string }>
+    signatarios: Array<{
+      nome: string
+      cpf?: string
+      email?: string
+      telefone?: string
+      cargo?: string
+    }>
   }): Promise<{
     success: boolean
     fallback: boolean
@@ -2205,7 +2211,13 @@ export const api = {
     listaPresencaId?: string
     nomeDocumento?: string
     pdfBase64: string
-    signatarios: Array<{ nome: string; cpf?: string; email?: string; telefone?: string; cargo?: string }>
+    signatarios: Array<{
+      nome: string
+      cpf?: string
+      email?: string
+      telefone?: string
+      cargo?: string
+    }>
   }): Promise<{
     success: boolean
     fallback: boolean

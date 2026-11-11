@@ -648,7 +648,7 @@ export const ListaPresencaPage: React.FC = () => {
         const unid = unidades.find((u) => u.id === p.unidade)
         return {
           identificadorUnidade: unid
-            ? formatarIdentificadorUnidade(unid, rotuloUnidade)
+            ? formatarIdentificadorUnidade(unid.identificador, unid.tipo_unidade, rotuloUnidade)
             : p.unidade,
           nomeParticipante: p.nome || '—',
           forma: p.forma || 'presencial',
@@ -704,7 +704,7 @@ export const ListaPresencaPage: React.FC = () => {
 
       setZapsignStatus(resp.zapsign_status || resp.status || '')
       setZapsignDocToken(resp.documento_token)
-      setZapsignSignatarios(resp.zapsign_urls || resp.signatarios || null)
+      setZapsignSignatarios(resp.zapsign_urls || null)
       setZapsignMotivo(resp.message || null)
       setModalZapsignAberto(true)
 

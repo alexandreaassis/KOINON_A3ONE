@@ -922,7 +922,7 @@ export const DocumentosEditalPage: React.FC = () => {
 
       setZapsignStatus(resp.zapsign_status || resp.status || '')
       setZapsignDocToken(resp.documento_token)
-      setZapsignSignatarios(resp.zapsign_urls || resp.signatarios || null)
+      setZapsignSignatarios(resp.zapsign_urls || null)
       setZapsignMotivo(resp.message || null)
       setModalZapsignAberto(true)
 
