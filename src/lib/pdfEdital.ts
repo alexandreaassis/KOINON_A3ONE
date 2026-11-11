@@ -235,7 +235,8 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
   <style>
     @page {
       size: A4 portrait;
-      margin: 18mm 16mm 18mm 16mm;
+      /* Margens oficiais do documento: 8,5mm topo / 15mm laterais / 15mm rodapé */
+      margin: 8.5mm 15mm 15mm 15mm;
     }
     * {
       box-sizing: border-box;
@@ -253,7 +254,8 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
     }
     .document-page {
       width: 100%;
-      max-width: 800px;
+      /* 210mm - 2 x 15mm laterais = 180mm de área útil ≈ 680px @96dpi */
+      max-width: 680px;
       margin: 0 auto;
       padding: 0;
     }

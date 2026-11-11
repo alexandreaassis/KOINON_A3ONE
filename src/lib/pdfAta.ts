@@ -60,7 +60,7 @@ function renderAssinaturaVisual(
 ): string {
   if (formato === 'desenho' && visual) {
     return `<div style="min-height: 75px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: -1px;">
-      <img src="${visual}" alt="Assinatura" style="max-height: 75px; max-width: 346px; object-fit: contain; object-position: bottom center;" />
+      <img src="${visual}" alt="Assinatura" style="max-height: 75px; max-width: 92%; object-fit: contain; object-position: bottom center;" />
     </div>`
   }
   if (formato === 'texto' && texto) {
@@ -125,7 +125,8 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
   <style>
     @page {
       size: A4 portrait;
-      margin: 18mm 16mm 18mm 16mm;
+      /* Margens oficiais do documento: 8,5mm topo / 15mm laterais / 15mm rodapé */
+      margin: 8.5mm 15mm 15mm 15mm;
     }
     * {
       box-sizing: border-box;
@@ -143,7 +144,8 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
     }
     .document-page {
       width: 100%;
-      max-width: 820px;
+      /* 210mm - 2 x 15mm laterais = 180mm de área útil ≈ 680px @96dpi */
+      max-width: 680px;
       margin: 0 auto;
       padding: 0;
     }
@@ -310,7 +312,8 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
       width: 100%;
     }
     .signature-line {
-      width: 346px;
+      width: 92%;
+      max-width: 346px;
       border-top: 1.5px solid #002B5E;
       margin: 8px auto 6px auto;
     }    .signature-name {

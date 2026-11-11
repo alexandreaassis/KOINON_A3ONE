@@ -8,6 +8,10 @@
  *
  * Não substitui a impressão A4 do navegador (imprimirOuBaixarPdfEdital):
  * esta função existe para o disparo com anexo e registro de prova.
+ *
+ * Margens oficiais do documento (idênticas ao @page de gerarHtmlDocumentoEdital):
+ * 8,5mm no topo, 15mm nas laterais e 15mm no rodapé — aplicadas na paginação
+ * (área útil de desenho do jsPDF), valendo para TODAS as páginas.
  */
 
 import { gerarHtmlDocumentoEdital, type DadosEditalPdf } from '@/lib/pdfEdital'
@@ -21,7 +25,13 @@ export interface ProvaEditalPdf {
   totalPaginas: number
 }
 
+const MARGEM_TOPO_MM = 8.5
+const MARGEM_LATERAL_MM = 15
+const MARGEM_RODAPE_MM = 15
 const LARGURA_A4_PX = 794 // 210mm @96dpi
+const PX_POR_MM = LARGURA_A4_PX / 210
+// Largura do container de captura = área útil (210 - 2x15 = 180mm)
+const LARGURA_UTIL_A4_PX = Math.round(LARGURA_A4_PX - 2 * MARGEM_LATERAL_MM * PX_POR_MM) // ≈ 680px
 
 async function sha256DeBytes(bytes: ArrayBuffer): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', bytes)
@@ -49,7 +59,8 @@ export async function gerarPdfEditalComHash(
   container.style.position = 'fixed'
   container.style.left = '-10000px'
   container.style.top = '0'
-  container.style.width = `${LARGURA_A4_PX}px`
+  // Captura APENAS a área útil (180mm): as margens são aplicadas na paginação
+  container.style.width = `${LARGURA_UTIL_A4_PX}px`
   container.style.background = '#ffffff'
   // Extrai o conteúdo do body do documento A4 gerado (evita aninhar <html>/<body>)
   const documento = new DOMParser().parseFromString(html, 'text/html')
@@ -71,11 +82,21 @@ export async function gerarPdfEditalComHash(
     const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' })
     const larguraPt = pdf.internal.pageSize.getWidth()
     const alturaPt = pdf.internal.pageSize.getHeight()
-    const alturaPaginaPx = canvas.width * (alturaPt / larguraPt)
+
+    // Margens em pt (1mm = 72/25.4 pt), iguais ao @page do HTML de impressão
+    const mmParaPt = (mm: number) => (mm * 72) / 25.4
+    const margemTopoPt = mmParaPt(MARGEM_TOPO_MM)
+    const margemLateralPt = mmParaPt(MARGEM_LATERAL_MM)
+    const margemRodapePt = mmParaPt(MARGEM_RODAPE_MM)
+
+    const larguraUtilPt = larguraPt - 2 * margemLateralPt // 180mm
+    const alturaUtilPt = alturaPt - margemTopoPt - margemRodapePt // 273,5mm
+    // Altura em px de conteúdo que cabe na área útil de UMA página
+    const alturaUtilPaginaPx = canvas.width * (alturaUtilPt / larguraUtilPt)
 
     let pagina = 0
-    for (let y = 0; y < canvas.height; y += alturaPaginaPx) {
-      const alturaFatia = Math.min(alturaPaginaPx, canvas.height - y)
+    for (let y = 0; y < canvas.height; y += alturaUtilPaginaPx) {
+      const alturaFatia = Math.min(alturaUtilPaginaPx, canvas.height - y)
       const fatia = document.createElement('canvas')
       fatia.width = canvas.width
       fatia.height = Math.ceil(alturaFatia)
@@ -88,10 +109,11 @@ export async function gerarPdfEditalComHash(
       pdf.addImage(
         fatia.toDataURL('image/jpeg', 0.92),
         'JPEG',
-        0,
-        0,
-        larguraPt,
-        (alturaFatia * larguraPt) / canvas.width,
+        margemLateralPt,
+        margemTopoPt,
+        larguraUtilPt,
+        // Última fatia: altura proporcional, deixando o rodapé em branco (margem)
+        Math.min(alturaUtilPt, (alturaFatia * larguraUtilPt) / canvas.width),
       )
       pagina++
     }
