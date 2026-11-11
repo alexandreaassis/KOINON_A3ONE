@@ -579,27 +579,662 @@ routerAdd('POST', '/backend/v1/atas/{id}/enviar-zapsign', (e) => {
 // -------------------------------------------------------------
 // 3b. POST /backend/v1/editais/{id}/enviar-zapsign — Edital de Convocação
 // -------------------------------------------------------------
+// ATENÇÃO (modelo de pool JSVM do Skip Cloud): funções auxiliares NÃO podem
+// ficar em top-level do pb_hooks — cada callback roda em um pool separado e
+// não enxerga declarações de nível superior (causa real do ReferenceError
+// "prepararEnvioDocumentoGenerico is not defined" nesta rota). Por isso toda
+// auxiliar é declarada DENTRO de cada callback, duplicada entre eles.
+// -------------------------------------------------------------
 routerAdd('POST', '/backend/v1/editais/{id}/enviar-zapsign', (e) => {
-  const doc = prepararEnvioDocumentoGenerico(e, 'editais_deliberacao', 'edital')
-  if (doc.respostaAntecipada) return doc.respostaAntecipada
-  return concluirCriacaoDocumentoZapSign(e, doc.registro, 'edital')
+  let operador = e.auth
+  if (!operador) {
+    try {
+      const authHeader = (e.requestInfo().headers && e.requestInfo().headers['authorization']) || ''
+      const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+      if (token && e.app) {
+        operador = e.app.findAuthRecordByToken(token, 'auth')
+      }
+    } catch (_) {}
+  }
+
+  if (!operador) {
+    return e.json(403, {
+      success: false,
+      message: 'Acesso restrito à Mesa Diretora e Administradores.',
+    })
+  }
+
+  const role = operador.getString('role')
+  if (role !== 'admin' && role !== 'mesa') {
+    return e.json(403, {
+      success: false,
+      message: 'Acesso restrito à Mesa Diretora e Administradores.',
+    })
+  }
+
+  const editalId = e.request.pathValue('id')
+  let edital = null
+  try {
+    edital = e.app.findRecordById('editais_deliberacao', editalId)
+  } catch (_) {
+    return e.json(404, { success: false, message: 'Edital não encontrado.' })
+  }
+
+  const decifrarInline = (texto) => {
+    if (!texto) return ''
+    const key = ($os.getenv('ENCRYPTION_KEY') || 'koinon-zapsign-sec-key-32chars!')
+      .padEnd(32, '0')
+      .slice(0, 32)
+    if (texto.startsWith('ENC:')) {
+      return $security.base64Decode(texto.substring(4))
+    }
+    try {
+      return $security.decrypt(texto, key)
+    } catch (_) {
+      return texto
+    }
+  }
+
+  const extrairCorpoRespostaHttp = (respX) => {
+    if (!respX) return null
+    if (respX.json !== undefined && respX.json !== null) return respX.json
+    if (!respX.body) return null
+    let texto = ''
+    try {
+      if (typeof respX.body === 'string') {
+        texto = respX.body
+      } else if (typeof respX.body === 'object' && respX.body.byteLength !== undefined) {
+        texto = String.fromCharCode.apply(null, new Uint8Array(respX.body))
+      } else {
+        texto = String(respX.body)
+      }
+    } catch (_) {
+      return null
+    }
+    try {
+      return JSON.parse(texto)
+    } catch (_) {
+      return texto
+    }
+  }
+
+  const extrairTextoRespostaHttp = (respX) => {
+    if (!respX) return ''
+    const corpo = extrairCorpoRespostaHttp(respX)
+    if (corpo === null || corpo === undefined) return ''
+    if (typeof corpo === 'string') return corpo
+    try {
+      return JSON.stringify(corpo)
+    } catch (_) {
+      return String(corpo)
+    }
+  }
+
+  const registrarAuditoria = (evento, fator) => {
+    try {
+      const colAud = e.app.findCollectionByNameOrId('auditoria_events')
+      let sequencial = 1
+      let ultimoHash = '0000000000000000000000000000000000000000000000000000000000000000'
+      const ultimos = e.app.findRecordsByFilter('auditoria_events', '', '-sequencial', 1, 0)
+      if (ultimos && ultimos.length > 0) {
+        sequencial = (ultimos[0].getInt('sequencial') || 0) + 1
+        ultimoHash = ultimos[0].getString('hash_evento') || ultimoHash
+      }
+      const p = JSON.stringify({
+        evento: evento,
+        fator: fator,
+        seq: sequencial,
+        ts: new Date().toISOString(),
+      })
+      const recAud = new Record(colAud)
+      recAud.set('evento', evento)
+      recAud.set('data_hora', new Date().toISOString())
+      recAud.set('fator', fator)
+      recAud.set('dispositivo', 'Mesa ID ' + operador.id)
+      recAud.set('sequencial', sequencial)
+      recAud.set('hash_anterior', ultimoHash)
+      recAud.set('hash_evento', $security.sha256(ultimoHash + ':' + p))
+      e.app.save(recAud)
+    } catch (audErr) {
+      console.log('Aviso ao auditar envio zapsign (edital):', audErr)
+    }
+  }
+
+  // Obter configurações
+  let token = ''
+  let ambiente = 'sandbox'
+  try {
+    const recToken = e.app.findFirstRecordByData(
+      'configuracoes_backend',
+      'chave',
+      'ZAPSIGN_API_TOKEN',
+    )
+    if (recToken) token = decifrarInline(recToken.getString('valor') || '').trim()
+  } catch (_) {}
+
+  try {
+    const recEnv = e.app.findFirstRecordByData('configuracoes_backend', 'chave', 'ZAPSIGN_AMBIENTE')
+    if (recEnv) {
+      const val = (recEnv.getString('valor') || '').trim()
+      if (val === 'producao' || val === 'sandbox') ambiente = val
+    }
+  } catch (_) {}
+
+  const baseUrl =
+    ambiente === 'producao' ? 'https://api.zapsign.com.br' : 'https://sandbox.api.zapsign.com.br'
+
+  // SE NÃO ESTIVER CONFIGURADA -> FALLBACK MARCADO
+  if (!token) {
+    const motivo =
+      'ZapSign não configurada no condomínio (token de API ausente em /admin/configuracoes).'
+    edital.set('zapsign_status', 'fallback_manual')
+    edital.set('zapsign_motivo_falha', motivo)
+    e.app.save(edital)
+
+    registrarAuditoria(
+      'zapsign_fallback_manual',
+      'Fallback acionado no Edital ' + editalId + ': ' + motivo,
+    )
+
+    return e.json(200, {
+      success: false,
+      fallback: true,
+      modo_assinatura: 'manual_impressao',
+      motivo: motivo,
+      message: 'ZapSign não configurada. O edital foi marcado para assinatura manual (impressão).',
+    })
+  }
+
+  // Payload vem em camelCase do front ({pdfBase64, signatarios[{nome,cpf,email,telefone,cargo}]})
+  const body = e.requestInfo().body || {}
+  const pdfBase64 = String(body.pdfBase64 || body.pdf_base64 || '').trim()
+  const signatariosEntrada = Array.isArray(body.signatarios) ? body.signatarios : []
+
+  // Montar signatários
+  const signers = []
+  for (let i = 0; i < signatariosEntrada.length; i++) {
+    const s = signatariosEntrada[i]
+    const nome = String(s.nome || s.name || '').trim()
+    if (!nome) continue
+    const item = { name: nome, email: String(s.email || '').trim() }
+    const cpf = String(s.cpf || '').replace(/\D/g, '')
+    if (cpf) item.cpf = cpf
+    signers.push(item)
+  }
+  if (signers.length === 0) {
+    const nomeConv = (edital.getString('sindico_nome') || '').trim()
+    signers.push({ name: nomeConv || 'Convocante do Edital' })
+  }
+
+  const nomeDoc =
+    String(body.nomeDocumento || edital.getString('titulo') || 'Edital de Convocação') + '.pdf'
+  const payloadZapSign = {
+    name: nomeDoc,
+    signers: signers,
+    lang: 'pt-br',
+    external_id: 'edital-' + edital.id,
+  }
+
+  if (pdfBase64) {
+    payloadZapSign.base64_pdf = pdfBase64
+  } else {
+    return e.json(400, {
+      success: false,
+      fallback: false,
+      message: 'Nenhum PDF do edital foi informado para envio à ZapSign.',
+    })
+  }
+
+  const endpointUrl = baseUrl + '/api/v1/docs/?api_token=' + encodeURIComponent(token)
+  let resp = null
+  let erroHttp = ''
+
+  try {
+    resp = $http.send({
+      method: 'POST',
+      url: endpointUrl,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + token,
+        'API-Token': token,
+      },
+      data: JSON.stringify(payloadZapSign),
+      timeout: 30,
+    })
+  } catch (errSend) {
+    erroHttp = errSend && errSend.message ? errSend.message : String(errSend)
+  }
+
+  if (!resp || resp.statusCode >= 400) {
+    const statusCod = resp ? resp.statusCode : 500
+    const corpoErro = resp ? extrairTextoRespostaHttp(resp) : ''
+    const rawBody = corpoErro || erroHttp
+    const motivo =
+      'Falha ao comunicar com a ZapSign (HTTP ' +
+      statusCod +
+      '): ' +
+      (rawBody || 'sem detalhes no corpo da resposta').slice(0, 500)
+
+    edital.set('zapsign_status', 'fallback_manual')
+    edital.set('zapsign_motivo_falha', motivo)
+    e.app.save(edital)
+
+    registrarAuditoria(
+      'zapsign_fallback_manual',
+      'Fallback acionado no Edital ' + editalId + ': ' + motivo,
+    )
+
+    return e.json(200, {
+      success: false,
+      fallback: true,
+      modo_assinatura: 'manual_impressao',
+      motivo: motivo,
+      message:
+        'Não foi possível criar o documento na ZapSign. Edital marcado para assinatura manual (impressão).',
+    })
+  }
+
+  // Corpo interpretado: resp.json primeiro; rawText não existe neste runtime (Bug 3)
+  let dadosZap = extrairCorpoRespostaHttp(resp)
+  if (dadosZap === null || typeof dadosZap !== 'object') {
+    dadosZap = {}
+  }
+
+  const docToken = dadosZap.token || ''
+  const signersRetornados = Array.isArray(dadosZap.signers) ? dadosZap.signers : []
+  const urlsPorSignatario = signersRetornados.map((s) => ({
+    nome: s.name || '',
+    email: s.email || '',
+    token: s.token || '',
+    sign_url: s.sign_url || (s.token ? 'https://app.zapsign.com.br/verificar/' + s.token : ''),
+    status: s.status || 'pending',
+  }))
+
+  const signersComToken = urlsPorSignatario.filter((s) => s.token || s.sign_url)
+  if (!docToken || signersComToken.length === 0) {
+    const corpoTexto = extrairTextoRespostaHttp(resp)
+    const motivo =
+      'A ZapSign respondeu HTTP ' +
+      resp.statusCode +
+      ' sem token de documento ou sem links de signatários no corpo. Corpo da resposta: ' +
+      (corpoTexto || 'vazio').slice(0, 500)
+
+    edital.set('zapsign_status', 'fallback_manual')
+    edital.set('zapsign_motivo_falha', motivo)
+    edital.set('zapsign_documento_token', '')
+    edital.set('zapsign_urls', [])
+    e.app.save(edital)
+
+    registrarAuditoria(
+      'zapsign_fallback_manual',
+      'Fallback acionado no Edital ' + editalId + ': ' + motivo,
+    )
+
+    return e.json(200, {
+      success: false,
+      fallback: true,
+      modo_assinatura: 'manual_impressao',
+      motivo: motivo,
+      message:
+        'A ZapSign respondeu, mas não retornou token do documento nem links de assinatura. Edital marcado para assinatura manual (impressão) em vez de gravar links vazios.',
+    })
+  }
+
+  edital.set('zapsign_documento_token', docToken)
+  edital.set('zapsign_status', 'aguardando_assinaturas')
+  edital.set('zapsign_urls', urlsPorSignatario)
+  edital.set('zapsign_enviado_em', new Date().toISOString())
+  edital.set('zapsign_motivo_falha', '')
+  e.app.save(edital)
+
+  registrarAuditoria(
+    'zapsign_documento_criado',
+    'Edital ' +
+      editalId +
+      ' enviado para ZapSign (Doc: ' +
+      docToken +
+      ', ' +
+      urlsPorSignatario.length +
+      ' signatários)',
+  )
+
+  return e.json(200, {
+    success: true,
+    fallback: false,
+    modo_assinatura: 'zapsign',
+    documento_token: docToken,
+    zapsign_status: 'aguardando_assinaturas',
+    zapsign_urls: urlsPorSignatario,
+    message: 'Documento enviado com sucesso para a ZapSign!',
+  })
 })
 
 // -------------------------------------------------------------
 // 3c. POST /backend/v1/listas-presenca/{id}/enviar-zapsign — Lista de Presença
 // -------------------------------------------------------------
 routerAdd('POST', '/backend/v1/listas-presenca/{id}/enviar-zapsign', (e) => {
-  const doc = prepararEnvioDocumentoGenerico(e, 'listas_presenca', 'lista_presenca')
-  if (doc.respostaAntecipada) return doc.respostaAntecipada
-  return concluirCriacaoDocumentoZapSign(e, doc.registro, 'lista_presenca')
-})
+  let operador = e.auth
+  if (!operador) {
+    try {
+      const authHeader = (e.requestInfo().headers && e.requestInfo().headers['authorization']) || ''
+      const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+      if (token && e.app) {
+        operador = e.app.findAuthRecordByToken(token, 'auth')
+      }
+    } catch (_) {}
+  }
 
-// -------------------------------------------------------------
-// Auxiliares compartilhados por edital e lista de presença.
-// ATENÇÃO (modelo de pool JSVM): funções auxiliares NÃO podem ficar em top-level
-// do pb_hooks — cada callback roda em um pool separado. Por isso elas são
-// clonadas aqui DENTRO de cada callback e não reutilizadas entre callbacks.
-// -------------------------------------------------------------
+  if (!operador) {
+    return e.json(403, {
+      success: false,
+      message: 'Acesso restrito à Mesa Diretora e Administradores.',
+    })
+  }
+
+  const role = operador.getString('role')
+  if (role !== 'admin' && role !== 'mesa') {
+    return e.json(403, {
+      success: false,
+      message: 'Acesso restrito à Mesa Diretora e Administradores.',
+    })
+  }
+
+  const listaId = e.request.pathValue('id')
+  let lista = null
+  try {
+    lista = e.app.findRecordById('listas_presenca', listaId)
+  } catch (_) {
+    return e.json(404, { success: false, message: 'Lista de presença não encontrada.' })
+  }
+
+  const decifrarInline = (texto) => {
+    if (!texto) return ''
+    const key = ($os.getenv('ENCRYPTION_KEY') || 'koinon-zapsign-sec-key-32chars!')
+      .padEnd(32, '0')
+      .slice(0, 32)
+    if (texto.startsWith('ENC:')) {
+      return $security.base64Decode(texto.substring(4))
+    }
+    try {
+      return $security.decrypt(texto, key)
+    } catch (_) {
+      return texto
+    }
+  }
+
+  const extrairCorpoRespostaHttp = (respX) => {
+    if (!respX) return null
+    if (respX.json !== undefined && respX.json !== null) return respX.json
+    if (!respX.body) return null
+    let texto = ''
+    try {
+      if (typeof respX.body === 'string') {
+        texto = respX.body
+      } else if (typeof respX.body === 'object' && respX.body.byteLength !== undefined) {
+        texto = String.fromCharCode.apply(null, new Uint8Array(respX.body))
+      } else {
+        texto = String(respX.body)
+      }
+    } catch (_) {
+      return null
+    }
+    try {
+      return JSON.parse(texto)
+    } catch (_) {
+      return texto
+    }
+  }
+
+  const extrairTextoRespostaHttp = (respX) => {
+    if (!respX) return ''
+    const corpo = extrairCorpoRespostaHttp(respX)
+    if (corpo === null || corpo === undefined) return ''
+    if (typeof corpo === 'string') return corpo
+    try {
+      return JSON.stringify(corpo)
+    } catch (_) {
+      return String(corpo)
+    }
+  }
+
+  const registrarAuditoria = (evento, fator) => {
+    try {
+      const colAud = e.app.findCollectionByNameOrId('auditoria_events')
+      let sequencial = 1
+      let ultimoHash = '0000000000000000000000000000000000000000000000000000000000000000'
+      const ultimos = e.app.findRecordsByFilter('auditoria_events', '', '-sequencial', 1, 0)
+      if (ultimos && ultimos.length > 0) {
+        sequencial = (ultimos[0].getInt('sequencial') || 0) + 1
+        ultimoHash = ultimos[0].getString('hash_evento') || ultimoHash
+      }
+      const p = JSON.stringify({
+        evento: evento,
+        fator: fator,
+        seq: sequencial,
+        ts: new Date().toISOString(),
+      })
+      const recAud = new Record(colAud)
+      recAud.set('evento', evento)
+      recAud.set('data_hora', new Date().toISOString())
+      recAud.set('fator', fator)
+      recAud.set('dispositivo', 'Mesa ID ' + operador.id)
+      recAud.set('sequencial', sequencial)
+      recAud.set('hash_anterior', ultimoHash)
+      recAud.set('hash_evento', $security.sha256(ultimoHash + ':' + p))
+      e.app.save(recAud)
+    } catch (audErr) {
+      console.log('Aviso ao auditar envio zapsign (lista de presença):', audErr)
+    }
+  }
+
+  // Obter configurações
+  let token = ''
+  let ambiente = 'sandbox'
+  try {
+    const recToken = e.app.findFirstRecordByData(
+      'configuracoes_backend',
+      'chave',
+      'ZAPSIGN_API_TOKEN',
+    )
+    if (recToken) token = decifrarInline(recToken.getString('valor') || '').trim()
+  } catch (_) {}
+
+  try {
+    const recEnv = e.app.findFirstRecordByData('configuracoes_backend', 'chave', 'ZAPSIGN_AMBIENTE')
+    if (recEnv) {
+      const val = (recEnv.getString('valor') || '').trim()
+      if (val === 'producao' || val === 'sandbox') ambiente = val
+    }
+  } catch (_) {}
+
+  const baseUrl =
+    ambiente === 'producao' ? 'https://api.zapsign.com.br' : 'https://sandbox.api.zapsign.com.br'
+
+  // SE NÃO ESTIVER CONFIGURADA -> FALLBACK MARCADO
+  if (!token) {
+    const motivo =
+      'ZapSign não configurada no condomínio (token de API ausente em /admin/configuracoes).'
+    lista.set('zapsign_status', 'fallback_manual')
+    lista.set('zapsign_motivo_falha', motivo)
+    e.app.save(lista)
+
+    registrarAuditoria(
+      'zapsign_fallback_manual',
+      'Fallback acionado na Lista de Presença ' + listaId + ': ' + motivo,
+    )
+
+    return e.json(200, {
+      success: false,
+      fallback: true,
+      modo_assinatura: 'manual_impressao',
+      motivo: motivo,
+      message:
+        'ZapSign não configurada. A lista de presença foi marcada para assinatura manual (impressão).',
+    })
+  }
+
+  // Payload vem em camelCase do front ({pdfBase64, signatarios[{nome,cpf,email,telefone,cargo}]})
+  const body = e.requestInfo().body || {}
+  const pdfBase64 = String(body.pdfBase64 || body.pdf_base64 || '').trim()
+  const signatariosEntrada = Array.isArray(body.signatarios) ? body.signatarios : []
+
+  // Montar signatários
+  const signers = []
+  for (let i = 0; i < signatariosEntrada.length; i++) {
+    const s = signatariosEntrada[i]
+    const nome = String(s.nome || s.name || '').trim()
+    if (!nome) continue
+    const item = { name: nome, email: String(s.email || '').trim() }
+    const cpf = String(s.cpf || '').replace(/\D/g, '')
+    if (cpf) item.cpf = cpf
+    signers.push(item)
+  }
+  if (signers.length === 0) {
+    signers.push({ name: 'Presidente da Mesa' })
+  }
+
+  const nomeDoc =
+    String(body.nomeDocumento || lista.getString('titulo') || 'Lista de Presença') + '.pdf'
+  const payloadZapSign = {
+    name: nomeDoc,
+    signers: signers,
+    lang: 'pt-br',
+    external_id: 'lista_presenca-' + lista.id,
+  }
+
+  if (pdfBase64) {
+    payloadZapSign.base64_pdf = pdfBase64
+  } else {
+    return e.json(400, {
+      success: false,
+      fallback: false,
+      message: 'Nenhum PDF da lista de presença foi informado para envio à ZapSign.',
+    })
+  }
+
+  const endpointUrl = baseUrl + '/api/v1/docs/?api_token=' + encodeURIComponent(token)
+  let resp = null
+  let erroHttp = ''
+
+  try {
+    resp = $http.send({
+      method: 'POST',
+      url: endpointUrl,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + token,
+        'API-Token': token,
+      },
+      data: JSON.stringify(payloadZapSign),
+      timeout: 30,
+    })
+  } catch (errSend) {
+    erroHttp = errSend && errSend.message ? errSend.message : String(errSend)
+  }
+
+  if (!resp || resp.statusCode >= 400) {
+    const statusCod = resp ? resp.statusCode : 500
+    const corpoErro = resp ? extrairTextoRespostaHttp(resp) : ''
+    const rawBody = corpoErro || erroHttp
+    const motivo =
+      'Falha ao comunicar com a ZapSign (HTTP ' +
+      statusCod +
+      '): ' +
+      (rawBody || 'sem detalhes no corpo da resposta').slice(0, 500)
+
+    lista.set('zapsign_status', 'fallback_manual')
+    lista.set('zapsign_motivo_falha', motivo)
+    e.app.save(lista)
+
+    registrarAuditoria(
+      'zapsign_fallback_manual',
+      'Fallback acionado na Lista de Presença ' + listaId + ': ' + motivo,
+    )
+
+    return e.json(200, {
+      success: false,
+      fallback: true,
+      modo_assinatura: 'manual_impressao',
+      motivo: motivo,
+      message:
+        'Não foi possível criar o documento na ZapSign. Lista de presença marcada para assinatura manual (impressão).',
+    })
+  }
+
+  // Corpo interpretado: resp.json primeiro; rawText não existe neste runtime (Bug 3)
+  let dadosZap = extrairCorpoRespostaHttp(resp)
+  if (dadosZap === null || typeof dadosZap !== 'object') {
+    dadosZap = {}
+  }
+
+  const docToken = dadosZap.token || ''
+  const signersRetornados = Array.isArray(dadosZap.signers) ? dadosZap.signers : []
+  const urlsPorSignatario = signersRetornados.map((s) => ({
+    nome: s.name || '',
+    email: s.email || '',
+    token: s.token || '',
+    sign_url: s.sign_url || (s.token ? 'https://app.zapsign.com.br/verificar/' + s.token : ''),
+    status: s.status || 'pending',
+  }))
+
+  const signersComToken = urlsPorSignatario.filter((s) => s.token || s.sign_url)
+  if (!docToken || signersComToken.length === 0) {
+    const corpoTexto = extrairTextoRespostaHttp(resp)
+    const motivo =
+      'A ZapSign respondeu HTTP ' +
+      resp.statusCode +
+      ' sem token de documento ou sem links de signatários no corpo. Corpo da resposta: ' +
+      (corpoTexto || 'vazio').slice(0, 500)
+
+    lista.set('zapsign_status', 'fallback_manual')
+    lista.set('zapsign_motivo_falha', motivo)
+    lista.set('zapsign_documento_token', '')
+    lista.set('zapsign_urls', [])
+    e.app.save(lista)
+
+    registrarAuditoria(
+      'zapsign_fallback_manual',
+      'Fallback acionado na Lista de Presença ' + listaId + ': ' + motivo,
+    )
+
+    return e.json(200, {
+      success: false,
+      fallback: true,
+      modo_assinatura: 'manual_impressao',
+      motivo: motivo,
+      message:
+        'A ZapSign respondeu, mas não retornou token do documento nem links de assinatura. Lista de presença marcada para assinatura manual (impressão) em vez de gravar links vazios.',
+    })
+  }
+
+  lista.set('zapsign_documento_token', docToken)
+  lista.set('zapsign_status', 'aguardando_assinaturas')
+  lista.set('zapsign_urls', urlsPorSignatario)
+  lista.set('zapsign_enviado_em', new Date().toISOString())
+  lista.set('zapsign_motivo_falha', '')
+  e.app.save(lista)
+
+  registrarAuditoria(
+    'zapsign_documento_criado',
+    'Lista de Presença ' +
+      listaId +
+      ' enviada para ZapSign (Doc: ' +
+      docToken +
+      ', ' +
+      urlsPorSignatario.length +
+      ' signatários)',
+  )
+
+  return e.json(200, {
+    success: true,
+    fallback: false,
+    modo_assinatura: 'zapsign',
+    documento_token: docToken,
+    zapsign_status: 'aguardando_assinaturas',
+    zapsign_urls: urlsPorSignatario,
+    message: 'Documento enviado com sucesso para a ZapSign!',
+  })
+})
 
 // -------------------------------------------------------------
 // 4. POST /backend/v1/zapsign/webhook
