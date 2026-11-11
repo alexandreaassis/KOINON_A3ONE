@@ -381,9 +381,11 @@ export type ModoAssinaturaAta = 'eletronica_nativa' | 'zapsign' | 'manual_impres
 export interface ZapSignSignatarioUrl {
   nome: string
   email?: string
+  telefone?: string
   token?: string
   sign_url?: string
   status?: string
+  signed?: boolean
   signed_at?: string | null
 }
 
