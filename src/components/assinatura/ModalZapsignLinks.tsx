@@ -103,7 +103,7 @@ export function ModalZapsignLinks({
           )}
 
           <div className="space-y-2 max-h-60 overflow-y-auto">
-            {signatarios.map((sig, idx) => (
+            {(signatarios ?? []).map((sig, idx) => (
               <div
                 key={`${sig.token || sig.sign_url || idx}`}
                 className="p-3 border border-slate-200 rounded-lg bg-white space-y-2 text-xs"
