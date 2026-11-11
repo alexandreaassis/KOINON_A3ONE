@@ -68,6 +68,8 @@ import {
   UploadCloud,
   FileUp,
   Volume2,
+  FileSignature,
+  Copy,
 } from 'lucide-react'
 
 export const AtaAssembleiaPage: React.FC = () => {
@@ -110,6 +112,24 @@ export const AtaAssembleiaPage: React.FC = () => {
   const [hashAta, setHashAta] = useState<string | null>(null)
   const [hashRaizUrna, setHashRaizUrna] = useState<string | null>(null)
   const [dataPublicacao, setDataPublicacao] = useState<string | null>(null)
+
+  // Integração ZapSign (Fase 3)
+  const [zapsignStatus, setZapsignStatus] = useState<string | null>(null)
+  const [zapsignDocToken, setZapsignDocToken] = useState<string | null>(null)
+  const [zapsignModoAssinatura, setZapsignModoAssinatura] = useState<string | null>(null)
+  const [zapsignSignatarios, setZapsignSignatarios] = useState<Array<{
+    nome: string
+    email?: string
+    telefone?: string
+    sign_url?: string
+    status?: string
+    signed?: boolean
+  }> | null>(null)
+  const [zapsignAssinadoEm, setZapsignAssinadoEm] = useState<string | null>(null)
+  const [zapsignPdfUrl, setZapsignPdfUrl] = useState<string | null>(null)
+  const [zapsignPdfHash, setZapsignPdfHash] = useState<string | null>(null)
+  const [enviandoZapsign, setEnviandoZapsign] = useState(false)
+  const [modalZapsignAberto, setModalZapsignAberto] = useState(false)
 
   // Estados de Operação
   const [gerandoIa, setGerandoIa] = useState(false)
@@ -573,6 +593,15 @@ export const AtaAssembleiaPage: React.FC = () => {
           setHashAta(ataSalva.hash_ata || null)
           setHashRaizUrna(ataSalva.hash_raiz_urna || delibAtual.hash_raiz || null)
           setDataPublicacao(ataSalva.data_publicacao || null)
+
+          // ZapSign
+          setZapsignStatus(ataSalva.zapsign_status || null)
+          setZapsignDocToken(ataSalva.zapsign_doc_token || null)
+          setZapsignModoAssinatura(ataSalva.modo_assinatura || null)
+          setZapsignSignatarios(ataSalva.zapsign_signatarios || null)
+          setZapsignAssinadoEm(ataSalva.zapsign_assinado_em || null)
+          setZapsignPdfUrl(ataSalva.zapsign_pdf_assinado_url || null)
+          setZapsignPdfHash(ataSalva.zapsign_pdf_assinado_hash || null)
         } else {
           // Inicializar nova ata vazia
           setAtaDbId(null)
@@ -601,6 +630,14 @@ export const AtaAssembleiaPage: React.FC = () => {
           setHashAta(null)
           setHashRaizUrna(delibAtual.hash_raiz || null)
           setDataPublicacao(null)
+
+          setZapsignStatus(null)
+          setZapsignDocToken(null)
+          setZapsignModoAssinatura(null)
+          setZapsignSignatarios(null)
+          setZapsignAssinadoEm(null)
+          setZapsignPdfUrl(null)
+          setZapsignPdfHash(null)
         }
       }
     } catch (err: any) {
@@ -621,6 +658,85 @@ export const AtaAssembleiaPage: React.FC = () => {
   useEffect(() => {
     carregarDados()
   }, [])
+
+  // Ação de Envio para Assinatura via ZapSign (ou fallback manual)
+  const handleEnviarZapSign = async () => {
+    if (!deliberacaoAtiva) {
+      toast({
+        title: 'Nenhuma deliberação ativa',
+        description: 'Selecione uma deliberação antes de enviar para assinatura.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Salvar antes de enviar para garantir que a ata esteja atualizada no banco
+    setEnviandoZapsign(true)
+    try {
+      const ataSalva = await persistirAtaNoBanco(false)
+      const ataIdTarget = ataSalva?.id || ataDbId
+      if (!ataIdTarget) {
+        throw new Error('Não foi possível identificar o registro da ata para envio.')
+      }
+
+      // Montar lista de signatários da mesa
+      const signatariosEnvio: Array<{ nome: string; email?: string; telefone?: string }> = []
+      if (presidenteNome.trim()) {
+        signatariosEnvio.push({
+          nome: presidenteNome.trim(),
+          email: deliberacaoAtiva.mesa_presidente_email || user?.email || undefined,
+        })
+      }
+      if (secretarioNome.trim()) {
+        signatariosEnvio.push({
+          nome: secretarioNome.trim(),
+          email: deliberacaoAtiva.mesa_secretario_email || undefined,
+        })
+      }
+
+      const resp = await api.enviarAtaZapsign(ataIdTarget, signatariosEnvio)
+
+      if (resp.modo_assinatura === 'manual_impressao' || resp.fallback) {
+        setZapsignModoAssinatura('manual_impressao')
+        toast({
+          title: 'Contingência: Assinatura Manual Ativada',
+          description:
+            resp.motivo ||
+            'A integração ZapSign não possui token configurado. A ata foi preparada para assinatura manual impressa com caneta.',
+        })
+        // Gerar automaticamente o PDF com advertência e sem selo eletrônico
+        const dadosPdfManual: DadosAtaPdf = {
+          ...dadosPdf,
+          viaAssinaturaManual: true,
+          motivoFallbackManual:
+            resp.motivo || 'ZapSign não configurada — contingência manual ativada',
+        }
+        imprimirOuBaixarPdfAta(dadosPdfManual)
+      } else {
+        setZapsignStatus(resp.status || 'aguardando')
+        setZapsignDocToken(resp.doc_token || null)
+        setZapsignModoAssinatura('zapsign')
+        if (resp.signatarios && Array.isArray(resp.signatarios)) {
+          setZapsignSignatarios(resp.signatarios)
+        }
+        setModalZapsignAberto(true)
+        toast({
+          title: 'Documento ZapSign Criado!',
+          description:
+            'A ata foi enviada à ZapSign. Copie os links de assinatura ou aguarde o retorno do webhook.',
+        })
+      }
+    } catch (err: any) {
+      console.error('Erro ao enviar ata para ZapSign:', err)
+      toast({
+        title: 'Erro ao enviar para ZapSign',
+        description: err?.message || 'Falha ao contatar o servidor para envio ZapSign.',
+        variant: 'destructive',
+      })
+    } finally {
+      setEnviandoZapsign(false)
+    }
+  }
 
   // Persistência unificada no banco (salvamento manual e autosave debounce)
   const persistirAtaNoBanco = useCallback(
@@ -1160,6 +1276,21 @@ export const AtaAssembleiaPage: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
+                disabled={enviandoZapsign}
+                onClick={handleEnviarZapSign}
+                className="text-xs h-8 gap-1.5 bg-[#F3F7FC] border-[#0066FF]/30 text-[#002B5E] hover:bg-[#0066FF]/10 font-semibold shadow-xs"
+              >
+                {enviandoZapsign ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[#0066FF]" />
+                ) : (
+                  <FileSignature className="h-3.5 w-3.5 text-[#0066FF]" />
+                )}
+                Enviar para assinatura (ZapSign)
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => navigate(`/mesa/ata/imprimir/${deliberacaoAtiva.id}`)}
                 className="text-xs h-8 gap-1.5 bg-white border-slate-300"
                 title="Abrir página dedicada em formato A4"
@@ -1443,6 +1574,243 @@ export const AtaAssembleiaPage: React.FC = () => {
                       placeholder="O texto estruturado da ata aparecerá aqui para você ler, editar e formatar..."
                     />
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* ETAPA 3: INTEGRAÇÃO ZAPSIGN / ASSINATURA ELETRÔNICA EXTERNA */}
+              <Card className="border-[#002B5E]/20 shadow-xs bg-white overflow-hidden">
+                <CardHeader className="pb-3 border-b border-slate-100 bg-[#F3F7FC]/70">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-sm font-bold text-[#002B5E] flex items-center gap-2">
+                        <FileSignature className="h-4 w-4 text-[#0066FF]" /> Assinatura Digital e
+                        Eletrônica (ZapSign)
+                      </CardTitle>
+                      <CardDescription className="text-xs text-[#5A6B82] mt-0.5">
+                        Envio da ata para signatários da mesa com links exclusivos de assinatura,
+                        validação jurídica e retorno via webhook.
+                      </CardDescription>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        className={`text-[11px] font-semibold px-2.5 py-0.5 ${
+                          zapsignStatus === 'signed'
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : zapsignStatus === 'pending' || zapsignStatus === 'aguardando'
+                              ? 'bg-blue-100 text-blue-800 border-blue-300'
+                              : zapsignModoAssinatura === 'manual_impressao'
+                                ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                : 'bg-slate-100 text-slate-700 border-slate-300'
+                        }`}
+                      >
+                        {zapsignStatus === 'signed'
+                          ? '✓ Ata Assinada (ZapSign)'
+                          : zapsignStatus === 'pending' || zapsignStatus === 'aguardando'
+                            ? '⏳ Aguardando Signatários'
+                            : zapsignModoAssinatura === 'manual_impressao'
+                              ? 'Fallback: Impressão Manual'
+                              : 'Não enviada à ZapSign'}
+                      </Badge>
+
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={enviandoZapsign}
+                        onClick={handleEnviarZapSign}
+                        className="bg-[#002B5E] hover:bg-[#002B5E]/90 text-white text-xs h-8 gap-1.5 shadow-xs"
+                      >
+                        {enviandoZapsign ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Send className="h-3.5 w-3.5" />
+                        )}
+                        {zapsignDocToken
+                          ? 'Reenviar / Atualizar ZapSign'
+                          : 'Enviar para assinatura (ZapSign)'}
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="pt-4 space-y-4">
+                  {/* Alerta de Fallback Manual */}
+                  {zapsignModoAssinatura === 'manual_impressao' && (
+                    <div className="p-3.5 rounded-lg border border-amber-300 bg-amber-50/80 text-amber-950 text-xs space-y-2">
+                      <div className="flex items-center gap-2 font-bold text-amber-900">
+                        <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0" />
+                        Modo de Contingência Ativo: Assinatura Manual Impressa
+                      </div>
+                      <p className="text-amber-800 leading-relaxed">
+                        A integração ZapSign não possui token cadastrado ou o serviço externo está
+                        indisponível. O documento foi configurado no modo{' '}
+                        <strong>manual_impressao</strong>: gere o PDF pela impressão oficial para
+                        colher as assinaturas físicas a caneta. O PDF gerado incluirá uma tarja de
+                        advertência explícita, sem selo eletrônico.
+                      </p>
+                      <div className="pt-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const dadosPdfManual: DadosAtaPdf = {
+                              ...dadosPdf,
+                              viaAssinaturaManual: true,
+                              motivoFallbackManual:
+                                'ZapSign não configurada — contingência manual ativada',
+                            }
+                            imprimirOuBaixarPdfAta(dadosPdfManual)
+                          }}
+                          className="bg-white border-amber-300 text-amber-900 hover:bg-amber-100 text-xs h-8 gap-1.5"
+                        >
+                          <Printer className="h-3.5 w-3.5" /> Imprimir Documento com Tarja Manual
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Detalhes do Documento ZapSign quando criado */}
+                  {zapsignDocToken && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                          <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                            Token do Documento ZapSign
+                          </span>
+                          <span className="font-mono text-[11px] text-[#002B5E] break-all font-semibold">
+                            {zapsignDocToken}
+                          </span>
+                        </div>
+
+                        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                          <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                            Status do Processo
+                          </span>
+                          <span className="font-semibold text-slate-800 capitalize">
+                            {zapsignStatus || 'Aguardando'}
+                          </span>
+                          {zapsignAssinadoEm && (
+                            <span className="text-[10px] text-slate-500 block mt-0.5">
+                              Concluído em: {new Date(zapsignAssinadoEm).toLocaleString('pt-BR')}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                              PDF Assinado / Hash
+                            </span>
+                            {zapsignPdfHash ? (
+                              <span className="font-mono text-[10px] text-emerald-800 truncate block">
+                                {zapsignPdfHash.slice(0, 20)}...
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-slate-500">
+                                Aguardando assinaturas
+                              </span>
+                            )}
+                          </div>
+                          {zapsignPdfUrl && (
+                            <a
+                              href={zapsignPdfUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] text-[#0066FF] hover:underline font-semibold mt-1"
+                            >
+                              <ExternalLink className="h-3 w-3" /> Abrir PDF Oficial Assinado
+                            </a>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Tabela de Signatários e Links de Assinatura */}
+                      {zapsignSignatarios && zapsignSignatarios.length > 0 && (
+                        <div className="border border-slate-200 rounded-lg overflow-hidden">
+                          <div className="bg-slate-100/80 px-3.5 py-2 border-b border-slate-200 text-xs font-bold text-slate-800 flex items-center justify-between">
+                            <span>Links de Assinatura dos Signatários</span>
+                            <span className="text-[11px] text-slate-500 font-normal">
+                              Compartilhe com cada membro da mesa
+                            </span>
+                          </div>
+                          <div className="divide-y divide-slate-100">
+                            {zapsignSignatarios.map((sig, idx) => (
+                              <div
+                                key={idx}
+                                className="p-3 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                              >
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-slate-900">{sig.nome}</span>
+                                    {sig.signed ? (
+                                      <Badge className="bg-emerald-100 text-emerald-800 text-[10px] border-emerald-300">
+                                        ✓ Assinou
+                                      </Badge>
+                                    ) : (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-amber-700 border-amber-400 text-[10px]"
+                                      >
+                                        Pendente
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {(sig.email || sig.telefone) && (
+                                    <span className="text-[11px] text-slate-500">
+                                      {sig.email || ''} {sig.telefone ? `• ${sig.telefone}` : ''}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {sig.sign_url ? (
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(sig.sign_url || '')
+                                        toast({
+                                          title: 'Link copiado!',
+                                          description: `Link de assinatura de ${sig.nome} copiado para a área de transferência.`,
+                                        })
+                                      }}
+                                      className="text-xs h-7 gap-1 border-slate-300"
+                                    >
+                                      <Copy className="h-3 w-3" /> Copiar Link
+                                    </Button>
+                                    <a
+                                      href={sig.sign_url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#0066FF] hover:bg-[#0052cc] text-white text-xs font-medium h-7"
+                                    >
+                                      <ExternalLink className="h-3 w-3" /> Assinar Agora
+                                    </a>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 italic">
+                                    Link enviado diretamente por e-mail/WhatsApp
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {!zapsignDocToken && zapsignModoAssinatura !== 'manual_impressao' && (
+                    <div className="p-3 text-xs text-slate-600 bg-slate-50 rounded-lg border border-slate-200">
+                      Clique no botão <strong>"Enviar para assinatura (ZapSign)"</strong> acima para
+                      submeter a ata à ZapSign. Se as credenciais estiverem configuradas em{' '}
+                      <em>Configurações do Condomínio</em>, os links de assinatura serão gerados
+                      imediatamente; caso contrário, o sistema ativa a contingência para assinatura
+                      física a caneta.
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -1944,6 +2312,99 @@ export const AtaAssembleiaPage: React.FC = () => {
                   <Send className="h-3.5 w-3.5" /> Confirmar e Publicar
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE SUCESSO ZAPSIGN COM LINKS */}
+      <Dialog open={modalZapsignAberto} onOpenChange={setModalZapsignAberto}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <FileSignature className="h-4 w-4 text-[#0066FF]" /> Documento Criado na ZapSign
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600 pt-1">
+              A ata foi submetida para assinatura eletrônica. Compartilhe os links individuais
+              abaixo com cada membro da mesa diretora.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2 space-y-3">
+            {zapsignDocToken && (
+              <div className="p-2.5 rounded bg-slate-50 border border-slate-200 text-xs">
+                <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                  Token ZapSign
+                </span>
+                <span className="font-mono text-[11px] text-[#002B5E] break-all">
+                  {zapsignDocToken}
+                </span>
+              </div>
+            )}
+
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {zapsignSignatarios?.map((sig, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 border border-slate-200 rounded-lg bg-white space-y-2 text-xs"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900">{sig.nome}</span>
+                    <Badge variant="outline" className="text-[10px]">
+                      {sig.signed ? '✓ Assinado' : 'Pendente'}
+                    </Badge>
+                  </div>
+                  {sig.sign_url && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="text"
+                        readOnly
+                        value={sig.sign_url}
+                        className="w-full text-[11px] font-mono bg-slate-50 border border-slate-200 rounded px-2 py-1 select-all"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(sig.sign_url || '')
+                          toast({
+                            title: 'Copiado!',
+                            description: `Link de ${sig.nome} copiado.`,
+                          })
+                        }}
+                        className="text-xs h-7 px-2"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                      <a
+                        href={sig.sign_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] bg-[#0066FF] hover:bg-[#0052cc] text-white rounded px-2.5 py-1 font-medium h-7 shrink-0"
+                      >
+                        <ExternalLink className="h-3 w-3" /> Abrir
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[11px] text-slate-500">
+              Assim que todos assinarem, o webhook da ZapSign atualizará a ata automaticamente com o
+              carimbo de data/hora e o hash SHA-256 do PDF final.
+            </p>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setModalZapsignAberto(false)}
+              className="bg-[#002B5E] text-white text-xs"
+            >
+              Entendido
             </Button>
           </DialogFooter>
         </DialogContent>

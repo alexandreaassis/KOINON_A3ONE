@@ -376,6 +376,17 @@ export interface EditalDeliberacaoRecord extends RecordModel {
 
 export type StatusAtaAssembleia = 'rascunho' | 'assinada' | 'publicada'
 
+export type ModoAssinaturaAta = 'eletronica_nativa' | 'zapsign' | 'manual_impressao'
+
+export interface ZapSignSignatarioUrl {
+  nome: string
+  email?: string
+  token?: string
+  sign_url?: string
+  status?: string
+  signed_at?: string | null
+}
+
 export interface AtaAssembleiaRecord extends RecordModel {
   deliberacao: string
   titulo?: string
@@ -406,6 +417,18 @@ export interface AtaAssembleiaRecord extends RecordModel {
   hash_ata?: string
   hash_raiz_urna?: string
   data_publicacao?: string
+
+  // Integração ZapSign & Fallback Manual (Fase 3)
+  modo_assinatura?: ModoAssinaturaAta
+  zapsign_documento_token?: string
+  zapsign_status?: string
+  zapsign_urls?: ZapSignSignatarioUrl[]
+  zapsign_enviado_em?: string
+  zapsign_concluido_em?: string
+  zapsign_pdf_assinado_url?: string
+  zapsign_pdf_assinado_hash?: string
+  zapsign_motivo_falha?: string
+  zapsign_pdf_assinado?: string
 
   expand?: {
     deliberacao?: DeliberacaoRecord
@@ -2023,6 +2046,90 @@ export const api = {
       message: string
     }>(`/backend/v1/assinatura/sessao/${encodeURIComponent(token)}/cancelar`, {
       method: 'POST',
+    })
+  },
+
+  // 17. Integração ZapSign (Fase 3)
+  async obterConfigZapsign(): Promise<{
+    success: boolean
+    configurado: boolean
+    ambiente: 'sandbox' | 'producao'
+    baseUrl: string
+    temWebhookSecret: boolean
+  }> {
+    return pb.send<{
+      success: boolean
+      configurado: boolean
+      ambiente: 'sandbox' | 'producao'
+      baseUrl: string
+      temWebhookSecret: boolean
+    }>('/backend/v1/admin/zapsign/config', {
+      method: 'GET',
+    })
+  },
+
+  async salvarConfigZapsign(
+    token: string,
+    ambiente: 'sandbox' | 'producao',
+    webhookSecret?: string,
+  ): Promise<{
+    success: boolean
+    message: string
+    configurado: boolean
+    ambiente: 'sandbox' | 'producao'
+    baseUrl: string
+    temWebhookSecret: boolean
+  }> {
+    return pb.send<{
+      success: boolean
+      message: string
+      configurado: boolean
+      ambiente: 'sandbox' | 'producao'
+      baseUrl: string
+      temWebhookSecret: boolean
+    }>('/backend/v1/admin/zapsign/config', {
+      method: 'POST',
+      body: {
+        token,
+        ambiente,
+        webhook_secret: webhookSecret,
+      },
+    })
+  },
+
+  async enviarAtaZapsign(
+    ataId: string,
+    payload?:
+      | {
+          pdf_base64?: string
+          signatarios?: Array<{ nome: string; email?: string; cpf?: string; telefone?: string }>
+        }
+      | Array<{ nome: string; email?: string; cpf?: string; telefone?: string }>,
+  ): Promise<{
+    success: boolean
+    fallback: boolean
+    modo_assinatura: ModoAssinaturaAta
+    motivo?: string
+    message: string
+    documento_token?: string
+    doc_token?: string
+    status?: string
+    signatarios?: ZapSignSignatarioUrl[]
+  }> {
+    const body = Array.isArray(payload) ? { signatarios: payload } : payload || {}
+    return pb.send<{
+      success: boolean
+      fallback: boolean
+      modo_assinatura: ModoAssinaturaAta
+      motivo?: string
+      message: string
+      documento_token?: string
+      doc_token?: string
+      status?: string
+      signatarios?: ZapSignSignatarioUrl[]
+    }>(`/backend/v1/atas/${encodeURIComponent(ataId)}/enviar-zapsign`, {
+      method: 'POST',
+      body,
     })
   },
 }

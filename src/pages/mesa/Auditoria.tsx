@@ -6,6 +6,7 @@ import {
   type AuditoriaEventRecord,
   type ApuracaoResponse,
   type UnidadeRecord,
+  type AtaAssembleiaRecord,
 } from '@/lib/api'
 import { formatarIdentificadorUnidade } from '@/lib/formatadorUnidade'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
@@ -34,6 +35,8 @@ import {
   KeyRound,
   Vote,
   Share2,
+  FileSignature,
+  ExternalLink,
 } from 'lucide-react'
 
 export const AuditoriaPage: React.FC = () => {
@@ -44,6 +47,7 @@ export const AuditoriaPage: React.FC = () => {
   const [eventos, setEventos] = useState<AuditoriaEventRecord[]>([])
   const [unidades, setUnidades] = useState<UnidadeRecord[]>([])
   const [boletim, setBoletim] = useState<ApuracaoResponse | null>(null)
+  const [ata, setAta] = useState<AtaAssembleiaRecord | null>(null)
   const [carregandoBoletim, setCarregandoBoletim] = useState(false)
   const [carregandoEventos, setCarregandoEventos] = useState(true)
 
@@ -61,6 +65,7 @@ export const AuditoriaPage: React.FC = () => {
       if (delibs.length > 0 && !deliberacaoAtiva) {
         setDeliberacaoAtiva(delibs[0])
         buscarBoletim(delibs[0].id)
+        buscarAta(delibs[0].id)
       }
     } catch (err) {
       console.error('Erro ao carregar auditoria:', err)
@@ -82,6 +87,16 @@ export const AuditoriaPage: React.FC = () => {
     }
   }
 
+  const buscarAta = async (deliberacaoId: string) => {
+    try {
+      const ataData = await api.getAta(deliberacaoId)
+      setAta(ataData)
+    } catch (err) {
+      console.error('Erro ao carregar ata para auditoria:', err)
+      setAta(null)
+    }
+  }
+
   useEffect(() => {
     carregarIniciais()
   }, [])
@@ -91,6 +106,7 @@ export const AuditoriaPage: React.FC = () => {
     setDeliberacaoAtiva(d)
     if (d) {
       buscarBoletim(d.id)
+      buscarAta(d.id)
     }
   }
 
@@ -183,6 +199,20 @@ export const AuditoriaPage: React.FC = () => {
           </TabsTrigger>
           <TabsTrigger value="eventos" className="text-xs">
             <History className="mr-1.5 h-3.5 w-3.5" /> Log de Eventos Encadeados ({eventos.length})
+          </TabsTrigger>
+          <TabsTrigger value="zapsign" className="text-xs">
+            <FileSignature className="mr-1.5 h-3.5 w-3.5" /> Assinatura ZapSign
+            {ata?.zapsign_status && (
+              <span
+                className={`ml-1.5 px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                  ata.zapsign_status === 'signed'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-blue-600 text-white'
+                }`}
+              >
+                {ata.zapsign_status}
+              </span>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -486,6 +516,206 @@ export const AuditoriaPage: React.FC = () => {
                   )
                 })}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ================= ABA 3: ASSINATURA ZAPSIGN / CARTÓRIO ================= */}
+        <TabsContent value="zapsign" className="space-y-4">
+          <Card className="border-slate-200 shadow-xs">
+            <CardHeader className="pb-3 border-b border-slate-100">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <FileSignature className="h-4 w-4 text-[#0066FF]" /> Status da Assinatura
+                    Externa (ZapSign)
+                  </CardTitle>
+                  <CardDescription className="text-xs text-slate-500 mt-0.5">
+                    Trilha de auditoria da assinatura eletrônica qualificada/avançada da ata de
+                    assembleia.
+                  </CardDescription>
+                </div>
+                {ata && (
+                  <Badge
+                    className={`text-[11px] font-semibold px-2.5 py-0.5 ${
+                      ata.zapsign_status === 'signed'
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : ata.zapsign_status === 'pending' || ata.zapsign_status === 'aguardando'
+                          ? 'bg-blue-100 text-blue-800 border-blue-300'
+                          : ata.modo_assinatura === 'manual_impressao'
+                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            : 'bg-slate-100 text-slate-700 border-slate-300'
+                    }`}
+                  >
+                    {ata.zapsign_status === 'signed'
+                      ? '✓ Ata Assinada'
+                      : ata.zapsign_status === 'pending' || ata.zapsign_status === 'aguardando'
+                        ? '⏳ Aguardando Signatários'
+                        : ata.modo_assinatura === 'manual_impressao'
+                          ? 'Fallback: Impressão Manual'
+                          : 'Sem envio ZapSign'}
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+
+            <CardContent className="pt-4 space-y-4">
+              {!ata ? (
+                <div className="p-8 text-center text-xs text-slate-500">
+                  Nenhuma ata registrada para a assembleia selecionada.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Grid de Metadados Criptográficos e de Validação */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                        Modo de Assinatura
+                      </span>
+                      <span className="font-semibold text-slate-900 mt-0.5 block font-mono">
+                        {ata.modo_assinatura || 'eletronica_interna'}
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        {ata.modo_assinatura === 'manual_impressao'
+                          ? 'Contingência sem selo eletrônico'
+                          : ata.modo_assinatura === 'zapsign'
+                            ? 'Validação jurídica via ZapSign'
+                            : 'Assinatura eletrônica interna Koinon'}
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                        Status ZapSign
+                      </span>
+                      <span className="font-semibold text-slate-900 mt-0.5 block capitalize">
+                        {ata.zapsign_status || 'Não submetido'}
+                      </span>
+                      {ata.zapsign_assinado_em && (
+                        <span className="text-[10px] text-slate-500">
+                          Assinado em {new Date(ata.zapsign_assinado_em).toLocaleString('pt-BR')}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                        Token do Documento
+                      </span>
+                      <span className="font-mono text-[11px] text-[#002B5E] break-all block mt-0.5">
+                        {ata.zapsign_doc_token || '—'}
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                          PDF Oficial Assinado
+                        </span>
+                        {ata.zapsign_pdf_assinado_url ? (
+                          <a
+                            href={ata.zapsign_pdf_assinado_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] text-[#0066FF] hover:underline font-semibold mt-1"
+                          >
+                            <ExternalLink className="h-3 w-3" /> Baixar PDF com Carimbo
+                          </a>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">PDF ainda não emitido</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Hash do PDF Assinado retornado pela ZapSign */}
+                  {ata.zapsign_pdf_assinado_hash && (
+                    <div className="p-3 rounded-lg bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div className="space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                          Hash SHA-256 do PDF Assinado (Integridade Notarial)
+                        </span>
+                        <span className="font-mono text-xs text-emerald-400 break-all select-all">
+                          {ata.zapsign_pdf_assinado_hash}
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => copiarHash(ata.zapsign_pdf_assinado_hash || '')}
+                        className="bg-slate-800 text-slate-200 hover:text-white border-slate-700 text-xs shrink-0"
+                      >
+                        <Copy className="mr-1 h-3.5 w-3.5" /> Copiar Hash do PDF
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Relação dos Signatários */}
+                  {ata.zapsign_signatarios && ata.zapsign_signatarios.length > 0 ? (
+                    <div className="border border-slate-200 rounded-lg overflow-hidden">
+                      <div className="bg-slate-100/80 px-3.5 py-2 border-b border-slate-200 text-xs font-bold text-slate-800">
+                        Signatários da Mesa Registrados na ZapSign ({ata.zapsign_signatarios.length}
+                        )
+                      </div>
+                      <div className="divide-y divide-slate-100">
+                        {ata.zapsign_signatarios.map((sig, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                          >
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-slate-900">{sig.nome}</span>
+                                {sig.signed ? (
+                                  <Badge className="bg-emerald-100 text-emerald-800 text-[10px] border-emerald-300">
+                                    ✓ Assinado
+                                  </Badge>
+                                ) : (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-amber-700 border-amber-400 text-[10px]"
+                                  >
+                                    Pendente
+                                  </Badge>
+                                )}
+                              </div>
+                              {(sig.email || sig.telefone) && (
+                                <span className="text-[11px] text-slate-500 block">
+                                  {sig.email || ''} {sig.telefone ? `• ${sig.telefone}` : ''}
+                                </span>
+                              )}
+                            </div>
+
+                            {sig.sign_url && (
+                              <a
+                                href={sig.sign_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] text-[#0066FF] hover:underline"
+                              >
+                                Link de assinatura <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600">
+                      Nenhum signatário registrado via ZapSign para esta ata. Para iniciar a coleta
+                      de assinaturas via ZapSign, acesse a tela{' '}
+                      <button
+                        type="button"
+                        onClick={() => navigate('/mesa')}
+                        className="text-[#0066FF] hover:underline font-semibold"
+                      >
+                        Ata da Assembleia
+                      </button>{' '}
+                      e clique no botão <em>"Enviar para assinatura (ZapSign)"</em>.
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

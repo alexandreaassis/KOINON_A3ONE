@@ -67,6 +67,9 @@ import {
   ChevronRight,
   Eraser,
   CheckCircle,
+  FileSignature,
+  KeyRound,
+  ExternalLink,
 } from 'lucide-react'
 import { urnaAudio } from '@/lib/urnaAudio'
 import { KoinonSymbol } from '@/components/brand/KoinonSymbol'
@@ -141,6 +144,14 @@ export const ConfiguracoesPage: React.FC = () => {
   const [avulsaPeso, setAvulsaPeso] = useState('1')
   const [avulsaAndar, setAvulsaAndar] = useState('')
   const [avulsaNome, setAvulsaNome] = useState('')
+
+  // Configuração ZapSign (Fase 3)
+  const [zapsignConfigurado, setZapsignConfigurado] = useState(false)
+  const [zapsignAmbiente, setZapsignAmbiente] = useState<'sandbox' | 'producao'>('sandbox')
+  const [zapsignToken, setZapsignToken] = useState('')
+  const [substituindoTokenZapsign, setSubstituindoTokenZapsign] = useState(false)
+  const [carregandoZapsign, setCarregandoZapsign] = useState(true)
+  const [salvandoZapsign, setSalvandoZapsign] = useState(false)
 
   // Limpeza de Dados do Ambiente (Dois Passos)
   const [modalLimpezaAberto, setModalLimpezaAberto] = useState(false)
@@ -242,6 +253,20 @@ export const ConfiguracoesPage: React.FC = () => {
 
   useEffect(() => {
     carregarUnidades()
+
+    const carregarConfigZapsign = async () => {
+      try {
+        const resp = await api.obterConfigZapsign()
+        setZapsignConfigurado(resp.configurado)
+        setZapsignAmbiente(resp.ambiente || 'sandbox')
+      } catch (err) {
+        console.warn('Configuração ZapSign não disponível ou não configurada:', err)
+      } finally {
+        setCarregandoZapsign(false)
+      }
+    }
+
+    carregarConfigZapsign()
   }, [])
 
   const rotuloEfetivo = rotuloUnidade === 'outro' ? rotuloLivre.trim() || 'Unidade' : rotuloUnidade
@@ -472,6 +497,48 @@ export const ConfiguracoesPage: React.FC = () => {
   }
 
   // Salvar Identidade Institucional
+  const handleSalvarZapsign = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!zapsignConfigurado || substituindoTokenZapsign) {
+      if (!zapsignToken.trim()) {
+        toast({
+          title: 'Token obrigatório',
+          description: 'Cole o token de API da ZapSign para ativar a integração.',
+          variant: 'destructive',
+        })
+        return
+      }
+    }
+
+    setSalvandoZapsign(true)
+    try {
+      const resp = await api.salvarConfigZapsign(
+        substituindoTokenZapsign || !zapsignConfigurado ? zapsignToken.trim() : '',
+        zapsignAmbiente,
+      )
+      setZapsignConfigurado(resp.configurado)
+      setZapsignAmbiente(resp.ambiente)
+      setZapsignToken('')
+      setSubstituindoTokenZapsign(false)
+      toast({
+        title: 'ZapSign Configurada',
+        description:
+          resp.ambiente === 'producao'
+            ? 'Integração ZapSign salva com sucesso no ambiente de PRODUÇÃO.'
+            : 'Integração ZapSign salva com sucesso no ambiente de TESTES (SANDBOX).',
+      })
+    } catch (err: any) {
+      console.error('Erro ao salvar ZapSign:', err)
+      toast({
+        title: 'Erro ao salvar configuração',
+        description: err?.message || 'Falha ao salvar parâmetros da ZapSign.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSalvandoZapsign(false)
+    }
+  }
+
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -594,6 +661,182 @@ export const ConfiguracoesPage: React.FC = () => {
         <SecaoCanaisEnvio
           nomeCondominioPadrao={nomeCondominio || 'Condomínio Residencial Lago Azul'}
         />
+
+        {/* CARD ZAPSIGN: ASSINATURA ELETRÔNICA COM VALIDADE JURÍDICA */}
+        <Card className="border-[#002B5E]/15 shadow-sm rounded-xl bg-white overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-[#F3F7FC]/70">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-base font-bold text-[#002B5E] flex items-center gap-2">
+                  <FileSignature className="h-5 w-5 text-[#0066FF]" /> Assinatura Eletrônica Externa
+                  (ZapSign)
+                </CardTitle>
+                <CardDescription className="text-xs text-[#5A6B82] mt-0.5">
+                  Integração com a plataforma ZapSign para assinatura digital e eletrônica de atas e
+                  documentos com validade jurídica (MP 2.200-2/2001 e Lei 14.063/2020).
+                </CardDescription>
+              </div>
+              <Badge
+                className={`text-xs px-2.5 py-1 font-semibold shrink-0 self-start sm:self-auto ${
+                  zapsignConfigurado
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : 'bg-amber-100 text-amber-800 border-amber-300'
+                }`}
+              >
+                {zapsignConfigurado ? '✓ Conexão Ativa' : 'Não Configurado (Fallback Manual)'}
+              </Badge>
+            </div>
+          </CardHeader>
+
+          <form onSubmit={handleSalvarZapsign}>
+            <CardContent className="space-y-4 pt-4">
+              <div className="p-3.5 rounded-lg border border-blue-100 bg-blue-50/50 text-xs text-[#002B5E] space-y-1.5 leading-relaxed">
+                <p className="font-semibold flex items-center gap-1.5 text-blue-900">
+                  <ShieldCheck className="h-4 w-4 text-[#0066FF]" /> Segurança e Criptografia do
+                  Segredo
+                </p>
+                <p className="text-slate-600">
+                  O token de API é cifrado com AES-256 no servidor na coleção segura de backend e
+                  <strong> nunca é devolvido ao navegador</strong>. Caso a integração não esteja
+                  configurada ou ocorra falha na chamada, o sistema ativa automaticamente a{' '}
+                  <strong>via de contingência para assinatura manual</strong> com caneta e
+                  advertência na ata.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Ambiente Sandbox vs Produção */}
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="zapsign-ambiente"
+                    className="text-xs font-semibold text-slate-700"
+                  >
+                    Ambiente da API
+                  </Label>
+                  <Select
+                    value={zapsignAmbiente}
+                    onValueChange={(val: 'sandbox' | 'producao') => setZapsignAmbiente(val)}
+                  >
+                    <SelectTrigger id="zapsign-ambiente" className="h-10 text-xs border-slate-300">
+                      <SelectValue placeholder="Selecione o ambiente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sandbox" className="text-xs">
+                        Sandbox / Testes (sandbox.api.zapsign.com.br)
+                      </SelectItem>
+                      <SelectItem value="producao" className="text-xs">
+                        Produção Oficial (api.zapsign.com.br)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span className="text-[11px] text-slate-500 block">
+                    Use Sandbox para homologação e testes de assembleia sem consumir créditos reais.
+                  </span>
+                </div>
+
+                {/* Status do Token ou Campo para Inserir */}
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="zapsign-token"
+                    className="text-xs font-semibold text-slate-700 flex items-center justify-between"
+                  >
+                    <span>Token de API da ZapSign</span>
+                    {zapsignConfigurado && !substituindoTokenZapsign && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSubstituindoTokenZapsign(true)
+                          setZapsignToken('')
+                        }}
+                        className="text-[11px] text-[#0066FF] hover:underline font-normal"
+                      >
+                        Substituir token atual
+                      </button>
+                    )}
+                  </Label>
+
+                  {zapsignConfigurado && !substituindoTokenZapsign ? (
+                    <div className="h-10 px-3 rounded-md border border-emerald-300 bg-emerald-50/70 flex items-center justify-between text-xs text-emerald-900">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                        <span className="font-medium">
+                          Token configurado e protegido no servidor
+                        </span>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] bg-white border-emerald-300 text-emerald-800"
+                      >
+                        ••••••••••••••••
+                      </Badge>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <div className="relative">
+                        <Input
+                          id="zapsign-token"
+                          type="password"
+                          autoComplete="off"
+                          value={zapsignToken}
+                          onChange={(e) => setZapsignToken(e.target.value)}
+                          placeholder="Cole o token da ZapSign (ex: 8a4c...)"
+                          className="h-10 text-xs pr-10 border-slate-300 font-mono"
+                        />
+                        <KeyRound className="h-4 w-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                      </div>
+                      {substituindoTokenZapsign && (
+                        <div className="flex items-center justify-between pt-0.5">
+                          <span className="text-[11px] text-amber-700">
+                            Preencha o novo token ou cancele para manter o anterior.
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSubstituindoTokenZapsign(false)
+                              setZapsignToken('')
+                            }}
+                            className="text-[11px] text-slate-600 hover:underline"
+                          >
+                            Cancelar substituição
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <span className="text-[11px] text-slate-500 block">
+                    Disponível no painel ZapSign em <em>Configurações &gt; Integrações &gt; API</em>
+                    .
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+
+            <CardFooter className="bg-[#F8FAFC] py-3 px-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                <span>Webhook de retorno automático:</span>
+                <code className="px-1.5 py-0.5 bg-slate-200/70 rounded text-[10px] font-mono text-slate-700">
+                  /backend/v1/zapsign/webhook
+                </code>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={salvandoZapsign || carregandoZapsign}
+                className="bg-[#002B5E] hover:bg-[#002B5E]/90 text-white font-semibold text-xs h-9 px-4 rounded-[10px] shadow-xs"
+              >
+                {salvandoZapsign ? (
+                  <>
+                    <RefreshCw className="mr-2 h-3.5 w-3.5 animate-spin" /> Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-3.5 w-3.5" /> Salvar Configuração ZapSign
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
 
         {/* CARD 1: IDENTIDADE DO CONDOMÍNIO (NOME & LOGO) */}
         <Card className="border-slate-200 shadow-xs">
