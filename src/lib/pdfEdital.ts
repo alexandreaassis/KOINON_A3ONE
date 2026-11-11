@@ -4,7 +4,6 @@
  * e trigger do driver de PDF/impressora do browser.
  */
 import { gerarHtmlInstrucoesAcesso, type InstrucoesAcessoVotacao } from '@/lib/selo/honestidade'
-import { TEXTO_LEGAL_SELO } from '@/lib/selo/honestidade'
 
 export interface DadosEditalPdf {
   nomeCondominio: string
@@ -146,8 +145,22 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
     }
   }
 
-  const seloAssinatura = dados.hashAssinatura
+  // Padrão da ata (v0.0.144): na via ZapSign o bloco de certificação criptográfica
+  // nativa ("Documento Assinado Eletronicamente", caixas Signatário Oficial / datas /
+  // hash) NÃO é renderizado — a via ainda não foi assinada e a certificação nativa
+  // não se aplica. Substituído pela nota enxuta com o hash da urna, sem qualquer
+  // menção ao art. 10, §2º da MP 2.200-2/2001 (ICP-Brasil) nesta via. A via de
+  // impressão/manual permanece inalterada.
+  const seloAssinatura = dados.viaZapsign
     ? `
+      <div style="margin-top: 24px; padding: 10px 14px; background: #F8FAFC; border: 1px dashed #94A3B8; border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 8pt; color: #475569;">
+        <strong>Nota de Assinatura Eletrônica (ZapSign):</strong>
+        Via destinada à assinatura eletrônica via ZapSign; integridade da urna garantida pelo hash:
+        <span style="font-family: monospace; font-size: 7.5pt; color: #002B5E;">${dados.hashAssinatura || 'Hash calculado no envio'}</span>.
+      </div>
+    `
+    : dados.hashAssinatura
+      ? `
       <div style="margin-top: 24px; padding: 14px 18px; border: 1.5px solid #0066FF; background: linear-gradient(135deg, #F3F7FC 0%, #FFFFFF 100%); border-radius: 8px; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: left; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
         <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(0, 102, 255, 0.2); padding-bottom: 8px; margin-bottom: 10px;">
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -207,7 +220,7 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
         </div>
       </div>
     `
-    : `
+      : `
       <div style="margin-top: 24px; padding: 12px 16px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 9pt; color: #64748b; text-align: center;">
         Documento em fase de elaboração / aguardando assinatura eletrônica oficial do convocante.
       </div>

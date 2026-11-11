@@ -9,6 +9,14 @@
  * Não substitui a impressão A4 do navegador (imprimirOuBaixarPdfEdital):
  * esta função existe para o disparo com anexo e registro de prova.
  *
+ * Neutro quanto à via (o chamador decide): o envio à ZapSign (DocumentosEdital.tsx,
+ * handleEnviarZapsignEdital) passa viaZapsign: true e gerarHtmlDocumentoEdital
+ * omite o bloco de certificação criptográfica nativa ("Documento Assinado
+ * Eletronicamente", caixas de Signatário Oficial / datas / hash SHA-256),
+ * substituindo-o pela nota enxuta de via ZapSign com o hash da urna — sem
+ * menção ao art. 10, §2º da MP 2.200-2/2001. O disparo por e-mail usa a via
+ * natural (com o bloco nativo quando o edital já está assinado).
+ *
  * Margens oficiais do documento (idênticas ao @page de gerarHtmlDocumentoEdital):
  * 8,5mm no topo, 15mm nas laterais e 15mm no rodapé — aplicadas na paginação
  * (área útil de desenho do jsPDF), valendo para TODAS as páginas.

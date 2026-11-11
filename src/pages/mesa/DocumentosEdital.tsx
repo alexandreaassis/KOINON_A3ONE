@@ -830,7 +830,12 @@ export const DocumentosEditalPage: React.FC = () => {
       let pdfNome: string | undefined
       let hashDocumento: string | undefined
       try {
-        const prova: ProvaEditalPdf = await gerarPdfEditalComHash(dadosParaPdf)
+        // Via natural (não ZapSign): o anexo do disparo por e-mail mantém o bloco
+        // de certificação nativo quando o edital já está assinado.
+        const prova: ProvaEditalPdf = await gerarPdfEditalComHash({
+          ...dadosParaPdf,
+          viaZapsign: false,
+        })
         pdfBase64 = prova.pdfBase64
         pdfNome = prova.nomeArquivo
         hashDocumento = prova.hashSha256
