@@ -13,6 +13,7 @@ import { formatarCpf } from '@/lib/cpf'
 import pb from '@/lib/pocketbase/client'
 import { toast } from '@/hooks/use-toast'
 import { imprimirOuBaixarPdfAta, type DadosAtaPdf } from '@/lib/pdfAta'
+import { gerarPdfAtaComHash } from '@/lib/pdf/gerarPdfAtaBytes'
 import { BlocoAssinaturaCompacto } from '@/components/assinatura/BlocoAssinaturaCompacto'
 import { ModalAssinaturaEletronica } from '@/components/assinatura/ModalAssinaturaEletronica'
 import { RichTextEditor } from '@/components/editor/RichTextEditor'
@@ -694,7 +695,25 @@ export const AtaAssembleiaPage: React.FC = () => {
         })
       }
 
-      const resp = await api.enviarAtaZapsign(ataIdTarget, signatariosEnvio)
+      // Anexar o PDF completo da ata (mesma estrutura do PDF de impressão),
+      // gerado em bytes no navegador — sem ele a ZapSign renderiza apenas o título.
+      let pdfBase64: string | undefined
+      try {
+        const prova = await gerarPdfAtaComHash(dadosPdf)
+        pdfBase64 = prova.pdfBase64
+      } catch (errPdf) {
+        console.error('Falha ao gerar PDF da ata em bytes para ZapSign:', errPdf)
+        toast({
+          title: 'PDF da ata não pôde ser anexado',
+          description:
+            'O envio continuará sem o anexo — a ZapSign receberá apenas o texto simples da ata. Verifique o console para detalhes.',
+        })
+      }
+
+      const resp = await api.enviarAtaZapsign(ataIdTarget, {
+        pdf_base64: pdfBase64,
+        signatarios: signatariosEnvio,
+      })
 
       if (resp.modo_assinatura === 'manual_impressao' || resp.fallback) {
         setZapsignModoAssinatura('manual_impressao')
