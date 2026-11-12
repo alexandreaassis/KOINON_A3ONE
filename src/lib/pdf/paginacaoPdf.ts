@@ -45,6 +45,27 @@
  * 4. Sem faixa branca artificial: a página termina no fundo pintado do último
  *    line box que couber (não em altura fixa).
  *
+ * v0.0.159 (recorrência do corte, 4ª rodada — CAUSA RAIZ encontrada nos PDFs
+ * reais do usuário): a regra "entre linhas" existia, mas NÃO valia no render
+ * final por dois desvios do algoritmo:
+ * 1. Empurrão de parágrafo inteiro + salvaguarda que corta no MEIO do glifo:
+ *    quando a regra de bloco recuava o corte e o recuo deixava a página vazia
+ *    (só havia o parágrafo que estourava), a salvaguarda usava
+ *    `yFim = limiteFisico` — a fatia caía no LIMITE FÍSICO BRUTO, dentro de um
+ *    glifo (a última linha serrilhada do pé da página 1). E o empurrão do
+ *    parágrafo inteiro deixava o GRANDE VAZIO no fim de página (depois de
+ *    "PROCURAÇÕES"), empurrando o texto seguinte.
+ *    Correção: PARÁGRAFO (bloco não atômico) agora CONTINUA na página
+ *    seguinte, quebrando sempre no INTERVALO ENTRE duas linhas pintadas — a
+ *    página fica preenchida até a última linha inteira e a salvaguarda nunca
+ *    precisa cortar dentro de glifo (só um bloco MAIOR que a página se divide,
+ *    e mesmo assim entre as linhas dele).
+ * 2. Sem reserva de segurança entre MEDIÇÃO e PINTURA: a quebra caía exatamente
+ *    no fundo medido da linha, mas a pintura do html2canvas pode descer 1–2px
+ *    além do retângulo medido (descenders/line-height fracionário/diferença de
+ *    rasterização). Agora o fechamento exige `fundo <= limite - RESERVA` (em px
+ *    de pintura), absorvendo a deriva sem fatiar o glifo.
+ *
  * Margens oficiais Koinon (v0.0.142) — NÃO alterar:
  * 8,5mm topo / 15mm laterais / 15mm rodapé; área útil de 180mm.
  */
