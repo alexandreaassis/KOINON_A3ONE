@@ -2,9 +2,12 @@
  * Prova de envio: PDF do edital em BYTES no navegador (jsPDF + html2canvas)
  * --------------------------------------------------------------------------
  * Renderiza o mesmo HTML A4 de gerarHtmlDocumentoEdital em um container
- * offscreen, captura com html2canvas, pagina em A4 com jsPDF e calcula o
- * SHA-256 dos bytes FINAIS do PDF (crypto.subtle) — o hash enviado como
- * hashDocumento na prova de envio corresponde exatamente ao arquivo anexado.
+ * offscreen, captura com html2canvas, pagina por BLOCO (título, parágrafo,
+ * caixa, linha e bloco de assinatura nunca são cortados entre páginas) e
+ * calcula o SHA-256 dos bytes FINAIS do PDF (crypto.subtle) — o hash enviado
+ * como hashDocumento na prova de envio corresponde exatamente ao arquivo
+ * anexado. A paginação por bloco vive em src/lib/pdf/paginacaoPdf.ts
+ * (compartilhada com a ata).
  *
  * Não substitui a impressão A4 do navegador (imprimirOuBaixarPdfEdital):
  * esta função existe para o disparo com anexo e registro de prova.
@@ -23,8 +26,7 @@
  */
 
 import { gerarHtmlDocumentoEdital, type DadosEditalPdf } from '@/lib/pdfEdital'
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
+import { montarContainerCaptura, capturarContainer, paginarCanvasPorBloco } from './paginacaoPdf'
 
 export interface ProvaEditalPdf {
   pdfBase64: string
@@ -32,14 +34,6 @@ export interface ProvaEditalPdf {
   hashSha256: string
   totalPaginas: number
 }
-
-const MARGEM_TOPO_MM = 8.5
-const MARGEM_LATERAL_MM = 15
-const MARGEM_RODAPE_MM = 15
-const LARGURA_A4_PX = 794 // 210mm @96dpi
-const PX_POR_MM = LARGURA_A4_PX / 210
-// Largura do container de captura = área útil (210 - 2x15 = 180mm)
-const LARGURA_UTIL_A4_PX = Math.round(LARGURA_A4_PX - 2 * MARGEM_LATERAL_MM * PX_POR_MM) // ≈ 680px
 
 async function sha256DeBytes(bytes: ArrayBuffer): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', bytes)
@@ -63,89 +57,20 @@ export async function gerarPdfEditalComHash(
 ): Promise<ProvaEditalPdf> {
   const html = gerarHtmlDocumentoEdital(dados)
 
-  const container = document.createElement('div')
-  container.style.position = 'fixed'
-  container.style.left = '-10000px'
-  container.style.top = '0'
-  // Captura APENAS a área útil (180mm): as margens são aplicadas na paginação
-  container.style.width = `${LARGURA_UTIL_A4_PX}px`
-  container.style.background = '#ffffff'
-  // Extrai o conteúdo do body do documento A4 gerado (evita aninhar <html>/<body>)
-  // O HTML do edital carrega TODO o visual (header flex, doc-headline, tabelas,
-  // caixas de destaque) em um <style> no <head> — sem ele o html2canvas renderiza
-  // o documento sem classes e o PDF chega desconfigurado na ZapSign (mesmo
-  // defeito já corrigido na ata em v0.0.141).
-  const documento = new DOMParser().parseFromString(html, 'text/html')
-  const estilo = documento.querySelector('style')
-  if (estilo) {
-    container.appendChild(estilo.cloneNode(true))
-  }
-  // O <style> do edital define `body { font/cores }`; como o container não é um
-  // <body>, replica as propriedades base inline para herança funcionar.
-  container.style.fontFamily = '"Georgia", "Cambria", "Times New Roman", serif'
-  container.style.color = '#002B5E'
-  container.style.lineHeight = '1.5'
-  container.style.fontSize = '11pt'
-  container.innerHTML += documento.body.innerHTML
-  document.body.appendChild(container)
+  const { container } = montarContainerCaptura(html, { lineHeight: 1.5 })
 
   try {
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      backgroundColor: '#ffffff',
-      useCORS: true,
-      logging: false,
+    const canvas = await capturarContainer(container, 'Captura do edital veio vazia (canvas 0px).')
+    const { pdf, totalPaginas } = paginarCanvasPorBloco(canvas, container, {
+      mensagemFalhaPagina: 'Falha ao preparar a fatia de página do PDF.',
     })
-
-    if (!canvas.width || !canvas.height) {
-      throw new Error('Captura do edital veio vazia (canvas 0px).')
-    }
-
-    const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' })
-    const larguraPt = pdf.internal.pageSize.getWidth()
-    const alturaPt = pdf.internal.pageSize.getHeight()
-
-    // Margens em pt (1mm = 72/25.4 pt), iguais ao @page do HTML de impressão
-    const mmParaPt = (mm: number) => (mm * 72) / 25.4
-    const margemTopoPt = mmParaPt(MARGEM_TOPO_MM)
-    const margemLateralPt = mmParaPt(MARGEM_LATERAL_MM)
-    const margemRodapePt = mmParaPt(MARGEM_RODAPE_MM)
-
-    const larguraUtilPt = larguraPt - 2 * margemLateralPt // 180mm
-    const alturaUtilPt = alturaPt - margemTopoPt - margemRodapePt // 273,5mm
-    // Altura em px de conteúdo que cabe na área útil de UMA página
-    const alturaUtilPaginaPx = canvas.width * (alturaUtilPt / larguraUtilPt)
-
-    let pagina = 0
-    for (let y = 0; y < canvas.height; y += alturaUtilPaginaPx) {
-      const alturaFatia = Math.min(alturaUtilPaginaPx, canvas.height - y)
-      const fatia = document.createElement('canvas')
-      fatia.width = canvas.width
-      fatia.height = Math.ceil(alturaFatia)
-      const ctx = fatia.getContext('2d')
-      if (!ctx) throw new Error('Falha ao preparar a fatia de página do PDF.')
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, fatia.width, fatia.height)
-      ctx.drawImage(canvas, 0, y, canvas.width, alturaFatia, 0, 0, canvas.width, alturaFatia)
-      if (pagina > 0) pdf.addPage()
-      pdf.addImage(
-        fatia.toDataURL('image/jpeg', 0.92),
-        'JPEG',
-        margemLateralPt,
-        margemTopoPt,
-        larguraUtilPt,
-        // Última fatia: altura proporcional, deixando o rodapé em branco (margem)
-        Math.min(alturaUtilPt, (alturaFatia * larguraUtilPt) / canvas.width),
-      )
-      pagina++
-    }
 
     const bytes = pdf.output('arraybuffer')
     const hash = await sha256DeBytes(bytes)
     const base64 = bytesParaBase64(new Uint8Array(bytes))
     const nome = nomeArquivo || `edital-convocacao-${new Date().toISOString().slice(0, 10)}.pdf`
 
-    return { pdfBase64: base64, nomeArquivo: nome, hashSha256: hash, totalPaginas: pagina }
+    return { pdfBase64: base64, nomeArquivo: nome, hashSha256: hash, totalPaginas }
   } finally {
     document.body.removeChild(container)
   }
