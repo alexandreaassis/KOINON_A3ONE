@@ -10,6 +10,19 @@
  * seguinte. Só se divide um bloco MAIOR que uma página inteira (única forma
  * de não perder conteúdo).
  *
+ * v0.0.155 (recorrência do corte): a "área do corpo" do documento não é um
+ * único nível de filhos. O edital/ata aninham o texto em wrappers
+ * (.document-page > section/div > p), e medir só os filhos diretos do wrapper
+ * trata um wrapper com 20 parágrafos como UM bloco gigante — por isso a
+ * página 1 terminava no título "Disposições Gerais" com metade da página em
+ * branco e a linha fatiada no topo da página 2 (wrapper quebrado pelo limite
+ * de altura). Agora os BLOCOS são os descendentes FOLHA-texto do documento
+ * (o elemento mais profundo que contém texto diretamente, ou caixa fechada
+ * com borda/fundo, que não se abre) — cada um indivisível; a página termina
+ * exatamente no fim do último bloco que couber, sem faixa branca e sem fatiar
+ * glifo. Um bloco maior que uma página INTEIRA continua sendo dividido (única
+ * forma de não perder conteúdo).
+ *
  * Margens oficiais Koinon (v0.0.142) — NÃO alterar:
  * 8,5mm topo / 15mm laterais / 15mm rodapé; área útil de 180mm.
  */
@@ -83,9 +96,14 @@ interface BlocoQuebra {
 }
 
 /**
- * Blocos de quebra: os elementos filhos diretos do wrapper do documento
- * (.document-page). Cada um é um título, parágrafo, caixa, seção, linha de
- * reunião, bloco de assinatura etc. — a unidade que NÃO deve ser cortada.
+ * Coleta os blocos de quebra do documento: os descendentes FOLHA-texto
+ * (o elemento mais profundo que contém texto diretamente, ou uma caixa
+ * fechada por borda/fundo, que não se deve abrir). Cada bloco é indivisível
+ * entre páginas — a unidade que NÃO pode ser cortada.
+ *
+ * Medir também os wrappers intermediários (o comportamento anterior, que só
+ * olhava filhos diretos do wrapper do documento) faz um parágrafo ocupar o
+ * lugar do bloco que o contém: quebra no meio da linha e vazio gigante.
  */
 function coletarBlocosQuebra(
   container: HTMLElement,
@@ -95,16 +113,93 @@ function coletarBlocosQuebra(
     | HTMLElement
     | undefined
   const raiz = wrapper || container
-  const blocos: BlocoQuebra[] = Array.from(raiz.children).map((el) => {
+  const blocos: BlocoQuebra[] = []
+  const visitados = new Set<Element>()
+
+  /** O elemento tem texto DIRETAMENTE nele (não em filhos)? */
+  const temTextoProprio = (el: Element): boolean => {
+    for (const no of Array.from(el.childNodes)) {
+      if (no.nodeType === Node.TEXT_NODE && (no.textContent || '').trim().length > 0) return true
+    }
+    return false
+  }
+
+  /** Inline puro (strong/em/span/mark/u/sub/sup): o texto pertence ao bloco
+   *  ancestral — nunca vira bloco próprio (evita retângulos sobrepostos de
+   *  trechos de linha que enganam a quebra). */
+  const ehInline = (el: Element): boolean => {
+    const d = getComputedStyle(el).display
+    return d === 'inline' || d === 'contents'
+  }
+
+  /** Fora do fluxo: não participa da paginação vertical. */
+  const foraDoFluxo = (estilo: CSSStyleDeclaration): boolean =>
+    estilo.position === 'absolute' || estilo.position === 'fixed' || estilo.float !== 'none'
+
+  /** Caixa fechada (borda/fundo): indivisível, não se abre. */
+  const ehCaixaFechada = (estilo: CSSStyleDeclaration): boolean =>
+    parseFloat(estilo.borderTopWidth) > 0 ||
+    parseFloat(estilo.borderBottomWidth) > 0 ||
+    parseFloat(estilo.borderLeftWidth) > 0 ||
+    parseFloat(estilo.borderRightWidth) > 0 ||
+    estilo.backgroundColor !== 'rgba(0, 0, 0, 0)'
+
+  const emitir = (el: Element): void => {
     const r = (el as HTMLElement).getBoundingClientRect()
-    return { topo: r.top - topoContainer, fundo: r.bottom - topoContainer, altura: r.height }
-  })
+    if (r.height > 0) {
+      blocos.push({
+        topo: r.top - topoContainer,
+        fundo: r.bottom - topoContainer,
+        altura: r.height,
+      })
+    }
+  }
+
+  const abrirElemento = (el: Element): void => {
+    if (visitados.has(el)) return
+    visitados.add(el)
+    // Mídia própria é sempre um bloco (mesmo com display inline padrão).
+    if (el.tagName === 'IMG' || el.tagName === 'CANVAS' || el.tagName === 'SVG') {
+      emitir(el)
+      return
+    }
+    const estilo = getComputedStyle(el)
+    if (ehInline(el) || foraDoFluxo(estilo)) return
+    // Caixa fechada (borda/fundo): indivisível, não se abre.
+    if (ehCaixaFechada(estilo)) {
+      emitir(el)
+      return
+    }
+    // Sem filho de nível de bloco (texto direto ou só filhos inline): o
+    // elemento INTEIRO é um parágrafo/linha indivisível.
+    const temFilhoBloco = Array.from(el.children).some((filho) => !ehInline(filho))
+    if (!temFilhoBloco || temTextoProprio(el)) {
+      emitir(el)
+      return
+    }
+    // Wrapper puro: abre e pagina pelos blocos de texto que contém.
+    for (const filho of Array.from(el.children)) {
+      abrirElemento(filho)
+    }
+  }
+
+  abrirElemento(raiz)
+  blocos.sort((a, b) => a.topo - b.topo)
   return { blocos, totalPx: container.scrollHeight }
 }
 
 /**
  * Pagina o canvas por bloco e desenha as páginas no jsPDF.
  * Retorna o pdf pronto e o total de páginas geradas.
+ *
+ * Regras (correção da v0.0.155):
+ * - Uma quebra só cai num INTERVALO ENTRE blocos (fundo de um, topo do
+ *   outro) — nunca no meio da linha de um bloco.
+ * - A página termina EXATAMENTE onde termina o último bloco que couber:
+ *   nada de faixa branca artificial de "altura fixa de página".
+ * - Só se divide um bloco MAIOR que a área útil de UMA página inteira
+ *   (única forma de não perder conteúdo) — e nesse caso a divisão também
+ *   acontece em limite de bloco interno, se houver.
  */
 export function paginarCanvasPorBloco(
   canvas: HTMLCanvasElement,
@@ -124,7 +219,7 @@ export function paginarCanvasPorBloco(
   const margemRodapePt = mmParaPt(MARGEM_RODAPE_MM)
 
   const larguraUtilPt = larguraPt - 2 * margemLateralPt // 180mm
-  const alturaUtilPt = alturaPt - margemTopoPt - margemRodapePt // 273,5mm
+  const alturaUtilPt = alturaPt - margemTopoPt - margemRodapePt // ≈273,5mm de área útil
   // Escala html2canvas (px do canvas por px do layout)
   const escala = canvas.width / container.offsetWidth
   // Altura em px do LAYOUT que cabe na área útil de UMA página
@@ -135,39 +230,48 @@ export function paginarCanvasPorBloco(
   let idx = 0 // próximo bloco ainda não posicionado
 
   while (yDoc < totalPx - 0.5) {
-    let yFim = Math.min(yDoc + alturaUtilPaginaLayoutPx, totalPx)
-    const noMeioDeBlocoDividido =
+    const limiteFisico = Math.min(yDoc + alturaUtilPaginaLayoutPx, totalPx)
+    let yFim = limiteFisico
+    let corte = idx // até onde a página "consumiu" blocos
+
+    // Se o yDoc atual está no MEIO de um bloco maior que uma página (só
+    // acontece nesse caso), a página vai até o limite físico e a próxima
+    // começa no meio do mesmo bloco — inevitável, conteúdo não cabe inteiro.
+    const noMeioDeBlocoGigante =
       idx < blocos.length && blocos[idx].topo < yDoc - 0.5 && blocos[idx].fundo > yDoc + 0.5
 
-    if (!noMeioDeBlocoDividido) {
+    if (!noMeioDeBlocoGigante) {
+      // ultimoFundo = fim do último bloco que coube inteiro nesta página
       let ultimoFundo = yDoc
-      let empurrouBloco = false
       while (idx < blocos.length) {
         const b = blocos[idx]
         if (b.fundo <= yDoc + 0.5) {
           idx++
           continue
         }
-        if (b.topo >= yFim - 0.5) break // bloco começa depois da página
-        if (b.fundo <= yFim + 0.5) {
+        if (b.topo >= limiteFisico - 0.5) break // bloco começa na página seguinte
+        if (b.fundo <= limiteFisico + 0.5) {
           idx++
+          corte = idx
           ultimoFundo = Math.max(ultimoFundo, b.fundo)
           continue
         }
-        // O bloco cruza o fim da página:
+        // O bloco cruza o limite físico:
         if (b.altura <= alturaUtilPaginaLayoutPx) {
           // Cabe inteiro numa página: vai INTEIRO para a página seguinte.
-          // Se NADA coube na página (página vazia), o bloco é maior que o
-          // restante do documento: divide em vez de emitir página em branco.
-          yFim = ultimoFundo > yDoc + 0.5 ? ultimoFundo : yDoc
-          empurrouBloco = ultimoFundo > yDoc + 0.5
+          // Se NADA coube nesta página (ultimoFundo == yDoc), o bloco é
+          // maior que o RESTANTE do documento (ou da página): divide,
+          // em vez de emitir página em branco / loop infinito.
+          if (ultimoFundo > yDoc + 0.5) {
+            yFim = ultimoFundo
+          }
           break
         }
-        // Maior que uma página inteira: dividir (não há como não perder)
+        // Maior que uma página inteira: divide no limite físico.
+        corte = idx
         break
       }
-      // (empurrouBloco já definiu yFim = fundo do último bloco que coube:
-      // a página termina onde termina o conteúdo, sem faixa branca)
+      idx = corte
     }
 
     // Recorta a fatia [yDoc, yFim) do canvas e desenha a página
