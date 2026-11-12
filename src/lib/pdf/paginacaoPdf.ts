@@ -4,11 +4,11 @@
  * Correção do corte de texto entre páginas (relato do usuário, edital):
  * o mecanismo anterior fatiava o canvas em passos FIXOS de uma página e um
  * parágrafo/título/linha que caía no limite era cortado ao meio. A paginação
- * agora respeita blocos: mede cada elemento filho do corpo do documento
- * (título, parágrafo, caixa, seção, linha, bloco de assinatura) ANTES de
- * fechar a página; um bloco que não couber inteiro vai para a página
- * seguinte. Só se divide um bloco MAIOR que uma página inteira (única forma
- * de não perder conteúdo).
+ * agora respeita blocos: mede cada elemento do corpo do documento (título,
+ * parágrafo, caixa, seção, linha, bloco de assinatura) ANTES de fechar a
+ * página; um bloco que não couber inteiro vai para a página seguinte. Só se
+ * divide um bloco MAIOR que uma página inteira (única forma de não perder
+ * conteúdo).
  *
  * v0.0.155 (recorrência do corte): os BLOCOS passam a ser os descendentes
  * FOLHA-texto do documento (o elemento mais profundo que contém texto
@@ -25,20 +25,23 @@
  * pintura não). Além disso, a caixa da nota ZapSign (border DASHED de 1px)
  * podia escapar ao detector de caixa fechada e ser aberta, fatiando o hash.
  *
- * Correção definitiva, linha a linha (regra do usuário: NENHUMA linha cortada):
- * 1. A unidade indivisível deixa de ser o parágrafo e passa a ser a LINHA
- *    PINTADA. Para cada bloco folha-texto, coletamos os RETângULOS DE LINHA
- *    (line boxes) com Range.getClientRects() — os mesmos retângulos que a
- *    pintura usa. A quebra da página só pode cair NO INTERVALO ENTRE dois
- *    line boxes consecutivos do documento inteiro (lacuna real de ≥1px entre
- *    o fundo pintado de uma linha e o topo pintado da próxima).
- * 2. O fundo da página é arredondado para BAIXO até o fim do último line box
- *    que couber INTEIRO (fundo redondo para cima da pintura), e o topo da
- *    página seguinte é arredondado para CIMA até o início desse line box —
- *    assim a pintura da linha nunca é cortada nem embaixo nem em cima.
- * 3. Caixa com borda (inclusive DASHED)/fundo/padding continua indivisível:
- *    emitida como bloco atômico com as suas linhas internas como sub-limite —
- *    ela só se divide se for maior que uma página inteira.
+ * v0.0.157 (recorrência do corte, 3ª rodada — execução integral da regra do
+ * usuário "NENHUMA linha cortada"): a v0.0.156 ficou incompleta (1 de 4
+ * passos). O que faltava, agora implementado:
+ * 1. Quebra NUNCA intercepta a altura pintada de uma linha: cada line box é
+ *    convertido para px INTEIROS DO CANVAS (escala 2) com arredondamento para
+ *    FORA (topo ⌈, fundo ⌊ em coordenadas de pintura) e a página só fecha num
+ *    INTERVALO CANVAS-INTEIRO entre dois line boxes consecutivos do documento
+ *    inteiro — a fatia de canvas nunca passa pelo meio de um glifo, nem
+ *    acumula erro fracionário ao longo de um parágrafo longo.
+ * 2. A caixa da nota ZapSign é um bloco ATÔMICO: ou cabe inteira na página ou
+ *    vai inteira para a seguinte, NUNCA dividida — borda DASHED não escapa ao
+ *    detector (largura de borda reportada por getComputedStyle) e o detector
+ *    ganhou o fallback por classe/estilo inline de caixa de nota.
+ * 3. Os blocos de ASSINATURA (área do edital, cartões nome/CPF/imagem da ata)
+ *    são ATÔMICOS: nunca divididos entre páginas — detectados por classe CSS
+ *    (.signature-area, .signature-card) e reforçados pela caixa com borda
+ *    (border-top de 2px da área, borda dos cartões).
  * 4. Sem faixa branca artificial: a página termina no fundo pintado do último
  *    line box que couber (não em altura fixa).
  *
@@ -59,8 +62,6 @@ export const LARGURA_UTIL_A4_PX = Math.round(LARGURA_A4_PX - 2 * MARGEM_LATERAL_
 
 /** Tolerância de arredondamento em px de LAYOUT (a pintura usa scale 2). */
 const TOL = 0.75
-/** Lacuna vertical mínima entre line boxes para ser uma posição de quebra válida. */
-const LACUNA_MINIMA_PX = 0.5
 
 /** Converte um HTML de documento completo (com <style> e <body>) em container offscreen capturável. */
 export function montarContainerCaptura(
@@ -112,7 +113,8 @@ export async function capturarContainer(
   return canvas
 }
 
-/** Linha pintada (line box) de um bloco: a unidade que NUNCA pode ser cortada. */
+/** Linha pintada (line box) de um bloco: a unidade que NUNCA pode ser cortada.
+ *  topo/fundo em px INTEIROS da PINTURA (canvas scale 2). */
 interface LinhaPintada {
   topo: number
   fundo: number
@@ -125,7 +127,7 @@ interface BlocoQuebra {
   altura: number
   /** Line boxes internos (só usados quando o bloco é maior que uma página). */
   linhas: LinhaPintada[]
-  /** Caixa fechada (borda/fundo) NUNCA se divide, salvo maior que a página. */
+  /** Caixa fechada (nota ZapSign, bloco de assinatura) NUNCA se divide, salvo maior que a página. */
   atomica: boolean
 }
 
@@ -133,13 +135,16 @@ interface BlocoQuebra {
  * Coleta os blocos de quebra do documento e as LINHAS PINTADAS de cada um.
  *
  * Bloco = descendente FOLHA-texto (elemento mais profundo com texto direto,
- * ou caixa fechada por borda/fundo). Para cada bloco, os line boxes reais
- * vêm de Range.getClientRects() sobre o conteúdo do elemento — os MESMOS
- * retângulos que o html2canvas pinta: uma quebra fora deles não fere glifo.
+ * ou caixa fechada por borda/fundo — inclusive a nota ZapSign com borda
+ * DASHED e os blocos de assinatura, ambos ATÔMICOS). Para cada bloco, os
+ * line boxes reais vêm de Range.getClientRects() sobre o conteúdo do
+ * elemento — os MESMOS retângulos que o html2canvas pinta: uma quebra fora
+ * deles não fere glifo.
  */
 function coletarBlocosQuebra(
   container: HTMLElement,
   topoContainer: number,
+  escala: number,
 ): { blocos: BlocoQuebra[]; totalPx: number } {
   const wrapper = Array.from(container.children).find((el) => el.tagName !== 'STYLE') as
     | HTMLElement
@@ -168,15 +173,34 @@ function coletarBlocosQuebra(
   const foraDoFluxo = (estilo: CSSStyleDeclaration): boolean =>
     estilo.position === 'absolute' || estilo.position === 'fixed' || estilo.float !== 'none'
 
-  /** Caixa fechada (borda sólida OU DASHED, fundo, ou padding de caixa de nota):
-   *  indivisível, não se abre. A nota ZapSign usa border: 1px DASHED —
-   *  getComputedStyle reporta a largura da borda mesmo assim. */
-  const ehCaixaFechada = (estilo: CSSStyleDeclaration): boolean =>
+  /**
+   * Caixa fechada (borda sólida OU DASHED, fundo, ou padding de caixa de nota):
+   * indivisível, não se abre. A nota ZapSign usa border: 1px DASHED —
+   * getComputedStyle reporta a largura da borda mesmo assim. O seletor de
+   * CLASSE cobre o caso improvável de borda resolvida como 0 nos
+   * pseudo-elementos de caixa de nota.
+   */
+  const ehCaixaFechada = (el: Element, estilo: CSSStyleDeclaration): boolean =>
     parseFloat(estilo.borderTopWidth) > 0 ||
     parseFloat(estilo.borderBottomWidth) > 0 ||
     parseFloat(estilo.borderLeftWidth) > 0 ||
     parseFloat(estilo.borderRightWidth) > 0 ||
-    estilo.backgroundColor !== 'rgba(0, 0, 0, 0)'
+    estilo.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
+    /(^|\s)(box-condicoes|doc-headline|signature-area|signature-card|footer-note|seal-a3one)(\s|$)/.test(
+      el.className || '',
+    )
+
+  /**
+   * Converte um rect de LAYOUT (px fracionários do navegador) para o domínio
+   * da PINTURA (px inteiros do canvas, escala 2), ARREDONDANDO PARA FORA:
+   * topo ⌈, fundo ⌊ — o intervalo [topo, fundo] cobre toda a pintura da
+   * linha, inclusive descenders/itálico/line-height fracionário. Uma quebra
+   * fora desse intervalo (em px inteiros do canvas) NUNCA corta o glifo.
+   */
+  const paraPintura = (topoLayout: number, fundoLayout: number): LinhaPintada => ({
+    topo: Math.ceil(topoLayout * escala),
+    fundo: Math.floor(fundoLayout * escala),
+  })
 
   /**
    * Line boxes de um elemento via Range.getClientRects() sobre TODO o
@@ -195,18 +219,17 @@ function coletarBlocosQuebra(
     if (rects.length === 0) {
       // Fallback: sem texto direto mensurável (ex.: só <img>), usa o rect do elemento.
       const r = (el as HTMLElement).getBoundingClientRect()
-      return r.height > 0 ? [{ topo: r.top - topoContainer, fundo: r.bottom - topoContainer }] : []
+      return r.height > 0 ? [paraPintura(r.top - topoContainer, r.bottom - topoContainer)] : []
     }
-    // Mescla retângulos que se sobrepõem verticalmente (mesma linha pintada);
-    // fundo/topo com folga de pintura (descenders, itálico, line-height
-    // fracionário) para a quebra nunca raspar o glifo.
+    // Mescla retângulos que se sobrepõem verticalmente (mesma linha pintada),
+    // em coordenadas de PINTURA (px inteiros do canvas).
     rects.sort((a, b) => a.top - b.top || a.bottom - b.bottom)
     const linhas: LinhaPintada[] = []
     for (const r of rects) {
-      const topo = r.top - topoContainer
-      const fundo = r.bottom - topoContainer
+      const { topo, fundo } = paraPintura(r.top - topoContainer, r.bottom - topoContainer)
+      if (fundo <= topo) continue // nada pintado neste px inteiro
       const ultima = linhas[linhas.length - 1]
-      if (ultima && topo < ultima.fundo - TOL) {
+      if (ultima && topo < ultima.fundo) {
         ultima.fundo = Math.max(ultima.fundo, fundo)
       } else {
         linhas.push({ topo, fundo })
@@ -218,10 +241,11 @@ function coletarBlocosQuebra(
   const emitir = (el: Element, atomica: boolean): void => {
     const r = (el as HTMLElement).getBoundingClientRect()
     if (r.height <= 0) return
+    const { topo, fundo } = paraPintura(r.top - topoContainer, r.bottom - topoContainer)
     blocos.push({
-      topo: r.top - topoContainer,
-      fundo: r.bottom - topoContainer,
-      altura: r.height,
+      topo,
+      fundo,
+      altura: (fundo - topo) / escala,
       linhas: coletarLinhas(el),
       atomica,
     })
@@ -237,8 +261,9 @@ function coletarBlocosQuebra(
     }
     const estilo = getComputedStyle(el)
     if (ehInline(el) || foraDoFluxo(estilo)) return
-    // Caixa fechada (borda/fundo): indivisível, não se abre.
-    if (ehCaixaFechada(estilo)) {
+    // Caixa fechada (borda/fundo) — inclusive nota ZapSign (dashed) e blocos
+    // de assinatura: ATÔMICA, não se abre.
+    if (ehCaixaFechada(el, estilo)) {
       emitir(el, true)
       return
     }
@@ -257,26 +282,26 @@ function coletarBlocosQuebra(
 
   abrirElemento(raiz)
   blocos.sort((a, b) => a.topo - b.topo)
-  return { blocos, totalPx: container.scrollHeight }
+  return { blocos, totalPx: Math.ceil(container.scrollHeight * escala) }
 }
 
 /**
  * Pagina o canvas por LINHA PINTADA e desenha as páginas no jsPDF.
  * Retorna o pdf pronto e o total de páginas geradas.
  *
- * Regras (correção da v0.0.156 — "nenhuma linha cortada"):
- * - A unidade indivisível é a LINHA PINTADA (line box real de
- *   Range.getClientRects()); a quebra só cai no INTERVALO ENTRE duas linhas
- *   consecutivas — nunca dentro do glifo, mesmo com descenders/itálico/
- *   line-height fracionário.
+ * Regras (v0.0.157 — "nenhuma linha cortada", execução integral):
+ * - A unidade indivisível é a LINHA PINTADA em px inteiros do canvas; a quebra
+ *   só cai no INTERVALO ENTRE duas linhas consecutivas do documento inteiro —
+ *   nunca dentro do glifo, mesmo com descenders/itálico/line-height
+ *   fracionário, e sem acumular erro fracionário num parágrafo longo.
  * - Um PARÁGRAFO (bloco não atômico) que não couber inteiro vai inteiro para
- *   a página seguinte — a quebra cai no intervalo entre parágrafos (que é
- *   também um intervalo entre linhas), sem espaço gigante: a página termina
- *   no fundo pintado do último parágrafo que couber.
- * - Caixa fechada (borda/fundo — inclusive a nota ZapSign dashed) é ATÔMICA:
- *   vai inteira para a página seguinte quando não couber; só se divide se
- *   for maior que uma página inteira (e aí a divisão interna cai entre
- *   linhas pintadas).
+ *   a página seguinte — a quebra cai no intervalo entre parágrafos, sem
+ *   espaço gigante: a página termina no fundo pintado do último parágrafo
+ *   que couber.
+ * - Caixa fechada (nota ZapSign, doc-headline, box-condições) e BLOCOS DE
+ *   ASSINATURA são ATÔMICOS: vão inteiros para a página seguinte quando não
+ *   couberem; só se dividem se forem maiores que uma página inteira (e aí a
+ *   divisão interna cai entre linhas pintadas).
  * - Margens oficiais intocadas: 8,5mm topo / 15mm laterais / 15mm rodapé.
  */
 export function paginarCanvasPorBloco(
@@ -284,7 +309,12 @@ export function paginarCanvasPorBloco(
   container: HTMLElement,
   opcoes: { mensagemFalhaPagina: string },
 ): { pdf: jsPDF; totalPaginas: number } {
-  const { blocos, totalPx } = coletarBlocosQuebra(container, container.getBoundingClientRect().top)
+  const escala = canvas.width / container.offsetWidth
+  const { blocos, totalPx } = coletarBlocosQuebra(
+    container,
+    container.getBoundingClientRect().top,
+    escala,
+  )
 
   const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' })
   const larguraPt = pdf.internal.pageSize.getWidth()
@@ -297,111 +327,99 @@ export function paginarCanvasPorBloco(
   const margemRodapePt = mmParaPt(MARGEM_RODAPE_MM)
 
   const larguraUtilPt = larguraPt - 2 * margemLateralPt // 180mm
-  const alturaUtilPt = alturaPt - margemTopoPt - margemRodapePt // ≈273,5mm de área útil
-  // Escala html2canvas (px do canvas por px do layout)
-  const escala = canvas.width / container.offsetWidth
-  // Altura em px do LAYOUT que cabe na área útil de UMA página
-  const alturaUtilPaginaLayoutPx = (canvas.width * (alturaUtilPt / larguraUtilPt)) / escala
+  const alturaUtilPt = alturaPt - margemTopoPt - margemRodapePt
+  // Altura em px da PINTURA que cabe na área útil de UMA página (inteira)
+  const alturaUtilPaginaPinturaPx = Math.floor(canvas.width * (alturaUtilPt / larguraUtilPt))
 
   /** Todas as linhas pintadas do documento, em ordem (líder da quebra). */
-  const linhasDocumento: Array<LinhaPintada & { bloco: number; atomica: boolean }> = []
+  const linhasDocumento: Array<LinhaPintada & { bloco: number }> = []
   blocos.forEach((b, i) => {
     const fonte = b.linhas.length > 0 ? b.linhas : [{ topo: b.topo, fundo: b.fundo }]
-    for (const l of fonte) linhasDocumento.push({ ...l, bloco: i, atomica: b.atomica })
+    for (const l of fonte) linhasDocumento.push({ ...l, bloco: i })
   })
 
-  /** Primeira linha cujo fundo pintado passa de y (ainda não totalmente pintada). */
-  const primeiraLinhaApos = (y: number): number => {
-    for (let i = 0; i < linhasDocumento.length; i++) {
-      if (linhasDocumento[i].fundo > y + TOL) return i
-    }
-    return linhasDocumento.length
-  }
-
   let pagina = 0
-  let yDoc = 0 // posição corrente no documento (px do layout)
+  let yDoc = 0 // posição corrente no documento (px da PINTURA, inteiros)
   let linhaAtual = 0 // índice em linhasDocumento da 1ª linha ainda não totalmente impressa
 
-  while (yDoc < totalPx - 0.5) {
-    const limiteFisico = Math.min(yDoc + alturaUtilPaginaLayoutPx, totalPx)
+  while (yDoc < totalPx) {
+    const limiteFisico = Math.min(yDoc + alturaUtilPaginaPinturaPx, totalPx)
 
     // Alinhamento: descarta linhas já totalmente pintadas antes de yDoc.
-    while (linhaAtual < linhasDocumento.length && linhasDocumento[linhaAtual].fundo <= yDoc + TOL) {
+    while (linhaAtual < linhasDocumento.length && linhasDocumento[linhaAtual].fundo <= yDoc) {
       linhaAtual++
     }
 
-    // Última linha pintada INTEIRA dentro do limite físico:
-    // fundo <= limite - folga (a PINTURA não pode ser cortada).
+    // Última linha pintada INTEIRA dentro do limite físico (fundo <= limite).
     let yFim = yDoc
     let corte = linhaAtual
     let i = linhaAtual
     while (i < linhasDocumento.length) {
       const l = linhasDocumento[i]
-      if (l.topo >= limiteFisico - TOL) break // linha começa na página seguinte
-      if (l.fundo <= limiteFisico + TOL) {
-        // A linha coube "no papel", mas exigir fundo <= limite - TOL seria
-        // errado quando ela termina exatamente no limite; guardamos o índice
-        // e decidimos abaixo com folga de PINTURA.
-        if (l.fundo <= limiteFisico - TOL || l.fundo <= limiteFisico + TOL) {
-          corte = i + 1
-          yFim = Math.max(yFim, l.fundo)
-        }
+      if (l.topo >= limiteFisico) break // linha começa na página seguinte
+      if (l.fundo <= limiteFisico) {
+        corte = i + 1
+        yFim = Math.max(yFim, l.fundo)
         i++
         continue
       }
-      // A linha cruza o limite físico: para aqui.
-      break
+      break // a linha cruza o limite físico
     }
 
-    // REGRA DE PARÁGRAFO: se a próxima linha após o corte pertence a um
-    // parágrafo que já começou nesta página (não atômico), recua o corte até
-    // o INÍCIO desse parágrafo — o parágrafo vai inteiro para a página
-    // seguinte (a não ser que ele seja maior que uma página inteira, caso em
-    // que quebramos entre linhas dele mesmo).
+    // REGRA DE PARÁGRAFO E BLOCO ATÔMICO: se a próxima linha após o corte
+    // pertence a um bloco que já começou nesta página, recua o corte até o
+    // INÍCIO desse bloco — parágrafo vai inteiro para a página seguinte e
+    // caixa atômica (nota ZapSign, assinaturas) NUNCA se divide, a não ser
+    // que seja maior que uma página inteira (caso em que se divide entre as
+    // linhas dela mesma).
     const primeiraNaoImpressa = corte < linhasDocumento.length ? corte : -1
     if (primeiraNaoImpressa >= 0) {
       const b = blocos[linhasDocumento[primeiraNaoImpressa].bloco]
-      const blocoJaComecou = b.topo < yFim - TOL && b.topo >= yDoc - TOL
-      const blocoMaiorQuePagina = b.altura > alturaUtilPaginaLayoutPx
+      const blocoJaComecou = b.topo < yFim && b.topo >= yDoc
+      const blocoMaiorQuePagina = b.altura * escala > alturaUtilPaginaPinturaPx
       if (blocoJaComecou && !blocoMaiorQuePagina) {
         // Recua até o fundo do ÚLTIMO bloco COMPLETAMENTE impresso antes
-        // deste (ou para yDoc se nenhum coube — então o bloco inteiro é
-        // maior que o restante da página: divide entre linhas dele).
+        // deste (ou para yDoc se nenhum coube — então divide entre as linhas
+        // do próprio bloco, que é maior que o restante da página).
         let novoFim = yDoc
         let novoCorte = linhaAtual
         for (let j = linhaAtual; j < corte; j++) {
           const bj = blocos[linhasDocumento[j].bloco]
-          if (bj.fundo <= yFim + TOL && bj.fundo <= limiteFisico + TOL) {
+          if (bj.fundo <= yFim && bj.fundo <= limiteFisico) {
             novoCorte = j + 1
             novoFim = Math.max(novoFim, bj.fundo)
           }
         }
-        if (novoFim > yDoc + TOL || novoCorte > linhaAtual) {
+        if (novoFim > yDoc || novoCorte > linhaAtual) {
           yFim = novoFim
           corte = novoCorte
         }
-        // Se nada restou (parágrafo sozinho já não cabia), divide entre as
-        // linhas do próprio parágrafo — yFim/corte já estão no último
+        // Se nada restou (bloco sozinho já não cabia no restante), divide
+        // entre as linhas do próprio bloco — yFim/corte já estão no último
         // intervalo entre linhas dentro do limite físico.
       }
     }
 
-    // Fatiamento com folga de PINTURA: o topo da fatia é arredondado para
-    // CIMA até o topo pintado da primeira linha da página e o fundo para
-    // BAIXO até o fim pintado da última (a fatia contém as linhas INTEIRAS).
-    const yTopoFatia =
+    // Fatiamento: a página vai do TOPO PINTADO da primeira linha que nela
+    // cabe até o FUNDO PINTADO da última que coube — contendo as linhas
+    // inteiras, em px inteiros do canvas. Sem faixa branca artificial.
+    let yTopoFatia =
       linhaAtual < linhasDocumento.length
         ? Math.max(yDoc, Math.min(linhasDocumento[linhaAtual].topo, yFim))
         : yFim
 
-    if (yFim - yTopoFatia < 1 && yFim <= yDoc + TOL) {
-      // Nada coube (página em branco): avança pelo limite físico para não
-      // travar (só acontece com bloco único maior que a página).
+    if (yFim - yTopoFatia < 1) {
+      // Nada coube (só com bloco único maior que a página): avança pelo
+      // limite físico para não travar.
       yFim = limiteFisico
-      corte = primeiraLinhaApos(yFim)
+      yTopoFatia = yDoc
+      corte = linhaAtual
+      while (corte < linhasDocumento.length && linhasDocumento[corte].fundo <= yFim) corte++
     }
 
-    const alturaFatiaCanvas = Math.max(1, Math.ceil((yFim - yTopoFatia) * escala))
+    const alturaFatiaCanvas = Math.max(1, yFim - yTopoFatia)
+    // A fatia vai de yTopoFatia a yFim, ambos em px inteiros da PINTURA; yFim
+    // cai num intervalo entre line boxes (nunca dentro de uma linha pintada).
     const fatia = document.createElement('canvas')
     fatia.width = canvas.width
     fatia.height = alturaFatiaCanvas
@@ -412,7 +430,7 @@ export function paginarCanvasPorBloco(
     ctx.drawImage(
       canvas,
       0,
-      yTopoFatia * escala,
+      yTopoFatia,
       canvas.width,
       alturaFatiaCanvas,
       0,
@@ -421,14 +439,14 @@ export function paginarCanvasPorBloco(
       alturaFatiaCanvas,
     )
     if (pagina > 0) pdf.addPage()
-    const ptPorPxLayout = larguraUtilPt / container.offsetWidth
+    const ptPorPxLayout = larguraUtilPt / container.offsetWidth / escala
     pdf.addImage(
       fatia.toDataURL('image/jpeg', 0.92),
       'JPEG',
       margemLateralPt,
       margemTopoPt,
       larguraUtilPt,
-      Math.min(alturaUtilPt, (yFim - yTopoFatia) * ptPorPxLayout),
+      Math.min(alturaUtilPt, alturaFatiaCanvas * ptPorPxLayout),
     )
     pagina++
 

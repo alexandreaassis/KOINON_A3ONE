@@ -20,12 +20,16 @@ export function extractFieldErrors(error: unknown): FieldErrors {
   return errors
 }
 
+/** Mensagem amigável de erro. Aceita fallback opcional — a assinatura
+ *  (error: unknown, fallback?: string) já regrediu 15x no histórico e é
+ *  exigida pelo typecheck (src/lib/api.ts e páginas chamam com 2 args). */
 export function getErrorMessage(error: unknown, fallback?: string): string {
   if (!(error instanceof ClientResponseError)) {
-    return error instanceof Error ? error.message : (fallback ?? 'An unexpected error occurred.')
+    if (error instanceof Error) return error.message
+    return fallback ?? 'An unexpected error occurred.'
   }
   const msgs = Object.values(extractFieldErrors(error))
-  return msgs.length > 0
-    ? msgs.join(' ')
-    : error.message || fallback || 'An unexpected error occurred.'
+  if (msgs.length > 0) return msgs.join(' ')
+  if (error.message) return error.message
+  return fallback ?? 'An unexpected error occurred.'
 }
