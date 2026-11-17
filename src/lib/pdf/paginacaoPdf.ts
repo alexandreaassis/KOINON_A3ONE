@@ -301,9 +301,9 @@ function coletarBlocosQuebra(
     }
   }
 
-  abrirElemento(raiz)
+  for (const raiz of raizes) abrirElemento(raiz)
   blocos.sort((a, b) => a.topo - b.topo)
-  return { blocos, totalPx: Math.ceil(container.scrollHeight * escala) }
+  return { blocos }
 }
 
 /**
@@ -331,11 +331,8 @@ export function paginarCanvasPorBloco(
   opcoes: { mensagemFalhaPagina: string },
 ): { pdf: jsPDF; totalPaginas: number } {
   const escala = canvas.width / container.offsetWidth
-  const { blocos, totalPx } = coletarBlocosQuebra(
-    container,
-    container.getBoundingClientRect().top,
-    escala,
-  )
+  const { blocos } = coletarBlocosQuebra(container, container.getBoundingClientRect().top, escala)
+  const totalPx = Math.min(canvas.height, Math.ceil(container.scrollHeight * escala))
 
   const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' })
   const larguraPt = pdf.internal.pageSize.getWidth()
@@ -370,6 +367,8 @@ export function paginarCanvasPorBloco(
     while (linhaAtual < linhasDocumento.length && linhasDocumento[linhaAtual].fundo <= yDoc) {
       linhaAtual++
     }
+    // Sem linhas restantes: o que sobra é só espaço vazio — não gera página em branco.
+    if (linhaAtual >= linhasDocumento.length) break
 
     // Última linha pintada INTEIRA dentro do limite físico (fundo <= limite).
     let yFim = yDoc
