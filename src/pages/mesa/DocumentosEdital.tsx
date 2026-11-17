@@ -931,14 +931,20 @@ export const DocumentosEditalPage: React.FC = () => {
       setZapsignStatus(resp.zapsign_status || resp.status || '')
       setZapsignDocToken(resp.documento_token)
       setZapsignSignatarios(resp.zapsign_urls || null)
-      setZapsignMotivo(resp.message || null)
+      setZapsignMotivo(resp.motivo || resp.message || null)
       setModalZapsignAberto(true)
 
-      await api.registrarEventoAuditoria({
-        evento: 'documento_upload',
-        fator: `Mesa: edital enviado para assinatura externa (ZapSign) — documento ${resp.documento_token || 'sem token'}`,
-        dispositivo: navigator.userAgent,
-      })
+      // Auditoria isolada: uma falha aqui NUNCA pode derrubar o envio já
+      // concluído (era a origem do toast de erro após documento criado).
+      try {
+        await api.registrarEventoAuditoria({
+          evento: 'documento_upload',
+          fator: `Mesa: edital enviado para assinatura externa (ZapSign) — documento ${resp.documento_token || 'sem token'}`,
+          dispositivo: navigator.userAgent,
+        })
+      } catch (audErr: unknown) {
+        console.warn('Auditoria do envio ZapSign não registrada:', audErr)
+      }
 
       toast({
         title:
@@ -951,10 +957,25 @@ export const DocumentosEditalPage: React.FC = () => {
             : 'Os links individuais de assinatura estão disponíveis no modal.',
         variant: resp.zapsign_status === 'fallback_manual' ? 'destructive' : 'default',
       })
-    } catch (err) {
+    } catch (err: unknown) {
+      // v0.0.165 — superfície de diagnóstico: um erro de rede/corpo grande chega
+      // como ClientResponseError sem `message` ("Something went wrong." do SDK).
+      // Mostrar status + detalhe real devolvido (response.data/motivo) no toast
+      // e no console, em vez da mensagem genérica.
+      const erroCte = err as { status?: number; data?: unknown; response?: { data?: unknown } }
+      const detalheResp =
+        (erroCte?.data as { message?: string; motivo?: string } | undefined) ||
+        (erroCte?.response?.data as { message?: string; motivo?: string } | undefined)
+      const detalhe = detalheResp?.motivo || detalheResp?.message
+      const statusHttp = typeof erroCte?.status === 'number' ? ` (HTTP ${erroCte.status})` : ''
+      const msgBase = getErrorMessage(err, 'Não foi possível enviar o edital para assinatura.')
+      const descricaoFinal = [msgBase, detalhe && detalhe !== msgBase ? detalhe : null]
+        .filter(Boolean)
+        .join(' — ')
+      console.error('Falha no envio do edital à ZapSign:', erroCte?.status, err)
       toast({
-        title: 'Falha no envio à ZapSign',
-        description: getErrorMessage(err, 'Não foi possível enviar o edital para assinatura.'),
+        title: `Falha no envio à ZapSign${statusHttp}`,
+        description: descricaoFinal || 'Não foi possível enviar o edital. Tente novamente.',
         variant: 'destructive',
       })
     } finally {
@@ -2261,6 +2282,7 @@ export const DocumentosEditalPage: React.FC = () => {
         aberto={modalZapsignAberto}
         onOpenChange={setModalZapsignAberto}
         tituloDocumento={editalForm.titulo || deliberacaoAtiva?.titulo || 'Edital de Convocação'}
+        docToken={zapsignDocToken || undefined}
         signatarios={zapsignSignatarios}
         status={zapsignStatus}
         motivo={zapsignMotivo}
