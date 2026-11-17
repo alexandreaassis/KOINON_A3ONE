@@ -503,6 +503,10 @@ export function paginarCanvasPorBloco(
     // v0.0.164 — a fatia vai ao jsPDF como PNG (sem perda): a compressão JPEG
     // (0.92) granulava as serifadas do documento (letras serrilhadas no pé das
     // páginas). O formato do fatiamento/paginação fica intocado (v0.0.163).
+    // v0.0.166 — COMPRESSÃO FLATE ('SLOW') dos dados da imagem dentro do PDF:
+    // sem ela o PNG entra como RGBA bruto no XObject e o PDF gerado multiplica
+    // de tamanho em bytes — o POST base64 para /enviar-zapsign não chega ao
+    // servidor (HTTP 0). O Flate é SEM PERDA: pixels idênticos, zero serrilhado.
     pdf.addImage(
       fatia.toDataURL('image/png'),
       'PNG',
@@ -510,6 +514,8 @@ export function paginarCanvasPorBloco(
       margemTopoPt,
       larguraUtilPt,
       Math.min(alturaUtilPt, alturaFatiaCanvas * ptPorPxLayout),
+      '',
+      'SLOW',
     )
     pagina++
 

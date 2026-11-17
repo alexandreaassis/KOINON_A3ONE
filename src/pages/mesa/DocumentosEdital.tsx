@@ -127,6 +127,9 @@ export const DocumentosEditalPage: React.FC = () => {
   const [zapsignStatus, setZapsignStatus] = useState<string>('')
   const [zapsignDocToken, setZapsignDocToken] = useState<string | null>(null)
   const [zapsignSignatarios, setZapsignSignatarios] = useState<ZapSignSignatarioUrl[] | null>(null)
+  // v0.0.166 — tamanho do último payload ZapSign (bytes), para o log completo
+  // do console no catch (diagnóstico de HTTP 0 — payload não chega ao servidor).
+  const bytesPayloadRef = useRef<number | null>(null)
   const [zapsignEnviando, setZapsignEnviando] = useState(false)
   const [zapsignMotivo, setZapsignMotivo] = useState<string | null>(null)
   const [modalZapsignAberto, setModalZapsignAberto] = useState(false)
@@ -914,6 +917,25 @@ export const DocumentosEditalPage: React.FC = () => {
       if (!editalIdParaEnvio) {
         throw new Error('Salve o edital antes de enviar para assinatura.')
       }
+      // v0.0.166 — diagnóstico de HTTP 0: logar o tamanho real do payload em
+      // bytes ANTES do POST (suspeita: PNG sem compressão de v0.0.164 inflou o
+      // PDF; base64 multiplicou em ~33%). Payload > ~16 MB não chega ao servidor.
+      const bytesPdf = Math.round((prova.pdfBase64.length * 3) / 4)
+      const bytesPayload = Math.round(
+        (JSON.stringify({
+          deliberacaoId: deliberacaoAtiva.id,
+          nomeDocumento: `Edital de Convocação — ${nomeCondominio}`,
+          pdfBase64: prova.pdfBase64,
+        }).length *
+          3) /
+          4,
+      )
+      console.info(
+        `[ZapSign edital] PDF ${bytesPdf.toLocaleString('pt-BR')} bytes ` +
+          `(${prova.totalPaginas} pág.), payload base64 ` +
+          `${bytesPayload.toLocaleString('pt-BR')} bytes`,
+      )
+      bytesPayloadRef.current = bytesPayload
       const resp = await api.enviarEditalZapsign(editalIdParaEnvio, {
         deliberacaoId: deliberacaoAtiva.id,
         nomeDocumento: `Edital de Convocação — ${nomeCondominio}`,
@@ -962,20 +984,36 @@ export const DocumentosEditalPage: React.FC = () => {
       // como ClientResponseError sem `message` ("Something went wrong." do SDK).
       // Mostrar status + detalhe real devolvido (response.data/motivo) no toast
       // e no console, em vez da mensagem genérica.
+      // v0.0.166 — HTTP 0 (status ausente): a requisição NÃO chegou ao servidor
+      // (rede abortada, timeout do cliente, payload rejeitado no transporte —
+      // ex. PDF inflado pelo PNG sem compressão estourando o limite do body).
+      // Mensagem em português claro em vez de "HTTP 0" cru + log completo.
       const erroCte = err as { status?: number; data?: unknown; response?: { data?: unknown } }
       const detalheResp =
         (erroCte?.data as { message?: string; motivo?: string } | undefined) ||
         (erroCte?.response?.data as { message?: string; motivo?: string } | undefined)
       const detalhe = detalheResp?.motivo || detalheResp?.message
-      const statusHttp = typeof erroCte?.status === 'number' ? ` (HTTP ${erroCte.status})` : ''
-      const msgBase = getErrorMessage(err, 'Não foi possível enviar o edital para assinatura.')
+      const semStatusHttp = typeof erroCte?.status !== 'number' || erroCte.status === 0
+      const statusHttp = semStatusHttp ? '' : ` (HTTP ${erroCte.status})`
+      const fallbackHttp0 =
+        'Falha de conexão ao enviar o edital (a requisição não chegou ao servidor — possivelmente por tamanho do arquivo). Tente novamente.'
+      const msgBase = semStatusHttp
+        ? fallbackHttp0
+        : getErrorMessage(err, 'Não foi possível enviar o edital para assinatura.')
       const descricaoFinal = [msgBase, detalhe && detalhe !== msgBase ? detalhe : null]
         .filter(Boolean)
         .join(' — ')
-      console.error('Falha no envio do edital à ZapSign:', erroCte?.status, err)
+      console.error(
+        'Falha no envio do edital à ZapSign:',
+        {
+          status: erroCte?.status ?? 0,
+          payloadBytes: bytesPayloadRef.current,
+        },
+        err,
+      )
       toast({
         title: `Falha no envio à ZapSign${statusHttp}`,
-        description: descricaoFinal || 'Não foi possível enviar o edital. Tente novamente.',
+        description: descricaoFinal,
         variant: 'destructive',
       })
     } finally {

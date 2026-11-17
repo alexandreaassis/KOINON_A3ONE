@@ -20,21 +20,18 @@ export function extractFieldErrors(error: unknown): FieldErrors {
   return errors
 }
 
+/**
+ * ARQUIVO CONGELADO (regra do projeto) — NÃO alterar a assinatura:
+ * getErrorMessage(error: unknown, fallback?: string): string
+ * Já regrediu 17x à forma de 1 argumento (última: v0.0.165), quebrando o
+ * typecheck de src/lib/api.ts e de DocumentosEdital.tsx, que passam fallback.
+ */
 export function getErrorMessage(error: unknown, fallback?: string): string {
-  // Assinatura CONGELADA (error: unknown, fallback?: string) — exigida por
-  // src/lib/api.ts e pelos chamadores (DocumentosEdital, ModalZapsignLinks etc.).
-  // Regredir para 1 argumento quebra o typecheck e faz o toast exibir a
-  // mensagem crua do SDK ("Something went wrong.") em vez do motivo real.
   if (!(error instanceof ClientResponseError)) {
-    if (error instanceof Error && error.message) return error.message
-    return fallback || 'An unexpected error occurred.'
+    return error instanceof Error ? error.message : fallback || 'An unexpected error occurred.'
   }
   const msgs = Object.values(extractFieldErrors(error))
-  if (msgs.length > 0) return msgs.join(' ')
-  const resposta = error.response as { message?: string } | undefined
-  if (resposta && typeof resposta.message === 'string' && resposta.message.trim()) {
-    return resposta.message
-  }
-  if (error.message && error.status !== 0) return error.message
-  return fallback || 'An unexpected error occurred.'
+  return msgs.length > 0
+    ? msgs.join(' ')
+    : error.message || fallback || 'An unexpected error occurred.'
 }
