@@ -60,6 +60,26 @@
  *    página fica preenchida até a última linha inteira e a salvaguarda nunca
  *    precisa cortar dentro de glifo (só um bloco MAIOR que a página se divide,
  *    e mesmo assim entre as linhas dele).
+ *
+ * v0.0.163 (recorrência dos 2 sintomas do edital — letra serrilhada no pé da
+ * página 1 e grande vazio após "PROCURAÇÕES"): os sintomas persistem porque o
+ * CAMINHO DE CAPTURA (html2canvas + paginarCanvasPorBloco, usado pela ZapSign
+ * e pelo anexo de e-mail) desviava do algoritmo descrito — a regra de v0.0.159
+ * (parágrafo continua) NÃO estava aplicada; o recuo empurrava o PARÁGRAFO
+ * INTEIRO para a página seguinte (o grande vazio após o título) e a fatia da
+ * página seguinte podia começar DENTRO da última linha pintada da página
+ * anterior, sobrepondo um glifo com glifo deslocado (a letra serrilhada).
+ * Correções, nesta versão:
+ * 1. O recuo até o início do bloco só vale para bloco ATÔMICO (caixa da nota
+ *    ZapSign, blocos de assinatura, caixas com borda/fundo): nunca divide entre
+ *    páginas. Um PARÁGRAFO comum FLUI linha a linha entre páginas.
+ * 2. A fatia de cada página começa no FUNDO PINTADO da última linha da página
+ *    anterior — nunca dentro de um line box — garantindo que o texto da nova
+ *    página continue sem sobreposição nem corte no pé.
+ * 3. Confirmação da suspeita do caminho: o "Baixar PDF" do edital NÃO passa
+ *    por aqui (usa o motor de impressão nativo do navegador, sem paginação em
+ *    canvas); os PDFs da ZapSign e do anexo de e-mail passam. A correção é
+ *    sempre nesta geração, nunca na ZapSign (memória do projeto).
  * 2. Sem reserva de segurança entre MEDIÇÃO e PINTURA: a quebra caía exatamente
  *    no fundo medido da linha, mas a pintura do html2canvas pode descer 1–2px
  *    além do retângulo medido (descenders/line-height fracionário/diferença de
@@ -389,18 +409,18 @@ export function paginarCanvasPorBloco(
       break // a linha cruza o limite físico
     }
 
-    // REGRA DE PARÁGRAFO E BLOCO ATÔMICO: se a próxima linha após o corte
-    // pertence a um bloco que já começou nesta página, recua o corte até o
-    // INÍCIO desse bloco — parágrafo vai inteiro para a página seguinte e
-    // caixa atômica (nota ZapSign, assinaturas) NUNCA se divide, a não ser
-    // que seja maior que uma página inteira (caso em que se divide entre as
-    // linhas dela mesma).
+    // REGRA DE BLOCO ATÔMICO (v0.0.163): só o bloco ATÔMICO recua o corte até o
+    // seu INÍCIO (nunca se divide entre páginas). O PARÁGRAFO comum NÃO recua:
+    // flui linha a linha — a página fica preenchida até a última linha inteira
+    // e o texto continua no topo da página seguinte, sem grande vazio no pé
+    // (sintoma "espaço em branco após PROCURAÇÕES") nem corte de glifo
+    // (sintoma "letra serrilhada no pé da página 1").
     const primeiraNaoImpressa = corte < linhasDocumento.length ? corte : -1
     if (primeiraNaoImpressa >= 0) {
       const b = blocos[linhasDocumento[primeiraNaoImpressa].bloco]
       const blocoJaComecou = b.topo < yFim && b.topo >= yDoc
       const blocoMaiorQuePagina = b.altura * escala > alturaUtilPaginaPinturaPx
-      if (blocoJaComecou && !blocoMaiorQuePagina) {
+      if (b.atomica && blocoJaComecou && !blocoMaiorQuePagina) {
         // Recua até o fundo do ÚLTIMO bloco COMPLETAMENTE impresso antes
         // deste (ou para yDoc se nenhum coube — então divide entre as linhas
         // do próprio bloco, que é maior que o restante da página).
@@ -423,13 +443,17 @@ export function paginarCanvasPorBloco(
       }
     }
 
-    // Fatiamento: a página vai do TOPO PINTADO da primeira linha que nela
-    // cabe até o FUNDO PINTADO da última que coube — contendo as linhas
-    // inteiras, em px inteiros do canvas. Sem faixa branca artificial.
-    let yTopoFatia =
-      linhaAtual < linhasDocumento.length
-        ? Math.max(yDoc, Math.min(linhasDocumento[linhaAtual].topo, yFim))
-        : yFim
+    // Fatiamento (v0.0.163 — fatia SEM sobreposição de linha): a fatia começa
+    // no FUNDO PINTADO da ÚLTIMA linha impressa na página ANTERIOR (nunca dentro
+    // de um line box, garantindo continuidade sem sobrepor glifo com glifo) e
+    // termina no FUNDO PINTADO da última linha que coube — em px inteiros do
+    // canvas. Sem faixa branca artificial, sem glifo sobre glifo.
+    let yTopoFatia = yDoc
+    if (linhaAtual > 0 && yDoc <= 0) {
+      // Primeira página: começa no TOPO PINTADO da primeira linha (sem faixa
+      // branca artificial acima do cabeçalho).
+      yTopoFatia = linhasDocumento[linhaAtual].topo
+    }
 
     if (yFim - yTopoFatia < 1) {
       // Nada coube (só com bloco único maior que a página): avança pelo
@@ -440,11 +464,18 @@ export function paginarCanvasPorBloco(
       while (corte < linhasDocumento.length && linhasDocumento[corte].fundo <= yFim) corte++
     }
 
-    // RESERVA DE PINTURA na fatia: o recorte estende `reservaPx` além do fundo
-    // medido (descenders da última linha) e antes do topo medido (ascendentes da
-    // primeira), sem invadir a linha vizinha nem o trecho já impresso.
-    const proximaTopo = corte < linhasDocumento.length ? linhasDocumento[corte].topo : totalPx
-    const yBaseFatia = Math.min(yFim + reservaPx, Math.max(proximaTopo, yFim), totalPx)
+    // RESERVA DE PINTURA na fatia (v0.0.163, com teto rígido): estende `reservaPx`
+    // além do fundo medido da última linha (descenders), mas a fatia NUNCA inva-
+    // de a linha seguinte: teto = topo da próxima linha NÃO impressa. A reserva
+    // só se aplica quando a próxima linha começa depois da reserva (gap real);
+    // quando ela começa antes, o teto é o próprio yFim + 1px (fim da fatia no
+    // intervalo entre line boxes — nada da linha seguinte entra nesta página).
+    const proximaNaoImpressa =
+      corte < linhasDocumento.length ? linhasDocumento[corte].topo : totalPx
+    const yBaseFatia = Math.min(
+      Math.max(yFim + 1, Math.min(yFim + reservaPx, proximaNaoImpressa)),
+      totalPx,
+    )
     yTopoFatia = Math.max(yDoc, yTopoFatia - reservaPx)
     const alturaFatiaCanvas = Math.max(1, yBaseFatia - yTopoFatia)
     // A fatia vai de yTopoFatia a yFim, ambos em px inteiros da PINTURA; yFim
