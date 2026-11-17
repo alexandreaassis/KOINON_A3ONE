@@ -500,9 +500,12 @@ export function paginarCanvasPorBloco(
     )
     if (pagina > 0) pdf.addPage()
     const ptPorPxLayout = larguraUtilPt / container.offsetWidth / escala
+    // v0.0.164 — a fatia vai ao jsPDF como PNG (sem perda): a compressão JPEG
+    // (0.92) granulava as serifadas do documento (letras serrilhadas no pé das
+    // páginas). O formato do fatiamento/paginação fica intocado (v0.0.163).
     pdf.addImage(
-      fatia.toDataURL('image/jpeg', 0.92),
-      'JPEG',
+      fatia.toDataURL('image/png'),
+      'PNG',
       margemLateralPt,
       margemTopoPt,
       larguraUtilPt,

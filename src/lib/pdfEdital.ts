@@ -567,10 +567,16 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
         : ''
     }
 
-    <div class="section-title">Procurações</div>
-    <div class="text-body rendered-document-html" style="font-size: 10pt; color: #334155; margin-bottom: 10px;">
-      ${converterTextoParaHtmlSeguro(dados.textoProcuracao || '')}
-    </div>
+    ${
+      dados.textoProcuracao && dados.textoProcuracao.trim().length > 0
+        ? `
+      <div class="section-title">Procurações</div>
+      <div class="text-body rendered-document-html" style="font-size: 10pt; color: #334155; margin-bottom: 10px;">
+        ${converterTextoParaHtmlSeguro(dados.textoProcuracao)}
+      </div>
+    `
+        : ''
+    }
 
     ${
       dados.mencaoNormativaConvocacaoEletronica?.trim()
