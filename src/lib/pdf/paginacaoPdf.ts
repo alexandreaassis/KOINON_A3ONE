@@ -81,8 +81,8 @@ const PX_POR_MM = LARGURA_A4_PX / 210
 // Largura do container de captura = área útil (210 - 2x15 = 180mm)
 export const LARGURA_UTIL_A4_PX = Math.round(LARGURA_A4_PX - 2 * MARGEM_LATERAL_MM * PX_POR_MM) // ≈ 680px
 
-/** Tolerância de arredondamento em px de LAYOUT (a pintura usa scale 2). */
-const TOL = 0.75
+/** Reserva de PINTURA (px de layout) além do retângulo medido: descenders/itálico do html2canvas. */
+const RESERVA_PINTURA_LAYOUT_PX = 2
 
 /** Converte um HTML de documento completo (com <style> e <body>) em container offscreen capturável. */
 export function montarContainerCaptura(
@@ -166,11 +166,10 @@ function coletarBlocosQuebra(
   container: HTMLElement,
   topoContainer: number,
   escala: number,
-): { blocos: BlocoQuebra[]; totalPx: number } {
-  const wrapper = Array.from(container.children).find((el) => el.tagName !== 'STYLE') as
-    | HTMLElement
-    | undefined
-  const raiz = wrapper || container
+): { blocos: BlocoQuebra[] } {
+  // TODAS as raízes de topo (irmãos não-STYLE): antes só o primeiro era visitado,
+  // e o conteúdo dos irmãos seguintes ficava fora da lista de quebras.
+  const raizes = Array.from(container.children).filter((el) => el.tagName !== 'STYLE')
   const blocos: BlocoQuebra[] = []
   const visitados = new Set<Element>()
 
@@ -348,6 +347,9 @@ export function paginarCanvasPorBloco(
   const alturaUtilPt = alturaPt - margemTopoPt - margemRodapePt
   // Altura em px da PINTURA que cabe na área útil de UMA página (inteira)
   const alturaUtilPaginaPinturaPx = Math.floor(canvas.width * (alturaUtilPt / larguraUtilPt))
+  // Reserva real de pintura em px do canvas (escala): a página só fecha se
+  // `fundo <= limite - reservaPx`, absorvendo a descida da pintura do html2canvas.
+  const reservaPx = Math.ceil(RESERVA_PINTURA_LAYOUT_PX * escala)
 
   /** Todas as linhas pintadas do documento, em ordem (líder da quebra). */
   const linhasDocumento: Array<LinhaPintada & { bloco: number }> = []
@@ -362,6 +364,7 @@ export function paginarCanvasPorBloco(
 
   while (yDoc < totalPx) {
     const limiteFisico = Math.min(yDoc + alturaUtilPaginaPinturaPx, totalPx)
+    const limiteSeguro = limiteFisico - reservaPx
 
     // Alinhamento: descarta linhas já totalmente pintadas antes de yDoc.
     while (linhaAtual < linhasDocumento.length && linhasDocumento[linhaAtual].fundo <= yDoc) {
@@ -377,7 +380,7 @@ export function paginarCanvasPorBloco(
     while (i < linhasDocumento.length) {
       const l = linhasDocumento[i]
       if (l.topo >= limiteFisico) break // linha começa na página seguinte
-      if (l.fundo <= limiteFisico) {
+      if (l.fundo <= limiteSeguro) {
         corte = i + 1
         yFim = Math.max(yFim, l.fundo)
         i++
@@ -405,7 +408,7 @@ export function paginarCanvasPorBloco(
         let novoCorte = linhaAtual
         for (let j = linhaAtual; j < corte; j++) {
           const bj = blocos[linhasDocumento[j].bloco]
-          if (bj.fundo <= yFim && bj.fundo <= limiteFisico) {
+          if (bj.fundo <= yFim && bj.fundo <= limiteSeguro) {
             novoCorte = j + 1
             novoFim = Math.max(novoFim, bj.fundo)
           }
@@ -437,7 +440,13 @@ export function paginarCanvasPorBloco(
       while (corte < linhasDocumento.length && linhasDocumento[corte].fundo <= yFim) corte++
     }
 
-    const alturaFatiaCanvas = Math.max(1, yFim - yTopoFatia)
+    // RESERVA DE PINTURA na fatia: o recorte estende `reservaPx` além do fundo
+    // medido (descenders da última linha) e antes do topo medido (ascendentes da
+    // primeira), sem invadir a linha vizinha nem o trecho já impresso.
+    const proximaTopo = corte < linhasDocumento.length ? linhasDocumento[corte].topo : totalPx
+    const yBaseFatia = Math.min(yFim + reservaPx, Math.max(proximaTopo, yFim), totalPx)
+    yTopoFatia = Math.max(yDoc, yTopoFatia - reservaPx)
+    const alturaFatiaCanvas = Math.max(1, yBaseFatia - yTopoFatia)
     // A fatia vai de yTopoFatia a yFim, ambos em px inteiros da PINTURA; yFim
     // cai num intervalo entre line boxes (nunca dentro de uma linha pintada).
     const fatia = document.createElement('canvas')
