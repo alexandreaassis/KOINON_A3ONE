@@ -562,7 +562,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
       Documento lavrado e homologado através da Plataforma Virtual Koinon.<br>
       ${
         limpa
-          ? 'Documento lavrado através da Plataforma Virtual Koinon.'
+          ? ''
           : viaManualAtiva
             ? 'Via emitida para assinatura manual e física (impressão). Dispensado de selo de certificação eletrônica externa neste suporte físico.'
             : viaZapAtiva
