@@ -429,6 +429,7 @@ export interface ZapSignSignatarioUrl {
 export interface AtaAssembleiaRecord extends RecordModel {
   deliberacao: string
   titulo?: string
+  subtitulo?: string
   texto_entrada_bruto?: string
   conteudo_html?: string
   status: StatusAtaAssembleia

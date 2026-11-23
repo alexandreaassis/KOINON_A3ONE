@@ -91,6 +91,9 @@ export const AtaAssembleiaPage: React.FC = () => {
   const [ataDbId, setAtaDbId] = useState<string | null>(null)
   const [statusAta, setStatusAta] = useState<'rascunho' | 'assinada' | 'publicada'>('rascunho')
   const [tituloAta, setTituloAta] = useState('')
+  const [subtituloAta, setSubtituloAta] = useState(
+    'Assembleia Geral de Condôminos • Convocação Editalícia',
+  )
   const [textoEntradaBruto, setTextoEntradaBruto] = useState('')
   const [conteudoHtml, setConteudoHtml] = useState('')
 
@@ -99,6 +102,13 @@ export const AtaAssembleiaPage: React.FC = () => {
   const [cabecalhoTag, setCabecalhoTag] = useState('Ata de Assembleia e Deliberativa')
   const [cabecalhoCondominio, setCabecalhoCondominio] = useState('')
   const [cabecalhoSubtitulo, setCabecalhoSubtitulo] = useState('Assembleia Geral de Condôminos')
+
+  // Subtítulo do documento (migration 0045): linha impressa no bloco doc-headline,
+  // ABAIXO do título da ata (diferente do cabecalho_subtitulo, que é o cabeçalho).
+  // Vazio = linha simplesmente não é impressa no PDF.
+  const [subtituloDocumento, setSubtituloDocumento] = useState(
+    'Assembleia Geral de Condôminos • Convocação Editalícia',
+  )
 
   // Assinaturas da Mesa Diretora
   const [presidenteNome, setPresidenteNome] = useState('')
@@ -198,6 +208,9 @@ export const AtaAssembleiaPage: React.FC = () => {
 
   const cabecalhoSubtituloRef = useRef(cabecalhoSubtitulo)
   cabecalhoSubtituloRef.current = cabecalhoSubtitulo
+
+  const subtituloDocumentoRef = useRef(subtituloDocumento)
+  subtituloDocumentoRef.current = subtituloDocumento
 
   const statusAtaRef = useRef(statusAta)
   statusAtaRef.current = statusAta
@@ -633,6 +646,11 @@ export const AtaAssembleiaPage: React.FC = () => {
           setAtaDbId(ataSalva.id)
           setStatusAta(ataSalva.status || 'rascunho')
           setTituloAta(ataSalva.titulo || defaultTitulo)
+          // Subtítulo do documento (doc-headline): campo ausente em ata antiga =
+          // default histórico; '' gravado = usuário apagou de propósito (omitir)
+          setSubtituloDocumento(
+            ataSalva.subtitulo ?? 'Assembleia Geral de Condôminos • Convocação Editalícia',
+          )
           setTextoEntradaBruto(ataSalva.texto_entrada_bruto || '')
           setConteudoHtml(ataSalva.conteudo_html || '')
 
@@ -680,6 +698,7 @@ export const AtaAssembleiaPage: React.FC = () => {
           setAtaDbId(null)
           setStatusAta('rascunho')
           setTituloAta(defaultTitulo)
+          setSubtituloDocumento('Assembleia Geral de Condôminos • Convocação Editalícia')
           setTextoEntradaBruto('')
           setConteudoHtml('')
 
@@ -928,6 +947,7 @@ export const AtaAssembleiaPage: React.FC = () => {
 
         const payload: Partial<AtaAssembleiaRecord> = {
           titulo: tituloSanitizado,
+          subtitulo: subtituloDocumentoRef.current.trim(),
           texto_entrada_bruto: textoEntradaBrutoRef.current,
           conteudo_html: conteudoSanitizado,
           cabecalho_tag: cabecalhoTagRef.current,
@@ -1039,6 +1059,7 @@ export const AtaAssembleiaPage: React.FC = () => {
     conteudoHtml,
     tituloAta,
     textoEntradaBruto,
+    subtituloDocumento,
     cabecalhoTag,
     cabecalhoCondominio,
     cabecalhoSubtitulo,
@@ -1243,7 +1264,7 @@ export const AtaAssembleiaPage: React.FC = () => {
       cabecalhoTag,
       cabecalhoCondominio,
       cabecalhoSubtitulo,
-      subtitulo: `Assembleia Geral de Condôminos • Convocação Editalícia`,
+      subtitulo: subtituloDocumento,
       conteudoHtml: sanitizeHtml(conteudoHtml),
       status: statusAta,
       hashAta,
@@ -1270,6 +1291,7 @@ export const AtaAssembleiaPage: React.FC = () => {
       nomeCondominio,
       logoUrl,
       tituloAta,
+      subtituloDocumento,
       cabecalhoTag,
       cabecalhoCondominio,
       cabecalhoSubtitulo,
@@ -1812,6 +1834,23 @@ export const AtaAssembleiaPage: React.FC = () => {
                     <p className="text-[11px] text-slate-500">
                       As linhas em branco ficam de fora do PDF — a logomarca e o rodapé já
                       identificam a origem do documento.
+                    </p>
+                  </div>
+
+                  {/* Subtítulo do documento (doc-headline, abaixo do título) */}
+                  <div>
+                    <Label className="text-xs font-semibold text-slate-700">
+                      Subtítulo do documento (linha abaixo do título):
+                    </Label>
+                    <Input
+                      type="text"
+                      value={subtituloDocumento}
+                      onChange={(e) => setSubtituloDocumento(e.target.value)}
+                      placeholder="Ex: Assembleia Geral de Condôminos • Convocação Editalícia — vazio = linha não é impressa"
+                      className="text-xs h-9 bg-white mt-1"
+                    />
+                    <p className="text-[11px] text-slate-500">
+                      Apagando o conteúdo, a linha abaixo do título some do PDF impresso.
                     </p>
                   </div>
 

@@ -20,9 +20,16 @@ export function extractFieldErrors(error: unknown): FieldErrors {
   return errors
 }
 
+/**
+ * ATENÇÃO — ARQUIVO CONGELADO (23 regressões documentadas).
+ * Assinatura FIXA: getErrorMessage(error: unknown, fallback?: string).
+ * O fallback opcional é usado por api.ts e por várias páginas; recusá-lo quebra
+ * o typecheck. NÃO remover o segundo parâmetro.
+ */
 export function getErrorMessage(error: unknown, fallback?: string): string {
   if (!(error instanceof ClientResponseError)) {
-    return error instanceof Error ? error.message : fallback || 'An unexpected error occurred.'
+    if (error instanceof Error && error.message) return error.message
+    return fallback || 'An unexpected error occurred.'
   }
   const msgs = Object.values(extractFieldErrors(error))
   if (msgs.length > 0) return msgs.join(' ')
