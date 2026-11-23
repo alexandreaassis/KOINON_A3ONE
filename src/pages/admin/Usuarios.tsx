@@ -64,6 +64,18 @@ import {
 
 const ITENS_POR_PAGINA = 10
 
+/**
+ * Resolve TODAS as unidades de um usuário: multi-relação users.unidades
+ * (expandida em getTodosUsuarios) unificada com o campo legado users.unidade.
+ */
+const unidadesDeUsuario = (u: UserRecord): string[] => {
+  const ids = new Set<string>()
+  const multi = Array.isArray(u.unidades) ? u.unidades : []
+  for (const id of multi) if (id) ids.add(id)
+  if (u.unidade) ids.add(u.unidade)
+  return Array.from(ids)
+}
+
 export const GestaoUsuariosPage: React.FC = () => {
   const { user: currentUser } = useAuth()
   const { rotuloUnidade, nomeCondominio } = useCondoConfig()
@@ -76,6 +88,7 @@ export const GestaoUsuariosPage: React.FC = () => {
   const [busca, setBusca] = useState('')
   const [filtroRole, setFiltroRole] = useState<string>('todos')
   const [filtroStatus, setFiltroStatus] = useState<string>('todos')
+  const [filtroUnidadeId, setFiltroUnidadeId] = useState<string>('todos')
   const [paginaAtual, setPaginaAtual] = useState(1)
 
   // Modal Criar Usuário
@@ -87,7 +100,7 @@ export const GestaoUsuariosPage: React.FC = () => {
   const [novoCpf, setNovoCpf] = useState('')
   const [novoCpfErro, setNovoCpfErro] = useState<string | null>(null)
   const [novoRole, setNovoRole] = useState<UserRole>('morador')
-  const [novoUnidadeId, setNovoUnidadeId] = useState<string>('none')
+  const [novoUnidadesIds, setNovoUnidadesIds] = useState<string[]>([])
   const [novoAtivo, setNovoAtivo] = useState(true)
   const [novoEnviarConvite, setNovoEnviarConvite] = useState(true)
   const [salvandoNovo, setSalvandoNovo] = useState(false)
@@ -98,7 +111,7 @@ export const GestaoUsuariosPage: React.FC = () => {
   const [editCpf, setEditCpf] = useState('')
   const [editCpfErro, setEditCpfErro] = useState<string | null>(null)
   const [editRole, setEditRole] = useState<UserRole>('morador')
-  const [editUnidadeId, setEditUnidadeId] = useState<string>('none')
+  const [editUnidadesIds, setEditUnidadesIds] = useState<string[]>([])
   const [editAtivo, setEditAtivo] = useState(true)
   const [salvandoEdit, setSalvandoEdit] = useState(false)
 
@@ -174,13 +187,17 @@ export const GestaoUsuariosPage: React.FC = () => {
         (u.email || '').toLowerCase().includes(termo) ||
         (termoCpfLimpo && (u.cpf || '').replace(/\D/g, '').includes(termoCpfLimpo)) ||
         (() => {
-          const und = unidades.find((item) => item.id === u.unidade)
-          if (!und) return false
-          return (
-            und.identificador.toLowerCase().includes(termo) ||
-            (und.bloco || '').toLowerCase().includes(termo) ||
-            (und.tipo_unidade || '').toLowerCase().includes(termo)
-          )
+          // Busca em TODAS as unidades do usuário (multi + legado)
+          const idsDoUsuario = unidadesDeUsuario(u)
+          return idsDoUsuario.some((idU) => {
+            const und = unidades.find((item) => item.id === idU)
+            if (!und) return false
+            return (
+              und.identificador.toLowerCase().includes(termo) ||
+              (und.bloco || '').toLowerCase().includes(termo) ||
+              (und.tipo_unidade || '').toLowerCase().includes(termo)
+            )
+          })
         })()
 
       // Filtro por papel
@@ -197,9 +214,13 @@ export const GestaoUsuariosPage: React.FC = () => {
         (filtroStatus === 'ativo' && isAtivo) ||
         (filtroStatus === 'inativo' && !isAtivo)
 
-      return matchTexto && matchRole && matchStatus
+      // Filtro por unidade: pega TODAS as unidades do usuário (multi + legado)
+      const matchUnidade =
+        filtroUnidadeId === 'todos' || unidadesDeUsuario(u).includes(filtroUnidadeId)
+
+      return matchTexto && matchRole && matchStatus && matchUnidade
     })
-  }, [usuarios, unidades, busca, filtroRole, filtroStatus])
+  }, [usuarios, unidades, busca, filtroRole, filtroStatus, filtroUnidadeId])
 
   // Paginação
   const totalPaginas = Math.max(1, Math.ceil(usuariosFiltrados.length / ITENS_POR_PAGINA))
@@ -215,7 +236,7 @@ export const GestaoUsuariosPage: React.FC = () => {
     setNovoCpf('')
     setNovoCpfErro(null)
     setNovoRole('morador')
-    setNovoUnidadeId('none')
+    setNovoUnidadesIds([])
     setNovoAtivo(true)
     setNovoEnviarConvite(true)
     setModalNovoAberto(true)
@@ -228,7 +249,7 @@ export const GestaoUsuariosPage: React.FC = () => {
     setEditCpf(formatarCpf(u.cpf || ''))
     setEditCpfErro(null)
     setEditRole(u.role || 'morador')
-    setEditUnidadeId(u.unidade || 'none')
+    setEditUnidadesIds(unidadesDeUsuario(u))
     setEditAtivo(u.ativo !== false)
     setModalEditarAberto(true)
   }
@@ -260,7 +281,8 @@ export const GestaoUsuariosPage: React.FC = () => {
         password: novoSenha.trim() || undefined,
         cpf: rawCpf,
         role: novoRole,
-        unidade: novoUnidadeId === 'none' ? '' : novoUnidadeId,
+        unidades: novoUnidadesIds,
+        unidade: novoUnidadesIds[0] || '',
         ativo: novoAtivo,
         enviarConvite: novoEnviarConvite,
       })
@@ -342,7 +364,8 @@ export const GestaoUsuariosPage: React.FC = () => {
         name: editNome.trim(),
         role: editRole,
         cpf: rawCpf,
-        unidade: editUnidadeId === 'none' ? '' : editUnidadeId,
+        unidades: editUnidadesIds,
+        unidade: editUnidadesIds[0] || '',
         ativo: editAtivo,
       })
 
@@ -650,6 +673,27 @@ export const GestaoUsuariosPage: React.FC = () => {
                   <SelectItem value="inativo">Apenas Inativos</SelectItem>
                 </SelectContent>
               </Select>
+
+              {/* Filtro por Unidade (cobre multi + legado) */}
+              <Select
+                value={filtroUnidadeId}
+                onValueChange={(val) => {
+                  setFiltroUnidadeId(val)
+                  setPaginaAtual(1)
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-40 h-9 text-xs border-[#D5DCE5] bg-white text-[#12314F] rounded-[10px]">
+                  <SelectValue placeholder="Unidade" />
+                </SelectTrigger>
+                <SelectContent className="max-h-56 bg-white border-[#D5DCE5] text-[#12314F]">
+                  <SelectItem value="todos">Todas as unidades</SelectItem>
+                  {unidades.map((und) => (
+                    <SelectItem key={und.id} value={und.id}>
+                      {formatarUnidadeComBloco(und, rotuloUnidade, ' (—)')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
@@ -666,7 +710,10 @@ export const GestaoUsuariosPage: React.FC = () => {
               Credenciais individuais vinculadas a chaves de voto e trilhas de auditoria.
             </CardDescription>
           </div>
-          {busca || filtroRole !== 'todos' || filtroStatus !== 'todos' ? (
+          {busca ||
+          filtroRole !== 'todos' ||
+          filtroStatus !== 'todos' ||
+          filtroUnidadeId !== 'todos' ? (
             <Button
               variant="ghost"
               size="sm"
@@ -674,6 +721,7 @@ export const GestaoUsuariosPage: React.FC = () => {
                 setBusca('')
                 setFiltroRole('todos')
                 setFiltroStatus('todos')
+                setFiltroUnidadeId('todos')
                 setPaginaAtual(1)
               }}
               className="text-xs text-[#5C6B7A] hover:text-[#12314F]"
@@ -717,7 +765,9 @@ export const GestaoUsuariosPage: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-[#D5DCE5]/60">
                     {usuariosPaginados.map((u) => {
-                      const unidadeVinc = unidades.find((item) => item.id === u.unidade)
+                      const unidadesVinc = unidadesDeUsuario(u)
+                        .map((idU) => unidades.find((item) => item.id === idU))
+                        .filter((und): und is UnidadeRecord => !!und)
                       const isAtivo = u.ativo !== false
                       const isSelf = currentUser?.id === u.id
 
@@ -744,12 +794,17 @@ export const GestaoUsuariosPage: React.FC = () => {
                           </td>
 
                           <td className="py-3 px-4 text-[#12314F]">
-                            {unidadeVinc ? (
-                              <span className="font-mono text-xs inline-flex items-center gap-1">
-                                <Building className="h-3 w-3 text-[#5C6B7A]" />
-                                <span>
-                                  {formatarUnidadeComBloco(unidadeVinc, rotuloUnidade, ' (—)')}
-                                </span>
+                            {unidadesVinc.length > 0 ? (
+                              <span className="inline-flex flex-wrap gap-1">
+                                {unidadesVinc.map((und) => (
+                                  <Badge
+                                    key={und.id}
+                                    className="font-mono text-[10px] font-normal inline-flex items-center gap-1 bg-[#F1F4F8] text-[#12314F] border-[#D5DCE5] rounded-[6px]"
+                                  >
+                                    <Building className="h-3 w-3 text-[#5C6B7A]" />
+                                    {formatarUnidadeComBloco(und, rotuloUnidade, ' (—)')}
+                                  </Badge>
+                                ))}
                               </span>
                             ) : (
                               <span className="text-[#5C6B7A] italic">Sem unidade</span>
@@ -849,7 +904,9 @@ export const GestaoUsuariosPage: React.FC = () => {
               {/* VISÃO MOBILE: Cartões Empilhados */}
               <div className="md:hidden divide-y divide-[#D5DCE5]/70">
                 {usuariosPaginados.map((u) => {
-                  const unidadeVinc = unidades.find((item) => item.id === u.unidade)
+                  const unidadesVinc = unidadesDeUsuario(u)
+                    .map((idU) => unidades.find((item) => item.id === idU))
+                    .filter((und): und is UnidadeRecord => !!und)
                   const isAtivo = u.ativo !== false
                   const isSelf = currentUser?.id === u.id
 
@@ -894,13 +951,22 @@ export const GestaoUsuariosPage: React.FC = () => {
                         </div>
                         <div>
                           <span className="block text-[10px] uppercase font-semibold text-[#5C6B7A]/80">
-                            Unidade:
+                            Unidades:
                           </span>
-                          <span className="text-[#12314F]">
-                            {unidadeVinc
-                              ? formatarUnidadeComBloco(unidadeVinc, rotuloUnidade, ' (—)')
-                              : 'Sem vínculo'}
-                          </span>
+                          {unidadesVinc.length > 0 ? (
+                            <span className="inline-flex flex-wrap gap-1 mt-0.5">
+                              {unidadesVinc.map((und) => (
+                                <Badge
+                                  key={und.id}
+                                  className="font-mono text-[9px] font-normal bg-[#F1F4F8] text-[#12314F] border-[#D5DCE5] rounded-[6px]"
+                                >
+                                  {formatarUnidadeComBloco(und, rotuloUnidade, ' (—)')}
+                                </Badge>
+                              ))}
+                            </span>
+                          ) : (
+                            <span className="text-[#12314F] italic">Sem vínculo</span>
+                          )}
                         </div>
                       </div>
 
@@ -1106,20 +1172,76 @@ export const GestaoUsuariosPage: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-[#12314F]">Unidade Vinculada</Label>
-              <Select value={novoUnidadeId} onValueChange={setNovoUnidadeId}>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium text-[#12314F]">Unidades Vinculadas</Label>
+                {novoUnidadesIds.length > 0 && (
+                  <span className="text-[10px] text-[#5C6B7A]">
+                    {novoUnidadesIds.length} selecionada{novoUnidadesIds.length > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+              <Select
+                value="__multi__"
+                onValueChange={(val) => {
+                  if (!val || val === '__multi__') return
+                  setNovoUnidadesIds((prev) =>
+                    prev.includes(val) ? prev.filter((id) => id !== val) : [...prev, val],
+                  )
+                }}
+              >
                 <SelectTrigger className="text-xs h-9 border-[#D5DCE5] bg-white rounded-[10px]">
-                  <SelectValue placeholder="Selecione" />
+                  <SelectValue
+                    placeholder={
+                      novoUnidadesIds.length === 0
+                        ? 'Nenhuma unidade (operador avulso)'
+                        : `${novoUnidadesIds.length} unidade${novoUnidadesIds.length > 1 ? 's' : ''} vinculada${novoUnidadesIds.length > 1 ? 's' : ''}`
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent className="max-h-56 bg-white border-[#D5DCE5] text-[#12314F]">
-                  <SelectItem value="none">Nenhuma unidade (operador avulso)</SelectItem>
-                  {unidades.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {formatarUnidadeComBloco(u, rotuloUnidade, ' (—)')}
-                    </SelectItem>
-                  ))}
+                  {unidades.map((u) => {
+                    const marcada = novoUnidadesIds.includes(u.id)
+                    return (
+                      <SelectItem key={u.id} value={u.id}>
+                        <span className="inline-flex items-center gap-1.5">
+                          {marcada && <Check className="h-3 w-3 text-[#1F6B94]" />}
+                          {formatarUnidadeComBloco(u, rotuloUnidade, ' (—)')}
+                        </span>
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
+              {novoUnidadesIds.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {novoUnidadesIds.map((idU) => {
+                    const und = unidades.find((item) => item.id === idU)
+                    if (!und) return null
+                    return (
+                      <Badge
+                        key={idU}
+                        className="font-mono text-[10px] font-normal inline-flex items-center gap-1 bg-[#1F6B94]/10 text-[#12314F] border-[#1F6B94]/30 rounded-[6px]"
+                      >
+                        {formatarUnidadeComBloco(und, rotuloUnidade, ' (—)')}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setNovoUnidadesIds((prev) => prev.filter((id) => id !== idU))
+                          }
+                          className="hover:text-[#C75B39]"
+                          title="Remover unidade"
+                        >
+                          <XCircle className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    )
+                  })}
+                </div>
+              )}
+              <p className="text-[10px] text-[#5C6B7A]">
+                Um condômino pode responder por mais de uma unidade (ex.: proprietário de duas
+                frações). Selecione todas as unidades que ele representa.
+              </p>
             </div>
 
             {/* Configurações de convite e ativação */}
@@ -1176,7 +1298,7 @@ export const GestaoUsuariosPage: React.FC = () => {
               Editar Usuário
             </DialogTitle>
             <DialogDescription className="text-xs text-[#5C6B7A]">
-              Atualize os dados cadastrais, unidade associada ou perfil de autoridade.
+              Atualize os dados cadastrais, unidades vinculadas ou perfil de autoridade.
             </DialogDescription>
           </DialogHeader>
 
@@ -1235,20 +1357,76 @@ export const GestaoUsuariosPage: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-[#12314F]">Unidade Vinculada</Label>
-              <Select value={editUnidadeId} onValueChange={setEditUnidadeId}>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium text-[#12314F]">Unidades Vinculadas</Label>
+                {editUnidadesIds.length > 0 && (
+                  <span className="text-[10px] text-[#5C6B7A]">
+                    {editUnidadesIds.length} selecionada{editUnidadesIds.length > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+              <Select
+                value="__multi__"
+                onValueChange={(val) => {
+                  if (!val || val === '__multi__') return
+                  setEditUnidadesIds((prev) =>
+                    prev.includes(val) ? prev.filter((id) => id !== val) : [...prev, val],
+                  )
+                }}
+              >
                 <SelectTrigger className="text-xs h-9 border-[#D5DCE5] bg-white rounded-[10px]">
-                  <SelectValue placeholder="Selecione" />
+                  <SelectValue
+                    placeholder={
+                      editUnidadesIds.length === 0
+                        ? 'Nenhuma unidade (operador avulso)'
+                        : `${editUnidadesIds.length} unidade${editUnidadesIds.length > 1 ? 's' : ''} vinculada${editUnidadesIds.length > 1 ? 's' : ''}`
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent className="max-h-56 bg-white border-[#D5DCE5] text-[#12314F]">
-                  <SelectItem value="none">Nenhuma unidade (operador avulso)</SelectItem>
-                  {unidades.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {formatarUnidadeComBloco(u, rotuloUnidade, ' (—)')}
-                    </SelectItem>
-                  ))}
+                  {unidades.map((u) => {
+                    const marcada = editUnidadesIds.includes(u.id)
+                    return (
+                      <SelectItem key={u.id} value={u.id}>
+                        <span className="inline-flex items-center gap-1.5">
+                          {marcada && <Check className="h-3 w-3 text-[#1F6B94]" />}
+                          {formatarUnidadeComBloco(u, rotuloUnidade, ' (—)')}
+                        </span>
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
+              {editUnidadesIds.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {editUnidadesIds.map((idU) => {
+                    const und = unidades.find((item) => item.id === idU)
+                    if (!und) return null
+                    return (
+                      <Badge
+                        key={idU}
+                        className="font-mono text-[10px] font-normal inline-flex items-center gap-1 bg-[#1F6B94]/10 text-[#12314F] border-[#1F6B94]/30 rounded-[6px]"
+                      >
+                        {formatarUnidadeComBloco(und, rotuloUnidade, ' (—)')}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditUnidadesIds((prev) => prev.filter((id) => id !== idU))
+                          }
+                          className="hover:text-[#C75B39]"
+                          title="Remover unidade"
+                        >
+                          <XCircle className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    )
+                  })}
+                </div>
+              )}
+              <p className="text-[10px] text-[#5C6B7A]">
+                Um condômino pode responder por mais de uma unidade. Selecione todas as unidades que
+                ele representa.
+              </p>
             </div>
 
             {/* Ativação */}
