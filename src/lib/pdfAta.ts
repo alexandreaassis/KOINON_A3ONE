@@ -12,6 +12,13 @@ export interface DadosAtaPdf {
   titulo: string
   subtitulo?: string
   conteudoHtml: string
+
+  // Cabeçalho editável (migration 0044): os três primeiros elementos do
+  // cabeçalho. Ausente/vazio = retrocompatível com o padrão cravado em código.
+  // cabecalhoCondominio e cabecalhoSubtitulo aceitam '' = linha omitida.
+  cabecalhoTag?: string
+  cabecalhoCondominio?: string
+  cabecalhoSubtitulo?: string
   dataEmissao?: string
   status?: string
   hashAta?: string | null
@@ -130,6 +137,17 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
 
   const statusCor =
     dados.status === 'publicada' ? '#0284c7' : dados.status === 'assinada' ? '#059669' : '#d97706'
+
+  // Cabeçalho editável: campo ausente/vazio = default histórico (retrocompatível);
+  // cabecalhoCondominio e cabecalhoSubtitulo aceitam '' explicitamente = omitir a linha.
+  const tagCabecalho =
+    dados.cabecalhoTag === '' ? '' : dados.cabecalhoTag || 'Ata de Assembleia e Deliberativa'
+  const nomeCabecalho =
+    dados.cabecalhoCondominio === '' ? '' : dados.cabecalhoCondominio || dados.nomeCondominio
+  const subtituloCabecalho =
+    dados.cabecalhoSubtitulo === ''
+      ? ''
+      : dados.cabecalhoSubtitulo || 'Assembleia Geral de Condôminos'
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -313,7 +331,6 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
     .signatures-section {
       margin-top: 36px;
       padding-top: 20px;
-      border-top: 2px solid #002B5E;
       page-break-inside: avoid;
       font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
@@ -416,9 +433,9 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
             : ''
         }
         <div class="header-text">
-          <div class="header-tag">Ata de Assembleia e Deliberativa</div>
-          <h1 class="condo-title">${dados.nomeCondominio}</h1>
-          <p class="header-sub">Assembleia Geral de Condôminos</p>
+          ${tagCabecalho ? `<div class="header-tag">${tagCabecalho}</div>` : ''}
+          ${nomeCabecalho ? `<h1 class="condo-title">${nomeCabecalho}</h1>` : ''}
+          ${subtituloCabecalho ? `<p class="header-sub">${subtituloCabecalho}</p>` : ''}
         </div>
         <div class="emission-badge">
           <div><strong>Emissão:</strong> ${dataHoje}</div>

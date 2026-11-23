@@ -94,6 +94,12 @@ export const AtaAssembleiaPage: React.FC = () => {
   const [textoEntradaBruto, setTextoEntradaBruto] = useState('')
   const [conteudoHtml, setConteudoHtml] = useState('')
 
+  // Cabeçalho editável do PDF (migration 0044): tag, nome do condomínio e subtítulo.
+  // Vazio = linha omitida no PDF (retrocompatível: campo ausente no banco = default).
+  const [cabecalhoTag, setCabecalhoTag] = useState('Ata de Assembleia e Deliberativa')
+  const [cabecalhoCondominio, setCabecalhoCondominio] = useState('')
+  const [cabecalhoSubtitulo, setCabecalhoSubtitulo] = useState('Assembleia Geral de Condôminos')
+
   // Assinaturas da Mesa Diretora
   const [presidenteNome, setPresidenteNome] = useState('')
   const [presidenteCpf, setPresidenteCpf] = useState('')
@@ -183,6 +189,15 @@ export const AtaAssembleiaPage: React.FC = () => {
 
   const tituloAtaRef = useRef(tituloAta)
   tituloAtaRef.current = tituloAta
+
+  const cabecalhoTagRef = useRef(cabecalhoTag)
+  cabecalhoTagRef.current = cabecalhoTag
+
+  const cabecalhoCondominioRef = useRef(cabecalhoCondominio)
+  cabecalhoCondominioRef.current = cabecalhoCondominio
+
+  const cabecalhoSubtituloRef = useRef(cabecalhoSubtitulo)
+  cabecalhoSubtituloRef.current = cabecalhoSubtitulo
 
   const statusAtaRef = useRef(statusAta)
   statusAtaRef.current = statusAta
@@ -621,6 +636,12 @@ export const AtaAssembleiaPage: React.FC = () => {
           setTextoEntradaBruto(ataSalva.texto_entrada_bruto || '')
           setConteudoHtml(ataSalva.conteudo_html || '')
 
+          // Cabeçalho editável: registro gravado antes da migration (campo
+          // ausente) continua com o cabeçalho padrão; '' gravado = linha apagada
+          setCabecalhoTag(ataSalva.cabecalho_tag || 'Ata de Assembleia e Deliberativa')
+          setCabecalhoCondominio(ataSalva.cabecalho_condominio ?? nomeCondominio)
+          setCabecalhoSubtitulo(ataSalva.cabecalho_subtitulo ?? 'Assembleia Geral de Condôminos')
+
           setPresidenteNome(ataSalva.presidente_nome || delibAtual.mesa_presidente_nome || '')
           setPresidenteCpf(
             formatarCpf(ataSalva.presidente_cpf || delibAtual.mesa_presidente_cpf || ''),
@@ -661,6 +682,10 @@ export const AtaAssembleiaPage: React.FC = () => {
           setTituloAta(defaultTitulo)
           setTextoEntradaBruto('')
           setConteudoHtml('')
+
+          setCabecalhoTag('Ata de Assembleia e Deliberativa')
+          setCabecalhoCondominio(nomeCondominio)
+          setCabecalhoSubtitulo('Assembleia Geral de Condôminos')
 
           setPresidenteNome(delibAtual.mesa_presidente_nome || '')
           setPresidenteCpf(formatarCpf(delibAtual.mesa_presidente_cpf || ''))
@@ -905,6 +930,9 @@ export const AtaAssembleiaPage: React.FC = () => {
           titulo: tituloSanitizado,
           texto_entrada_bruto: textoEntradaBrutoRef.current,
           conteudo_html: conteudoSanitizado,
+          cabecalho_tag: cabecalhoTagRef.current,
+          cabecalho_condominio: cabecalhoCondominioRef.current,
+          cabecalho_subtitulo: cabecalhoSubtituloRef.current,
           status: novoStatus,
           presidente_nome: presidenteNome.trim(),
           presidente_cpf: rawPresCpf,
@@ -1007,7 +1035,16 @@ export const AtaAssembleiaPage: React.FC = () => {
         clearTimeout(debounceTimerRef.current)
       }
     }
-  }, [conteudoHtml, tituloAta, textoEntradaBruto, persistirAtaNoBanco, gerandoIa])
+  }, [
+    conteudoHtml,
+    tituloAta,
+    textoEntradaBruto,
+    cabecalhoTag,
+    cabecalhoCondominio,
+    cabecalhoSubtitulo,
+    persistirAtaNoBanco,
+    gerandoIa,
+  ])
 
   // Ação de Geração com IA (Agente Skip Cloud)
   const handleGerarAtaIa = async () => {
@@ -1203,6 +1240,9 @@ export const AtaAssembleiaPage: React.FC = () => {
       nomeCondominio,
       logoUrl,
       titulo: tituloAta,
+      cabecalhoTag,
+      cabecalhoCondominio,
+      cabecalhoSubtitulo,
       subtitulo: `Assembleia Geral de Condôminos • Convocação Editalícia`,
       conteudoHtml: sanitizeHtml(conteudoHtml),
       status: statusAta,
@@ -1230,6 +1270,9 @@ export const AtaAssembleiaPage: React.FC = () => {
       nomeCondominio,
       logoUrl,
       tituloAta,
+      cabecalhoTag,
+      cabecalhoCondominio,
+      cabecalhoSubtitulo,
       conteudoHtml,
       statusAta,
       hashAta,
@@ -1724,6 +1767,52 @@ export const AtaAssembleiaPage: React.FC = () => {
                       placeholder="Ex: ATA DA ASSEMBLEIA GERAL ORDINÁRIA DE 25 DE MARÇO DE 2026"
                       className="text-xs font-semibold h-9 bg-slate-50"
                     />
+                  </div>
+
+                  {/* Cabeçalho editável do PDF (tag, condomínio e subtítulo) */}
+                  <div className="rounded-md border border-slate-200 bg-slate-50/60 p-3 space-y-3">
+                    <div>
+                      <Label className="text-xs font-semibold text-slate-700">
+                        Cabeçalho — 1ª linha (etiqueta):
+                      </Label>
+                      <Input
+                        type="text"
+                        value={cabecalhoTag}
+                        onChange={(e) => setCabecalhoTag(e.target.value)}
+                        placeholder="Ex: ATA DE ASSEMBLEIA GERAL EXTRAORDINÁRIA"
+                        className="text-xs h-9 bg-white mt-1"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs font-semibold text-slate-700">
+                          Cabeçalho — 2ª linha (nome do condomínio):
+                        </Label>
+                        <Input
+                          type="text"
+                          value={cabecalhoCondominio}
+                          onChange={(e) => setCabecalhoCondominio(e.target.value)}
+                          placeholder="Vazio = linha não é impressa"
+                          className="text-xs h-9 bg-white mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-semibold text-slate-700">
+                          Cabeçalho — 3ª linha (subtítulo):
+                        </Label>
+                        <Input
+                          type="text"
+                          value={cabecalhoSubtitulo}
+                          onChange={(e) => setCabecalhoSubtitulo(e.target.value)}
+                          placeholder="Vazio = linha não é impressa"
+                          className="text-xs h-9 bg-white mt-1"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      As linhas em branco ficam de fora do PDF — a logomarca e o rodapé já
+                      identificam a origem do documento.
+                    </p>
                   </div>
 
                   {/* Editor Tiptap */}

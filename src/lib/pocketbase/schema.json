@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-23T22:50:10.092Z",
+  "generatedAt": "2026-11-23T23:30:46.314Z",
   "collections": [
     {
       "name": "users",
@@ -2182,6 +2182,24 @@
         {
           "name": "zapsign_pdf_assinado",
           "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cabecalho_tag",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cabecalho_condominio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cabecalho_subtitulo",
+          "type": "text",
           "required": false,
           "system": false
         }

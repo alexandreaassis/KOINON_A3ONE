@@ -433,6 +433,11 @@ export interface AtaAssembleiaRecord extends RecordModel {
   conteudo_html?: string
   status: StatusAtaAssembleia
 
+  // Cabeçalho editável do PDF da ata (migration 0044)
+  cabecalho_tag?: string
+  cabecalho_condominio?: string
+  cabecalho_subtitulo?: string
+
   // Assinatura Presidente da Mesa
   presidente_nome?: string
   presidente_cpf?: string
