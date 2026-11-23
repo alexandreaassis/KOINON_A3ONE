@@ -299,11 +299,35 @@ export const ListaPresencaPage: React.FC = () => {
       // Checar se já existe registro prévio desta unidade
       const existente = presencasAssinadas.find((p) => p.unidade === unidadeSelecionadaId)
 
+      // Por procuração, o campo principal (nome/cpf) é SEMPRE do proprietário aprovado da unidade;
+      // o procurador vai somente em nome_procurador/cpf_procurador.
+      let nomeTitular = participanteNome.trim()
+      let cpfTitular = rawCpf
+      if (formaPresenca === 'procuracao') {
+        const proprietarios = await api.getCadastrosUnidades({
+          unidadeId: unidadeSelecionadaId,
+          vinculo: 'proprietario',
+          statusAprovacao: 'aprovado',
+        })
+        const proprietario = proprietarios[0]
+        if (!proprietario) {
+          toast({
+            title: 'Proprietário aprovado não encontrado',
+            description:
+              'Cadastre e aprove o proprietário desta unidade antes de registrar a procuração.',
+            variant: 'destructive',
+          })
+          return
+        }
+        nomeTitular = proprietario.nome
+        cpfTitular = (proprietario.cpf || '').replace(/\D/g, '')
+      }
+
       const formData = new FormData()
       formData.append('deliberacao', deliberacaoAtiva.id)
       formData.append('unidade', unidadeSelecionadaId)
-      formData.append('nome', participanteNome.trim())
-      formData.append('cpf', rawCpf)
+      formData.append('nome', nomeTitular)
+      formData.append('cpf', cpfTitular)
       formData.append('forma', formaPresenca)
       formData.append('assinatura_hash', hashAssinatura)
       formData.append('data_hora_assinatura', dataHora)
