@@ -354,7 +354,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            {/* Visão de Impressão Dedicada da Ata Notarial A4 */}
+            {/* Visão de Impressão Dedicada da Ata de Assembleia A4 */}
             <Route
               path="/mesa/ata/imprimir/:id"
               element={

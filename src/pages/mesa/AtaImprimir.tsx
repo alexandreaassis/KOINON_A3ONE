@@ -126,7 +126,7 @@ export const AtaImprimirPage: React.FC = () => {
             )}
             <div className="flex-1 text-center">
               <span className="text-[10px] uppercase tracking-widest font-bold text-cyan-800 block">
-                Ata Notarial e Deliberativa
+                Ata de Assembleia e Deliberativa
               </span>
               <h1 className="text-xl font-bold text-slate-950 uppercase">{nomeCondominio}</h1>
               <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">

@@ -294,7 +294,7 @@ export const ManualPresencaPage: React.FC = () => {
                     7
                   </span>
                   <div>
-                    <strong className="text-white block">Integração com a Ata Notarial</strong>
+                    <strong className="text-white block">Integração com a Ata da Assembleia</strong>
                     <span className="text-blue-200 text-[10px]">
                       Como as rubricas física e virtual constam no documento final
                     </span>
@@ -501,7 +501,7 @@ export const ManualPresencaPage: React.FC = () => {
                   <DestaqueNumero numero="6" cor="azul" className="w-4 h-4 text-[9px]" />
                   <span>
                     <strong className="text-slate-900">Carimbo e Hora:</strong> hash SHA-256 e
-                    horário exato gravados com valor notarial.
+                    horário exato gravados com valor probatório.
                   </span>
                 </div>
               </div>
@@ -872,15 +872,15 @@ export const ManualPresencaPage: React.FC = () => {
             <div className="mb-6">
               <h3 className="text-xs font-bold uppercase tracking-wider text-[#002B5E] flex items-center gap-1.5 mb-2">
                 <DestaqueNumero numero={7} cor="azul" />
-                <span>7. Como Esses Dados Aparecem na Ata Notarial</span>
+                <span>7. Como Esses Dados Aparecem na Ata da Assembleia</span>
               </h3>
               <p className="text-xs text-slate-700 leading-relaxed mb-2.5">
-                Ao redigir e publicar a Ata Notarial (módulo <code>/mesa/ata</code>), o sistema
+                Ao redigir e publicar a Ata da Assembleia (módulo <code>/mesa/ata</code>), o sistema
                 transfere as contagens exatas da lista de presença para o texto solene sob as duas
                 rubricas oficiais:
               </p>
 
-              {/* MOCKUP 6: TRECHO OFICIAL DA ATA NOTARIAL */}
+              {/* MOCKUP 6: TRECHO OFICIAL DA ATA DA ASSEMBLEIA */}
               <div className="border border-slate-300 rounded-lg p-3.5 bg-slate-50/70 font-serif text-xs leading-relaxed text-justify space-y-2">
                 <div className="border-b border-slate-200 pb-1 font-sans text-[10px] font-bold uppercase text-[#002B5E] flex items-center justify-between">
                   <span>Transcrição Fiel na Ata da Assembleia</span>

@@ -633,7 +633,7 @@ export const AuditoriaPage: React.FC = () => {
                     <div className="p-3 rounded-lg bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                       <div className="space-y-1">
                         <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                          Hash SHA-256 do PDF Assinado (Integridade Notarial)
+                          Hash SHA-256 do PDF Assinado (Integridade Documental)
                         </span>
                         <span className="font-mono text-xs text-emerald-400 break-all select-all">
                           {ata.zapsign_pdf_assinado_hash}

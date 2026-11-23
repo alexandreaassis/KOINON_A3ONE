@@ -241,7 +241,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     if (p === '/votacao') return ['Morador', 'Cabine de Votação']
     if (p === '/recibo') return ['Morador', 'Comprovante']
     if (p === '/mesa') return ['Mesa Diretora', 'Painel Geral']
-    if (p === '/ata-assembleia') return ['Morador', 'Ata Notarial']
+    if (p === '/ata-assembleia') return ['Morador', 'Ata da Assembleia']
     if (p === '/documentos-assembleia') return ['Morador', 'Documentos da Assembleia']
     if (p === '/morador/manual') return ['Morador', 'Manual do Morador']
     if (p === '/mesa/ata') return ['Mesa Diretora', 'Ata da Assembleia']

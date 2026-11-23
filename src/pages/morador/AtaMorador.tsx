@@ -143,7 +143,7 @@ export const AtaMoradorPage: React.FC = () => {
             )}
           </div>
           <h2 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-            <FileText className="h-5 w-5 text-cyan-700" /> Ata Notarial da Assembleia Geral
+            <FileText className="h-5 w-5 text-cyan-700" /> Ata da Assembleia Geral
           </h2>
           <p className="text-xs text-slate-500">
             Acompanhe o registro oficial das deliberações, apuração dos votos e assinaturas
@@ -203,7 +203,7 @@ export const AtaMoradorPage: React.FC = () => {
                   )}
                   <div className="flex-1 text-center">
                     <span className="text-[10px] uppercase tracking-widest font-bold text-cyan-800 block">
-                      Ata Notarial e Deliberativa
+                      Ata de Assembleia e Deliberativa
                     </span>
                     <h1 className="text-lg font-bold text-slate-950 uppercase">{nomeCondominio}</h1>
                     <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
@@ -282,11 +282,11 @@ export const AtaMoradorPage: React.FC = () => {
             <div className="max-w-md mx-auto space-y-3">
               <Clock className="h-10 w-10 text-amber-500 mx-auto" />
               <h3 className="text-base font-bold text-slate-900">
-                Ata Notarial em Fase de Lavratura e Assinatura
+                Ata da Assembleia em Fase de Lavratura e Assinatura
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
                 A ata da assembleia <strong>"{deliberacaoAtiva.titulo}"</strong> está sendo lavrada
-                e assinada pela Mesa Diretora com auxílio de inteligência artificial notarial.
+                e assinada pela Mesa Diretora com auxílio de inteligência artificial.
               </p>
               <p className="text-xs text-slate-500">
                 Assim que a mesa finalizar as assinaturas eletrônicas e homologar a publicação, o

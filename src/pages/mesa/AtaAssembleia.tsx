@@ -1297,8 +1297,8 @@ export const AtaAssembleiaPage: React.FC = () => {
             Artificial
           </h2>
           <p className="text-xs text-slate-500">
-            Geração notarial assistida por IA, editor rich text Tiptap, salvamento contínuo e
-            assinaturas eletrônicas da mesa.
+            Geração assistida por IA, editor rich text Tiptap, salvamento contínuo e assinaturas
+            eletrônicas da mesa.
           </p>
         </div>
 
@@ -1498,7 +1498,7 @@ export const AtaAssembleiaPage: React.FC = () => {
                     <div>
                       <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-cyan-600" /> 1. Matéria Bruta & Geração
-                        Notarial por IA
+                        por IA
                       </CardTitle>
                       <CardDescription className="text-xs text-slate-500 mt-0.5">
                         Cole ou digite os rascunhos, transcrições e anotações da mesa. A IA
@@ -1701,8 +1701,8 @@ export const AtaAssembleiaPage: React.FC = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                       <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-cyan-700" /> 2. Editor da Ata Notarial
-                        (Tiptap Rich Text)
+                        <FileText className="h-4 w-4 text-cyan-700" /> 2. Editor da Ata de
+                        Assembleia (Tiptap Rich Text)
                       </CardTitle>
                       <CardDescription className="text-xs text-slate-500 mt-0.5">
                         Edite o texto formal conforme a soberania da mesa diretora antes de colher
@@ -2221,7 +2221,7 @@ export const AtaAssembleiaPage: React.FC = () => {
                     )}
                     <div className="flex-1 text-center">
                       <span className="text-[10px] uppercase tracking-widest font-bold text-cyan-800 block">
-                        Ata Notarial e Deliberativa
+                        Ata de Assembleia e Deliberativa
                       </span>
                       <h1 className="text-lg font-bold text-slate-950 uppercase">
                         {nomeCondominio}

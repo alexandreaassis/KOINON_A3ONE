@@ -486,7 +486,7 @@ export function gerarHtmlRelatorioHistorico(dados: DadosRelatorioHistoricoPdf): 
     <!-- Rodapé com Selo Oficial A3ONE e Conformidade -->
     <div class="footer-section">
       <div class="footer-left">
-        <strong>Plataforma Virtual Koinon</strong> — Registro de Auditoria e Rastreabilidade Notarial.<br>
+       <strong>Plataforma Virtual Koinon</strong> — Registro de Auditoria e Rastreabilidade Documental.<br>
         Documento com valor probatório administrativo. Trilha de operações imutável auditada server-side.
       </div>
       <div>

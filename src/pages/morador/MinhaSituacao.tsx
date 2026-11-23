@@ -375,13 +375,13 @@ export const MinhaSituacaoPage: React.FC = () => {
                 </Link>
               </div>
             )}
-            {/* Atalho para Ata Notarial da Assembleia */}
+            {/* Atalho para Ata da Assembleia */}
             {deliberacaoAtiva && (
               <div className="p-3.5 rounded-lg bg-cyan-50 border border-cyan-200 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <FileCheck2 className="h-5 w-5 text-cyan-700" />
                   <div>
-                    <p className="text-xs font-bold text-cyan-950">Ata Notarial da Assembleia</p>
+                    <p className="text-xs font-bold text-cyan-950">Ata da Assembleia</p>
                     <p className="text-[11px] text-cyan-800">
                       Acompanhe o registro oficial, o boletim consolidado e as assinaturas da Mesa
                       Diretora.

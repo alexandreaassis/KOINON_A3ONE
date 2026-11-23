@@ -416,7 +416,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
             : ''
         }
         <div class="header-text">
-          <div class="header-tag">Ata Notarial e Deliberativa</div>
+          <div class="header-tag">Ata de Assembleia e Deliberativa</div>
           <h1 class="condo-title">${dados.nomeCondominio}</h1>
           <p class="header-sub">Assembleia Geral de Condôminos</p>
         </div>

@@ -288,7 +288,7 @@ export const DossieCartorioPage: React.FC = () => {
             </span>
             <h1 className="text-2xl font-bold uppercase text-slate-950 mt-1">{nomeCondominio}</h1>
             <p className="text-xs text-slate-600 font-medium mt-1">
-              Dossiê Notarial e Probatório de Assembleia Geral Extraordinária / Ordinária
+              Dossiê Cartorário e Probatório de Assembleia Geral Extraordinária / Ordinária
             </p>
           </div>
 
@@ -324,7 +324,7 @@ export const DossieCartorioPage: React.FC = () => {
             {/* Sumário do Dossiê */}
             <div className="max-w-md mx-auto text-left font-sans text-xs space-y-2 bg-white p-4 border border-slate-200 rounded">
               <h4 className="font-bold uppercase tracking-wider text-slate-800 text-[11px] border-b pb-1">
-                Composição Notarial Deste Dossiê:
+                Composição Cartorária Deste Dossiê:
               </h4>
               <ol className="list-decimal list-inside space-y-1 text-slate-700 pl-1">
                 <li>Edital de Convocação com Assinatura do Síndico e Carimbo SHA-256</li>
@@ -709,9 +709,9 @@ export const DossieCartorioPage: React.FC = () => {
               formalmente constituída e eleita para condução dos trabalhos da Assembleia Geral do{' '}
               <strong>{nomeCondominio}</strong>, após encerramento da votação, auditoria dos
               registros e apuração dos votos, <strong>DECLARA</strong> encerrados os trabalhos e
-              lavra o presente Dossiê Notarial Eletrônico, composto por todas as peças precedentes,
-              atestando sua plena veracidade perante o Cartório de Registro de Pessoas Jurídicas /
-              Títulos e Documentos.
+              lavra o presente Dossiê Cartorário Eletrônico, composto por todas as peças
+              precedentes, atestando sua plena veracidade perante o Cartório de Registro de Pessoas
+              Jurídicas / Títulos e Documentos.
             </p>
 
             {/* Ressalva Jurídica Obrigatória */}
@@ -808,7 +808,7 @@ export const DossieCartorioPage: React.FC = () => {
         <ModalAssinaturaEletronica
           aberto={!!modalAssinaturaMesa}
           onOpenChange={(ab) => !ab && setModalAssinaturaMesa(null)}
-          tituloDocumento="Termo de Encerramento do Dossiê Notarial"
+          tituloDocumento="Termo de Encerramento do Dossiê Cartorário"
           subtitulo={`Assinatura da Mesa Diretora como ${
             modalAssinaturaMesa === 'mesa_presidente' ? 'Presidente' : 'Secretário(a)'
           } dos trabalhos`}
