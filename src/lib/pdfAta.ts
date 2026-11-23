@@ -454,25 +454,27 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
       ${dados.conteudoHtml || '<p>Ata em elaboração pela mesa diretora.</p>'}
     </div>
 
-    <!-- Bloco Criptográfico de Auditoria da Urna e da Ata (Omitido ou adaptado quando for via para assinatura manual) -->
+    <!-- Bloco Criptográfico de Auditoria da Urna e da Ata (Omitido ou adaptado quando for via para assinatura manual; OMITIDO no modo impressão limpa) -->
     ${
-      viaManualAtiva
-        ? `
+      limpa
+        ? ''
+        : viaManualAtiva
+          ? `
         <div style="margin-top: 24px; padding: 10px 14px; background: #F8FAFC; border: 1px dashed #94A3B8; border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 8pt; color: #475569;">
           <strong>Nota de Registro Cartorário/Manual:</strong>
           Via gerada para subscrição física de punho próprio pelos membros da mesa diretora designados abaixo. A integridade das cédulas digitais apuradas na urna eletrônica permanece resguardada no sistema com o hash:
           <span style="font-family: monospace; font-size: 7.5pt; color: #002B5E;">${dados.hashRaizUrna || 'Cédulas consolidadas no encerramento'}</span>.
         </div>
         `
-        : viaZapAtiva
-          ? `
+          : viaZapAtiva
+            ? `
         <div style="margin-top: 24px; padding: 10px 14px; background: #F8FAFC; border: 1px dashed #94A3B8; border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 8pt; color: #475569;">
           <strong>Nota de Assinatura Eletrônica (ZapSign):</strong>
           Via destinada à assinatura eletrônica via ZapSign; integridade da urna garantida pelo hash:
           <span style="font-family: monospace; font-size: 7.5pt; color: #002B5E;">${dados.hashRaizUrna || 'Cédulas consolidadas no encerramento'}</span>.
         </div>
         `
-          : `
+            : `
         <div class="crypto-box">
           <div class="crypto-box-title">
             <span style="display: flex; align-items: center; gap: 6px;">
