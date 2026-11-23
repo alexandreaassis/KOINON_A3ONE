@@ -28,6 +28,51 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const UNIDADE_STORAGE_KEY = 'lagoazul_unidade_selecionada'
 
+/**
+ * Carrega TODAS as unidades às quais o usuário responde:
+ * campo multi-relação users.unidades (novo) unificado com o legado users.unidade.
+ * Gestores (mesa/admin) sem vínculo recebem todas as unidades do condomínio.
+ */
+const carregarUnidadesDoUsuario = async (authUser: UserRecord): Promise<UnidadeRecord[]> => {
+  const ids = new Set<string>()
+
+  const unidsRel = Array.isArray((authUser as any).unidades) ? (authUser as any).unidades : []
+  for (const id of unidsRel) {
+    if (id && id !== 'none') ids.add(String(id))
+  }
+  const legado = authUser.unidade
+  if (legado && legado !== 'none') ids.add(String(legado))
+
+  const isGestor = authUser.role === 'mesa' || authUser.role === 'admin'
+
+  // Sem vínculos: gestor enxerga todas as unidades; morador sem vínculo não vê nenhuma
+  if (ids.size === 0) {
+    if (!isGestor) return []
+    try {
+      return await api.getUnidades()
+    } catch {
+      return []
+    }
+  }
+
+  try {
+    const lista = await Promise.all(
+      Array.from(ids).map((id) => api.getUnidade(id).catch(() => null)),
+    )
+    const encontradas = lista.filter((u): u is UnidadeRecord => !!u)
+    if (encontradas.length === 0 && isGestor) {
+      return await api.getUnidades()
+    }
+    return encontradas
+  } catch {
+    try {
+      return await api.getUnidades()
+    } catch {
+      return []
+    }
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserRecord | null>(() => {
     return (pb.authStore.record as unknown as UserRecord) || null
@@ -66,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(authUser)
 
       try {
-        const unidades = await api.getUnidades()
+        const unidades = await carregarUnidadesDoUsuario(authUser)
         setUnidadesDisponiveis(unidades)
 
         // Restaurar unidade selecionada se houver no localStorage
@@ -188,12 +233,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setUser(authUser)
 
-    // Carregar unidades
+    // Carregar TODAS as unidades do usuário (multi-relação + legado)
     try {
-      const unidades = await api.getUnidades()
+      const unidades = await carregarUnidadesDoUsuario(authUser)
       setUnidadesDisponiveis(unidades)
-      if (unidades.length > 0 && !unidadeSelecionada) {
-        const padrao = unidades.find((u) => u.identificador === '101A') || unidades[0]
+
+      if (unidades.length > 0) {
+        // Revalida a unidade persistida no localStorage contra as unidades reais do usuário
+        const storedUnidadeId = localStorage.getItem(UNIDADE_STORAGE_KEY)
+        const aindaValida = storedUnidadeId
+          ? unidades.find((u) => u.id === storedUnidadeId)
+          : undefined
+        const atual = aindaValida || unidadeSelecionada
+        const validaAtual = atual && unidades.some((u) => u.id === atual.id) ? atual : undefined
+        const padrao =
+          validaAtual || unidades.find((u) => u.identificador === '101A') || unidades[0]
         setUnidadeSelecionada(padrao)
         localStorage.setItem(UNIDADE_STORAGE_KEY, padrao.id)
       }

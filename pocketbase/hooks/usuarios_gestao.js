@@ -115,6 +115,26 @@ onRecordAuthRequest((e) => {
 
 // 2. Endpoint: Criar Usuário (Restrito exclusivamente a Administradores)
 routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
+  // Auxiliares (inline no callback: exigência do runtime JSVM)
+  function unidadesDeRegistro(rec) {
+    try {
+      const v = rec.get('unidades')
+      if (Array.isArray(v)) {
+        return v.map((x) => String(x || '').trim()).filter((x) => x && x !== 'none')
+      }
+      if (typeof v === 'string' && v.trim() && v.trim() !== 'none') return [v.trim()]
+    } catch (_) {}
+    return []
+  }
+  function conflitoCpfUnidade(unidsA, unidsB) {
+    // Sem unidades dos dois lados = mesma condição de "operador avulso" -> conflito
+    if (unidsA.length === 0 && unidsB.length === 0) return true
+    for (let i = 0; i < unidsA.length; i++) {
+      if (unidsB.indexOf(unidsA[i]) !== -1) return true
+    }
+    return false
+  }
+
   function registrarAuditoria(app, dados) {
     try {
       const audCol = app.findCollectionByNameOrId('auditoria_events')
@@ -194,6 +214,26 @@ routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
   const ativo = body.ativo !== false
   const enviarConvite = body.enviarConvite !== false
 
+  // Campo multi-relação users.unidades (aceita array de ids ou string separada por vírgula)
+  let unidadesIds = []
+  const rawUnidades = body.unidades
+  if (Array.isArray(rawUnidades)) {
+    for (let i = 0; i < rawUnidades.length; i++) {
+      const idU = String(rawUnidades[i] || '').trim()
+      if (idU && idU !== 'none' && unidadesIds.indexOf(idU) === -1) unidadesIds.push(idU)
+    }
+  } else if (typeof rawUnidades === 'string' && rawUnidades.trim()) {
+    const partes = rawUnidades.split(',')
+    for (let i = 0; i < partes.length; i++) {
+      const idU = partes[i].trim()
+      if (idU && idU !== 'none' && unidadesIds.indexOf(idU) === -1) unidadesIds.push(idU)
+    }
+  }
+  // Compatibilidade: se só o campo legado veio, reflete na lista
+  if (unidadesIds.length === 0 && unidadeId && unidadeId !== 'none') {
+    unidadesIds = [unidadeId]
+  }
+
   if (!nome) {
     return e.json(400, { success: false, message: 'O nome do usuário é obrigatório.' })
   }
@@ -222,27 +262,33 @@ routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
     // E-mail livre
   }
 
-  // Verificar unicidade de CPF (se informado)
+  // Verificar unicidade de CPF APENAS por (CPF + unidade) — mesmo CPF pode responder por várias unidades
   if (cpf) {
     try {
-      const usersComCpf = e.app.findRecordsByFilter('users', 'cpf = {:c}', '', 1, 0, { c: cpf })
+      const usersComCpf = e.app.findRecordsByFilter('users', 'cpf = {:c}', '', 200, 0, { c: cpf })
       if (usersComCpf && usersComCpf.length > 0) {
-        return e.json(400, {
-          success: false,
-          message: 'CPF já cadastrado para outro condômino no sistema.',
-        })
+        for (let i = 0; i < usersComCpf.length; i++) {
+          const existente = usersComCpf[i]
+          if (conflitoCpfUnidade(unidadesIds, unidadesDeRegistro(existente))) {
+            return e.json(400, {
+              success: false,
+              message:
+                'CPF já cadastrado para esta unidade. Um mesmo CPF pode responder por várias unidades, mas apenas uma vez em cada uma.',
+            })
+          }
+        }
       }
     } catch (_) {}
   }
 
-  // Validar se a unidade informada existe (se informada)
-  if (unidadeId && unidadeId !== 'none') {
+  // Validar se as unidades informadas existem (se informadas)
+  for (let i = 0; i < unidadesIds.length; i++) {
     try {
-      e.app.findRecordById('unidades', unidadeId)
+      e.app.findRecordById('unidades', unidadesIds[i])
     } catch (_) {
       return e.json(400, {
         success: false,
-        message: 'A unidade selecionada não foi localizada no cadastro do condomínio.',
+        message: 'Uma das unidades selecionadas não foi localizada no cadastro do condomínio.',
       })
     }
   }
@@ -264,8 +310,9 @@ routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
   if (cpf) {
     novoUser.set('cpf', cpf)
   }
-  if (unidadeId && unidadeId !== 'none') {
-    novoUser.set('unidade', unidadeId)
+  if (unidadesIds.length > 0) {
+    novoUser.set('unidades', unidadesIds)
+    novoUser.set('unidade', unidadesIds[0])
   }
 
   try {
@@ -319,6 +366,7 @@ routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
       role: novoUser.getString('role'),
       cpf: novoUser.getString('cpf'),
       unidade: novoUser.getString('unidade'),
+      unidades: unidadesDeRegistro(novoUser),
       ativo: novoUser.getBool('ativo'),
       created: novoUser.getString('created'),
       updated: novoUser.getString('updated'),
@@ -328,6 +376,25 @@ routerAdd('POST', '/backend/v1/admin/usuarios/criar', (e) => {
 
 // 3. Endpoint: Atualizar Usuário (Restrito exclusivamente a Administradores)
 routerAdd('POST', '/backend/v1/admin/usuarios/atualizar', (e) => {
+  // Auxiliares (inline no callback: exigência do runtime JSVM)
+  function unidadesDeRegistro(rec) {
+    try {
+      const v = rec.get('unidades')
+      if (Array.isArray(v)) {
+        return v.map((x) => String(x || '').trim()).filter((x) => x && x !== 'none')
+      }
+      if (typeof v === 'string' && v.trim() && v.trim() !== 'none') return [v.trim()]
+    } catch (_) {}
+    return []
+  }
+  function conflitoCpfUnidade(unidsA, unidsB) {
+    if (unidsA.length === 0 && unidsB.length === 0) return true
+    for (let i = 0; i < unidsA.length; i++) {
+      if (unidsB.indexOf(unidsA[i]) !== -1) return true
+    }
+    return false
+  }
+
   function registrarAuditoria(app, dados) {
     try {
       const audCol = app.findCollectionByNameOrId('auditoria_events')
@@ -430,6 +497,35 @@ routerAdd('POST', '/backend/v1/admin/usuarios/atualizar', (e) => {
   const cpf =
     rawCpf !== undefined ? rawCpf.replace(/\D/g, '').slice(0, 11) : userAlvo.getString('cpf')
 
+  // Campo multi-relação users.unidades (aceita array de ids ou string separada por vírgula)
+  let unidadesIds = []
+  let unidadesAlteradas = false
+  const rawUnidades = body.unidades
+  if (rawUnidades !== undefined) {
+    unidadesAlteradas = true
+    if (Array.isArray(rawUnidades)) {
+      for (let i = 0; i < rawUnidades.length; i++) {
+        const idU = String(rawUnidades[i] || '').trim()
+        if (idU && idU !== 'none' && unidadesIds.indexOf(idU) === -1) unidadesIds.push(idU)
+      }
+    } else if (typeof rawUnidades === 'string' && rawUnidades.trim()) {
+      const partes = rawUnidades.split(',')
+      for (let i = 0; i < partes.length; i++) {
+        const idU = partes[i].trim()
+        if (idU && idU !== 'none' && unidadesIds.indexOf(idU) === -1) unidadesIds.push(idU)
+      }
+    }
+  }
+  if (!unidadesAlteradas) {
+    unidadesIds = unidadesDeRegistro(userAlvo)
+    if (unidadesIds.length === 0) {
+      const legado = userAlvo.getString('unidade')
+      if (legado) unidadesIds = [legado]
+    }
+  } else if (unidadesIds.length === 0 && unidadeId && unidadeId !== 'none') {
+    unidadesIds = [unidadeId]
+  }
+
   if (body.name !== undefined && !novoNome) {
     return e.json(400, { success: false, message: 'O nome do usuário não pode ficar vazio.' })
   }
@@ -441,14 +537,14 @@ routerAdd('POST', '/backend/v1/admin/usuarios/atualizar', (e) => {
     })
   }
 
-  // Verificar se o CPF já pertence a outro usuário
-  if (cpf && cpf !== userAlvo.getString('cpf')) {
+  // Unicidade de CPF APENAS por (CPF + unidade)
+  if (cpf && (cpf !== userAlvo.getString('cpf') || unidadesAlteradas)) {
     try {
       const usersComCpf = e.app.findRecordsByFilter(
         'users',
         'cpf = {:c} && id != {:id}',
         '',
-        1,
+        200,
         0,
         {
           c: cpf,
@@ -456,10 +552,16 @@ routerAdd('POST', '/backend/v1/admin/usuarios/atualizar', (e) => {
         },
       )
       if (usersComCpf && usersComCpf.length > 0) {
-        return e.json(400, {
-          success: false,
-          message: 'CPF já cadastrado para outro condômino no sistema.',
-        })
+        for (let i = 0; i < usersComCpf.length; i++) {
+          const existente = usersComCpf[i]
+          if (conflitoCpfUnidade(unidadesIds, unidadesDeRegistro(existente))) {
+            return e.json(400, {
+              success: false,
+              message:
+                'CPF já cadastrado para esta unidade. Um mesmo CPF pode responder por várias unidades, mas apenas uma vez em cada uma.',
+            })
+          }
+        }
       }
     } catch (_) {}
   }
@@ -513,8 +615,19 @@ routerAdd('POST', '/backend/v1/admin/usuarios/atualizar', (e) => {
     }
   }
 
-  // Validar se a unidade existe antes de associar (se informada)
-  if (body.unidade !== undefined && unidadeId && unidadeId !== 'none') {
+  // Validar se as unidades existem antes de associar (se informadas)
+  if (unidadesAlteradas) {
+    for (let i = 0; i < unidadesIds.length; i++) {
+      try {
+        e.app.findRecordById('unidades', unidadesIds[i])
+      } catch (_) {
+        return e.json(400, {
+          success: false,
+          message: 'Uma das unidades informadas para vinculação não existe ou foi removida.',
+        })
+      }
+    }
+  } else if (body.unidade !== undefined && unidadeId && unidadeId !== 'none') {
     try {
       e.app.findRecordById('unidades', unidadeId)
     } catch (_) {
@@ -534,6 +647,12 @@ routerAdd('POST', '/backend/v1/admin/usuarios/atualizar', (e) => {
   }
   if (body.unidade !== undefined) {
     userAlvo.set('unidade', unidadeId === 'none' ? '' : unidadeId)
+  }
+  if (unidadesAlteradas) {
+    userAlvo.set('unidades', unidadesIds)
+    if (unidadesIds.length > 0 && !userAlvo.getString('unidade')) {
+      userAlvo.set('unidade', unidadesIds[0])
+    }
   }
 
   try {
@@ -573,6 +692,7 @@ routerAdd('POST', '/backend/v1/admin/usuarios/atualizar', (e) => {
       role: userAlvo.getString('role'),
       cpf: userAlvo.getString('cpf'),
       unidade: userAlvo.getString('unidade'),
+      unidades: unidadesDeRegistro(userAlvo),
       ativo: userAlvo.getBool('ativo'),
       created: userAlvo.getString('created'),
       updated: userAlvo.getString('updated'),

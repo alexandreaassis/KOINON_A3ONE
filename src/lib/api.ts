@@ -11,9 +11,12 @@ export interface UserRecord extends RecordModel {
   avatar?: string
   cpf?: string
   unidade?: string
+  /** Multi-relação para múltiplas unidades por proprietário (migration 1768400000000) */
+  unidades?: string[]
   ativo?: boolean
   expand?: {
     unidade?: UnidadeRecord
+    unidades?: UnidadeRecord[]
   }
 }
 
@@ -1406,7 +1409,7 @@ export const api = {
   async getTodosUsuarios() {
     return pb.collection('users').getFullList<UserRecord>({
       sort: '-created',
-      expand: 'unidade',
+      expand: 'unidade,unidades',
     })
   },
 
@@ -1417,6 +1420,7 @@ export const api = {
     cpf?: string
     role: UserRole
     unidade?: string
+    unidades?: string[]
     ativo?: boolean
     enviarConvite?: boolean
   }) {
@@ -1446,6 +1450,7 @@ export const api = {
     role?: UserRole
     cpf?: string
     unidade?: string
+    unidades?: string[]
     ativo?: boolean
   }) {
     try {
