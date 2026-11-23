@@ -44,6 +44,12 @@ export interface DadosEditalPdf {
   assinaturaTexto?: string
   /** true na via gerada em bytes como anexo ZapSign — nota enxuta, sem bloco criptográfico (padrão da ata) */
   viaZapsign?: boolean
+  /**
+   * Protocolo "Impressão limpa (sem assinatura eletrônica)": omitir TODO bloco
+   * de assinatura eletrônica (ICP-Brasil/MP 2.200-2, hash SHA-256, ZapSign),
+   * mantendo linha em branco para assinatura com caneta. false/ausente = via padrão intacta.
+   */
+  impressaoLimpa?: boolean
 }
 
 function converterTextoParaHtmlSeguro(conteudo?: string | null): string {
@@ -86,11 +92,13 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
     : ''
 
   // Frase curta de adoção do método de assinatura + referência de conferência
-  const fraseAdocao = dados.fraseAdocaoAssinatura?.trim()
-    ? `<div style="border: 1px solid #E2E8F0; border-radius: 6px; padding: 8px 12px; margin: 12px 0; font-size: 9pt; color: #334155; background: #F8FAFC;">
+  // (omitida no modo impressão limpa: menciona assinatura eletrônica)
+  const fraseAdocao =
+    !dados.impressaoLimpa && dados.fraseAdocaoAssinatura?.trim()
+      ? `<div style="border: 1px solid #E2E8F0; border-radius: 6px; padding: 8px 12px; margin: 12px 0; font-size: 9pt; color: #334155; background: #F8FAFC;">
          ${converterTextoParaHtmlSeguro(dados.fraseAdocaoAssinatura)}
        </div>`
-    : ''
+      : ''
 
   const pautaRender =
     dados.ordemDiaCustom && dados.ordemDiaCustom.trim().length > 0
@@ -151,16 +159,20 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
   // não se aplica. Substituído pela nota enxuta com o hash da urna, sem qualquer
   // menção ao art. 10, §2º da MP 2.200-2/2001 (ICP-Brasil) nesta via. A via de
   // impressão/manual permanece inalterada.
-  const seloAssinatura = dados.viaZapsign
-    ? `
+  // No modo IMPRESSÃO LIMPA nenhum bloco é renderizado: a via é para assinatura
+  // com caneta, sem qualquer menção a assinatura eletrônica, hash ou ZapSign.
+  const seloAssinatura = dados.impressaoLimpa
+    ? ''
+    : dados.viaZapsign
+      ? `
       <div style="margin-top: 24px; padding: 10px 14px; background: #F8FAFC; border: 1px dashed #94A3B8; border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 8pt; color: #475569;">
         <strong>Nota de Assinatura Eletrônica (ZapSign):</strong>
         Via destinada à assinatura eletrônica via ZapSign; integridade da urna garantida pelo hash:
         <span style="font-family: monospace; font-size: 7.5pt; color: #002B5E;">${dados.hashAssinatura || 'Hash calculado no envio'}</span>.
       </div>
     `
-    : dados.hashAssinatura
-      ? `
+      : dados.hashAssinatura
+        ? `
       <div style="margin-top: 24px; padding: 14px 18px; border: 1.5px solid #0066FF; background: linear-gradient(135deg, #F3F7FC 0%, #FFFFFF 100%); border-radius: 8px; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: left; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
         <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(0, 102, 255, 0.2); padding-bottom: 8px; margin-bottom: 10px;">
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -220,14 +232,16 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
         </div>
       </div>
     `
-      : `
+        : `
       <div style="margin-top: 24px; padding: 12px 16px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 9pt; color: #64748b; text-align: center;">
         Documento em fase de elaboração / aguardando assinatura eletrônica oficial do convocante.
       </div>
     `
 
-  const temDesenho = dados.formatoAssinatura === 'desenho' && !!dados.assinaturaVisual
-  const temTexto = dados.formatoAssinatura === 'texto' && !!dados.assinaturaTexto
+  const temDesenho =
+    !dados.impressaoLimpa && dados.formatoAssinatura === 'desenho' && !!dados.assinaturaVisual
+  const temTexto =
+    !dados.impressaoLimpa && dados.formatoAssinatura === 'texto' && !!dados.assinaturaTexto
 
   const areaGraficaAssinatura = temDesenho
     ? `<div style="min-height: 75px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: -1px;">
@@ -603,19 +617,25 @@ export function gerarHtmlDocumentoEdital(dados: DadosEditalPdf): string {
     </div>
 
     ${
-      dados.viaZapsign
-        ? `<div style="margin-top: 10px; font-size: 8pt; color: #5A6B82; font-style: italic;">
+      dados.impressaoLimpa
+        ? ''
+        : dados.viaZapsign
+          ? `<div style="margin-top: 10px; font-size: 8pt; color: #5A6B82; font-style: italic;">
              Nota: esta via destina-se à assinatura eletrônica via plataforma ZapSign (assinatura eletrônica simples). Após a conclusão, o PDF assinado pela ZapSign passa a ser a via oficial, com hash SHA-256 registrado no documento.
            </div>`
-        : ''
+          : ''
     }
 
     <div class="footer-note">
-      Documento gerado eletronicamente pela Plataforma Virtual Koinon.<br>
+      Documento gerado${
+        dados.impressaoLimpa ? '' : ' eletronicamente'
+      } pela Plataforma Virtual Koinon.<br>
       ${
-        dados.viaZapsign
-          ? `Hash da urna (SHA-256): <span style="font-family: monospace;">${dados.hashAssinatura || '—'}</span>`
-          : 'A autenticidade deste edital pode ser confirmada por meio do hash SHA-256 e da chave de assinatura criptográfica.'
+        dados.impressaoLimpa
+          ? ''
+          : dados.viaZapsign
+            ? `Hash da urna (SHA-256): <span style="font-family: monospace;">${dados.hashAssinatura || '—'}</span>`
+            : 'A autenticidade deste edital pode ser confirmada por meio do hash SHA-256 e da chave de assinatura criptográfica.'
       }
       <div>
         <span class="seal-a3one">

@@ -19,6 +19,7 @@ import {
 } from '@/lib/formatadorUnidade'
 import pb from '@/lib/pocketbase/client'
 import { toast } from '@/hooks/use-toast'
+import { type TipoGeracaoPdf, ROTULO_IMPRESSAO_LIMPA } from '@/lib/impressaoLimpa'
 import {
   Card,
   CardHeader,
@@ -126,6 +127,9 @@ export const ListaPresencaPage: React.FC = () => {
   const [zapsignMotivo, setZapsignMotivo] = useState<string | null>(null)
   const [modalZapsignAberto, setModalZapsignAberto] = useState(false)
   const [listaDbId, setListaDbId] = useState<string | null>(null)
+
+  // Protocolo "Impressão limpa (sem assinatura eletrônica)"
+  const [tipoGeracao, setTipoGeracao] = useState<TipoGeracaoPdf>('padrao')
 
   // Carregar dados
   const carregarDados = async (delibId?: string) => {
@@ -783,9 +787,34 @@ export const ListaPresencaPage: React.FC = () => {
             <BookOpen className="h-4 w-4 mr-1.5" /> Manual (PDF)
           </Button>
 
+          {/* Protocolo "Impressão limpa (sem assinatura eletrônica)" */}
+          <Select
+            value={tipoGeracao}
+            onValueChange={(val) => setTipoGeracao(val as TipoGeracaoPdf)}
+          >
+            <SelectTrigger
+              className="w-64 text-xs h-9 bg-white border-slate-300"
+              title={
+                tipoGeracao === 'impressao_limpa'
+                  ? ROTULO_IMPRESSAO_LIMPA
+                  : 'Vias padrão (assinatura eletrônica)'
+              }
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="padrao" className="text-xs">
+                Vias padrão (assinatura eletrônica)
+              </SelectItem>
+              <SelectItem value="impressao_limpa" className="text-xs">
+                {ROTULO_IMPRESSAO_LIMPA}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+
           <Button
             size="sm"
-            onClick={() => window.print()}
+            onClick={handleImprimirA4}
             variant="outline"
             className="text-xs h-9 border-slate-300"
           >

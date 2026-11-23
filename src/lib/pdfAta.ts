@@ -27,6 +27,13 @@ export interface DadosAtaPdf {
   // com o hash da urna (padrão espelhado da via manual).
   viaZapsign?: boolean
 
+  /**
+   * Protocolo "Impressão limpa (sem assinatura eletrônica)": omitir TODO bloco
+   * de assinatura eletrônica (ICP-Brasil/MP 2.200-2, notas de hash, ZapSign),
+   * mantendo linhas em branco para assinatura com caneta. false/ausente = via padrão intacta.
+   */
+  impressaoLimpa?: boolean
+
   // Presidente da Mesa
   presidenteNome: string
   presidenteCpf?: string
@@ -77,6 +84,11 @@ function renderAssinaturaVisual(
 }
 
 export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
+  // Impressão limpa: nenhuma via eletrônica ativa, apenas linhas em branco
+  const limpa = !!dados.impressaoLimpa
+  const viaManualAtiva = !limpa && !!dados.viaAssinaturaManual
+  const viaZapAtiva = !limpa && !!dados.viaZapsign
+
   // Formatar data/hora no padrão institucional com segundos
   const formatarDataAssinaturaAta = (dataIso?: string | null): string => {
     if (!dataIso) return ''
@@ -417,7 +429,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
     </header>
 
     ${
-      dados.viaAssinaturaManual
+      viaManualAtiva
         ? `
         <div style="margin: 12px 0 16px 0; padding: 10px 14px; background: #FFFBEB; border: 1.5px solid #F59E0B; border-radius: 6px; text-align: center; color: #92400E; font-family: 'Poppins', sans-serif;">
           <div style="font-weight: 700; font-size: 9.5pt; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">
@@ -444,7 +456,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
 
     <!-- Bloco Criptográfico de Auditoria da Urna e da Ata (Omitido ou adaptado quando for via para assinatura manual) -->
     ${
-      dados.viaAssinaturaManual
+      viaManualAtiva
         ? `
         <div style="margin-top: 24px; padding: 10px 14px; background: #F8FAFC; border: 1px dashed #94A3B8; border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 8pt; color: #475569;">
           <strong>Nota de Registro Cartorário/Manual:</strong>
@@ -452,7 +464,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
           <span style="font-family: monospace; font-size: 7.5pt; color: #002B5E;">${dados.hashRaizUrna || 'Cédulas consolidadas no encerramento'}</span>.
         </div>
         `
-        : dados.viaZapsign
+        : viaZapAtiva
           ? `
         <div style="margin-top: 24px; padding: 10px 14px; background: #F8FAFC; border: 1px dashed #94A3B8; border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 8pt; color: #475569;">
           <strong>Nota de Assinatura Eletrônica (ZapSign):</strong>
@@ -505,36 +517,40 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
         <!-- Presidente da Mesa -->
         <div class="signature-card">
           ${renderAssinaturaVisual(
-            dados.presidenteFormato,
-            dados.presidenteAssinaturaVisual,
-            dados.presidenteAssinaturaTexto,
+            limpa ? undefined : dados.presidenteFormato,
+            limpa ? undefined : dados.presidenteAssinaturaVisual,
+            limpa ? undefined : dados.presidenteAssinaturaTexto,
           )}
           <div class="signature-line"></div>
           <div class="signature-name">${dados.presidenteNome || 'Presidente da Mesa'}</div>
           ${dados.presidenteCpf ? `<div class="signature-cpf">CPF: ${dados.presidenteCpf}</div>` : ''}
           <div class="signature-role">Presidente da Assembleia</div>
           ${
-            dados.presidenteHash
-              ? `<div class="signature-hash-stamp">Assinado em ${formatarDataAssinaturaAta(dados.presidenteAssinadoEm)}<br>SHA: ${dados.presidenteHash.substring(0, 24)}...</div>`
-              : '<div style="font-size: 7.5pt; color: #94a3b8; margin-top: 2px;">Aguardando assinatura</div>'
+            limpa
+              ? ''
+              : dados.presidenteHash
+                ? `<div class="signature-hash-stamp">Assinado em ${formatarDataAssinaturaAta(dados.presidenteAssinadoEm)}<br>SHA: ${dados.presidenteHash.substring(0, 24)}...</div>`
+                : '<div style="font-size: 7.5pt; color: #94a3b8; margin-top: 2px;">Aguardando assinatura</div>'
           }
         </div>
 
         <!-- Secretário(a) da Mesa -->
         <div class="signature-card">
           ${renderAssinaturaVisual(
-            dados.secretarioFormato,
-            dados.secretarioAssinaturaVisual,
-            dados.secretarioAssinaturaTexto,
+            limpa ? undefined : dados.secretarioFormato,
+            limpa ? undefined : dados.secretarioAssinaturaVisual,
+            limpa ? undefined : dados.secretarioAssinaturaTexto,
           )}
           <div class="signature-line"></div>
           <div class="signature-name">${dados.secretarioNome || 'Secretário(a) da Mesa'}</div>
           ${dados.secretarioCpf ? `<div class="signature-cpf">CPF: ${dados.secretarioCpf}</div>` : ''}
           <div class="signature-role">Secretário(a) da Assembleia</div>
           ${
-            dados.secretarioHash
-              ? `<div class="signature-hash-stamp">Assinado em ${formatarDataAssinaturaAta(dados.secretarioAssinadoEm)}<br>SHA: ${dados.secretarioHash.substring(0, 24)}...</div>`
-              : '<div style="font-size: 7.5pt; color: #94a3b8; margin-top: 2px;">Aguardando assinatura</div>'
+            limpa
+              ? ''
+              : dados.secretarioHash
+                ? `<div class="signature-hash-stamp">Assinado em ${formatarDataAssinaturaAta(dados.secretarioAssinadoEm)}<br>SHA: ${dados.secretarioHash.substring(0, 24)}...</div>`
+                : '<div style="font-size: 7.5pt; color: #94a3b8; margin-top: 2px;">Aguardando assinatura</div>'
           }
         </div>
       </div>
@@ -543,11 +559,13 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
     <div class="footer-note">
       Documento lavrado e homologado através da Plataforma Virtual Koinon.<br>
       ${
-        dados.viaAssinaturaManual
-          ? 'Via emitida para assinatura manual e física (impressão). Dispensado de selo de certificação eletrônica externa neste suporte físico.'
-          : dados.viaZapsign
-            ? 'Via destinada à assinatura eletrônica via ZapSign; integridade da urna garantida pelo hash.'
-            : 'A integridade deste instrumento é atestada pelas assinaturas eletrônicas da Mesa Diretora e pelo Hash Raiz SHA-256 auditado — autoria e integridade comprovadas por outro meio com a anuência das partes (art. 10, §2º da MP 2.200-2/2001); referência: Lei 14.063/2020.'
+        limpa
+          ? 'Documento lavrado através da Plataforma Virtual Koinon.'
+          : viaManualAtiva
+            ? 'Via emitida para assinatura manual e física (impressão). Dispensado de selo de certificação eletrônica externa neste suporte físico.'
+            : viaZapAtiva
+              ? 'Via destinada à assinatura eletrônica via ZapSign; integridade da urna garantida pelo hash.'
+              : 'A integridade deste instrumento é atestada pelas assinaturas eletrônicas da Mesa Diretora e pelo Hash Raiz SHA-256 auditado — autoria e integridade comprovadas por outro meio com a anuência das partes (art. 10, §2º da MP 2.200-2/2001); referência: Lei 14.063/2020.'
       }
       <div>
         <span class="seal-a3one">
