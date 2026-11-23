@@ -19,7 +19,11 @@ import {
 } from '@/lib/formatadorUnidade'
 import pb from '@/lib/pocketbase/client'
 import { toast } from '@/hooks/use-toast'
-import { type TipoGeracaoPdf, ROTULO_IMPRESSAO_LIMPA } from '@/lib/impressaoLimpa'
+import {
+  type TipoGeracaoPdf,
+  ROTULO_IMPRESSAO_LIMPA,
+  imprimirHtmlDocumentoLimpo,
+} from '@/lib/impressaoLimpa'
 import {
   Card,
   CardHeader,
@@ -618,6 +622,111 @@ export const ListaPresencaPage: React.FC = () => {
   const totalPresencial = presencasAssinadas.filter((p) => p.forma === 'presencial').length
   const totalRemoto = presencasAssinadas.filter((p) => p.forma === 'remoto').length
   const totalProcuracao = presencasAssinadas.filter((p) => p.forma === 'procuracao').length
+
+  // Imprimir Documento A4 — protocolo "Impressão limpa (sem assinatura eletrônica)"
+  const handleImprimirA4 = () => {
+    if (tipoGeracao !== 'impressao_limpa') {
+      // Via padrão: impressão nativa da própria tela (comportamento atual)
+      window.print()
+      return
+    }
+
+    // Modo limpo: HTML dedicado sem coluna de carimbo SHA-256 e sem rodapé
+    // de assinaturas eletrônicas — linha em branco para assinatura a caneta.
+    const esc = (s?: string | null) =>
+      (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+    const linhas = unidadesFiltradas
+      .map((u) => {
+        const pres = mapaPresencas.get(u.id)
+        const forma =
+          pres?.forma === 'procuracao'
+            ? 'Procuração'
+            : pres?.forma === 'remoto'
+              ? 'Remoto'
+              : pres
+                ? 'Presencial'
+                : presencasAntigas.find((p) => p.unidade === u.id)?.tipo || 'Ausente'
+        const nome = pres?.nome || u.responsavel_nome || ''
+        const proc = pres?.nome_procurador || ''
+        return `<tr>
+        <td style="padding:6px 8px;border:1px solid #D5DCE5;text-align:center;font-weight:bold;">${esc(formatarApenasNumeroUnidade(u.identificador))}${u.bloco ? `<div style="font-size:8px;font-weight:normal;color:#5C6B7A;">${esc(u.bloco.replace(/^Bloco\s+/i, 'Bl. '))}</div>` : ''}</td>
+        <td style="padding:6px 8px;border:1px solid #D5DCE5;">${esc(nome)}${pres?.cpf ? `<div style="font-size:9px;color:#5C6B7A;">CPF: ${esc(formatarCpf(pres.cpf))}</div>` : ''}</td>
+        <td style="padding:6px 8px;border:1px solid #D5DCE5;text-align:center;">${esc(forma)}</td>
+        <td style="padding:6px 8px;border:1px solid #D5DCE5;">${esc(proc)}${pres?.cpf_procurador ? `<div style="font-size:9px;color:#5C6B7A;">CPF: ${esc(formatarCpf(pres.cpf_procurador))}</div>` : ''}</td>
+        <td style="padding:6px 8px;border:1px solid #D5DCE5;">&nbsp;</td>
+      </tr>`
+      })
+      .join('')
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Lista de Presença — ${esc(deliberacaoAtiva?.titulo || nomeCondominio)}</title>
+<style>
+  @page { size: A4; margin: 8.5mm 15mm 15mm 15mm; }
+  body { font-family: Georgia, 'Times New Roman', serif; color: #12314F; margin: 0; }
+  table { width: 100%; border-collapse: collapse; font-family: Arial, Helvetica, sans-serif; font-size: 11px; }
+  th { background: #F1F4F8; border: 1px solid #D5DCE5; padding: 6px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+  <header style="border-bottom:2px solid #12314F;padding-bottom:12px;margin-bottom:18px;text-align:center;font-family:Arial,Helvetica,sans-serif;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      ${logoUrl ? `<img src="${logoUrl}" alt="${esc(nomeCondominio)}" style="height:48px;width:48px;object-fit:contain;" />` : ''}
+      <div style="flex:1;text-align:center;padding:0 16px;">
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.15em;font-weight:bold;color:#1F6B94;display:block;">Plataforma Virtual Koinon</span>
+        <h1 style="font-size:18px;font-weight:bold;text-transform:uppercase;margin:2px 0;">${esc(nomeCondominio)}</h1>
+        <p style="font-size:12px;color:#5C6B7A;margin:0;">Lista Oficial de Presença e Registro de Comparecimento em Assembleia</p>
+      </div>
+      <div style="text-align:right;font-size:11px;font-family:monospace;color:#5C6B7A;">Emissão:<br /><strong style="color:#12314F;">${new Date().toLocaleDateString('pt-BR')}</strong></div>
+    </div>
+    <div style="background:#F1F4F8;border:1px solid #D5DCE5;padding:8px 10px;border-radius:4px;font-size:12px;font-weight:600;margin-top:8px;display:flex;justify-content:space-between;">
+      <span>Assembleia: ${esc(deliberacaoAtiva?.titulo || '—')}</span>
+      <span>Quórum Presente: ${totalPresentes} de ${unidades.length} unidades (${((totalPresentes / (unidades.length || 1)) * 100).toFixed(1)}%)</span>
+    </div>
+  </header>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:70px;">Unidade</th>
+        <th>Nome</th>
+        <th style="width:100px;">Situação</th>
+        <th style="width:190px;">Procurador(a)</th>
+        <th style="width:170px;">Assinatura</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${linhas || '<tr><td colspan="5" style="padding:24px;text-align:center;color:#5C6B7A;font-style:italic;">Nenhuma unidade encontrada para os critérios selecionados.</td></tr>'}
+    </tbody>
+  </table>
+
+  <footer style="margin-top:32px;padding-top:16px;border-top:2px solid #12314F;font-family:Arial,Helvetica,sans-serif;">
+    <div style="display:flex;justify-content:space-around;text-align:center;">
+      <div style="width:45%;">
+        <div style="border-bottom:1px solid #12314F;height:48px;"></div>
+        <p style="margin:6px 0 0;font-size:12px;font-weight:bold;">${esc(deliberacaoAtiva?.mesa_presidente_nome || 'Presidente da Mesa Diretora')}</p>
+        <p style="margin:2px 0 0;font-size:10px;color:#5C6B7A;">Presidente da Assembleia${deliberacaoAtiva?.mesa_presidente_cpf ? ` — CPF: ${esc(formatarCpf(deliberacaoAtiva.mesa_presidente_cpf))}` : ''}</p>
+      </div>
+      <div style="width:45%;">
+        <div style="border-bottom:1px solid #12314F;height:48px;"></div>
+        <p style="margin:6px 0 0;font-size:12px;font-weight:bold;">${esc(deliberacaoAtiva?.mesa_secretario_nome || 'Secretário(a) da Mesa')}</p>
+        <p style="margin:2px 0 0;font-size:10px;color:#5C6B7A;">Secretário(a) dos Trabalhos${deliberacaoAtiva?.mesa_secretario_cpf ? ` — CPF: ${esc(formatarCpf(deliberacaoAtiva.mesa_secretario_cpf))}` : ''}</p>
+      </div>
+    </div>
+    <p style="margin-top:24px;padding-top:10px;border-top:1px solid #D5DCE5;text-align:center;font-size:9px;color:#5C6B7A;">
+      Documento emitido pela Plataforma Virtual Koinon — ${esc(nomeCondominio)} em conformidade com a Lei 10.406/2002 e LGPD (Lei 13.709/2018).
+    </p>
+  </footer>
+</body>
+</html>`
+
+    imprimirHtmlDocumentoLimpo(html, 'Lista de Presença')
+  }
 
   // Enviar a Lista de Presença para assinatura via ZapSign (mesmo padrão da ata)
   const handleEnviarZapsign = async () => {

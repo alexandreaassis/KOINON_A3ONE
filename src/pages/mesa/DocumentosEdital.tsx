@@ -16,7 +16,16 @@ import { useAuth } from '@/context/AuthContext'
 import { formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
 import pb from '@/lib/pocketbase/client'
 import { toast } from '@/hooks/use-toast'
-import { imprimirOuBaixarPdfEdital, type DadosEditalPdf } from '@/lib/pdfEdital'
+import {
+  imprimirOuBaixarPdfEdital,
+  gerarHtmlDocumentoEdital,
+  type DadosEditalPdf,
+} from '@/lib/pdfEdital'
+import {
+  type TipoGeracaoPdf,
+  ROTULO_IMPRESSAO_LIMPA,
+  imprimirHtmlDocumentoLimpo,
+} from '@/lib/impressaoLimpa'
 import { gerarPdfEditalComHash, type ProvaEditalPdf } from '@/lib/pdf/gerarPdfEditalBytes'
 import {
   decidirSelo,
@@ -134,6 +143,9 @@ export const DocumentosEditalPage: React.FC = () => {
   const [zapsignMotivo, setZapsignMotivo] = useState<string | null>(null)
   const [modalZapsignAberto, setModalZapsignAberto] = useState(false)
   const [modalAssinaturaAberto, setModalAssinaturaAberto] = useState(false)
+
+  // Protocolo "Impressão limpa (sem assinatura eletrônica)"
+  const [tipoGeracao, setTipoGeracao] = useState<TipoGeracaoPdf>('padrao')
 
   // Estado do Autosave
   const [autosaveStatus, setAutosaveStatus] = useState<
@@ -1065,9 +1077,24 @@ export const DocumentosEditalPage: React.FC = () => {
     if (deliberacaoAtiva) {
       await api.registrarEventoAuditoria({
         evento: 'documento_upload',
-        fator: `Mesa: geração e download de documento PDF do Edital (${deliberacaoAtiva.id})`,
+        fator: `Mesa: geração e download de documento PDF do Edital (${deliberacaoAtiva.id})${tipoGeracao === 'impressao_limpa' ? ' — via impressão limpa' : ''}`,
         dispositivo: navigator.userAgent,
       })
+    }
+
+    if (tipoGeracao === 'impressao_limpa') {
+      // Protocolo "Impressão limpa (sem assinatura eletrônica)": HTML sem nenhuma
+      // menção a assinatura eletrônica (sem ICP-Brasil/MP 2.200-2, sem hash,
+      // sem bloco ZapSign), impressão nativa via window.print.
+      imprimirHtmlDocumentoLimpo(
+        gerarHtmlDocumentoEdital({ ...dadosParaPdf, impressaoLimpa: true }),
+        'Edital de Convocação',
+      )
+      toast({
+        title: 'Gerando PDF do Edital (impressão limpa)',
+        description: 'Na janela de impressão, selecione "Salvar como PDF" com formato A4.',
+      })
+      return
     }
 
     imprimirOuBaixarPdfEdital(dadosParaPdf)
@@ -1321,6 +1348,31 @@ export const DocumentosEditalPage: React.FC = () => {
               </SelectContent>
             </Select>
           )}
+
+          {/* Protocolo "Impressão limpa (sem assinatura eletrônica)" */}
+          <Select
+            value={tipoGeracao}
+            onValueChange={(val) => setTipoGeracao(val as TipoGeracaoPdf)}
+          >
+            <SelectTrigger
+              className="w-64 text-xs h-9 bg-white border-slate-300"
+              title={
+                tipoGeracao === 'impressao_limpa'
+                  ? ROTULO_IMPRESSAO_LIMPA
+                  : 'Vias padrão (assinatura eletrônica)'
+              }
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="padrao" className="text-xs">
+                Vias padrão (assinatura eletrônica)
+              </SelectItem>
+              <SelectItem value="impressao_limpa" className="text-xs">
+                {ROTULO_IMPRESSAO_LIMPA}
+              </SelectItem>
+            </SelectContent>
+          </Select>
 
           <Button
             size="sm"

@@ -13,6 +13,7 @@ import { formatarCpf } from '@/lib/cpf'
 import pb from '@/lib/pocketbase/client'
 import { toast } from '@/hooks/use-toast'
 import { imprimirOuBaixarPdfAta, type DadosAtaPdf } from '@/lib/pdfAta'
+import { type TipoGeracaoPdf, ROTULO_IMPRESSAO_LIMPA } from '@/lib/impressaoLimpa'
 import { gerarPdfAtaComHash, type ProvaAtaPdf } from '@/lib/pdf/gerarPdfAtaBytes'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import type { ZapSignSignatarioUrl } from '@/lib/api'
@@ -118,6 +119,9 @@ export const AtaAssembleiaPage: React.FC = () => {
 
   // Integração ZapSign (Fase 3)
   const [zapsignStatus, setZapsignStatus] = useState<string | null>(null)
+
+  // Protocolo "Impressão limpa (sem assinatura eletrônica)"
+  const [tipoGeracao, setTipoGeracao] = useState<TipoGeracaoPdf>('padrao')
   const [zapsignDocToken, setZapsignDocToken] = useState<string | null>(null)
   const [zapsignModoAssinatura, setZapsignModoAssinatura] = useState<string | null>(null)
   const [zapsignSignatarios, setZapsignSignatarios] = useState<ZapSignSignatarioUrl[] | null>(null)
@@ -1390,10 +1394,41 @@ export const AtaAssembleiaPage: React.FC = () => {
                 Salvar Rascunho
               </Button>
 
+              {/* Protocolo "Impressão limpa (sem assinatura eletrônica)" */}
+              <Select
+                value={tipoGeracao}
+                onValueChange={(val) => setTipoGeracao(val as TipoGeracaoPdf)}
+              >
+                <SelectTrigger
+                  className="w-64 text-xs h-8 bg-white border-slate-300"
+                  title={
+                    tipoGeracao === 'impressao_limpa'
+                      ? ROTULO_IMPRESSAO_LIMPA
+                      : 'Vias padrão (assinatura eletrônica)'
+                  }
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="padrao" className="text-xs">
+                    Vias padrão (assinatura eletrônica)
+                  </SelectItem>
+                  <SelectItem value="impressao_limpa" className="text-xs">
+                    {ROTULO_IMPRESSAO_LIMPA}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => imprimirOuBaixarPdfAta(dadosPdf)}
+                onClick={() =>
+                  imprimirOuBaixarPdfAta(
+                    tipoGeracao === 'impressao_limpa'
+                      ? { ...dadosPdf, impressaoLimpa: true }
+                      : dadosPdf,
+                  )
+                }
                 className="text-xs h-8 gap-1.5 bg-white border-slate-300"
               >
                 <Printer className="h-3.5 w-3.5 text-slate-700" />
@@ -2158,7 +2193,13 @@ export const AtaAssembleiaPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Button
                     size="sm"
-                    onClick={() => imprimirOuBaixarPdfAta(dadosPdf)}
+                    onClick={() =>
+                      imprimirOuBaixarPdfAta(
+                        tipoGeracao === 'impressao_limpa'
+                          ? { ...dadosPdf, impressaoLimpa: true }
+                          : dadosPdf,
+                      )
+                    }
                     className="bg-cyan-700 hover:bg-cyan-800 text-white text-xs h-8 gap-1.5"
                   >
                     <Printer className="h-3.5 w-3.5" /> Imprimir Documento A4
