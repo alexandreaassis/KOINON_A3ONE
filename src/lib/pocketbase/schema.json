@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T22:07:51.421Z",
+  "generatedAt": "2026-11-23T16:24:43.197Z",
   "collections": [
     {
       "name": "users",
@@ -63,6 +63,13 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "unidades",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "unidades"
         }
       ],
       "indexes": [

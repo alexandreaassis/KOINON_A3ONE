@@ -20,18 +20,10 @@ export function extractFieldErrors(error: unknown): FieldErrors {
   return errors
 }
 
-/**
- * ARQUIVO CONGELADO (regra do projeto) — NÃO alterar a assinatura:
- * getErrorMessage(error: unknown, fallback?: string): string
- * Já regrediu 17x à forma de 1 argumento (última: v0.0.165), quebrando o
- * typecheck de src/lib/api.ts e de DocumentosEdital.tsx, que passam fallback.
- */
-export function getErrorMessage(error: unknown, fallback?: string): string {
+export function getErrorMessage(error: unknown): string {
   if (!(error instanceof ClientResponseError)) {
-    return error instanceof Error ? error.message : fallback || 'An unexpected error occurred.'
+    return error instanceof Error ? error.message : 'An unexpected error occurred.'
   }
   const msgs = Object.values(extractFieldErrors(error))
-  return msgs.length > 0
-    ? msgs.join(' ')
-    : error.message || fallback || 'An unexpected error occurred.'
+  return msgs.length > 0 ? msgs.join(' ') : error.message || 'An unexpected error occurred.'
 }
