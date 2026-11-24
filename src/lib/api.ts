@@ -14,6 +14,8 @@ export interface UserRecord extends RecordModel {
   /** Multi-relação para múltiplas unidades por proprietário (migration 1768400000000) */
   unidades?: string[]
   ativo?: boolean
+  /** Troca obrigatória de senha no primeiro acesso (migration 0049) */
+  deve_trocar_senha?: boolean
   expand?: {
     unidade?: UnidadeRecord
     unidades?: UnidadeRecord[]
@@ -1031,6 +1033,20 @@ export const api = {
       method: 'POST',
       body: { cadastroId, motivo },
     })
+  },
+
+  // Troca obrigatória de senha no primeiro acesso (users.deve_trocar_senha=true).
+  // O hook trocar_senha_obrigatoria.js valida a senha atual, grava a nova e limpa
+  // o flag server-side; a senha nunca trafega em log ou resposta.
+  async trocarSenhaObrigatoria(dados: {
+    senha_atual: string
+    nova_senha: string
+    confirmacao_senha: string
+  }) {
+    return pb.send<{ success: boolean; message: string; deve_trocar_senha: boolean }>(
+      '/backend/v1/usuario/trocar-senha',
+      { method: 'POST', body: dados },
+    )
   },
 
   async deleteItemPauta(id: string) {

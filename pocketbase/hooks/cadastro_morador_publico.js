@@ -336,9 +336,21 @@ routerAdd('POST', '/backend/v1/publico/cadastro-morador', (e) => {
     })
   }
 
-  // Validar contatos
-  if (!email || !email.includes('@')) {
-    return e.json(400, { success: false, message: 'E-mail obrigatório e deve ser válido.' })
+  // Validar contatos — e-mail é OBRIGATÓRIO (formato nome@dominio.tld):
+  // é o usuário de login da conta provisionada e o canal das convocações.
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+  if (!email) {
+    return e.json(400, {
+      success: false,
+      message:
+        'E-mail obrigatório: informe um e-mail válido — ele será seu usuário de acesso à plataforma e o canal oficial das convocações.',
+    })
+  }
+  if (!EMAIL_RE.test(email)) {
+    return e.json(400, {
+      success: false,
+      message: 'E-mail inválido: informe no formato nome@exemplo.com.',
+    })
   }
   if (!telefone || telefone.replace(/\D/g, '').length < 8) {
     return e.json(400, { success: false, message: 'Telefone de contato obrigatório.' })

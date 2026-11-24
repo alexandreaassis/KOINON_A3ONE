@@ -22,6 +22,10 @@ interface AuthContextType {
   redefinirSenhaComToken: (token: string, novaSenha: string) => Promise<boolean>
   confirmarEmailComToken: (token: string) => Promise<boolean>
   recadastrarSessaoUnica: (unidadeId: string, deliberacaoId: string) => Promise<string | null>
+  /** Recarrega o registro do usuário autenticado do servidor (ex.: pós troca de senha obrigatória) */
+  atualizarUsuarioLocal: () => Promise<void>
+  /** Conta provisionada aguarda troca obrigatória de senha (users.deve_trocar_senha) */
+  deveTrocarSenha: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -286,6 +290,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true
   }
 
+  // Recarrega o registro do usuário autenticado direto do servidor — usado após
+  // a troca obrigatória de senha para refletir deve_trocar_senha=false sem relogin.
+  const atualizarUsuarioLocal = async () => {
+    if (!pb.authStore.isValid) return
+    try {
+      const rec = await pb.collection('users').getOne<UserRecord>(pb.authStore.record!.id)
+      const mesclado = { ...(pb.authStore.record as unknown as UserRecord), ...rec } as UserRecord
+      pb.authStore.save(pb.authStore.token, mesclado as unknown as RecordModel)
+      setUser(mesclado)
+    } catch (err) {
+      console.warn('Falha ao atualizar usuário local:', err)
+    }
+  }
+
+  const deveTrocarSenha = useMemo<boolean>(() => {
+    return !!user && user.deve_trocar_senha === true
+  }, [user])
+
   const role = useMemo<UserRole | null>(() => {
     if (!user) return null
     return user.role || 'morador'
@@ -318,6 +340,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         redefinirSenhaComToken,
         confirmarEmailComToken,
         recadastrarSessaoUnica,
+        atualizarUsuarioLocal,
+        deveTrocarSenha,
       }}
     >
       {children}

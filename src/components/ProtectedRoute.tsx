@@ -5,6 +5,9 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button'
 import { ShieldAlert, LogOut, Home } from 'lucide-react'
 
+/** Rota da troca obrigatória de senha (conta provisionada, users.deve_trocar_senha) */
+export const ROTA_TROCA_OBRIGATORIA = '/trocar-senha'
+
 interface ProtectedRouteProps {
   children: React.ReactNode
   requireMesa?: boolean
@@ -16,8 +19,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireMesa = false,
   requireAdmin = false,
 }) => {
-  const { user, role, isAdmin, isMesaOuAdmin, isLoading, logout } = useAuth()
+  const { user, role, isAdmin, isMesaOuAdmin, isLoading, logout, deveTrocarSenha } = useAuth()
   const location = useLocation()
+
+  // Gate de troca obrigatória de senha: conta provisionada (deve_trocar_senha=true)
+  // só pode navegar até a tela de troca — nenhuma outra rota é acessível antes.
+  if (deveTrocarSenha && location.pathname !== ROTA_TROCA_OBRIGATORIA) {
+    return <Navigate to={ROTA_TROCA_OBRIGATORIA} state={{ from: location }} replace />
+  }
 
   if (isLoading) {
     return (
