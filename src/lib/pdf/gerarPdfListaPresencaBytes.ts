@@ -125,10 +125,10 @@ export const gerarPdfListaPresencaBytes = async (
   y += 3
 
   // Tabela de presenças
-  const colUnidade = 30
-  const colNome = LARGURA_UTIL - colUnidade - 28 - 30
-  const colForma = 28
-  const colData = 30
+  const colUnidade = 22
+  const colNome = LARGURA_UTIL - colUnidade - 22 - 38
+  const colForma = 22
+  const colData = 38
 
   const desenharCabecalho = (py: number): number => {
     doc.setFillColor(...corDestaque)
@@ -191,7 +191,6 @@ export const gerarPdfListaPresencaBytes = async (
       MARGEM_LATERAL + colUnidade + colNome + colForma + 2,
       y + 5.5,
     )
-
     doc.setDrawColor(...corLinha)
     doc.line(MARGEM_LATERAL, y + 8, MARGEM_LATERAL + LARGURA_UTIL, y + 8)
     y += 8
