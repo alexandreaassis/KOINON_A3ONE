@@ -20,6 +20,7 @@ import LoginPage from '@/pages/auth/Login'
 import EsqueciSenhaPage from '@/pages/auth/EsqueciSenha'
 import RedefinirSenhaPage from '@/pages/auth/RedefinirSenha'
 import VerificarEmailPage from '@/pages/auth/VerificarEmail'
+import TrocarSenhaObrigatoriaPage from '@/pages/auth/TrocarSenhaObrigatoria'
 
 // Páginas do Módulo do Morador
 import MinhaSituacaoPage from '@/pages/morador/MinhaSituacao'
@@ -120,6 +121,9 @@ const App = () => (
               path="/_/#/auth/confirm-password-reset/:token"
               element={<RedefinirSenhaPage />}
             />
+
+            {/* Troca obrigatória de senha (conta provisionada, users.deve_trocar_senha) */}
+            <Route path="/trocar-senha" element={<TrocarSenhaObrigatoriaPage />} />
 
             {/* Confirmação e Verificação de E-mail */}
             <Route path="/verificar-email" element={<VerificarEmailPage />} />

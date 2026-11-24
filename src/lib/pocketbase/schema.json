@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-24T19:55:55.659Z",
+  "generatedAt": "2026-11-24T20:33:34.336Z",
   "collections": [
     {
       "name": "users",
@@ -1298,7 +1298,8 @@
             "otp_enviado",
             "ata_disponivel_assinatura",
             "deliberacao_publicada",
-            "convite_assembleia"
+            "convite_assembleia",
+            "acesso_provisionado"
           ]
         },
         {

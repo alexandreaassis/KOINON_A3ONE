@@ -168,6 +168,10 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
     }
   }
 
+  // Formatar e validar e-mail (obrigatório: convocações + acesso provisionado)
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const validarEmail = (val: string): boolean => EMAIL_RE.test(val.trim())
+
   // Formatar telefone em tempo real e na colagem
   const handleTelefoneChange = (val: string) => {
     const formatado = formatarTelefone(val)
@@ -236,7 +240,7 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
     if (!nome.trim() || nome.trim().length < 3) return false
     if (!validarCpf(cpf)) return false
     if (!dataNascimento || !/^\d{4}-\d{2}-\d{2}$/.test(dataNascimento)) return false
-    if (!email.trim() || !email.includes('@')) return false
+    if (!validarEmail(email)) return false
     const telDigitos = limparTelefone(telefone)
     if (!telDigitos || telDigitos.length < 10) return false
     if (!vinculo) return false
@@ -273,8 +277,10 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
       return
     }
 
-    if (!email.trim() || !email.includes('@')) {
-      setErroEnvio('Informe um e-mail válido para recebimento das convocações.')
+    if (!validarEmail(email)) {
+      setErroEnvio(
+        'Informe um e-mail válido — será usado para as convocações e o acesso à plataforma.',
+      )
       return
     }
 
@@ -874,12 +880,23 @@ export const CadastroMoradorPublicoPage: React.FC = () => {
                               id="cad-email"
                               type="email"
                               required
+                              autoComplete="email"
                               placeholder="seuemail@exemplo.com"
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
-                              className="pl-10 h-10 border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF] focus-visible:border-[#0066FF]"
+                              className={`pl-10 h-10 border-[#5A6B82]/30 bg-white text-[#002B5E] placeholder:text-[#5A6B82] rounded-[10px] focus-visible:ring-[#0066FF] focus-visible:border-[#0066FF] ${
+                                email.trim() && !validarEmail(email)
+                                  ? 'border-red-500 focus-visible:ring-red-500'
+                                  : ''
+                              }`}
                             />
                           </div>
+                          {email.trim() && !validarEmail(email) && (
+                            <p className="text-[10px] text-red-600">
+                              Informe um e-mail válido (ex.: nome@dominio.com) — ele será usado para
+                              as convocações e o acesso à plataforma.
+                            </p>
+                          )}
                         </div>
 
                         <div className="space-y-1.5">

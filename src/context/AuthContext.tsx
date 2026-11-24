@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react'
+import type { RecordModel } from 'pocketbase'
 import pb from '@/lib/pocketbase/client'
 import type { UserRecord, UnidadeRecord } from '@/lib/api'
 import { api } from '@/lib/api'
