@@ -2263,6 +2263,25 @@ export const api = {
     })
   },
 
+  // Configuração Groq (transcrição de áudio da mesa)
+  async obterConfigGroq(): Promise<{ success: boolean; configurado: boolean; message?: string }> {
+    return pb.send<{ success: boolean; configurado: boolean; message?: string }>(
+      '/backend/v1/admin/groq/config',
+      { method: 'GET' },
+    )
+  },
+
+  async salvarConfigGroq(apiKey: string): Promise<{
+    success: boolean
+    message: string
+    configurado: boolean
+  }> {
+    return pb.send<{ success: boolean; message: string; configurado: boolean }>(
+      '/backend/v1/admin/groq/config',
+      { method: 'POST', body: { api_key: apiKey } },
+    )
+  },
+
   async criarListaPresenca(dados: {
     deliberacao: string
     titulo?: string

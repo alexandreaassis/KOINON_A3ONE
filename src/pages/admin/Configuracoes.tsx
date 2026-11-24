@@ -153,6 +153,13 @@ export const ConfiguracoesPage: React.FC = () => {
   const [carregandoZapsign, setCarregandoZapsign] = useState(true)
   const [salvandoZapsign, setSalvandoZapsign] = useState(false)
 
+  // Configuração Groq (transcrição de áudio da mesa) — chave só no servidor
+  const [groqConfigurado, setGroqConfigurado] = useState(false)
+  const [groqChave, setGroqChave] = useState('')
+  const [substituindoChaveGroq, setSubstituindoChaveGroq] = useState(false)
+  const [carregandoGroq, setCarregandoGroq] = useState(true)
+  const [salvandoGroq, setSalvandoGroq] = useState(false)
+
   // Limpeza de Dados do Ambiente (Dois Passos)
   const [modalLimpezaAberto, setModalLimpezaAberto] = useState(false)
   const [passoLimpeza, setPassoLimpeza] = useState<1 | 2>(1)
@@ -267,6 +274,19 @@ export const ConfiguracoesPage: React.FC = () => {
     }
 
     carregarConfigZapsign()
+
+    const carregarConfigGroq = async () => {
+      try {
+        const resp = await api.obterConfigGroq()
+        setGroqConfigurado(!!resp.configurado)
+      } catch (err) {
+        console.warn('Configuração Groq não disponível ou não configurada:', err)
+      } finally {
+        setCarregandoGroq(false)
+      }
+    }
+
+    carregarConfigGroq()
   }, [])
 
   const rotuloEfetivo = rotuloUnidade === 'outro' ? rotuloLivre.trim() || 'Unidade' : rotuloUnidade
@@ -539,6 +559,40 @@ export const ConfiguracoesPage: React.FC = () => {
     }
   }
 
+  // Salvar Chave Groq
+  const handleSalvarGroq = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!groqChave.trim()) {
+      toast({
+        title: 'Chave obrigatória',
+        description: 'Cole a chave de API da Groq para ativar a transcrição de áudio.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setSalvandoGroq(true)
+    try {
+      const resp = await api.salvarConfigGroq(groqChave.trim())
+      setGroqConfigurado(resp.configurado)
+      setGroqChave('')
+      setSubstituindoChaveGroq(false)
+      toast({
+        title: 'Chave Groq salva',
+        description: 'A chave foi gravada no servidor (collection segura) e nunca é exibida.',
+      })
+    } catch (err: any) {
+      console.error('Erro ao salvar chave Groq:', err)
+      toast({
+        title: 'Erro ao salvar chave',
+        description: err?.message || 'Falha ao salvar a chave da Groq.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSalvandoGroq(false)
+    }
+  }
+
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -661,6 +715,134 @@ export const ConfiguracoesPage: React.FC = () => {
         <SecaoCanaisEnvio
           nomeCondominioPadrao={nomeCondominio || 'Condomínio Residencial Lago Azul'}
         />
+
+        {/* CARD GROQ: TRANSCRIÇÃO DE ÁUDIO DA ASSEMBLEIA (WHISPER) */}
+        <Card className="border-[#002B5E]/15 shadow-sm rounded-xl bg-white overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-[#F3F7FC]/70">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-base font-bold text-[#002B5E] flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-[#0066FF]" /> Transcrição de Áudio (Groq
+                  Whisper)
+                </CardTitle>
+                <CardDescription className="text-xs text-[#5A6B82] mt-0.5">
+                  Integração com a API Groq (modelo whisper-large-v3) para transcrever a gravação da
+                  assembleia e redigir a ata com apoio de IA.
+                </CardDescription>
+              </div>
+              <Badge
+                className={`text-xs px-2.5 py-1 font-semibold shrink-0 self-start sm:self-auto ${
+                  groqConfigurado
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : 'bg-amber-100 text-amber-800 border-amber-300'
+                }`}
+              >
+                {groqConfigurado ? '✓ Conexão Ativa' : 'Não Configurado'}
+              </Badge>
+            </div>
+          </CardHeader>
+
+          <form onSubmit={handleSalvarGroq}>
+            <CardContent className="space-y-4 pt-4">
+              <div className="p-3.5 rounded-lg border border-blue-100 bg-blue-50/50 text-xs text-[#002B5E] space-y-1.5 leading-relaxed">
+                <p className="font-semibold flex items-center gap-1.5 text-blue-900">
+                  <ShieldCheck className="h-4 w-4 text-[#0066FF]" /> Segurança da Chave
+                </p>
+                <p className="text-slate-600">
+                  A chave é gravada no servidor (collection segura de backend, mesmo padrão da
+                  ZapSign) e <strong>nunca é devolvida ao navegador nem exibida</strong>. Não
+                  inserir chaves em arquivos do projeto (.env ou código) — isso bloqueia o push no
+                  GitHub por secret scanning.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="groq-chave" className="text-xs font-semibold text-slate-700">
+                  Chave de API da Groq
+                </Label>
+                {groqConfigurado && !substituindoChaveGroq ? (
+                  <div className="h-10 px-3 rounded-md border border-emerald-300 bg-emerald-50/70 flex items-center justify-between text-xs text-emerald-900">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <span className="font-medium">Chave configurada e protegida no servidor</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSubstituindoChaveGroq(true)
+                        setGroqChave('')
+                      }}
+                      className="text-[11px] text-[#0066FF] hover:underline font-normal"
+                    >
+                      Substituir chave
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <div className="relative">
+                      <Input
+                        id="groq-chave"
+                        type="password"
+                        autoComplete="off"
+                        value={groqChave}
+                        onChange={(e) => setGroqChave(e.target.value)}
+                        placeholder="Cole a chave da Groq (ex: gsk_...)"
+                        className="h-10 text-xs pr-10 border-slate-300 font-mono"
+                      />
+                      <KeyRound className="h-4 w-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                    </div>
+                    {substituindoChaveGroq && (
+                      <div className="flex items-center justify-between pt-0.5">
+                        <span className="text-[11px] text-amber-700">
+                          Preencha a nova chave ou cancele para manter a anterior.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSubstituindoChaveGroq(false)
+                            setGroqChave('')
+                          }}
+                          className="text-[11px] text-slate-600 hover:underline"
+                        >
+                          Cancelar substituição
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <span className="text-[11px] text-slate-500 block">
+                  Disponível no console Groq em <em>API Keys</em>. A transcrição também funciona sem
+                  esta chave quando o servidor tem a variável própria configurada.
+                </span>
+              </div>
+            </CardContent>
+
+            <CardFooter className="bg-[#F8FAFC] py-3 px-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                <span>Endpoint de transcrição:</span>
+                <code className="px-1.5 py-0.5 bg-slate-200/70 rounded text-[10px] font-mono text-slate-700">
+                  /backend/v1/atas/transcrever-audio
+                </code>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={salvandoGroq || carregandoGroq}
+                className="bg-[#002B5E] hover:bg-[#002B5E]/90 text-white font-semibold text-xs h-9 px-4 rounded-[10px] shadow-xs"
+              >
+                {salvandoGroq ? (
+                  <>
+                    <RefreshCw className="mr-2 h-3.5 w-3.5 animate-spin" /> Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-3.5 w-3.5" /> Salvar Configuração Groq
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
 
         {/* CARD ZAPSIGN: ASSINATURA ELETRÔNICA COM VALIDADE JURÍDICA */}
         <Card className="border-[#002B5E]/15 shadow-sm rounded-xl bg-white overflow-hidden">
