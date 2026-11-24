@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-23T23:43:01.501Z",
+  "generatedAt": "2026-11-24T00:09:45.221Z",
   "collections": [
     {
       "name": "users",
@@ -2205,6 +2205,18 @@
         },
         {
           "name": "subtitulo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "alinhamento_corpo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recuo_paragrafo",
           "type": "text",
           "required": false,
           "system": false

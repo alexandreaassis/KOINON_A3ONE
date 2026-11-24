@@ -439,6 +439,11 @@ export interface AtaAssembleiaRecord extends RecordModel {
   cabecalho_condominio?: string
   cabecalho_subtitulo?: string
 
+  // Configuração de impressão do corpo, POR ATA (migration 0046).
+  // Campo ausente/vazio = comportamento histórico (justificado + recuo).
+  alinhamento_corpo?: 'justificado' | 'esquerda'
+  recuo_paragrafo?: 'com' | 'sem'
+
   // Assinatura Presidente da Mesa
   presidente_nome?: string
   presidente_cpf?: string

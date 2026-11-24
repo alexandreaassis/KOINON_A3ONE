@@ -19,6 +19,14 @@ export interface DadosAtaPdf {
   cabecalhoTag?: string
   cabecalhoCondominio?: string
   cabecalhoSubtitulo?: string
+
+  // Configuração de impressão do corpo, POR ATA (migration 0046):
+  // alinhamento do texto e recuo da primeira linha de cada parágrafo.
+  // Campo ausente/vazio = comportamento histórico (justificado + recuo),
+  // preservando a impressão das atas antigas sem os campos novos.
+  alinhamentoCorpo?: 'justificado' | 'esquerda'
+  recuoParagrafo?: 'com' | 'sem'
+
   dataEmissao?: string
   status?: string
   hashAta?: string | null
@@ -149,6 +157,16 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
       ? ''
       : dados.cabecalhoSubtitulo || 'Assembleia Geral de Condôminos'
 
+  // Corpo do texto: configuração da ata em edição (migration 0046).
+  // Ausente/vazio = default histórico: justificado com recuo em cada parágrafo.
+  const alinhamentoCorpo =
+    dados.alinhamentoCorpo === 'esquerda'
+      ? 'left'
+      : dados.alinhamentoCorpo === 'justificado' || !dados.alinhamentoCorpo
+        ? 'justify'
+        : 'left'
+  const recuoAtivo = !dados.recuoParagrafo || dados.recuoParagrafo === 'com'
+
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -157,6 +175,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Great+Vibes&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&display=swap" rel="stylesheet" />
   <style>
     @page {
       size: A4 portrait;
@@ -171,7 +190,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
     body {
       margin: 0;
       padding: 0;
-      font-family: "Georgia", "Cambria", "Times New Roman", serif;
+      font-family: "Aptos", "Archivo", "Georgia", "Cambria", "Times New Roman", serif;
       color: #002B5E;
       background: #ffffff;
       line-height: 1.6;
@@ -260,14 +279,14 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
       font-weight: 500;
     }
     .text-body {
-      text-align: justify;
+      text-align: ${alinhamentoCorpo};
       margin-bottom: 16px;
       line-height: 1.65;
     }
     .rendered-document-html p {
       margin-top: 0;
       margin-bottom: 10px;
-      text-indent: 28px;
+      text-indent: ${recuoAtivo ? '28px' : '0'};
     }
     .rendered-document-html h3 {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;

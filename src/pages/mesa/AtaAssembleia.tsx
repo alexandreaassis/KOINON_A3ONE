@@ -110,6 +110,13 @@ export const AtaAssembleiaPage: React.FC = () => {
     'Assembleia Geral de Condôminos • Convocação Editalícia',
   )
 
+  // Configuração de impressão do corpo, POR ATA (migration 0046).
+  // Campo ausente/vazio no banco = comportamento histórico (justificado + recuo).
+  const [alinhamentoCorpo, setAlinhamentoCorpo] = useState<'justificado' | 'esquerda'>(
+    'justificado',
+  )
+  const [recuoParagrafo, setRecuoParagrafo] = useState<'com' | 'sem'>('com')
+
   // Assinaturas da Mesa Diretora
   const [presidenteNome, setPresidenteNome] = useState('')
   const [presidenteCpf, setPresidenteCpf] = useState('')
@@ -211,6 +218,11 @@ export const AtaAssembleiaPage: React.FC = () => {
 
   const subtituloDocumentoRef = useRef(subtituloDocumento)
   subtituloDocumentoRef.current = subtituloDocumento
+
+  const alinhamentoCorpoRef = useRef(alinhamentoCorpo)
+  alinhamentoCorpoRef.current = alinhamentoCorpo
+  const recuoParagrafoRef = useRef(recuoParagrafo)
+  recuoParagrafoRef.current = recuoParagrafo
 
   const statusAtaRef = useRef(statusAta)
   statusAtaRef.current = statusAta
@@ -660,6 +672,13 @@ export const AtaAssembleiaPage: React.FC = () => {
           setCabecalhoCondominio(ataSalva.cabecalho_condominio ?? nomeCondominio)
           setCabecalhoSubtitulo(ataSalva.cabecalho_subtitulo ?? 'Assembleia Geral de Condôminos')
 
+          // Configuração de impressão do corpo (migration 0046): campo ausente
+          // em ata antiga = default histórico (justificado + recuo)
+          setAlinhamentoCorpo(
+            ataSalva.alinhamento_corpo === 'esquerda' ? 'esquerda' : 'justificado',
+          )
+          setRecuoParagrafo(ataSalva.recuo_paragrafo === 'sem' ? 'sem' : 'com')
+
           setPresidenteNome(ataSalva.presidente_nome || delibAtual.mesa_presidente_nome || '')
           setPresidenteCpf(
             formatarCpf(ataSalva.presidente_cpf || delibAtual.mesa_presidente_cpf || ''),
@@ -705,6 +724,9 @@ export const AtaAssembleiaPage: React.FC = () => {
           setCabecalhoTag('Ata de Assembleia e Deliberativa')
           setCabecalhoCondominio(nomeCondominio)
           setCabecalhoSubtitulo('Assembleia Geral de Condôminos')
+
+          setAlinhamentoCorpo('justificado')
+          setRecuoParagrafo('com')
 
           setPresidenteNome(delibAtual.mesa_presidente_nome || '')
           setPresidenteCpf(formatarCpf(delibAtual.mesa_presidente_cpf || ''))
@@ -953,6 +975,8 @@ export const AtaAssembleiaPage: React.FC = () => {
           cabecalho_tag: cabecalhoTagRef.current,
           cabecalho_condominio: cabecalhoCondominioRef.current,
           cabecalho_subtitulo: cabecalhoSubtituloRef.current,
+          alinhamento_corpo: alinhamentoCorpoRef.current,
+          recuo_paragrafo: recuoParagrafoRef.current,
           status: novoStatus,
           presidente_nome: presidenteNome.trim(),
           presidente_cpf: rawPresCpf,
@@ -1063,6 +1087,8 @@ export const AtaAssembleiaPage: React.FC = () => {
     cabecalhoTag,
     cabecalhoCondominio,
     cabecalhoSubtitulo,
+    alinhamentoCorpo,
+    recuoParagrafo,
     persistirAtaNoBanco,
     gerandoIa,
   ])
@@ -1264,6 +1290,8 @@ export const AtaAssembleiaPage: React.FC = () => {
       cabecalhoTag,
       cabecalhoCondominio,
       cabecalhoSubtitulo,
+      alinhamentoCorpo,
+      recuoParagrafo,
       subtitulo: subtituloDocumento,
       conteudoHtml: sanitizeHtml(conteudoHtml),
       status: statusAta,
@@ -1295,6 +1323,8 @@ export const AtaAssembleiaPage: React.FC = () => {
       cabecalhoTag,
       cabecalhoCondominio,
       cabecalhoSubtitulo,
+      alinhamentoCorpo,
+      recuoParagrafo,
       conteudoHtml,
       statusAta,
       hashAta,
@@ -1834,6 +1864,53 @@ export const AtaAssembleiaPage: React.FC = () => {
                     <p className="text-[11px] text-slate-500">
                       As linhas em branco ficam de fora do PDF — a logomarca e o rodapé já
                       identificam a origem do documento.
+                    </p>
+                  </div>
+
+                  {/* Configuração de impressão do corpo, por ata (migration 0046) */}
+                  <div className="rounded-md border border-slate-200 bg-slate-50/60 p-3">
+                    <Label className="text-xs font-semibold text-slate-700">
+                      Impressão do corpo do texto:
+                    </Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                      <div>
+                        <Label className="text-[11px] font-medium text-slate-500">
+                          Alinhamento:
+                        </Label>
+                        <select
+                          aria-label="Alinhamento do corpo do texto"
+                          value={alinhamentoCorpo}
+                          onChange={(e) =>
+                            setAlinhamentoCorpo(
+                              e.target.value === 'esquerda' ? 'esquerda' : 'justificado',
+                            )
+                          }
+                          className="text-xs h-9 bg-white border border-slate-300 rounded-md px-2 mt-1 w-full"
+                        >
+                          <option value="justificado">Justificado</option>
+                          <option value="esquerda">Esquerda</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label className="text-[11px] font-medium text-slate-500">
+                          Recuo na primeira linha de cada parágrafo:
+                        </Label>
+                        <select
+                          aria-label="Recuo de parágrafo"
+                          value={recuoParagrafo}
+                          onChange={(e) =>
+                            setRecuoParagrafo(e.target.value === 'sem' ? 'sem' : 'com')
+                          }
+                          className="text-xs h-9 bg-white border border-slate-300 rounded-md px-2 mt-1 w-full"
+                        >
+                          <option value="com">Com recuo</option>
+                          <option value="sem">Sem recuo</option>
+                        </select>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-2">
+                      Vale para o PDF desta ata (inclusive Impressão limpa). Atas antigas sem essa
+                      escolha continuam imprimindo justificadas e com recuo, como sempre.
                     </p>
                   </div>
 

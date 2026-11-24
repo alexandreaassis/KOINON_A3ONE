@@ -2,6 +2,7 @@
 
 /* Identidade Visual Koinon — Manual da Marca v1.0 (Paleta herdada da A3ONE) */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -611,7 +612,14 @@ table tbody tr {
 }
 table tbody tr:hover {
   background-color: rgba(243, 247, 252, 0.7) !important;
-} /* Rich Text Editor Content & Rendered HTML */
+} /* Webfont Aptos não existe no Google Fonts (é proprietária da Microsoft);
+   Archivo é a fallback webfont carregada localmente para o seletor "Aptos". */
+.rich-editor-content .ProseMirror span[style*='Aptos'],
+.rendered-document-html span[style*='Aptos'] {
+  font-family: 'Aptos', 'Archivo', Georgia, sans-serif;
+}
+
+/* Rich Text Editor Content & Rendered HTML */
 .rich-editor-content .ProseMirror,
 .rendered-document-html {
   outline: none;

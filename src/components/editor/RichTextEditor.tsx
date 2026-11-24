@@ -48,6 +48,7 @@ export interface RichTextEditorProps {
 }
 
 const FONT_FAMILIES = [
+  { label: 'Aptos', value: '"Aptos", "Archivo", Georgia, sans-serif' },
   { label: 'Padrão (Serif)', value: 'Georgia, Cambria, serif' },
   { label: 'Times New Roman', value: '"Times New Roman", Times, serif' },
   { label: 'Arial (Sans)', value: 'Arial, Helvetica, sans-serif' },
