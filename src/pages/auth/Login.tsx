@@ -19,6 +19,18 @@ import { Mail, Lock, AlertTriangle, ArrowRight, Eye, EyeOff } from 'lucide-react
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { EndossoA3One } from '@/components/brand/EndossoA3One'
 
+/**
+ * Divide o nome do condomínio em duas linhas para o destaque de marca do login:
+ * o trecho que antecede "Lago Azul" fica na primeira linha e "Lago Azul"
+ * centralizado na segunda. Quando o nome não termina com "Lago Azul",
+ * retorna uma única linha (comportamento atual).
+ */
+const dividirNomeCondominioEmDuasLinhas = (nome: string): string[] => {
+  const m = nome.trim().match(/^(.*?)\s+(Lago Azul)$/i)
+  if (!m) return [nome.trim()]
+  return [m[1].trim(), m[2]]
+}
+
 export const LoginPage: React.FC = () => {
   const { login } = useAuth()
   const { nomeCondominio } = useCondoConfig()
@@ -89,7 +101,12 @@ export const LoginPage: React.FC = () => {
                 Plataforma Virtual Koinon
               </div>
               <CardTitle className="text-2xl font-semibold tracking-[-0.02em] text-[#002B5E]">
-                {nomeCondominio}
+                {/* Nome em duas linhas: "Lago Azul" centralizado abaixo de "Condomínio Residencial" */}
+                {dividirNomeCondominioEmDuasLinhas(nomeCondominio).map((linha, i) => (
+                  <span key={i} className="block leading-tight">
+                    {linha}
+                  </span>
+                ))}
               </CardTitle>
               <CardDescription className="text-xs text-[#5A6B82]">
                 Acesse a cabine de votação e participe das deliberações
