@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { KoinonLogo } from '@/components/brand/KoinonLogo'
 import { KoinonSymbol } from '@/components/brand/KoinonSymbol'
-import { Mail, Lock, AlertTriangle, ArrowRight, ShieldCheck, User, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, AlertTriangle, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { EndossoA3One } from '@/components/brand/EndossoA3One'
 
@@ -56,17 +56,6 @@ export const LoginPage: React.FC = () => {
       }
     } finally {
       setCarregando(false)
-    }
-  }
-
-  // Preencher rapidamente para teste da banca
-  const preencherCredencial = (tipo: 'mesa' | 'morador') => {
-    if (tipo === 'mesa') {
-      setEmail('alexandre@a3one.com.br')
-      setSenha('Skip@Pass')
-    } else {
-      setEmail('morador@lagoazul.com.br')
-      setSenha('Skip@Pass')
     }
   }
 
@@ -184,33 +173,6 @@ export const LoginPage: React.FC = () => {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </form>
-
-              {/* Atalhos Rápidos para Demonstração / Homologação */}
-              <div className="pt-3 border-t border-[#5A6B82]/15">
-                <p className="text-[11px] font-medium text-[#5A6B82] uppercase tracking-[0.06em] text-center mb-2">
-                  Acesso Rápido para Testes
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="text-xs h-9 border-[#5A6B82]/30 text-[#002B5E] hover:bg-[#F3F7FC] rounded-[10px]"
-                    onClick={() => preencherCredencial('mesa')}
-                  >
-                    <ShieldCheck className="mr-1.5 h-3.5 w-3.5 text-[#0066FF]" /> Mesa Diretora
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="text-xs h-9 border-[#5A6B82]/30 text-[#002B5E] hover:bg-[#F3F7FC] rounded-[10px]"
-                    onClick={() => preencherCredencial('morador')}
-                  >
-                    <User className="mr-1.5 h-3.5 w-3.5 text-[#5A6B82]" /> Morador (101A)
-                  </Button>
-                </div>
-              </div>
             </CardContent>
 
             <CardFooter className="flex flex-col items-center justify-center border-t border-[#5A6B82]/15 py-3 text-center">
