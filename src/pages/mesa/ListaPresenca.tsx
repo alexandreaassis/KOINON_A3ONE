@@ -240,11 +240,12 @@ export const ListaPresencaPage: React.FC = () => {
         setFormaPresenca('procuracao')
       }
     } else {
+      // Somente nomes resolvíveis (cadastro de vínculo ou responsavel_nome real).
+      // Placeholders "Condômino Apto NNNN" nunca pré-preenchem o modal:
+      // sem nome confiável, o campo fica vazio para a mesa digitar.
       const u = unidades.find((item) => item.id === uId)
       if (u && nomesTitulares[u.id]) {
         setParticipanteNome(nomesTitulares[u.id])
-      } else if (u && u.responsavel_nome) {
-        setParticipanteNome(u.responsavel_nome)
       }
     }
   }
@@ -627,7 +628,8 @@ export const ListaPresencaPage: React.FC = () => {
   const larguraIdealTitular = useMemo(() => {
     const candidatos = [
       ...presencasAssinadas.map((p) => p.nome || ''),
-      ...unidades.map((u) => nomesTitulares[u.id] || u.responsavel_nome || ''),
+      // Só nomes resolvíveis: placeholder "Condômino Apto NNNN" não mede largura.
+      ...unidades.map((u) => nomesTitulares[u.id] || ''),
     ]
     const maior = candidatos.reduce((m, n) => (n.length > m.length ? n : m), '')
     const ideal = Math.ceil(medirTextoPx(maior)) + 26 // padding das células + folga mínima
@@ -701,7 +703,8 @@ export const ListaPresencaPage: React.FC = () => {
     const ident = (u.identificador || '').toLowerCase()
     const num = formatarApenasNumeroUnidade(u.identificador).toLowerCase()
     const bloco = (u.bloco || '').toLowerCase()
-    const resp = (nomesTitulares[u.id] || u.responsavel_nome || '').toLowerCase()
+    // Busca por nome só em nomes resolvíveis — placeholder nunca é termo de busca.
+    const resp = (nomesTitulares[u.id] || '').toLowerCase()
     const pres = mapaPresencas.get(u.id)
     const proc = (pres?.nome_procurador || '').toLowerCase()
     return (
@@ -742,7 +745,8 @@ export const ListaPresencaPage: React.FC = () => {
               : pres
                 ? 'Presencial'
                 : presencasAntigas.find((p) => p.unidade === u.id)?.tipo || 'Ausente'
-        const nome = pres?.nome || nomesTitulares[u.id] || u.responsavel_nome || ''
+        // Placeholder "Condômino Apto NNNN" não entra como nome na impressão limpa.
+        const nome = pres?.nome || nomesTitulares[u.id] || ''
         const proc = pres?.nome_procurador || ''
         return `<tr>
         <td style="padding:6px 8px;border:1px solid #D5DCE5;text-align:center;font-weight:bold;">${esc(formatarApenasNumeroUnidade(u.identificador))}${u.bloco ? `<div style="font-size:8px;font-weight:normal;color:#5C6B7A;">${esc(u.bloco.replace(/^Bloco\s+/i, 'Bl. '))}</div>` : ''}</td>
@@ -1338,13 +1342,13 @@ export const ListaPresencaPage: React.FC = () => {
                                 </span>
                               )}
                             </div>
-                          ) : nomesTitulares[u.id] || u.responsavel_nome ? (
+                          ) : nomesTitulares[u.id] ? (
                             <div className="truncate">
                               <span
                                 className="text-[#12314F] block truncate"
-                                title={nomesTitulares[u.id] || u.responsavel_nome}
+                                title={nomesTitulares[u.id]}
                               >
-                                {nomesTitulares[u.id] || u.responsavel_nome}
+                                {nomesTitulares[u.id]}
                               </span>
                               <span className="text-[10px] text-[#5C6B7A] italic block">
                                 Cadastrado

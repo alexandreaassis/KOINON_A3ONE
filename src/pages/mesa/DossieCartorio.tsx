@@ -541,8 +541,7 @@ export const DossieCartorioPage: React.FC = () => {
                           )}
                         </>
                       ) : (
-                        nomesTitulares[u.id] ||
-                        u.responsavel_nome || <span className="italic">Ausente</span>
+                        nomesTitulares[u.id] || <span className="italic">Ausente</span>
                       )}
                     </td>
                     <td className="p-1.5 border-r border-slate-300 text-center uppercase text-[10px] font-bold">
