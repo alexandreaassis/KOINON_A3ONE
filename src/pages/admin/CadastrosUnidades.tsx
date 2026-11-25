@@ -68,8 +68,10 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
+  Send,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import ModalEnviarMensagem from '@/components/mensagem/ModalEnviarMensagem'
 
 interface LinhaPlanilhaImportada {
   linha: number
@@ -395,6 +397,22 @@ export const CadastrosUnidadesPage: React.FC = () => {
     setFormAtivo(cad.ativo ?? true)
     setFormObservacoes(cad.observacoes || '')
     setModalAberto(true)
+  }
+
+  // Enviar mensagem individual (WhatsApp e/ou e-mail, modelos de Configurações)
+  const [msgDest, setMsgDest] = useState<{
+    nome: string
+    telefone: string | null
+    email: string | null
+    unidade: string
+  } | null>(null)
+  const abrirMensagemCadastro = (cad: CadastroUnidadeRecord, unid?: UnidadeRecord) => {
+    setMsgDest({
+      nome: cad.nome || '',
+      telefone: cad.telefone || null,
+      email: cad.email || null,
+      unidade: unid ? formatarUnidadeComBloco(unid, rotuloUnidade) : '',
+    })
   }
 
   // Validação CPF no formulário
@@ -1833,6 +1851,15 @@ export const CadastrosUnidadesPage: React.FC = () => {
                             <Button
                               size="icon"
                               variant="ghost"
+                              onClick={() => abrirMensagemCadastro(cad, unid)}
+                              className="h-7 w-7 text-[#0066FF] hover:bg-[#0066FF]/10"
+                              title="Enviar mensagem individual (WhatsApp e/ou e-mail)"
+                            >
+                              <Send className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
                               onClick={() => abrirModalLinkUnidade(cad.unidade)}
                               className="h-7 w-7 text-[#0066FF] hover:bg-[#0066FF]/10"
                               title="Enviar/Copiar link de cadastro da unidade"
@@ -2578,6 +2605,19 @@ export const CadastrosUnidadesPage: React.FC = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Enviar mensagem individual (WhatsApp e/ou e-mail) por cadastro */}
+      <ModalEnviarMensagem
+        aberto={!!msgDest}
+        onOpenChange={(aberto) => {
+          if (!aberto) setMsgDest(null)
+        }}
+        nome={msgDest?.nome ?? ''}
+        telefone={msgDest?.telefone ?? null}
+        email={msgDest?.email ?? null}
+        unidade={msgDest?.unidade ?? ''}
+        tela="Cadastros da Unidade"
+      />
     </div>
   )
 }

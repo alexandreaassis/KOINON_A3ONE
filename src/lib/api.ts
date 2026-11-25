@@ -1512,6 +1512,39 @@ export const api = {
     }
   },
 
+  /** Payload da mensagem direta individual (WhatsApp manual ou e-mail SMTP). */
+  async enviarMensagemDireta(payload: {
+    canal: 'email' | 'whatsapp'
+    destinatario: string
+    destinatario_nome?: string
+    unidade?: string
+    mensagem: string
+    modelo?: string
+    tela?: string
+    assunto?: string
+  }): Promise<{
+    success: boolean
+    message: string
+    data?: { canal: string; data_hora: string }
+  }> {
+    try {
+      return await pb.send<{
+        success: boolean
+        message: string
+        data?: { canal: string; data_hora: string }
+      }>('/backend/v1/admin/mensagem-direta', {
+        method: 'POST',
+        body: payload,
+      })
+    } catch (err: any) {
+      const msg = getErrorMessage(err, 'Falha ao enviar a mensagem.')
+      const erroTratado = new Error(msg)
+      ;(erroTratado as any).originalError = err
+      ;(erroTratado as any).status = err?.status || 400
+      throw erroTratado
+    }
+  },
+
   // 6. Gerenciamento e Regeneração de unidades com Trava de Segurança
   async previewUnidades(dados: {
     tipo_condominio: TipoCondominio

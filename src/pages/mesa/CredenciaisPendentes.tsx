@@ -23,6 +23,8 @@ import { formatarCpf } from '@/lib/cpf'
 import { formatarTelefone } from '@/lib/telefone'
 import ModalAnaliseCadastro from './ModalAnaliseCadastro'
 import DialogWhatsapp from '@/components/whatsapp/DialogWhatsapp'
+import ModalEnviarMensagem from '@/components/mensagem/ModalEnviarMensagem'
+import { Send } from 'lucide-react'
 import { normalizarNumeroWhatsapp } from '@/lib/whatsapp'
 import { montarTextoInicial } from '@/lib/modelosMensagem'
 import { MessageCircle } from 'lucide-react'
@@ -113,6 +115,26 @@ export const CredenciaisPendentesPage: React.FC = () => {
     setTelefoneWhats(telefone || null)
     setMensagemWhats(montarTextoInicial(modelosMensagem, 'whatsapp', 'cadastro_aprovado', { nome }))
     setDialogWhatsAberto(true)
+  }
+
+  // Enviar mensagem individual (WhatsApp e/ou e-mail, modelos de Configurações)
+  const [msgDest, setMsgDest] = useState<{
+    nome: string
+    telefone: string | null
+    email: string | null
+    unidade: string
+  } | null>(null)
+  const abrirMensagemCadastro = (cad: CadastroUnidadeRecord, unid: UnidadeRecord | undefined) => {
+    setMsgDest({
+      nome: cad.nome || '',
+      telefone: cad.telefone || null,
+      email: cad.email || null,
+      unidade: unid
+        ? [normalizarBloco(unid.bloco, unid.tipo_unidade), unid.identificador]
+            .filter(Boolean)
+            .join(' – ')
+        : '',
+    })
   }
 
   const carregarDados = async () => {
@@ -1046,6 +1068,15 @@ export const CredenciaisPendentesPage: React.FC = () => {
                           <XCircle className="mr-1 h-3.5 w-3.5" /> Rejeitar com Justificativa
                         </Button>
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => abrirMensagemCadastro(cad, unid)}
+                        title="Enviar mensagem individual (WhatsApp e/ou e-mail)"
+                        className="border-[#0066FF]/40 text-[#0066FF] hover:bg-blue-50 text-xs h-8"
+                      >
+                        <Send className="mr-1 h-3.5 w-3.5" /> Enviar mensagem
+                      </Button>
                       {cad.telefone && (
                         <Button
                           size="sm"
@@ -1360,6 +1391,19 @@ export const CredenciaisPendentesPage: React.FC = () => {
         contato={telefoneWhats ? normalizarNumeroWhatsapp(telefoneWhats) : null}
         mensagem={mensagemWhats}
         onMensagemChange={setMensagemWhats}
+      />
+
+      {/* Enviar mensagem individual (WhatsApp e/ou e-mail) por cadastro */}
+      <ModalEnviarMensagem
+        aberto={!!msgDest}
+        onOpenChange={(aberto) => {
+          if (!aberto) setMsgDest(null)
+        }}
+        nome={msgDest?.nome ?? ''}
+        telefone={msgDest?.telefone ?? null}
+        email={msgDest?.email ?? null}
+        unidade={msgDest?.unidade ?? ''}
+        tela="Aprovação de Cadastros"
       />
     </div>
   )

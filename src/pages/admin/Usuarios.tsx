@@ -60,7 +60,9 @@ import {
   RotateCw,
   Eye,
   EyeOff,
+  Send,
 } from 'lucide-react'
+import ModalEnviarMensagem from '@/components/mensagem/ModalEnviarMensagem'
 
 const ITENS_POR_PAGINA = 10
 
@@ -79,6 +81,26 @@ const unidadesDeUsuario = (u: UserRecord): string[] => {
 export const GestaoUsuariosPage: React.FC = () => {
   const { user: currentUser } = useAuth()
   const { rotuloUnidade, nomeCondominio } = useCondoConfig()
+
+  // Enviar mensagem individual (WhatsApp e/ou e-mail, modelos de Configurações)
+  const [msgDest, setMsgDest] = useState<{
+    nome: string
+    telefone: string | null
+    email: string | null
+    unidade: string
+  } | null>(null)
+  const abrirMensagemUsuario = (u: UserRecord) => {
+    const unds = unidadesDeUsuario(u)
+      .map((idU) => unidades.find((item) => item.id === idU))
+      .filter((und): und is UnidadeRecord => !!und)
+      .map((und) => formatarUnidadeComBloco(und, rotuloUnidade))
+    setMsgDest({
+      nome: u.name || '',
+      telefone: (u as unknown as { telefone?: string }).telefone || null,
+      email: u.email || null,
+      unidade: unds.join(', '),
+    })
+  }
 
   const [usuarios, setUsuarios] = useState<UserRecord[]>([])
   const [unidades, setUnidades] = useState<UnidadeRecord[]>([])
@@ -866,6 +888,15 @@ export const GestaoUsuariosPage: React.FC = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
+                                className="text-xs h-7 px-2 border-[#D5DCE5] text-[#0066FF] hover:bg-blue-50 rounded-[8px]"
+                                title="Enviar mensagem individual (WhatsApp e/ou e-mail)"
+                                onClick={() => abrirMensagemUsuario(u)}
+                              >
+                                <Send className="h-3.5 w-3.5 mr-1" /> Mensagem
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 className="text-xs h-7 px-2.5 border-[#D5DCE5] hover:bg-[#F1F4F8] rounded-[8px]"
                                 onClick={() => abrirEditarUsuario(u)}
                               >
@@ -993,6 +1024,15 @@ export const GestaoUsuariosPage: React.FC = () => {
                         </button>
 
                         <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7 px-2 border-[#D5DCE5] text-[#0066FF] rounded-[8px]"
+                            title="Enviar mensagem individual (WhatsApp e/ou e-mail)"
+                            onClick={() => abrirMensagemUsuario(u)}
+                          >
+                            <Send className="h-3.5 w-3.5" />
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
@@ -1637,6 +1677,19 @@ export const GestaoUsuariosPage: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Enviar mensagem individual (WhatsApp e/ou e-mail) por usuário */}
+      <ModalEnviarMensagem
+        aberto={!!msgDest}
+        onOpenChange={(aberto) => {
+          if (!aberto) setMsgDest(null)
+        }}
+        nome={msgDest?.nome ?? ''}
+        telefone={msgDest?.telefone ?? null}
+        email={msgDest?.email ?? null}
+        unidade={msgDest?.unidade ?? ''}
+        tela="Gestão de Usuários"
+      />
     </div>
   )
 }
