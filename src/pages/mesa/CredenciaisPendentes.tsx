@@ -52,6 +52,8 @@ import {
   Eye,
   AlertTriangle,
   ClipboardList,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 
 // Ordem natural/numérica para identificadores de unidade ("9" < "101", "12A" após "12")
@@ -73,6 +75,7 @@ export const CredenciaisPendentesPage: React.FC = () => {
   const [filtroStatus, setFiltroStatus] = useState<string>('pendente')
   const [filtroUnidade, setFiltroUnidade] = useState<string>('todas')
   const [ordemCadastros, setOrdemCadastros] = useState<'unidade' | 'nome' | 'nascimento'>('unidade')
+  const [direcaoOrdemCadastros, setDirecaoOrdemCadastros] = useState<'asc' | 'desc'>('asc')
   const [processandoCad, setProcessandoCad] = useState(false)
   const [busca, setBusca] = useState('')
   const [carregando, setCarregando] = useState(true)
@@ -265,6 +268,16 @@ export const CredenciaisPendentesPage: React.FC = () => {
       return (a.created || '').localeCompare(b.created || '')
     })
 
+  // Cabeçalho clicável: primeira ordena pela coluna; segunda inverte a direção
+  const alternarOrdemPorColuna = (coluna: 'unidade' | 'nome' | 'nascimento') => {
+    if (ordemCadastros === coluna) {
+      setDirecaoOrdemCadastros((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setOrdemCadastros(coluna)
+      setDirecaoOrdemCadastros('asc')
+    }
+  }
+
   // Filtragem Cadastros de Moradores (pendentes primeiro, mais antigos antes)
   const cadastrosFiltrados = cadastrosPublicos
     .filter((cad) => {
@@ -283,26 +296,31 @@ export const CredenciaisPendentesPage: React.FC = () => {
     .sort((a, b) => {
       const ra = a.status_aprovacao || 'aprovado'
       const rb = b.status_aprovacao || 'aprovado'
+      // Pendentes sempre no topo, independente da coluna/direção escolhida
       if (ra === 'pendente' && rb !== 'pendente') return -1
       if (rb === 'pendente' && ra !== 'pendente') return 1
+      const fator = direcaoOrdemCadastros === 'asc' ? 1 : -1
       if (ordemCadastros === 'nome') {
-        return (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' })
+        return fator * (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' })
       }
       if (ordemCadastros === 'nascimento') {
         // data_nascimento chega como 'YYYY-MM-DD 00:00:00.000Z' — a comparação
         // lexicográfica do prefixo ISO equivale à comparação cronológica
-        return (a.data_nascimento || '9999-12-31')
-          .slice(0, 10)
-          .localeCompare((b.data_nascimento || '9999-12-31').slice(0, 10))
+        return (
+          fator *
+          (a.data_nascimento || '9999-12-31')
+            .slice(0, 10)
+            .localeCompare((b.data_nascimento || '9999-12-31').slice(0, 10))
+        )
       }
       // 'unidade': ordem natural/numérica do identificador (101 < 910)
       const ua = unidades.find((u) => u.id === a.unidade)
       const ub = unidades.find((u) => u.id === b.unidade)
       const da = normalizarIdentificador(ua?.identificador)
       const db = normalizarIdentificador(ub?.identificador)
-      if (da && db && da !== db) return da < db ? -1 : 1
-      if (da !== db) return da ? -1 : 1
-      return (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' })
+      if (da && db && da !== db) return fator * (da < db ? -1 : 1)
+      if (da !== db) return da ? fator : -fator
+      return fator * (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' })
     })
 
   const totalCadastrosPendentes = cadastrosPublicos.filter(
@@ -632,7 +650,10 @@ export const CredenciaisPendentesPage: React.FC = () => {
         {abaAtiva === 'cadastros' && (
           <Select
             value={ordemCadastros}
-            onValueChange={(v) => setOrdemCadastros(v as 'unidade' | 'nome' | 'nascimento')}
+            onValueChange={(v) => {
+              setOrdemCadastros(v as 'unidade' | 'nome' | 'nascimento')
+              setDirecaoOrdemCadastros('asc')
+            }}
           >
             <SelectTrigger
               className="w-full sm:w-48 h-9 text-xs"
@@ -677,6 +698,53 @@ export const CredenciaisPendentesPage: React.FC = () => {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Cabeçalho clicável de ordenação (apenas aba Cadastros de Moradores) */}
+      {abaAtiva === 'cadastros' && cadastrosFiltrados.length > 0 && (
+        <div
+          role="row"
+          aria-label="Ordenar cadastros por coluna"
+          className="hidden md:grid md:grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-1.5 rounded-md bg-slate-100/80 border border-slate-200 text-xs font-semibold text-slate-600"
+        >
+          <div className="flex items-center gap-4">
+            {(
+              [
+                { coluna: 'unidade' as const, rotulo: 'Unidade' },
+                { coluna: 'nome' as const, rotulo: 'Nome' },
+                { coluna: 'nascimento' as const, rotulo: 'Nascimento' },
+              ] as const
+            ).map(({ coluna, rotulo }) => {
+              const ativo = ordemCadastros === coluna
+              return (
+                <button
+                  key={coluna}
+                  type="button"
+                  onClick={() => alternarOrdemPorColuna(coluna)}
+                  aria-label={`Ordenar por ${rotulo}${
+                    ativo
+                      ? direcaoOrdemCadastros === 'asc'
+                        ? ' (crescente)'
+                        : ' (decrescente)'
+                      : ''
+                  }`}
+                  className={`flex items-center gap-1 rounded px-1 py-0.5 -mx-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0066FF] ${
+                    ativo ? 'text-[#0066FF]' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {rotulo}
+                  {ativo &&
+                    (direcaoOrdemCadastros === 'asc' ? (
+                      <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
+                    ) : (
+                      <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
+                    ))}
+                </button>
+              )
+            })}
+          </div>
+          <div className="pr-24">Ações</div>
+        </div>
+      )}
 
       {/* Lista de Registros Conforme a Aba Ativa */}
       <div className="space-y-3">

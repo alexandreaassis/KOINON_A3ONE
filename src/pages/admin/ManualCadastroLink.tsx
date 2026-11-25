@@ -364,7 +364,8 @@ export const ManualCadastroLinkPage: React.FC = () => {
             <div>
               <span className="font-semibold text-white">Assembleia Eletrônica Lago Azul</span>
               <p className="text-[10px] text-blue-300">
-                Homologação e apuração sob fé pública da Mesa Diretora • Código Civil Brasileiro
+                Homologação e apuração sob a responsabilidade da Mesa Diretora, com validade
+                jurídica • Código Civil Brasileiro
               </p>
             </div>
             <EndossoA3One variant="on-navy" layout="inline" />
@@ -732,7 +733,7 @@ export const ManualCadastroLinkPage: React.FC = () => {
                 <div className="flex items-start gap-1">
                   <DestaqueNumero numero="8" cor="marinho" className="w-3.5 h-3.5 text-[8px]" />
                   <span>
-                    <strong>Assinatura:</strong> formaliza o aceite com fé pública e IP.
+                    <strong>Assinatura:</strong> formaliza o aceite com validade jurídica e IP.
                   </span>
                 </div>
               </div>

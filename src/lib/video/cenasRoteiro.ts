@@ -180,9 +180,9 @@ export const CENAS_ROTEIRO_OFICIAIS: CenaApresentacaoVideo[] = [
     duracaoEstimadaTexto: '20 segundos',
     dicasLocutor: 'Enfatizar a validade jurídica sem burocracia de cartório físico.',
     textoLocucaoOriginal:
-      'Quando todos os campos obrigatórios estiverem corretos, o botão principal azul ficará ativo: **"Assinar declaração eletronicamente"**. [pausa] Ao clicar, o sistema grava a sua assinatura com o seu **nome completo, a data e hora exatas e o endereço IP** do seu dispositivo. [pausa] Isso confere **rastreabilidade e fé pública** para a assembleia, dispensando impressões ou papel.',
+      'Quando todos os campos obrigatórios estiverem corretos, o botão principal azul ficará ativo: **"Assinar declaração eletronicamente"**. [pausa] Ao clicar, o sistema grava a sua assinatura com o seu **nome completo, a data e hora exatas e o endereço IP** do seu dispositivo. [pausa] Isso confere **rastreabilidade e autenticidade** para a assembleia, dispensando impressões ou papel.',
     partesLocucao: converterTextoEmPartesLocucao(
-      'Quando todos os campos obrigatórios estiverem corretos, o botão principal azul ficará ativo: **"Assinar declaração eletronicamente"**. [pausa] Ao clicar, o sistema grava a sua assinatura com o seu **nome completo, a data e hora exatas e o endereço IP** do seu dispositivo. [pausa] Isso confere **rastreabilidade e fé pública** para a assembleia, dispensando impressões ou papel.',
+      'Quando todos os campos obrigatórios estiverem corretos, o botão principal azul ficará ativo: **"Assinar declaração eletronicamente"**. [pausa] Ao clicar, o sistema grava a sua assinatura com o seu **nome completo, a data e hora exatas e o endereço IP** do seu dispositivo. [pausa] Isso confere **rastreabilidade e autenticidade** para a assembleia, dispensando impressões ou papel.',
     ),
     simulacao: {
       campoFoco: 'botao-assinar',

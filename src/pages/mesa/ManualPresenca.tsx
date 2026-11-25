@@ -309,7 +309,8 @@ export const ManualPresencaPage: React.FC = () => {
             <div>
               <span className="font-semibold text-white">Assembleia Eletrônica Lago Azul</span>
               <p className="text-[10px] text-blue-300">
-                Homologação e apuração sob fé pública da Mesa Diretora • Código Civil Brasileiro
+                Homologação e apuração sob a responsabilidade da Mesa Diretora, com validade
+                jurídica • Código Civil Brasileiro
               </p>
             </div>
             <EndossoA3One variant="on-navy" layout="inline" />

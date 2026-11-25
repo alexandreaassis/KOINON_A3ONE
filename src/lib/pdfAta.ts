@@ -546,7 +546,7 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
           }
 
           <div style="color: #5A6B82; font-size: 7.5pt; margin-top: 4px; line-height: 1.25;">
-            Esta ata foi lavrada sob a fé pública da Mesa Diretora eleita, com integridade garantida por assinatura eletrônica e trilha de auditoria digital encadeada.
+            Esta ata foi lavrada sob a responsabilidade da Mesa Diretora eleita, com validade jurídica e integridade garantida por assinatura eletrônica e trilha de auditoria digital encadeada.
           </div>
         </div>
         `

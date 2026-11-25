@@ -2611,8 +2611,9 @@ export const AtaAssembleiaPage: React.FC = () => {
                   )}
 
                   <p className="text-[10px] text-slate-500 leading-relaxed">
-                    Esta ata foi lavrada sob a fé pública da Mesa Diretora eleita, com integridade
-                    garantida por assinatura eletrônica e trilha de auditoria digital encadeada.
+                    Esta ata foi lavrada sob a responsabilidade da Mesa Diretora eleita, com
+                    validade jurídica e integridade garantida por assinatura eletrônica e trilha de
+                    auditoria digital encadeada.
                   </p>
                 </div>
 

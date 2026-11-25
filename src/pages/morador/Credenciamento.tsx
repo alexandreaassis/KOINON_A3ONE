@@ -499,7 +499,9 @@ export const CredenciamentoPage: React.FC = () => {
 
             <Alert className="border-cyan-200 bg-cyan-50/60 text-cyan-950 mt-2">
               <ShieldCheck className="h-4 w-4 text-cyan-700" />
-              <AlertTitle className="text-xs font-bold">Garantia de Sigilo e Fé Pública</AlertTitle>
+              <AlertTitle className="text-xs font-bold">
+                Garantia de Sigilo e Autenticidade
+              </AlertTitle>
               <AlertDescription className="text-xs">
                 Os documentos são armazenados de forma criptografada e acessados estritamente pela
                 Mesa Diretora da assembleia para verificação da legitimidade do voto, nos termos da
