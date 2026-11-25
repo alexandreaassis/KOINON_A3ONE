@@ -39,7 +39,7 @@ const NARRACOES: Record<string, string> = {
   intro:
     'Bem-vindo ao Manual do Módulo do Morador do Koinon. Aqui você aprende, em linguagem simples, como funciona cada página do seu módulo. A assembleia eletrônica acontece em seis passos: você se cadastra, credencia, vota, recebe o recibo, e a mesa apura os votos e publica a ata. Vamos por partes!',
   situacao:
-    'A página Minha Situação é o painel de controle do morador. Nela você vê se o seu cadastro já foi aprovado pela mesa, a sua situação financeira de forma informativa, e os avisos da assembleia, como o botão para ir ao credenciamento quando a votação começa.',
+    'A página Minha Situação é o painel de controle do morador. Nela você vê se o seu cadastro já foi aprovado pela mesa, a sua situação financeira de forma informativa, e os avisos da assembleia, como o botão para ir ao credenciamento quando a votação começa. Se o seu cadastro acabou de ser aprovado, lembre-se: a sua conta já existe, e a senha temporária que chegou por e-mail deve ser trocada no primeiro acesso.',
   credenciamento:
     'O credenciamento é a confirmação de que você, e somente você, vai participar da assembleia. Você confere seus dados, anexa um documento se a mesa pedir, e recebe por e-mail um código de seis números chamado O T P. Digite o código na tela e pronto: a mesa aprova o seu credenciamento, e você aparece na lista de presença, presencial ou remoto.',
   votacao:
@@ -48,10 +48,10 @@ const NARRACOES: Record<string, string> = {
     'O recibo é o comprovante do seu voto. Ele mostra o código de conferência, um código exclusivo da sua cédula, e a impressão digital, chamada hash, que funciona como a digital do dedo, garantindo que o voto não foi alterado. Guarde esse código: ele permite conferir o seu voto na apuração sem revelar em quem você votou.',
   documentos:
     'Na página Documentos da Assembleia ficam os arquivos oficiais: o edital de convocação, a pauta, a prestação de contas, a convenção, currículos de candidatos e propostas. Abra e baixe quando quiser, antes e depois da assembleia. Ler a pauta com calma antes de votar é o segredo de uma assembleia tranquila.',
-  ata: 'A ata é o documento oficial que registra tudo o que foi decidido na assembleia. Depois de publicada pela mesa, com assinaturas eletrônicas, você pode ler a ata completa ou baixar o P D F. Ela vale como prova das deliberações.',
+  ata: 'A ata é o documento oficial que registra tudo o que foi decidido na assembleia. Depois de publicada pela mesa, você pode ler a ata completa ou baixar o P D F. A mesa pode assiná-la eletronicamente, com selo de segurança, ou imprimi-la e assiná-la em papel, como na ata tradicional. Nas duas formas, ela vale como prova das deliberações.',
   informacoes:
     'E o que acontece com as suas informações? Seu credenciamento vira a lista de presença oficial da mesa. Seu voto vira a cédula com hash encadeado, que a apuração confere uma a uma. O resultado vai para o boletim da urna, a ata e o dossiê assinados, e tudo fica registrado na auditoria verificável do sistema. Nada se perde, tudo é conferível.',
-  faq: 'Ficou com alguma dúvida comum? Esqueci a senha: use a opção Esqueci minha senha na tela de login. Não recebi o código: confira a caixa de spam e peça um novo código. Já votei: o voto confirmado não pode ser mudado. E a regra sobre inadimplência varia conforme a deliberação da assembleia. Qualquer dúvida, use a IA do Koinon ou fale com a mesa.',
+  faq: 'Ficou com alguma dúvida comum? Recebeu uma senha temporária por e-mail: faça login com ela, que o sistema obriga a criar uma senha nova no primeiro acesso. Esqueci a senha: use a opção Esqueci minha senha na tela de login. Não recebi o código: confira a caixa de spam e peça um novo código. Já votei: o voto confirmado não pode ser mudado. E a regra sobre inadimplência varia conforme a deliberação da assembleia. Qualquer dúvida, use a IA do Koinon ou fale com a mesa.',
 }
 
 const SECOES: SecaoManual[] = [
@@ -196,6 +196,13 @@ const ManualMoradorPage: React.FC = () => {
             A assembleia eletrônica do Lago Azul segue um ciclo completo, do cadastro à ata. Veja as
             seis etapas — e onde cada página do Módulo do Morador entra nessa história.
           </p>
+          <CaixaImportante>
+            Primeiro acesso: quando a mesa aprova o seu cadastro, a sua conta é criada
+            automaticamente e você recebe um e-mail com uma senha temporária. No primeiro login, o
+            Koinon exige a troca dessa senha — você cria a sua própria antes de usar o menu. Se não
+            tiver recebido o e-mail, use a opção “Esqueci minha senha” na tela de login para definir
+            a sua senha.
+          </CaixaImportante>
           <MockupFluxoCompleto />
           <CaixaImportante>
             Nada no sistema substitui a mesa diretora: em qualquer etapa, a conferência final é
@@ -303,7 +310,7 @@ const ManualMoradorPage: React.FC = () => {
           <div className="mt-3 flex justify-center">
             <span className="text-[11px] text-slate-400">
               Manual do Módulo do Morador · {contadoresPorSecao} páginas explicadas · atualizado em
-              2026
+              novembro de 2026
             </span>
           </div>
         </footer>
@@ -578,9 +585,9 @@ const MockupSecao: React.FC<{ id: string; onIrPara: (rota: string) => void }> = 
             },
             {
               n: 3,
-              titulo: 'Assinaturas eletrônicas',
+              titulo: 'Assinada eletronicamente ou em papel',
               texto:
-                'A ata é assinada pela mesa diretora. As assinaturas eletrônicas garantem que o documento não foi alterado depois de assinado.',
+                'A ata pode ser assinada de duas formas: eletronicamente pela mesa diretora (com selo de segurança que garante que o documento não foi alterado) ou impressa e assinada em papel, como na ata tradicional. Nas duas formas, ela é o documento oficial.',
             },
           ]}
         />
@@ -655,6 +662,10 @@ const FluxoInformacoes: React.FC = () => {
 /* ---------- FAQ ---------- */
 const FaqCurto: React.FC = () => {
   const perguntas = [
+    {
+      p: 'Recebi uma senha temporária. E agora?',
+      r: 'Quando a mesa aprova o seu cadastro, a sua conta é criada automaticamente e a senha temporária chega por e-mail. Faça login com ela: no primeiro acesso, o sistema exige a troca — você cria a sua própria senha antes de liberar o menu. Guarde a nova senha; ela é pessoal e não deve ser compartilhada.',
+    },
     {
       p: 'Esqueci minha senha. E agora?',
       r: 'Na tela de login, toque em “Esqueci minha senha”. Você receberá um e-mail para criar uma nova. Se o e-mail não chegar em alguns minutos, confira o spam.',

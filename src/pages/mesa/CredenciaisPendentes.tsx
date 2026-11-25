@@ -22,6 +22,9 @@ import {
 import { formatarCpf } from '@/lib/cpf'
 import { formatarTelefone } from '@/lib/telefone'
 import ModalAnaliseCadastro from './ModalAnaliseCadastro'
+import DialogWhatsapp from '@/components/whatsapp/DialogWhatsapp'
+import { montarMensagemCadastroAprovado, normalizarNumeroWhatsapp } from '@/lib/whatsapp'
+import { MessageCircle } from 'lucide-react'
 import type { CadastroUnidadeRecord } from '@/lib/api'
 import {
   Dialog,
@@ -81,6 +84,19 @@ export const CredenciaisPendentesPage: React.FC = () => {
 
   const [processando, setProcessando] = useState(false)
 
+  // Envio manual por WhatsApp (cadastro aprovado) — sem integração de API
+  const [dialogWhatsAberto, setDialogWhatsAberto] = useState(false)
+  const [nomeWhats, setNomeWhats] = useState('')
+  const [telefoneWhats, setTelefoneWhats] = useState<string | null>(null)
+  const [mensagemWhats, setMensagemWhats] = useState('')
+
+  const abrirWhatsappCadastro = (nome: string, telefone?: string) => {
+    setNomeWhats(nome)
+    setTelefoneWhats(telefone || null)
+    setMensagemWhats(montarMensagemCadastroAprovado(nome))
+    setDialogWhatsAberto(true)
+  }
+
   const carregarDados = async () => {
     setCarregando(true)
     try {
@@ -134,6 +150,10 @@ export const CredenciaisPendentesPage: React.FC = () => {
       })
       setCadEmAnalise(null)
       carregarDados()
+      // Atalho de envio manual por WhatsApp (e-mail pode falhar — caixa cheia, endereço errado)
+      if (cad.telefone) {
+        abrirWhatsappCadastro(cad.nome, cad.telefone)
+      }
     } catch (err: any) {
       toast({
         title: 'Erro ao aprovar cadastro',
@@ -868,6 +888,17 @@ export const CredenciaisPendentesPage: React.FC = () => {
                           <XCircle className="mr-1 h-3.5 w-3.5" /> Rejeitar com Justificativa
                         </Button>
                       )}
+                      {cad.telefone && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => abrirWhatsappCadastro(cad.nome, cad.telefone)}
+                          title="Enviar mensagem manualmente pelo WhatsApp (sem integração)"
+                          className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-xs h-8"
+                        >
+                          <MessageCircle className="mr-1 h-3.5 w-3.5" /> WhatsApp
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1162,6 +1193,17 @@ export const CredenciaisPendentesPage: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Envio manual por WhatsApp (mensagem editável, deep link wa.me, cópia de texto) */}
+      <DialogWhatsapp
+        aberto={dialogWhatsAberto}
+        onFechar={() => setDialogWhatsAberto(false)}
+        titulo={`Enviar por WhatsApp — ${nomeWhats || 'morador'}`}
+        descricao="A mensagem abaixo é apenas um modelo pronto: edite antes de enviar se quiser."
+        contato={telefoneWhats ? normalizarNumeroWhatsapp(telefoneWhats) : null}
+        mensagem={mensagemWhats}
+        onMensagemChange={setMensagemWhats}
+      />
     </div>
   )
 }

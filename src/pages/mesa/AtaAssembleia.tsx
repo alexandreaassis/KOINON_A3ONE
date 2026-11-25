@@ -74,7 +74,17 @@ import {
   Volume2,
   FileSignature,
   Copy,
+  MessageCircle,
+  Phone,
 } from 'lucide-react'
+import {
+  montarMensagemAtaPublicada,
+  normalizarNumeroWhatsapp,
+  copiarTexto,
+  montarLinkWhatsapp,
+} from '@/lib/whatsapp'
+import type { CadastroUnidadeRecord } from '@/lib/api'
+import { formatarUnidadeComBloco } from '@/lib/formatadorUnidade'
 
 export const AtaAssembleiaPage: React.FC = () => {
   const navigate = useNavigate()
@@ -161,6 +171,12 @@ export const AtaAssembleiaPage: React.FC = () => {
   const [enviarEmailPublicacao, setEnviarEmailPublicacao] = useState(true)
   const [modalConfirmarRegeneracao, setModalConfirmarRegeneracao] = useState(false)
   const [modalPublicarAberto, setModalPublicarAberto] = useState(false)
+
+  // Envio manual por WhatsApp (ata publicada) — sem integração de API
+  const [painelWhatsAberto, setPainelWhatsAberto] = useState(false)
+  const [moradoresWhats, setMoradoresWhats] = useState<CadastroUnidadeRecord[]>([])
+  const [carregandoWhats, setCarregandoWhats] = useState(false)
+  const [mensagemWhatsAta, setMensagemWhatsAta] = useState('')
 
   // Fase 3: Gravação de Áudio e Extração de Documentos
   const [gravandoAudio, setGravandoAudio] = useState(false)
@@ -1247,6 +1263,56 @@ export const AtaAssembleiaPage: React.FC = () => {
     }
   }
 
+  const dataAssembleiaWhats = useMemo(() => {
+    const iso = deliberacaoAtiva?.data_inicio
+    return iso ? new Date(iso).toLocaleDateString('pt-BR') : ''
+  }, [deliberacaoAtiva?.data_inicio])
+
+  const abrirPainelWhatsapp = async () => {
+    setPainelWhatsAberto(true)
+    setMensagemWhatsAta(montarMensagemAtaPublicada(dataAssembleiaWhats))
+    setCarregandoWhats(true)
+    try {
+      const lista = await api.getCadastrosUnidades({ ativo: true, statusAprovacao: 'aprovado' })
+      // Só quem tem celular cadastrado; dedup por número normalizado (mesmo número = um contato)
+      const vistos = new Set<string>()
+      const comCelular: CadastroUnidadeRecord[] = []
+      for (const c of lista) {
+        const num = normalizarNumeroWhatsapp(c.telefone)
+        if (!num.valido || vistos.has(num.internacional)) continue
+        vistos.add(num.internacional)
+        comCelular.push(c)
+      }
+      setMoradoresWhats(comCelular)
+    } catch (err: unknown) {
+      toast({
+        title: 'Erro ao carregar moradores',
+        description: getErrorMessage(err, 'Não foi possível listar os cadastros aprovados.'),
+        variant: 'destructive',
+      })
+    } finally {
+      setCarregandoWhats(false)
+    }
+  }
+
+  const copiarListaWhats = async () => {
+    const linhas = moradoresWhats.map((m) => {
+      const num = normalizarNumeroWhatsapp(m.telefone)
+      const unid = m.expand?.unidade
+      const unidTxt = unid ? unid.identificador : m.unidade
+      return `${m.nome} — ${unidTxt} — ${num.internacional}`
+    })
+    const texto = `${mensagemWhatsAta}\n\nContatos:\n${linhas.join('\n')}`
+    const ok = await copiarTexto(texto)
+    toast({
+      title: ok ? 'Lista copiada' : 'Não foi possível copiar',
+      description: ok
+        ? 'Mensagem e contatos copiados. Cole onde preferir e envie.'
+        : 'Copie os contatos manualmente da lista na tela.',
+      variant: ok ? 'default' : 'destructive',
+    })
+  }
+
   // Ação de Publicar Ata aos Moradores
   const handlePublicarAta = async () => {
     if (!ataDbId) {
@@ -1570,6 +1636,17 @@ export const AtaAssembleiaPage: React.FC = () => {
                   ✓ Ata Publicada aos Moradores
                 </Badge>
               )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={abrirPainelWhatsapp}
+                className="text-xs h-8 gap-1.5 bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                title="Compor e copiar mensagem para envio manual pelo WhatsApp"
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                Notificar moradores por WhatsApp
+              </Button>
             </div>
           </div>
 
@@ -2837,6 +2914,152 @@ export const AtaAssembleiaPage: React.FC = () => {
               className="bg-[#002B5E] text-white text-xs"
             >
               Entendido
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PAINEL: NOTIFICAR MORADORES POR WHATSAPP (envio manual, sem integração) */}
+      <Dialog open={painelWhatsAberto} onOpenChange={setPainelWhatsAberto}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-emerald-600" /> Notificar moradores por
+              WhatsApp
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600 pt-1">
+              Envio manual: para cada morador, o botão abre o WhatsApp com a mensagem já preenchida
+              (wa.me) — nenhum sistema dispara a mensagem. Edite o modelo abaixo antes de disparar.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2 space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="mensagem-ata-whats" className="text-xs font-semibold text-slate-700">
+                Mensagem (editável)
+              </Label>
+              <Textarea
+                id="mensagem-ata-whats"
+                value={mensagemWhatsAta}
+                onChange={(e) => setMensagemWhatsAta(e.target.value)}
+                rows={4}
+                className="text-xs"
+              />
+            </div>
+
+            {carregandoWhats ? (
+              <div className="flex items-center gap-2 p-3 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-600">
+                <Loader2 className="h-4 w-4 animate-spin text-[#0066FF]" /> Carregando moradores com
+                cadastro aprovado e celular…
+              </div>
+            ) : moradoresWhats.length === 0 ? (
+              <div className="p-3 rounded-lg border border-amber-200 bg-amber-50 text-xs text-amber-800">
+                Nenhum morador com cadastro aprovado e celular cadastrado foi encontrado.
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-slate-700">
+                    {moradoresWhats.length} contato{moradoresWhats.length > 1 ? 's' : ''} — cadastro
+                    aprovado com celular
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={copiarListaWhats}
+                    className="text-xs h-8 gap-1.5"
+                  >
+                    <Copy className="h-3.5 w-3.5" /> Copiar lista completa
+                  </Button>
+                </div>
+
+                <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
+                  {moradoresWhats.map((m) => {
+                    const num = normalizarNumeroWhatsapp(m.telefone)
+                    const unid = m.expand?.unidade
+                    const unidTxt = unid
+                      ? formatarUnidadeComBloco(
+                          {
+                            identificador: unid.identificador,
+                            bloco: unid.bloco,
+                            tipo_unidade: unid.tipo_unidade,
+                          },
+                          'Unidade',
+                        )
+                      : m.unidade
+                    return (
+                      <div
+                        key={m.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 py-2.5"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-slate-900 truncate">{m.nome}</p>
+                          <p className="text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
+                            <span>Unidade {unidTxt}</span>
+                            <span aria-hidden>·</span>
+                            <span className="inline-flex items-center gap-1">
+                              <Phone className="h-3 w-3 text-slate-400" aria-hidden />{' '}
+                              {num.formatado}
+                            </span>
+                            {m.expand?.unidade?.bloco && (
+                              <span>Bloco {m.expand.unidade.bloco}</span>
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() =>
+                              window.open(
+                                montarLinkWhatsapp(num.internacional, mensagemWhatsAta),
+                                '_blank',
+                                'noopener,noreferrer',
+                              )
+                            }
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 gap-1.5"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
+                              const ok = await copiarTexto(mensagemWhatsAta)
+                              toast({
+                                title: ok
+                                  ? `Mensagem copiada — ${m.nome}`
+                                  : 'Não foi possível copiar',
+                                description: ok
+                                  ? 'Cole no WhatsApp do contato e envie.'
+                                  : 'Copie o texto manualmente da caixa acima.',
+                                variant: ok ? 'default' : 'destructive',
+                              })
+                            }}
+                            className="text-xs h-8 gap-1.5"
+                          >
+                            <Copy className="h-3.5 w-3.5" /> Copiar
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setPainelWhatsAberto(false)}
+              className="text-xs"
+            >
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
