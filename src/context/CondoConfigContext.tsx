@@ -35,25 +35,51 @@ export const CondoConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [])
 
   useEffect(() => {
-    carregar()
-
-    // Ouve alterações realtime na collection configuracoes
     let unsubscribe: (() => void) | undefined
-    pb.collection('configuracoes')
-      .subscribe('*', (e) => {
-        if (e.action === 'update' || e.action === 'create') {
-          setConfig(e.record as unknown as CondoConfigRecord)
+
+    const conectarRealtime = () => {
+      pb.collection('configuracoes')
+        .subscribe('*', (e) => {
+          if (e.action === 'update' || e.action === 'create') {
+            setConfig(e.record as unknown as CondoConfigRecord)
+          }
+        })
+        .then((unsub) => {
+          unsubscribe = unsub
+        })
+        .catch((err) => {
+          console.warn('Realtime configuracoes indisponível:', err)
+        })
+    }
+
+    const desconectarRealtime = () => {
+      if (unsubscribe) {
+        try {
+          unsubscribe()
+        } catch {
+          /* já desconectado */
         }
-      })
-      .then((unsub) => {
-        unsubscribe = unsub
-      })
-      .catch((err) => {
-        console.warn('Realtime configuracoes indisponível:', err)
-      })
+        unsubscribe = undefined
+      }
+    }
+
+    // O carregamento no boot acontece ANTES do login (a API rule da collection
+    // exige @request.auth.id != '' e devolve lista vazia), o que deixava config
+    // null por toda a sessão aberta sem reload — a página /admin/configuracoes
+    // aparecia em branco. Recarrega também sempre que a sessão muda (login e
+    // logout), e reconecta o realtime autenticado.
+    carregar()
+    const removerAuthListener = pb.authStore.onChange(() => {
+      carregar()
+      desconectarRealtime()
+      conectarRealtime()
+    })
+
+    if (pb.authStore.isValid) conectarRealtime()
 
     return () => {
-      if (unsubscribe) unsubscribe()
+      removerAuthListener()
+      desconectarRealtime()
     }
   }, [carregar])
 
