@@ -226,7 +226,12 @@ export interface CredenciamentoRecord extends RecordModel {
   unidade: string
   cpf: string
   titular_nome: string
-  tipo_vinculo: TipoVinculo
+  /**
+   * Select multivalorado no PocketBase: o runtime entrega array (["procurador"]).
+   * A camada api normaliza para string na leitura (normalizarTipoVinculo) —
+   * o tipo aceita os dois formatos porque gravações diretas (formulário) enviam string.
+   */
+  tipo_vinculo: TipoVinculo | TipoVinculo[] | ''
   status: 'pendente' | 'aprovado' | 'rejeitado'
   motivo_rejeicao?: string
   documentos?: string[]
@@ -1091,12 +1096,27 @@ export const api = {
   },
 
   // Credenciamentos
+  // O campo tipo_vinculo é select MULTIVALORADO no PocketBase: o runtime entrega
+  // ["procurador"], ["condomino"] etc. Normalizamos para string na leitura —
+  // as telas comparam valores ('procurador', 'locatario') e chamam .toUpperCase(),
+  // que lançam TypeError sobre array e derrubam a árvore (tela branca, v0.0.220).
+  normalizarTipoVinculo(valor: unknown): TipoVinculo | '' {
+    if (Array.isArray(valor)) return (valor[0] as TipoVinculo) ?? ''
+    if (typeof valor === 'string') return valor as TipoVinculo
+    return ''
+  },
+
+  normalizarCredenciamento<T extends CredenciamentoRecord>(cred: T): T {
+    return { ...cred, tipo_vinculo: this.normalizarTipoVinculo(cred.tipo_vinculo) }
+  },
+
   async getCredenciamentos(filter?: string) {
-    return pb.collection('credenciamentos').getFullList<CredenciamentoRecord>({
+    const lista = await pb.collection('credenciamentos').getFullList<CredenciamentoRecord>({
       filter,
       expand: 'unidade,aprovado_por',
       sort: '-created',
     })
+    return lista.map((c) => this.normalizarCredenciamento(c))
   },
 
   async getCredenciamentoPorUnidade(unidadeId: string) {
@@ -1105,11 +1125,13 @@ export const api = {
       sort: '-created',
       expand: 'unidade',
     })
-    return list.items[0] || null
+    return list.items[0] ? this.normalizarCredenciamento(list.items[0]) : null
   },
 
   async submeterCredenciamento(formData: FormData) {
-    return pb.collection('credenciamentos').create<CredenciamentoRecord>(formData)
+    // create/update devolvem o registro cru (tipo_vinculo como array) — normaliza.
+    const novo = await pb.collection('credenciamentos').create<CredenciamentoRecord>(formData)
+    return this.normalizarCredenciamento(novo)
   },
 
   async aprovarCredenciamento(id: string, mesaUserId: string) {

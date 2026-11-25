@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { PageErrorBoundary } from '@/components/PageErrorBoundary'
 import { ShieldAlert, LogOut, Home } from 'lucide-react'
 
 /** Rota da troca obrigatória de senha (conta provisionada, users.deve_trocar_senha) */
@@ -129,5 +130,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     )
   }
 
-  return <>{children}</>
+  // ErrorBoundary em nível de página: um erro de renderização da rota ativa
+  // (ex.: campo multivalorado tratado como string) não derruba mais a árvore
+  // inteira nem deixa a tela toda branca — o erro fica contido nesta tela.
+  return <PageErrorBoundary>{children}</PageErrorBoundary>
 }

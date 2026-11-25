@@ -6,6 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { CondoConfigProvider } from '@/context/CondoConfigContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { PageErrorBoundary } from '@/components/PageErrorBoundary'
 import { AppLayout } from '@/components/layout/AppLayout'
 
 // Documentos Oficiais de Impressão (Sem sidebar/layout geral)

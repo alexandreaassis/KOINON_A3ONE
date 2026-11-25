@@ -124,10 +124,14 @@ export const CredenciamentoPage: React.FC = () => {
         if (!ativo) return
         setCredExistente(cred)
         if (cred) {
-          setCpf(cred.cpf)
+          setCpf(cred.cpf || '')
           setCpfErro(null)
-          setTitularNome(cred.titular_nome)
-          setTipoVinculo(cred.tipo_vinculo)
+          setTitularNome(cred.titular_nome || '')
+          // tipo_vinculo chega como array do select multivalorado — pega o primeiro
+          const vinculo = Array.isArray(cred.tipo_vinculo)
+            ? cred.tipo_vinculo[0]
+            : cred.tipo_vinculo
+          if (vinculo) setTipoVinculo(vinculo)
         } else {
           // Preencher sugestão do titular: cadastro de vínculo (cadastros_unidade)
           // mantido pela mesa; responsavel_nome só como fallback — sem placeholder.
@@ -355,7 +359,7 @@ export const CredenciamentoPage: React.FC = () => {
                   ? 'CONDÔMINO (RESIDENTE)'
                   : credExistente.tipo_vinculo === 'locatario'
                     ? 'LOCATÁRIO (INQUILINO)'
-                    : credExistente.tipo_vinculo.toUpperCase()}{' '}
+                    : String(credExistente.tipo_vinculo || '').toUpperCase()}{' '}
               • <strong>Unidade:</strong>{' '}
               {formatarIdentificadorUnidade(
                 unidadeAtiva?.identificador,
