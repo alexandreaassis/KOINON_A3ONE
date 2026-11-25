@@ -785,7 +785,7 @@ export const ListaPresencaPage: React.FC = () => {
     </tbody>
   </table>
 
-  <footer style="margin-top:32px;padding-top:16px;border-top:2px solid #12314F;font-family:Arial,Helvetica,sans-serif;">
+  <footer style="margin-top:32px;font-family:Arial,Helvetica,sans-serif;">
     <div style="display:flex;justify-content:space-around;text-align:center;">
       <div style="width:45%;">
         <div style="border-bottom:1px solid #12314F;height:48px;"></div>
@@ -1466,7 +1466,9 @@ export const ListaPresencaPage: React.FC = () => {
         </section>
 
         {/* Rodapé Institucional com Assinatura da Mesa e Resalva LGPD */}
-        <footer className="mt-8 pt-4 border-t-2 border-slate-900 font-sans break-inside-avoid">
+        {/* v0.0.196: linha separadora entre o fim da tabela e as assinaturas removida
+            (pedido do usuário) — sem border-t; permanecem as linhas de assinatura em si */}
+        <footer className="mt-8 font-sans break-inside-avoid">
           <div className="grid grid-cols-2 gap-8 text-center pt-6 pb-2">
             {/* Presidente */}
             <div className="flex flex-col items-center">

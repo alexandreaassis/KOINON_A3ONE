@@ -191,12 +191,6 @@ export const LoginPage: React.FC = () => {
                 </Button>
               </form>
             </CardContent>
-
-            <CardFooter className="flex flex-col items-center justify-center border-t border-[#5A6B82]/15 py-3 text-center">
-              <p className="text-[11px] text-[#5A6B82]">
-                1 Unidade = 1 Voto • Token Desacoplado • Chave Criptográfica SHA-256
-              </p>
-            </CardFooter>
           </Card>
 
           {/* Selo Koinon: uma solução A3ONE centralizado abaixo do card */}
