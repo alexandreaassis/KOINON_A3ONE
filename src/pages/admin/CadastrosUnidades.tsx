@@ -62,6 +62,8 @@ import {
   MessageCircle,
   MessageSquare,
   AlertCircle,
+  ArrowUp,
+  ArrowDown,
   ExternalLink,
   Eye,
   EyeOff,
@@ -82,6 +84,14 @@ interface LinhaPlanilhaImportada {
   motivosInvalido: string[]
   unidadeIdEncontrada?: string
 }
+
+// Ordem natural/numérica para identificadores de unidade ("9" < "101", "12A" após "12")
+const normalizarIdentificador = (valor?: string | null): string =>
+  (valor || '')
+    .trim()
+    .replace(/\s+/g, '')
+    .replace(/(\d+)/g, (m) => m.padStart(10, '0'))
+    .toLowerCase()
 
 export const CadastrosUnidadesPage: React.FC = () => {
   const { rotuloUnidade, nomeCondominio } = useCondoConfig()
@@ -220,6 +230,20 @@ export const CadastrosUnidadesPage: React.FC = () => {
   const [filtroVinculo, setFiltroVinculo] = useState<string>('todos')
   const [filtroUnidade, setFiltroUnidade] = useState<string>('todas')
   const [filtroStatus, setFiltroStatus] = useState<string>('todos')
+
+  // Ordenação por clique nos cabeçalhos (mesma lógica de CredenciaisPendentes)
+  const [ordemCadastros, setOrdemCadastros] = useState<'unidade' | 'nome' | 'nascimento'>('unidade')
+  const [direcaoOrdemCadastros, setDirecaoOrdemCadastros] = useState<'asc' | 'desc'>('asc')
+
+  // Cabeçalho clicável: primeira ordena pela coluna; segunda inverte a direção
+  const alternarOrdemPorColuna = (coluna: 'unidade' | 'nome' | 'nascimento') => {
+    if (ordemCadastros === coluna) {
+      setDirecaoOrdemCadastros((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setOrdemCadastros(coluna)
+      setDirecaoOrdemCadastros('asc')
+    }
+  }
 
   // Modal de Compartilhamento de Link de Cadastro da Unidade
   const [modalLinkAberto, setModalLinkAberto] = useState(false)
@@ -1165,38 +1189,74 @@ export const CadastrosUnidadesPage: React.FC = () => {
 
   // Filtragem da tabela principal
   const cadastrosFiltrados = useMemo(() => {
-    return cadastros.filter((cad) => {
-      // Filtro de Busca
-      if (filtroBusca.trim()) {
-        const termo = filtroBusca.toLowerCase().trim()
-        const termoCpf = termo.replace(/\D/g, '')
-        const unid = mapaUnidadesPorId.get(cad.unidade)
-        const matchNome = (cad.nome || '').toLowerCase().includes(termo)
-        const matchCpf = (cad.cpf || '').includes(termoCpf || termo)
-        const matchEmail = (cad.email || '').toLowerCase().includes(termo)
-        const matchUnid =
-          (unid?.identificador || '').toLowerCase().includes(termo) ||
-          (unid?.bloco || '').toLowerCase().includes(termo)
-        if (!matchNome && !matchCpf && !matchEmail && !matchUnid) return false
-      }
+    return cadastros
+      .filter((cad) => {
+        // Filtro de Busca
+        if (filtroBusca.trim()) {
+          const termo = filtroBusca.toLowerCase().trim()
+          const termoCpf = termo.replace(/\D/g, '')
+          const unid = mapaUnidadesPorId.get(cad.unidade)
+          const matchNome = (cad.nome || '').toLowerCase().includes(termo)
+          const matchCpf = (cad.cpf || '').includes(termoCpf || termo)
+          const matchEmail = (cad.email || '').toLowerCase().includes(termo)
+          const matchUnid =
+            (unid?.identificador || '').toLowerCase().includes(termo) ||
+            (unid?.bloco || '').toLowerCase().includes(termo)
+          if (!matchNome && !matchCpf && !matchEmail && !matchUnid) return false
+        }
 
-      // Filtro de Vínculo
-      if (filtroVinculo !== 'todos' && cad.vinculo !== filtroVinculo) {
-        return false
-      }
+        // Filtro de Vínculo
+        if (filtroVinculo !== 'todos' && cad.vinculo !== filtroVinculo) {
+          return false
+        }
 
-      // Filtro de Unidade
-      if (filtroUnidade !== 'todas' && cad.unidade !== filtroUnidade) {
-        return false
-      }
+        // Filtro de Unidade
+        if (filtroUnidade !== 'todas' && cad.unidade !== filtroUnidade) {
+          return false
+        }
 
-      // Filtro de Status Ativo
-      if (filtroStatus === 'ativos' && !cad.ativo) return false
-      if (filtroStatus === 'inativos' && cad.ativo) return false
+        // Filtro de Status Ativo
+        if (filtroStatus === 'ativos' && !cad.ativo) return false
+        if (filtroStatus === 'inativos' && cad.ativo) return false
 
-      return true
-    })
-  }, [cadastros, filtroBusca, filtroVinculo, filtroUnidade, filtroStatus, mapaUnidadesPorId])
+        return true
+      })
+      .sort((a, b) => {
+        const fator = direcaoOrdemCadastros === 'asc' ? 1 : -1
+        if (ordemCadastros === 'nome') {
+          return (
+            fator * (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' })
+          )
+        }
+        if (ordemCadastros === 'nascimento') {
+          // data_nascimento chega como 'YYYY-MM-DD 00:00:00.000Z' — a comparação
+          // lexicográfica do prefixo ISO equivale à comparação cronológica
+          return (
+            fator *
+            (a.data_nascimento || '9999-12-31')
+              .slice(0, 10)
+              .localeCompare((b.data_nascimento || '9999-12-31').slice(0, 10))
+          )
+        }
+        // 'unidade': ordem natural/numérica do identificador ("9" < "101")
+        const ua = mapaUnidadesPorId.get(a.unidade)
+        const ub = mapaUnidadesPorId.get(b.unidade)
+        const da = normalizarIdentificador(ua?.identificador)
+        const db = normalizarIdentificador(ub?.identificador)
+        if (da && db && da !== db) return fator * (da < db ? -1 : 1)
+        if (da !== db) return da ? fator : -fator
+        return fator * (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' })
+      })
+  }, [
+    cadastros,
+    filtroBusca,
+    filtroVinculo,
+    filtroUnidade,
+    filtroStatus,
+    mapaUnidadesPorId,
+    ordemCadastros,
+    direcaoOrdemCadastros,
+  ])
 
   // Função utilitária para cálculo de idade
   const calcularIdade = (dataIso?: string): { anos: number; textoFormatado: string } | null => {
@@ -1445,7 +1505,32 @@ export const CadastrosUnidadesPage: React.FC = () => {
                 <tr>
                   {/* Coluna 1: Unidade */}
                   <th className="py-3 px-4 relative group">
-                    <span className="truncate block">Unidade</span>
+                    <span className="truncate block">
+                      <button
+                        type="button"
+                        onClick={() => alternarOrdemPorColuna('unidade')}
+                        aria-label={`Ordenar por Unidade${
+                          ordemCadastros === 'unidade'
+                            ? direcaoOrdemCadastros === 'asc'
+                              ? ' (crescente)'
+                              : ' (decrescente)'
+                            : ''
+                        }`}
+                        className={`inline-flex items-center gap-1 rounded px-1 py-0.5 -mx-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0066FF] ${
+                          ordemCadastros === 'unidade'
+                            ? 'text-[#0066FF]'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Unidade
+                        {ordemCadastros === 'unidade' &&
+                          (direcaoOrdemCadastros === 'asc' ? (
+                            <ArrowUp className="h-3 w-3" aria-hidden="true" />
+                          ) : (
+                            <ArrowDown className="h-3 w-3" aria-hidden="true" />
+                          ))}
+                      </button>
+                    </span>
                     <span
                       role="separator"
                       aria-orientation="vertical"
@@ -1461,7 +1546,32 @@ export const CadastrosUnidadesPage: React.FC = () => {
 
                   {/* Coluna 2: Nome Completo */}
                   <th className="py-3 px-4 relative group">
-                    <span className="truncate block">Nome Completo</span>
+                    <span className="truncate block">
+                      <button
+                        type="button"
+                        onClick={() => alternarOrdemPorColuna('nome')}
+                        aria-label={`Ordenar por Nome${
+                          ordemCadastros === 'nome'
+                            ? direcaoOrdemCadastros === 'asc'
+                              ? ' (crescente)'
+                              : ' (decrescente)'
+                            : ''
+                        }`}
+                        className={`inline-flex items-center gap-1 rounded px-1 py-0.5 -mx-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0066FF] ${
+                          ordemCadastros === 'nome'
+                            ? 'text-[#0066FF]'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Nome Completo
+                        {ordemCadastros === 'nome' &&
+                          (direcaoOrdemCadastros === 'asc' ? (
+                            <ArrowUp className="h-3 w-3" aria-hidden="true" />
+                          ) : (
+                            <ArrowDown className="h-3 w-3" aria-hidden="true" />
+                          ))}
+                      </button>
+                    </span>
                     <span
                       role="separator"
                       aria-orientation="vertical"
@@ -1493,7 +1603,32 @@ export const CadastrosUnidadesPage: React.FC = () => {
 
                   {/* Coluna 4: Data de Nascimento / Idade */}
                   <th className="py-3 px-4 relative group">
-                    <span className="truncate block">Nascimento</span>
+                    <span className="truncate block">
+                      <button
+                        type="button"
+                        onClick={() => alternarOrdemPorColuna('nascimento')}
+                        aria-label={`Ordenar por Nascimento${
+                          ordemCadastros === 'nascimento'
+                            ? direcaoOrdemCadastros === 'asc'
+                              ? ' (crescente)'
+                              : ' (decrescente)'
+                            : ''
+                        }`}
+                        className={`inline-flex items-center gap-1 rounded px-1 py-0.5 -mx-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0066FF] ${
+                          ordemCadastros === 'nascimento'
+                            ? 'text-[#0066FF]'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Nascimento
+                        {ordemCadastros === 'nascimento' &&
+                          (direcaoOrdemCadastros === 'asc' ? (
+                            <ArrowUp className="h-3 w-3" aria-hidden="true" />
+                          ) : (
+                            <ArrowDown className="h-3 w-3" aria-hidden="true" />
+                          ))}
+                      </button>
+                    </span>
                     <span
                       role="separator"
                       aria-orientation="vertical"
