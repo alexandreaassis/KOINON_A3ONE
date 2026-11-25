@@ -125,10 +125,30 @@ export const gerarPdfListaPresencaBytes = async (
   y += 3
 
   // Tabela de presenças
+  // v0.0.193: rebalanceamento espelhando a tela /mesa/presenca — Nome estreito
+  // (maior titular em uma linha), Procurador(a) dedicado com largura calibrada
+  // pela MEDIDA DE TEXTO real (doc.getTextWidth) do maior nome de procurador
+  // (ex.: "Edilaine Pereira Lima Zanoni" em UMA linha), em vez do antigo
+  // "Procurador: ..." dentro da coluna Registro. Margens oficiais e 180mm intactas.
   const colUnidade = 22
-  const colNome = LARGURA_UTIL - colUnidade - 22 - 38
-  const colForma = 22
-  const colData = 38
+  const colForma = 20
+  const colData = 36
+  // Procurador(a): largura calibrada pela medida de texto real do maior nome de
+  // procurador (ex.: "Edilaine Pereira Lima Zanoni" em UMA linha); 0 quando
+  // nenhuma presença for por procuração (a área volta para a coluna Nome).
+  const larguraProcurador = ((): number => {
+    const maior = dados.linhas.reduce(
+      (m, l) => ((l.nomeProcurador || '').length > m.length ? l.nomeProcurador || '' : m),
+      '',
+    )
+    if (!maior) return 0
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8.5)
+    const larguraTexto = doc.getTextWidth(maior)
+    return Math.min(55, Math.max(0, Math.ceil((larguraTexto + 5) * 10) / 10))
+  })()
+  const colProcurador = larguraProcurador
+  const colNome = LARGURA_UTIL - colUnidade - colForma - colData - colProcurador
 
   const desenharCabecalho = (py: number): number => {
     doc.setFillColor(...corDestaque)
@@ -139,7 +159,14 @@ export const gerarPdfListaPresencaBytes = async (
     doc.text('Unidade', MARGEM_LATERAL + 2, py + 5.5)
     doc.text('Participante', MARGEM_LATERAL + colUnidade + 2, py + 5.5)
     doc.text('Forma', MARGEM_LATERAL + colUnidade + colNome + 2, py + 5.5)
-    doc.text('Registro', MARGEM_LATERAL + colUnidade + colNome + colForma + 2, py + 5.5)
+    if (colProcurador > 0) {
+      doc.text('Procurador(a)', MARGEM_LATERAL + colUnidade + colNome + colForma + 2, py + 5.5)
+    }
+    doc.text(
+      'Registro',
+      MARGEM_LATERAL + colUnidade + colNome + colForma + colProcurador + 2,
+      py + 5.5,
+    )
     return py + 8
   }
 
@@ -180,15 +207,15 @@ export const gerarPdfListaPresencaBytes = async (
     if (linha.forma === 'procuracao' && linha.nomeProcurador) {
       doc.setTextColor(100, 116, 139)
       doc.text(
-        `Procurador: ${formatarLinha(linha.nomeProcurador, colForma + colData - 6)}`,
-        MARGEM_LATERAL + colUnidade + colNome + 2,
-        y + 9,
+        formatarLinha(linha.nomeProcurador, Math.max(colProcurador - 4, 10)),
+        MARGEM_LATERAL + colUnidade + colNome + colForma + 2,
+        y + 5.5,
       )
       doc.setTextColor(...corTexto)
     }
     doc.text(
       formatarLinha(linha.dataHora, colData - 4),
-      MARGEM_LATERAL + colUnidade + colNome + colForma + 2,
+      MARGEM_LATERAL + colUnidade + colNome + colForma + colProcurador + 2,
       y + 5.5,
     )
     doc.setDrawColor(...corLinha)

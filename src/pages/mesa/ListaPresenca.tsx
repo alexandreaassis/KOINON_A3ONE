@@ -479,9 +479,9 @@ export const ListaPresencaPage: React.FC = () => {
   const STORAGE_KEY_LARGURAS = 'koinon_lista_presenca_colunas_v1'
   const LARGURAS_PADRAO: Record<string, number> = {
     unidade: 74, // largura da palavra "Unidade" (cabeçalho)
-    titular: 358, // maior nome/procurador cabe em uma linha
+    titular: 280, // v0.0.193: maior nome de TITULAR em UMA linha, sem folga excessiva
     situacao: 92, // largura da maior palavra (ex.: "Presencial")
-    procuracao: 220, // min 130
+    procuracao: 250, // v0.0.193: maior nome de PROCURADOR em UMA linha (ex.: Edilaine)
     assinatura: 216, // recebe o espaço restante
   }
   const LARGURAS_MINIMAS: Record<string, number> = {
@@ -596,32 +596,40 @@ export const ListaPresencaPage: React.FC = () => {
   const mapaPresencas = new Map<string, PresencaAssinaturaRecord>()
   presencasAssinadas.forEach((p) => mapaPresencas.set(p.unidade, p))
 
-  // Largura do Nome (coluna) calibrada para o MAIOR nome/procurador caber em UMA
-  // única linha — reequilíbrio pedido para compactar a altura das linhas.
+  // Calibração por MEDIDA DE TEXTO real (canvas) — v0.0.193:
+  //   Nome          = maior nome de TITULAR em UMA linha, sem folga excessiva;
+  //   Procurador(a) = maior nome de PROCURADOR em UMA linha (ex.: "Edilaine
+  //                   Pereira Lima Zanoni" não pode quebrar em duas).
+  //   Assinatura continua recebendo o espaço que sobrar.
+  const FONTE_MEDICAO = '600 12px Inter, "Segoe UI", Arial, sans-serif'
+  const medirTextoPx = (txt: string): number => {
+    const t = (txt || '').trim()
+    if (!t) return 0
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return t.length * 6.2
+    ctx.font = FONTE_MEDICAO
+    return ctx.measureText(t).width
+  }
   const larguraIdealTitular = useMemo(() => {
-    const medir = (txt: string): number =>
-      Math.max(
-        0,
-        ...txt
-          .split(/\s+/)
-          .filter(Boolean)
-          .map((palavra) => palavra.length * 6.2),
-      )
-    const maiorNome = presencasAssinadas.reduce(
-      (m, p) => (p.nome?.length > m?.length ? p.nome : m),
-      '',
-    )
-    const maiorProcurador = presencasAssinadas.reduce(
-      (m, p) => (p.nome_procurador?.length > m?.length ? p.nome_procurador : m),
-      '',
-    )
-    const maiorResponsavel = unidades.reduce(
-      (m, u) => (u.responsavel_nome?.length > m?.length ? u.responsavel_nome : m),
-      '',
-    )
-    const maiorPalavra = Math.max(medir(maiorNome), medir(maiorProcurador), medir(maiorResponsavel))
-    return Math.min(420, Math.max(LARGURAS_MINIMAS.titular, Math.ceil(maiorPalavra) + 20))
+    const candidatos = [
+      ...presencasAssinadas.map((p) => p.nome || ''),
+      ...unidades.map((u) => u.responsavel_nome || ''),
+    ]
+    const maior = candidatos.reduce((m, n) => (n.length > m.length ? n : m), '')
+    const ideal = Math.ceil(medirTextoPx(maior)) + 26 // padding das células + folga mínima
+    return Math.min(320, Math.max(LARGURAS_MINIMAS.titular, ideal))
   }, [presencasAssinadas, unidades])
+
+  const larguraIdealProcuracao = useMemo(() => {
+    const candidatos = presencasAssinadas
+      .filter((p) => p.forma === 'procuracao')
+      .map((p) => p.nome_procurador || '')
+    const maior = candidatos.reduce((m, n) => (n.length > m.length ? n : m), '')
+    if (!maior) return LARGURAS_PADRAO.procuracao
+    const ideal = Math.ceil(medirTextoPx(maior)) + 26
+    return Math.min(360, Math.max(LARGURAS_MINIMAS.procuracao, ideal))
+  }, [presencasAssinadas])
 
   const [largurasAplicadas, setLargurasAplicadas] =
     useState<Record<string, number>>(largurasColunas)
@@ -639,8 +647,9 @@ export const ListaPresencaPage: React.FC = () => {
     setLargurasAplicadas((prev) => ({
       ...prev,
       titular: larguraIdealTitular,
+      procuracao: larguraIdealProcuracao,
     }))
-  }, [jaAjustado, larguraIdealTitular])
+  }, [jaAjustado, larguraIdealTitular, larguraIdealProcuracao])
   const largurasFinais = jaAjustado ? largurasColunas : largurasAplicadas
 
   // Utilitário para extrair apenas a numeração da unidade
@@ -764,11 +773,11 @@ export const ListaPresencaPage: React.FC = () => {
   <table>
     <thead>
       <tr>
-        <th style="width:74px;">Unidade</th>
-        <th style="width:46%;">Nome</th>
-        <th style="width:12%;">Situação</th>
-        <th style="width:16%;">Procurador(a)</th>
-        <th>Assinatura</th>
+        <th style="width:7%;">Unidade</th>
+        <th style="width:24%;">Nome</th>
+        <th style="width:8.5%;">Situação</th>
+        <th style="width:24.5%;">Procurador(a)</th>
+        <th style="width:36%;">Assinatura</th>
       </tr>
     </thead>
     <tbody>
@@ -1187,25 +1196,6 @@ export const ListaPresencaPage: React.FC = () => {
                       className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 print:hidden flex items-center justify-center touch-none"
                       onMouseDown={(e) => iniciarRedimensionamento('titular', e)}
                       onTouchStart={(e) => iniciarRedimensionamento('titular', e)}
-                      onDoubleClick={() => salvarLarguraColuna('titular', largurasFinais.titular)}
-                    >
-                      <span className="w-0.5 h-3.5 bg-[#5C6B7A]/30 rounded-full group-hover:bg-[#1F6B94]" />
-                    </span>
-                  </th>
-
-                  {/* Coluna 2: Nome Completo abreviado para Nome */}
-                  <th
-                    className="p-2 border-r border-[#D5DCE5] relative group"
-                    title="Nome Completo do Titular ou Representante"
-                  >
-                    <span className="truncate block font-semibold text-[#5C6B7A]">Nome</span>
-                    <span
-                      role="separator"
-                      aria-orientation="vertical"
-                      title="Arrastar para redimensionar (duplo clique para restaurar)"
-                      className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 print:hidden flex items-center justify-center touch-none"
-                      onMouseDown={(e) => iniciarRedimensionamento('titular', e)}
-                      onTouchStart={(e) => iniciarRedimensionamento('titular', e)}
                       onDoubleClick={() => salvarLarguraColuna('titular', LARGURAS_PADRAO.titular)}
                     >
                       <span className="w-0.5 h-3.5 bg-[#5C6B7A]/30 rounded-full group-hover:bg-[#1F6B94]" />
@@ -1225,7 +1215,9 @@ export const ListaPresencaPage: React.FC = () => {
                       className="absolute right-0 top-0 bottom-0 w-2.5 cursor-col-resize hover:bg-[#1F6B94]/40 active:bg-[#1F6B94] z-10 print:hidden flex items-center justify-center touch-none"
                       onMouseDown={(e) => iniciarRedimensionamento('situacao', e)}
                       onTouchStart={(e) => iniciarRedimensionamento('situacao', e)}
-                      onDoubleClick={() => salvarLarguraColuna('situacao', largurasFinais.situacao)}
+                      onDoubleClick={() =>
+                        salvarLarguraColuna('situacao', LARGURAS_PADRAO.situacao)
+                      }
                     >
                       <span className="w-0.5 h-3.5 bg-[#5C6B7A]/30 rounded-full group-hover:bg-[#1F6B94]" />
                     </span>
@@ -1268,7 +1260,7 @@ export const ListaPresencaPage: React.FC = () => {
                       onMouseDown={(e) => iniciarRedimensionamento('assinatura', e)}
                       onTouchStart={(e) => iniciarRedimensionamento('assinatura', e)}
                       onDoubleClick={() =>
-                        salvarLarguraColuna('assinatura', largurasFinais.assinatura)
+                        salvarLarguraColuna('assinatura', LARGURAS_PADRAO.assinatura)
                       }
                     >
                       <span className="w-0.5 h-3.5 bg-[#5C6B7A]/30 rounded-full group-hover:bg-[#1F6B94]" />
