@@ -8,6 +8,7 @@ import {
   FileText,
   Gavel,
   MonitorSmartphone,
+  Activity,
   ShieldCheck,
   Printer,
   ArrowRight,
@@ -42,6 +43,7 @@ import {
   MockupCadastroUnidadeMesa,
   MockupRelatoriosAssembleiaMesa,
 } from './manual/MockupNovasSecoesMesa'
+import { MockupApuracaoAoVivo } from './manual/MockupApuracaoAoVivo'
 import { useNarracao } from '@/hooks/useNarracao'
 import { KoinonSymbol } from '@/components/brand/KoinonSymbol'
 import { EndossoA3One } from '@/components/brand/EndossoA3One'
@@ -61,6 +63,8 @@ const NARRACOES: Record<string, string> = {
   ata: 'A Ata é o registro oficial da assembleia. Nela, a mesa escreve com o editor rico, que tem negrito, listas e citações, e pode pedir ajuda à inteligência artificial para redigir os resultados — sempre revisando antes de usar. Feito o texto, a mesa escolhe o fechamento: impressão limpa do P D F, sem selo de rascunho, para assinatura em papel ou envio à ZapSign — e também a assinatura eletrônica na tela, desenhando, digitando ou carimando, sempre com carimbo de hash. Publicada a ata, todos os moradores têm acesso ao documento completo.',
   deliberacoes:
     'Em Deliberações e Pautas, a mesa cadastra a assembleia, monta a pauta item a item e conduz cada deliberação: abre a votação, acompanha em tempo real, encerra e apura. É também daqui que sai a botoeira que o Painel espelha. Cada transição de etapa fica registrada com data e hora para a auditoria.',
+  apuracao_ao_vivo:
+    'A Apuração ao Vivo é o painel de contagem em tempo real. No topo, a deliberação monitorada e o total de participantes: unidades elegíveis, comparecimentos, presencial e remoto. Abaixo, um cartão para cada item de pauta com os contadores Favorável, Desfavorável e Nulo, o quórum aplicável — maioria simples ou quórum regimental — e o selo de resultado: Aprovado quando os favoráveis vencem conforme a regra da pauta, Reprovado quando não alcançam, e Aguardando enquanto a votação não fecha. Os números se atualizam sozinhos a cada voto, sem recarregar a página, somando a urna digital e o lançamento físico do salão.',
   aprovacao_cadastros:
     'Em Aprovação de Cadastros, a mesa analisa as solicitações enviadas pelos moradores através do link público da unidade. A mesa confere o nome, CPF, e-mail — obrigatório, é por ele que o morador recebe o acesso —, telefone e o vínculo declarado: proprietário, condômino, inquilino ou procurador. Se os dados estiverem corretos, aprova: o sistema cria a conta com senha temporária enviada por e-mail, e a troca é obrigatória no primeiro login. Se houver divergência, rejeita com motivo formal registrado. Em cada cadastro, o botão Enviar mensagem abre o diálogo de mensagem direta: os dados do morador já vêm preenchidos, a mesa escolhe o canal — WhatsApp e/ou e-mail — e o modelo de Configurações, e o texto chega com as variáveis substituídas, com prévia e edição livre. No WhatsApp, o envio é manual pelo WhatsApp Oficial do condomínio; o e-mail sai pelo SMTP da plataforma e fica registrado no Histórico.',
   cadastro_unidade:
@@ -149,6 +153,14 @@ const SECOES: SecaoManual[] = [
       'Duas modalidades para o voto do salão: Estação de voto presencial (tablet com CPF + senha ou código de uso único) e Lançamento manual pela mesa, ambos consolidados na urna e no boletim.',
   },
   {
+    id: 'apuracao_ao_vivo',
+    titulo: 'Apuração ao Vivo — contagem em tempo real por pauta',
+    rota: '/mesa/apuracao',
+    icone: Activity,
+    resumo:
+      'Painel de acompanhamento durante a votação: contadores Favorável, Desfavorável e Nulo por item de pauta, atualizando sozinhos a cada voto, com o quórum aplicável de cada pauta e o selo Aprovado/Reprovado assim que o resultado fecha.',
+  },
+  {
     id: 'relatorios',
     titulo: 'Relatórios de Assembleia — consolidação oficial',
     rota: '/mesa/relatorios',
@@ -213,6 +225,12 @@ const MARCADORES: Record<string, { n: number; x: number; y: number }[]> = {
     { n: 2, x: 50, y: 32 },
     { n: 3, x: 80, y: 32 },
     { n: 4, x: 50, y: 76 },
+  ],
+  apuracao_ao_vivo: [
+    { n: 1, x: 70, y: 16 },
+    { n: 2, x: 24, y: 40 },
+    { n: 3, x: 24, y: 64 },
+    { n: 4, x: 70, y: 64 },
   ],
   deliberacoes: [
     { n: 1, x: 50, y: 42 },
@@ -351,6 +369,7 @@ const ManualMesaPage: React.FC = () => {
                 {s.id === 'documentos' && <MockupDocumentosEdital />}
                 {s.id === 'ata' && <MockupAtaMesa />}
                 {s.id === 'deliberacoes' && <MockupDeliberacoes />}
+                {s.id === 'apuracao_ao_vivo' && <MockupApuracaoAoVivo />}
                 {s.id === 'relatorios' && <MockupRelatoriosAssembleiaMesa />}
                 {s.id === 'auditoria' && <MockupAuditoria />}
               </MockupTela>
@@ -435,6 +454,49 @@ const ManualMesaPage: React.FC = () => {
                   <CaixaImportante>
                     Esta tela é exclusiva do Módulo da Mesa: não existe mais atalho duplicado no
                     menu de Administração.
+                  </CaixaImportante>
+                </>
+              )}
+              {s.id === 'apuracao_ao_vivo' && (
+                <>
+                  <LegendaNumerada
+                    itens={[
+                      {
+                        n: 1,
+                        titulo: 'Deliberação monitorada + Tempo real',
+                        texto:
+                          'O painel segue automaticamente a deliberação em votação. O selo verde "Tempo real" indica a conexão ativa: a cada voto registrado, os contadores se atualizam sozinhos, sem recarregar a página.',
+                      },
+                      {
+                        n: 2,
+                        titulo: 'Contadores por status',
+                        texto:
+                          'Em cada item de pauta: Favorável, Desfavorável e Nulo, com a barra de evolução da votação. Abstenções e votos em branco aparecem destacados quando existem — não computam para o resultado.',
+                      },
+                      {
+                        n: 3,
+                        titulo: 'Quórum aplicável da pauta',
+                        texto:
+                          'Cada item mostra a regra configurada na deliberação: maioria simples dos presentes, maioria absoluta ou quórum regimental (dois terços, três quartos). É sobre essa regra que o resultado é avaliado.',
+                      },
+                      {
+                        n: 4,
+                        titulo: 'Selo de resultado',
+                        texto:
+                          'Aprovado em verde quando os favoráveis vencem conforme a regra da pauta; Reprovado em vermelho quando não alcançam; enquanto a votação segue aberta, o selo fica em âmbar, "Aguardando quórum".',
+                      },
+                    ]}
+                  />
+                  <CaixaDica>
+                    Deixe a Apuração ao Vivo aberta em uma segunda tela ou projetor durante a
+                    assembleia: a contagem acompanha a urna digital e o lançamento físico do salão
+                    ao mesmo tempo, e o selo de cada item muda para Aprovado ou Reprovado no exato
+                    momento em que o resultado fecha.
+                  </CaixaDica>
+                  <CaixaImportante>
+                    A apuração ao vivo é acompanhamento: a leitura oficial do resultado continua
+                    sendo o Boletim da Urna, conferido pela mesa na Auditoria antes da declaração em
+                    plenária.
                   </CaixaImportante>
                 </>
               )}

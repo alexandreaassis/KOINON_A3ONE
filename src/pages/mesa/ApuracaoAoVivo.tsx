@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   api,
   type DeliberacaoRecord,
   type ApuracaoItemResult,
   type ApuracaoResponse,
+  type LancamentoFisicoRecord,
 } from '@/lib/api'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,7 +29,6 @@ import {
   type ResultadoItemPauta,
 } from '@/lib/tituloItemPauta'
 import { useRealtime } from '@/hooks/use-realtime'
-import type { LancamentoFisicoRecord } from '@/lib/api'
 import {
   Activity,
   ThumbsUp,
@@ -40,12 +40,13 @@ import {
   Gavel,
   CheckCircle2,
   XCircle,
-  HelpCircle,
   Clock,
-  WifiOff,
+  Video,
+  Handshake,
+  ChevronLeft,
 } from 'lucide-react'
 
-/** Quórum regimental da pauta, normalizado em % e rótulo legível. */
+/** Quórum da pauta normalizado em % e rótulo legível. */
 interface QuorumItem {
   percentual: number
   rotulo: string
@@ -53,14 +54,14 @@ interface QuorumItem {
 
 const ROTULO_QUORUM: Record<string, string> = {
   maioria_simples: 'Maioria simples dos presentes',
-  maioria_absoluta: 'Maioria absoluta (metade + 1 dos aptos)',
-  dois_tercos: 'Dois terços dos votos',
-  tres_quartos: 'Três quartos dos votos',
+  maioria_absoluta: 'Maioria absoluta (metade + 1)',
+  dois_tercos: 'Quórum regimental — dois terços',
+  tres_quartos: 'Quórum regimental — três quartos',
   unanimidade: 'Unanimidade dos votos',
 }
 
 /**
- * Normaliza o campo `quorum_aplicavel` do item de pauta em percentual.
+ * Normaliza o campo `quorum_aplicavel` do item de pauta em percentual + rótulo.
  * Aceita chaves do regimento (ex.: "dois_tercos") e textos livres já usados
  * pela tela de Deliberações ("Maioria simples dos presentes", "2/3", "75%"...).
  */
@@ -73,9 +74,9 @@ export function normalizarQuorumItem(quorum?: string | null): QuorumItem {
   if (bruto.includes('simples')) return { percentual: 50, rotulo: 'Maioria simples dos presentes' }
   if (bruto.includes('absoluta')) return { percentual: 50, rotulo: 'Maioria absoluta' }
   if (bruto.includes('2/3') || bruto.includes('dois'))
-    return { percentual: 66.67, rotulo: 'Dois terços' }
+    return { percentual: 66.67, rotulo: 'Quórum regimental — dois terços' }
   if (bruto.includes('3/4') || bruto.includes('tres') || bruto.includes('três'))
-    return { percentual: 75, rotulo: 'Três quartos' }
+    return { percentual: 75, rotulo: 'Quórum regimental — três quartos' }
   if (bruto.includes('unanim') || bruto.includes('100%'))
     return { percentual: 100, rotulo: 'Unanimidade' }
 
@@ -122,19 +123,26 @@ interface LinhaPautaApurada {
   decisaoTexto: string
 }
 
-const DEBOUNCE_MS = 400
+const DEBOUNCE_MS = 450
 
 /**
  * Painel de apuração em tempo real por item de pauta da deliberação ativa.
- * Dados: APENAS a apuração oficial (api.getApuracao → apuracao.itens, já
- * agregada por item) + lançamentos físicos (api.getLancamentosFisicos).
- * Tempo real: hook useRealtime em presencas, lancamentos_fisicos e
- * deliberacoes, com re-fetch com debounce — a urna agrega votos no backend,
- * então qualquer evento dispara um re-fetch da apuração consolidada.
+ *
+ * Camada de dados: APENAS a apuração oficial — api.getApuracao já devolve
+ * `apuracao.itens` agregado por item (votos { favoravel, contrario, abstencao,
+ * nulo, branco, total }), totalComparecimentos, totalUnidadesElegiveis e
+ * presencas { presencial, remoto, total }. NUNCA mapear votos unitários.
+ * Os lançamentos físicos (api.getLancamentosFisicos) entram como ajuste de
+ * consolidação em tela, mesmo padrão do BoletimUrnaDocumento (Seção 5).
+ *
+ * Tempo real: hook useRealtime nas collections presencas, lancamentos_fisicos
+ * e deliberacoes — a urna agrega os votos no backend (não existe collection
+ * 'votos'), então qualquer evento dispara um re-fetch com debounce da
+ * apuração consolidada.
  */
 const ApuracaoAoVivoPage: React.FC = () => {
   const { toast } = useToast()
-  const params = useParams<{ deliberacaoId?: string }>()
+  const navigate = useNavigate()
   const [deliberacao, setDeliberacao] = useState<DeliberacaoRecord | null>(null)
   const [deliberacoes, setDeliberacoes] = useState<DeliberacaoRecord[]>([])
   const [apuracao, setApuracao] = useState<ApuracaoResponse['apuracao'] | null>(null)
@@ -164,10 +172,18 @@ const ApuracaoAoVivoPage: React.FC = () => {
 
       setApuracao(resp?.apuracao || null)
       const delibResp = resp?.deliberacao
-      if (delibResp) {
-        // Mantém o record local sincronizado com a resposta da apuração
+      if (delibResp && deliberacaoIdRef.current === delibResp.id) {
+        // Atualiza apenas os campos seguros (o payload da apuração tipa
+        // modalidade_presencial como string solta; o espalhar cruza tipos).
         setDeliberacao((atual) =>
-          atual && atual.id === delibResp.id ? { ...atual, ...delibResp } : atual,
+          atual && atual.id === delibResp.id
+            ? {
+                ...atual,
+                status: delibResp.status,
+                titulo: delibResp.titulo,
+                hash_raiz: delibResp.hash_raiz,
+              }
+            : atual,
         )
       }
       setLancamentosFisicos(fisicos || [])
@@ -192,14 +208,7 @@ const ApuracaoAoVivoPage: React.FC = () => {
           (b.created || '').localeCompare(a.created || ''),
         )
         setDeliberacoes(ordenadas)
-        const daUrl = params.deliberacaoId
-          ? ordenadas.find((d) => d.id === params.deliberacaoId) || null
-          : null
-        const ativa =
-          daUrl ||
-          ordenadas.find((d) => d.status === 'EM_VOTACAO') ||
-          ordenadas[0] ||
-          null
+        const ativa = ordenadas.find((d) => d.status === 'EM_VOTACAO') || ordenadas[0] || null
         setDeliberacao(ativa)
         if (ativa) {
           deliberacaoIdRef.current = ativa.id
@@ -214,12 +223,12 @@ const ApuracaoAoVivoPage: React.FC = () => {
     return () => {
       cancelado = true
     }
-  }, [recarregar, params.deliberacaoId])
+    // recarregar é estável (useCallback sem deps)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  // Tempo real: qualquer evento em presencas, lancamentos_fisicos ou
-  // deliberacoes dispara um re-fetch com debounce da apuração consolidada
-  // (a urna agrega os votos no backend; não existe collection 'votos').
-  const agendarRefetch = useCallback(() => {
+  /** Agenda um re-fetch da apuração (com debounce), sem spinner. */
+  const agendarRefetchDebounced = useCallback(() => {
     const id = deliberacaoIdRef.current
     if (!id) return
     window.setTimeout(() => {
@@ -227,14 +236,9 @@ const ApuracaoAoVivoPage: React.FC = () => {
     }, DEBOUNCE_MS)
   }, [recarregar])
 
-  const agendarRefetchDebounced = useMemo(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null
-    return () => {
-      if (timer) clearTimeout(timer)
-      timer = setTimeout(agendarRefetch, DEBOUNCE_MS)
-    }
-  }, [agendarRefetch])
-
+  // Tempo real: qualquer evento em presencas, lancamentos_fisicos ou
+  // deliberacoes dispara um re-fetch com debounce da apuração consolidada
+  // (a urna agrega os votos no backend; não existe collection 'votos').
   useRealtime('presencas', agendarRefetchDebounced, !!deliberacao)
   useRealtime('lancamentos_fisicos', agendarRefetchDebounced, !!deliberacao)
   useRealtime('deliberacoes', agendarRefetchDebounced, !!deliberacao)
@@ -277,7 +281,6 @@ const ApuracaoAoVivoPage: React.FC = () => {
     })
   }, [apuracao, lancamentosFisicos])
 
-  const totalGeralVotos = linhas.reduce((acc, l) => acc + l.votos.total, 0)
   const totalElegiveis = apuracao?.totalUnidadesElegiveis || 0
   const totalComparecimentos = apuracao?.totalComparecimentos || 0
   const presencas = apuracao?.presencas || { presencial: 0, remoto: 0, total: 0 }
@@ -301,24 +304,30 @@ const ApuracaoAoVivoPage: React.FC = () => {
       subtitle="Contagem em tempo real por pauta da deliberação ativa"
     >
       <div className="space-y-4">
-        {/* Cabeçalho: deliberação ativa + status do tempo real */}
+        {/* Cabeçalho: deliberação monitorada + status do tempo real */}
         <Card className="border-[#002B5E]/15">
-          <CardContent className="py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="h-10 w-10 rounded-xl bg-[#0066FF]/10 flex items-center justify-center shrink-0">
+          <CardContent className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0066FF]/10">
                 <Activity className="h-5 w-5 text-[#0066FF]" />
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-slate-500">Deliberação monitorada</p>
-                <p className="text-sm font-bold text-[#002B5E] truncate">
+                <p className="truncate text-sm font-bold text-[#002B5E]">
                   {deliberacao ? deliberacao.titulo : 'Nenhuma deliberação encontrada'}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {deliberacoes.length > 1 && (
-                <Select value={deliberacao?.id || ''} onValueChange={trocarDeliberacao}>
-                  <SelectTrigger className="h-9 w-[220px] text-xs">
+                <Select
+                  value={deliberacao?.id || ''}
+                  onValueChange={(id) => void trocarDeliberacao(id)}
+                >
+                  <SelectTrigger
+                    className="h-9 w-[220px] text-xs"
+                    aria-label="Escolher deliberação"
+                  >
                     <SelectValue placeholder="Escolher deliberação" />
                   </SelectTrigger>
                   <SelectContent>
@@ -333,24 +342,24 @@ const ApuracaoAoVivoPage: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={atualizarManual}
+                onClick={() => void atualizarManual()}
                 disabled={atualizando || !deliberacao}
               >
                 <RefreshCw className={`h-4 w-4 ${atualizando ? 'animate-spin' : ''}`} />
                 Atualizar
               </Button>
-              <Badge className="bg-green-50 text-green-700 border border-green-200 gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse motion-reduce:animate-none" />
+              <Badge className="gap-1.5 border border-green-200 bg-green-50 text-green-700">
+                <span className="motion-reduce:animate-none h-2 w-2 animate-pulse rounded-full bg-green-500" />
                 Tempo real
               </Badge>
             </div>
           </CardContent>
         </Card>
 
-        {/* Total de participantes (elegíveis, comparecimento e canais) */}
+        {/* Total de participantes (elegíveis × comparecimentos) + modalidades */}
         {deliberacao && (
           <Card className="border-[#002B5E]/15">
-            <CardContent className="py-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <CardContent className="grid grid-cols-2 gap-3 py-3 sm:grid-cols-4">
               <MiniDado
                 rotulo="Unidades elegíveis"
                 valor={totalElegiveis}
@@ -369,7 +378,7 @@ const ApuracaoAoVivoPage: React.FC = () => {
               <MiniDado
                 rotulo="Remoto"
                 valor={presencas.remoto}
-                icone={<Activity className="h-4 w-4 text-[#0066FF]" />}
+                icone={<Video className="h-4 w-4 text-[#0066FF]" />}
               />
             </CardContent>
           </Card>
@@ -391,23 +400,31 @@ const ApuracaoAoVivoPage: React.FC = () => {
         ) : !deliberacao || linhas.length === 0 ? (
           <Card>
             <CardContent className="py-10 text-center">
-              <BarChart3 className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+              <BarChart3 className="mx-auto mb-3 h-10 w-10 text-slate-300" />
               <p className="font-semibold text-slate-700">Nenhuma pauta para apurar</p>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="mt-1 text-sm text-slate-500">
                 Cadastre os itens de pauta em Deliberações e Pautas e abra a votação.
               </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                onClick={() => navigate('/mesa/deliberacoes')}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Ir para Deliberações e Pautas
+              </Button>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-3">
-            {linhas.map((l) => (
-              <CardLinhaPauta key={l.item.id} linha={l} />
+            {linhas.map((l, idx) => (
+              <CardLinhaPauta key={l.item.id} linha={l} idx={idx} />
             ))}
-            <p className="text-xs text-slate-500 text-center flex items-center justify-center gap-1.5">
-              <WifiOff className="h-3 w-3 hidden" />
+            <p className="flex items-center justify-center gap-1.5 text-center text-xs text-slate-500">
               <span>
-                {totalGeralVotos} voto(s) consolidados nesta deliberação • atualização automática
-                a cada voto
+                Contagem consolidada da urna digital + lançamento físico • atualização automática a
+                cada voto
               </span>
             </p>
           </div>
@@ -436,16 +453,16 @@ const MiniDado: React.FC<{ rotulo: string; valor: number; icone: React.ReactNode
   icone,
 }) => (
   <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
-    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 flex items-center gap-1.5">
+    <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
       {icone}
       {rotulo}
     </p>
-    <p className="text-xl font-bold text-[#002B5E] leading-tight mt-0.5">{valor}</p>
+    <p className="mt-0.5 text-xl font-bold leading-tight text-[#002B5E]">{valor}</p>
   </div>
 )
 
-/** Card de uma linha de pauta com contagens e selo de resultado. */
-const CardLinhaPauta: React.FC<{ linha: LinhaPautaApurada }> = ({ linha }) => {
+/** Card de um item de pauta com contagens, quórum e selo de resultado. */
+const CardLinhaPauta: React.FC<{ linha: LinhaPautaApurada; idx: number }> = ({ linha, idx }) => {
   const { item, quorum, votos, temFisico, totalParticipantes } = linha
   const { favoravel, desfavoravel, nulo, abstencao, total: totalVotos } = votos
 
@@ -471,25 +488,25 @@ const CardLinhaPauta: React.FC<{ linha: LinhaPautaApurada }> = ({ linha }) => {
   const IconeSelo = selo.icon
 
   return (
-    <Card className={`border ${selo.border} overflow-hidden`}>
-      <CardHeader className="py-3 bg-slate-50/60">
+    <Card className={`overflow-hidden border ${selo.border}`}>
+      <CardHeader className="bg-slate-50/60 py-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-sm font-bold text-[#002B5E] flex items-center gap-2">
-            <Gavel className="h-4 w-4 text-[#0066FF] shrink-0" />
-            <span className="truncate">{rotularItemPauta(item, 0)}</span>
+          <CardTitle className="flex items-center gap-2 text-sm font-bold text-[#002B5E]">
+            <Gavel className="h-4 w-4 shrink-0 text-[#0066FF]" />
+            <span className="truncate">{rotularItemPauta(item, idx)}</span>
           </CardTitle>
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             {temFisico && (
-              <Badge variant="outline" className="text-[10px] border-slate-300 text-slate-600">
+              <Badge variant="outline" className="border-slate-300 text-[10px] text-slate-600">
                 + lançamento físico
               </Badge>
             )}
-            <Badge variant="outline" className="text-[10px] border-[#002B5E]/25 text-[#002B5E]">
-              <Users className="h-3 w-3 mr-1" />
+            <Badge variant="outline" className="border-[#002B5E]/25 text-[10px] text-[#002B5E]">
+              <Users className="mr-1 h-3 w-3" />
               {totalParticipantes} participante(s)
             </Badge>
             <Badge
-              className={`text-xs font-bold border ${selo.bg} ${selo.border} ${selo.text} gap-1`}
+              className={`gap-1 border text-xs font-bold ${selo.bg} ${selo.border} ${selo.text}`}
             >
               <IconeSelo className="h-3.5 w-3.5" />
               {linha.decisaoTexto}
@@ -497,48 +514,48 @@ const CardLinhaPauta: React.FC<{ linha: LinhaPautaApurada }> = ({ linha }) => {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-3 pb-4 space-y-3">
+      <CardContent className="space-y-3 pb-4 pt-3">
         {/* Contagem Favorável / Desfavorável / Nulo */}
         <div className="grid grid-cols-3 gap-2">
           <Contador
             icone={<ThumbsUp className="h-4 w-4 text-green-600" />}
             rotulo="Favorável"
             valor={favoravel}
-            corBarra="bg-green-500"
             perc={percFavor}
+            corBarra="bg-green-500"
           />
           <Contador
             icone={<ThumbsDown className="h-4 w-4 text-red-600" />}
             rotulo="Desfavorável"
             valor={desfavoravel}
-            corBarra="bg-red-500"
             perc={percDesfavor}
+            corBarra="bg-red-500"
           />
           <Contador
             icone={<MinusCircle className="h-4 w-4 text-slate-500" />}
             rotulo="Nulo"
             valor={nulo}
-            corBarra="bg-slate-400"
             perc={totalVotos > 0 ? (nulo / totalVotos) * 100 : 0}
+            corBarra="bg-slate-400"
           />
         </div>
 
         {(abstencao > 0 || item.votos.branco > 0) && (
-          <p className="text-[11px] text-slate-500 flex items-center gap-1">
-            <HelpCircle className="h-3 w-3" /> {abstencao} abstenção(ões)
-            {item.votos.branco > 0 ? ` • ${item.votos.branco} voto(s) em branco` : ''} — não
-            computa para o resultado.
+          <p className="flex items-center gap-1 text-[11px] text-slate-500">
+            <Handshake className="h-3 w-3" /> {abstencao} abstenção(ões)
+            {item.votos.branco > 0 ? ` • ${item.votos.branco} voto(s) em branco` : ''} — não computa
+            para o resultado.
           </p>
         )}
 
-        {/* Barra de evolução rumo ao quórum exigido */}
+        {/* Quórum aplicável e evolução da contagem */}
         <div className="space-y-1">
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span>
-              Quórum regimental: <strong className="text-slate-700">{quorum.rotulo}</strong>
+          <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500">
+            <span className="truncate">
+              Quórum aplicável: <strong className="text-slate-700">{quorum.rotulo}</strong>
             </span>
-            <span>
-              {favoravel + desfavoravel}/{totalVotos} votos válidos computados
+            <span className="shrink-0">
+              {favoravel + desfavoravel}/{totalVotos} votos válidos
             </span>
           </div>
           <Progress value={Math.min(100, percFavor + percDesfavor)} className="h-2" />
@@ -556,20 +573,22 @@ const Contador: React.FC<{
   perc: number
   corBarra: string
 }> = ({ icone, rotulo, valor, perc, corBarra }) => (
-  <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-1.5">
+  <div className="space-y-1.5 rounded-xl border border-slate-200 bg-white p-3">
     <div className="flex items-center justify-between">
-      <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
+      <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
         {icone}
         {rotulo}
       </span>
-      <span className="text-lg font-bold text-[#002B5E] leading-none">{valor}</span>
+      <span className="text-lg font-bold leading-none text-[#002B5E]">{valor}</span>
     </div>
-    <Progress value={Math.min(100, perc)} className="h-1.5" />
-    <div
-      className={`h-0.5 rounded-full ${corBarra}`}
-      style={{ width: `${Math.min(100, perc)}%` }}
-    />
+    <div className={`h-1.5 rounded-full ${corBarra} opacity-30`} aria-hidden>
+      <div
+        className={`h-1.5 rounded-full ${corBarra}`}
+        style={{ width: `${Math.min(100, perc)}%` }}
+      />
+    </div>
   </div>
 )
 
+export { ApuracaoAoVivoPage }
 export default ApuracaoAoVivoPage
