@@ -258,16 +258,6 @@ const App = () => (
               }
             />
             <Route
-              path="/mesa/credenciamento"
-              element={
-                <ProtectedRoute requireMesa>
-                  <AppLayout>
-                    <CredenciamentoPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/mesa/ata"
               element={
                 <ProtectedRoute requireMesa>
