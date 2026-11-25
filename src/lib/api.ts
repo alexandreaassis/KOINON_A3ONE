@@ -2532,8 +2532,8 @@ export const api = {
     contrarios: number
     abstencoes: number
     observacao?: string
-  }): Promise<{ success: boolean; message: string; lancamento?: LancamentoFisicoRecord }> {
-    return pb.send('/backend/v1/lancamento-fisico', {
+  }): Promise<{ success: boolean; message: string }> {
+    return pb.send('/backend/v1/votos/lancamento-fisico', {
       method: 'POST',
       body: payload,
     })
@@ -2543,13 +2543,7 @@ export const api = {
     deliberacaoId: string
     unidadeId: string
     expiraEmHoras?: number
-  }): Promise<{
-    success: boolean
-    message: string
-    codigo?: string
-    codigoId?: string
-    expiraEm?: string
-  }> {
+  }): Promise<{ success: boolean; message: string; codigo?: string; codigoId?: string; expiraEm?: string }> {
     return pb.send('/backend/v1/estacao/codigo-gerar', {
       method: 'POST',
       body: payload,
@@ -2574,4 +2568,46 @@ export const api = {
       return []
     }
   },
-}
+
+  // ===== Estação de voto presencial =====
+
+  async estacaoLogin(payload: {
+    deliberacaoId: string
+    cpf: string
+    senha?: string
+    codigo?: string
+  }): Promise<{
+    success: boolean
+    message?: string
+    tokenVoto?: string
+    unidadeId?: string
+    unidadeIdentificador?: string
+    nomeTitular?: string
+    vinculoVotante?: string
+    modo?: 'senha' | 'codigo'
+  }> {
+    return pb.send('/backend/v1/estacao/login', {
+      method: 'POST',
+      body: payload,
+    })
+  },
+
+  async estacaoRegistrarVoto(payload: {
+    tokenVoto: string
+    deliberacaoId: string
+    votos: { itemId: string; opcao: 'favoravel' | 'contrario' | 'abstencao' }[]
+    dispositivoId?: string
+  }): Promise<{
+    success: boolean
+    message?: string
+    reciboCodigo?: string
+    comprovanteId?: string
+    hashAbreviado?: string
+    dataHora?: string
+  }> {
+    return pb.send('/backend/v1/estacao/registrar-voto', {
+      method: 'POST',
+      body: payload,
+    })
+  },
+} 

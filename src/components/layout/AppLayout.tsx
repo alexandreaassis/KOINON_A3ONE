@@ -213,7 +213,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
 
   const navMesa = [
     { label: 'Painel da Mesa', path: '/mesa', icon: ShieldCheck },
-    { label: 'Credenciamento', path: '/morador/credenciamento', icon: UserCheck },
+    // 'Credenciamento' (/morador/credenciamento) é página do morador — não duplicar no menu da Mesa
     { label: 'Ata da Assembleia (IA)', path: '/mesa/ata', icon: FileText },
     { label: 'Documentos & Edital', path: '/mesa/documentos', icon: FolderArchive },
     { label: 'Lista de Presença', path: '/mesa/presenca', icon: UserCheck },
