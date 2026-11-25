@@ -668,7 +668,7 @@ export const AtaAssembleiaPage: React.FC = () => {
 
           // Cabeçalho editável: registro gravado antes da migration (campo
           // ausente) continua com o cabeçalho padrão; '' gravado = linha apagada
-          setCabecalhoTag(ataSalva.cabecalho_tag || 'Ata de Assembleia e Deliberativa')
+          setCabecalhoTag(ataSalva.cabecalho_tag ?? 'Ata de Assembleia e Deliberativa')
           setCabecalhoCondominio(ataSalva.cabecalho_condominio ?? nomeCondominio)
           setCabecalhoSubtitulo(ataSalva.cabecalho_subtitulo ?? 'Assembleia Geral de Condôminos')
 
@@ -2512,7 +2512,7 @@ export const AtaAssembleiaPage: React.FC = () => {
                 </div>
 
                 {/* Bloco de Assinaturas da Mesa */}
-                <footer className="mt-10 pt-4 border-t-2 border-slate-900 font-sans">
+                <footer className="mt-10 font-sans">
                   <div className="grid grid-cols-2 gap-8 text-center pt-4">
                     <BlocoAssinaturaCompacto
                       nome={presidenteNome || 'Presidente da Mesa'}

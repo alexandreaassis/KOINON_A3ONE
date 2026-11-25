@@ -349,7 +349,6 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
     }
     .signatures-section {
       margin-top: 36px;
-      padding-top: 20px;
       page-break-inside: avoid;
       font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }

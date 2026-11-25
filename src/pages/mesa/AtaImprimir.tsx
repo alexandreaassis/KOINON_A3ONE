@@ -177,7 +177,7 @@ export const AtaImprimirPage: React.FC = () => {
         </div>
 
         {/* Bloco de Assinaturas da Mesa Diretora */}
-        <footer className="mt-12 pt-4 border-t-2 border-slate-900 font-sans break-inside-avoid">
+        <footer className="mt-12 font-sans break-inside-avoid">
           <div className="grid grid-cols-2 gap-8 text-center pt-4">
             <BlocoAssinaturaCompacto
               nome={presNome}
