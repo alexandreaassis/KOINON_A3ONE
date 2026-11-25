@@ -5,7 +5,8 @@ import {
   type DeliberacaoRecord,
   type ItemPautaRecord,
 } from '@/lib/api'
-import { pb } from '@/lib/pocketbase/client'
+import pbClient from '@/lib/pocketbase/client'
+const pb = pbClient
 import { useAuth } from '@/context/AuthContext'
 import { limparCpf, formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
 import { getErrorMessage } from '@/lib/pocketbase/errors'

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import {
   api,
+  normalizarModalidadePresencial,
+  type ModalidadePresencial,
   type DeliberacaoRecord,
   type ItemPautaRecord,
   type DeliberacaoStatus,
@@ -77,6 +79,7 @@ export const DeliberacoesPage: React.FC = () => {
   const [quorumMateria, setQuorumMateria] = useState('Maioria simples dos presentes')
   const [inadimplenteVota, setInadimplenteVota] = useState(true)
   const [locatarioVota, setLocatarioVota] = useState(false)
+  const [modalidadePresencial, setModalidadePresencial] = useState<ModalidadePresencial>('manual')
   const [mesaPresidenteNome, setMesaPresidenteNome] = useState('')
   const [mesaPresidenteCpf, setMesaPresidenteCpf] = useState('')
   const [mesaPresidenteCpfErro, setMesaPresidenteCpfErro] = useState<string | null>(null)
@@ -166,6 +169,7 @@ export const DeliberacoesPage: React.FC = () => {
     setMesaSecretarioNome('')
     setMesaSecretarioCpf('')
     setMesaSecretarioCpfErro(null)
+    setModalidadePresencial('manual')
 
     // Carrega defaults configurados da convenção se houver
     try {
@@ -204,6 +208,7 @@ export const DeliberacoesPage: React.FC = () => {
     setQuorumMateria(d.quorum_materia || 'Maioria simples dos presentes')
     setInadimplenteVota(d.inadimplente_pode_votar ?? true)
     setLocatarioVota(d.locatario_pode_votar ?? false)
+    setModalidadePresencial(normalizarModalidadePresencial(d.modalidade_presencial))
     setMesaPresidenteNome(d.mesa_presidente_nome || '')
     setMesaPresidenteCpf(formatarCpf(d.mesa_presidente_cpf || ''))
     setMesaPresidenteCpfErro(null)
@@ -259,6 +264,8 @@ export const DeliberacoesPage: React.FC = () => {
           mesa_secretario_nome: mesaSecretarioNome.trim(),
           mesa_secretario_cpf: mesaSecretarioCpf.trim(),
         })
+        // Modalidade é um select multivalorado no runtime — gravação dedicada (api.ts)
+        await api.salvarModalidadePresencial(delibEditId, modalidadePresencial)
         toast({ title: 'Deliberação Atualizada' })
       } else {
         const nova = await api.createDeliberacao({
@@ -275,6 +282,8 @@ export const DeliberacoesPage: React.FC = () => {
           mesa_secretario_cpf: mesaSecretarioCpf.trim(),
           status: 'AGUARDANDO_ABERTURA',
         })
+        // Modalidade é um select multivalorado no runtime — gravação dedicada (api.ts)
+        await api.salvarModalidadePresencial(nova.id, modalidadePresencial)
         setDeliberacaoSelecionada(nova)
         toast({ title: 'Nova Deliberação Criada' })
       }
@@ -1018,6 +1027,45 @@ export const DeliberacoesPage: React.FC = () => {
                 placeholder="Ex: Maioria simples dos presentes / 2/3 dos condôminos"
                 className="text-xs h-9"
               />
+            </div>
+
+            {/* Bloco: Modalidade do voto presencial (migration 0053) */}
+            <div className="p-3 rounded-lg bg-sky-50/60 border border-sky-200 space-y-2.5">
+              <div>
+                <span className="font-bold text-sky-950 text-[11px] block uppercase tracking-wider">
+                  Modalidade do voto presencial
+                </span>
+                <p className="text-[10px] text-sky-800">
+                  Como o condômino presente no salão vota nesta assembleia. O voto remoto (via
+                  Koinon) permanece igual nas duas modalidades.
+                </p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold text-slate-800">Modalidade</Label>
+                <Select
+                  value={modalidadePresencial}
+                  onValueChange={(val: string) =>
+                    setModalidadePresencial(val as ModalidadePresencial)
+                  }
+                >
+                  <SelectTrigger className="text-xs h-9 bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="estacao">
+                      Estação — urna no salão (tablet com CPF + senha ou código)
+                    </SelectItem>
+                    <SelectItem value="manual">
+                      Lançamento manual — mesa digita os totais da cédula física
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                {modalidadePresencial === 'estacao'
+                  ? 'O morador se autentica na Estação (rota /estacao) com CPF + senha do Koinon ou CPF + código de uso único gerado pela mesa, e o voto entra direto na urna criptográfica.'
+                  : 'A cédula física é apurada pela mesa e os totais são lançados no Boletim de Urna, que consolida digital + físico por item.'}
+              </p>
             </div>
 
             {/* Bloco: Mesa Diretora (Presidente e Secretário) */}

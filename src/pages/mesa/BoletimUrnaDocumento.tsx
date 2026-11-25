@@ -2,11 +2,13 @@ import React, { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   api,
+  normalizarModalidadePresencial,
   type ApuracaoResponse,
   type DeliberacaoRecord,
   type UnidadeRecord,
   type AssinaturaDocumentoRecord,
   type FormatoAssinatura,
+  type LancamentoFisicoRecord,
 } from '@/lib/api'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { useAuth } from '@/context/AuthContext'
@@ -27,6 +29,7 @@ import {
   AlertTriangle,
   FileCheck2,
   Vote,
+  PenLine,
 } from 'lucide-react'
 
 export const BoletimUrnaDocumentoPage: React.FC = () => {
@@ -51,6 +54,9 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
     'mesa_presidente' | 'mesa_secretario' | null
   >(null)
   const [salvandoMesa, setSalvandoMesa] = useState(false)
+
+  // Lançamentos físicos (modalidade_presencial = 'manual', migration 0053)
+  const [lancamentosFisicos, setLancamentosFisicos] = useState<LancamentoFisicoRecord[]>([])
 
   useEffect(() => {
     let cancel = false
@@ -81,18 +87,21 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
           return
         }
 
-        const [boletimData, delibData, unidadesData, assinaturasDoc] = await Promise.all([
-          api.getApuracao(idAlvo),
-          api.getDeliberacao(idAlvo).catch(() => null),
-          api.getUnidades().catch(() => [] as UnidadeRecord[]),
-          api.getAssinaturasPorDeliberacao(idAlvo).catch(() => [] as AssinaturaDocumentoRecord[]),
-        ])
+        const [boletimData, delibData, unidadesData, assinaturasDoc, lancamentosFis] =
+          await Promise.all([
+            api.getApuracao(idAlvo),
+            api.getDeliberacao(idAlvo).catch(() => null),
+            api.getUnidades().catch(() => [] as UnidadeRecord[]),
+            api.getAssinaturasPorDeliberacao(idAlvo).catch(() => [] as AssinaturaDocumentoRecord[]),
+            api.getLancamentosFisicos(idAlvo).catch(() => [] as LancamentoFisicoRecord[]),
+          ])
 
         if (cancel) return
 
         setBoletim(boletimData)
         setDeliberacao(delibData)
         setUnidades(unidadesData)
+        setLancamentosFisicos(lancamentosFis)
 
         const docIdBoletim = `boletim_${idAlvo}`
         const presMesa = assinaturasDoc.find(
@@ -149,6 +158,49 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
   const comparecimentoTotal = boletim?.apuracao.totalComparecimentos || 0
   const percentualAtingido =
     totalElegiveis > 0 ? Math.round((comparecimentoTotal / totalElegiveis) * 100) : 0
+
+  /**
+   * Consolidação digital + físico por item (migration 0053): soma os votos da
+   * urna eletrônica (voto remoto e/ou estação presencial) com os totais das
+   * cédulas de papel lançados pela mesa (modalidade 'manual').
+   */
+  const consolidacaoPorItem = useMemo(() => {
+    const porItem = new Map<
+      string,
+      {
+        digital: { favoravel: number; contrario: number; abstencao: number }
+        fisico: { favoraveis: number; contrarios: number; abstencoes: number }
+        lancamento?: LancamentoFisicoRecord
+      }
+    >()
+    if (!boletim) return porItem
+    for (const item of boletim.apuracao.itens) {
+      porItem.set(item.id, {
+        digital: {
+          favoravel: item.votos.favoravel,
+          contrario: item.votos.contrario,
+          abstencao: item.votos.abstencao,
+        },
+        fisico: { favoraveis: 0, contrarios: 0, abstencoes: 0 },
+      })
+    }
+    for (const l of lancamentosFisicos) {
+      const c = porItem.get(l.item)
+      if (!c) continue
+      c.fisico = {
+        favoraveis: l.favoraveis || 0,
+        contrarios: l.contrarios || 0,
+        abstencoes: l.abstencoes || 0,
+      }
+      c.lancamento = l
+    }
+    return porItem
+  }, [boletim, lancamentosFisicos])
+
+  const temLancamentosFisicos = lancamentosFisicos.length > 0
+  const modalidadePresencialAtual = normalizarModalidadePresencial(
+    deliberacao?.modalidade_presencial ?? boletim?.deliberacao.modalidade_presencial,
+  )
 
   const handlePrint = () => {
     window.print()
@@ -754,6 +806,146 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
                 </p>
               </div>
             </div>
+          </section>
+
+          {/* Seção 5: Consolidação Digital + Físico (migration 0053) */}
+          <section className="my-5 font-sans break-inside-avoid">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1 mb-2.5 flex items-center gap-1.5">
+              <PenLine className="h-3.5 w-3.5 text-slate-700" /> 5. Consolidação dos Votos Físicos
+              (Presencial em Papel) com a Urna Eletrônica
+            </h3>
+
+            {!temLancamentosFisicos && (
+              <p className="text-xs text-slate-600 border border-slate-200 bg-white p-2.5">
+                {modalidadePresencialAtual === 'estacao'
+                  ? 'Modalidade desta assembleia: Estação de voto presencial — os votos do salão entram diretamente na urna eletrônica pelo tablet (rota /estacao), autenticados por CPF + senha ou CPF + código de uso único. Não há lançamento manual de cédulas de papel.'
+                  : 'Nenhum lançamento físico de cédulas de papel foi registrado pela mesa diretora até a emissão deste boletim.'}
+              </p>
+            )}
+
+            {temLancamentosFisicos && (
+              <div className="border border-slate-300 p-3 bg-white">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-800 text-left text-[11px]">
+                      <th className="p-1.5 border border-slate-200">Item da Pauta</th>
+                      <th className="p-1.5 border border-slate-200 text-center">Canal</th>
+                      <th className="p-1.5 border border-slate-200 text-center">Favoráveis</th>
+                      <th className="p-1.5 border border-slate-200 text-center">Contrários</th>
+                      <th className="p-1.5 border border-slate-200 text-center">Abstenções</th>
+                      <th className="p-1.5 border border-slate-200 text-center">Total do Item</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {boletim.apuracao.itens.map((item, idx) => {
+                      const cons = consolidacaoPorItem.get(item.id)
+                      if (!cons) return null
+                      const temFis = cons.lancamento !== undefined
+                      const dig = cons.digital
+                      const fis = cons.fisico
+                      const totalConsolidado =
+                        dig.favoravel +
+                        dig.contrario +
+                        dig.abstencao +
+                        fis.favoraveis +
+                        fis.contrarios +
+                        fis.abstencoes
+                      const lanc = cons.lancamento
+                      return (
+                        <React.Fragment key={item.id}>
+                          <tr>
+                            <td
+                              className="p-1.5 border border-slate-200 font-semibold text-slate-900"
+                              rowSpan={temFis ? 3 : 2}
+                            >
+                              Item {item.ordem || idx + 1} — {item.titulo}
+                            </td>
+                            <td className="p-1.5 border border-slate-200 text-center">
+                              Digital (urna)
+                            </td>
+                            <td className="p-1.5 border border-slate-200 text-center">
+                              {dig.favoravel}
+                            </td>
+                            <td className="p-1.5 border border-slate-200 text-center">
+                              {dig.contrario}
+                            </td>
+                            <td className="p-1.5 border border-slate-200 text-center">
+                              {dig.abstencao}
+                            </td>
+                            <td
+                              className="p-1.5 border border-slate-200 text-center"
+                              rowSpan={temFis ? 3 : 2}
+                            >
+                              <strong>{totalConsolidado}</strong>
+                            </td>
+                          </tr>
+                          {temFis && (
+                            <tr>
+                              <td className="p-1.5 border border-slate-200 text-center">
+                                Físico (papel)
+                              </td>
+                              <td className="p-1.5 border border-slate-200 text-center">
+                                {fis.favoraveis}
+                              </td>
+                              <td className="p-1.5 border border-slate-200 text-center">
+                                {fis.contrarios}
+                              </td>
+                              <td className="p-1.5 border border-slate-200 text-center">
+                                {fis.abstencoes}
+                              </td>
+                            </tr>
+                          )}
+                          {temFis && (
+                            <tr>
+                              <td className="p-1.5 border border-slate-200 text-center font-bold bg-slate-50">
+                                Consolidado
+                              </td>
+                              <td className="p-1.5 border border-slate-200 text-center font-bold bg-slate-50">
+                                {dig.favoravel + fis.favoraveis}
+                              </td>
+                              <td className="p-1.5 border border-slate-200 text-center font-bold bg-slate-50">
+                                {dig.contrario + fis.contrarios}
+                              </td>
+                              <td className="p-1.5 border border-slate-200 text-center font-bold bg-slate-50">
+                                {dig.abstencao + fis.abstencoes}
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      )
+                    })}
+                  </tbody>
+                </table>
+
+                {/* Trilha de auditoria dos lançamentos físicos */}
+                <div className="mt-3 pt-2 border-t border-slate-200">
+                  <span className="text-[10px] uppercase font-bold text-slate-600 block tracking-wider">
+                    Trilha de auditoria dos lançamentos físicos
+                  </span>
+                  <ul className="mt-1.5 space-y-1">
+                    {lancamentosFisicos.map((l, i) => {
+                      const itemDoLanc = boletim.apuracao.itens.find((it) => it.id === l.item)
+                      return (
+                        <li key={`${l.id || i}`} className="text-[11px] text-slate-700">
+                          Item {itemDoLanc?.ordem || '—'} ({itemDoLanc?.titulo || 'item'}) —{' '}
+                          {l.favoraveis || 0} favoráveis, {l.contrarios || 0} contrários,{' '}
+                          {l.abstencoes || 0} abstenções
+                          {l.lancado_por ? ` — lançado por ${l.lancado_por}` : ''}
+                          {l.created
+                            ? ` — registrado em ${new Date(l.created).toLocaleString('pt-BR')}`
+                            : ''}
+                          {l.observacao ? ` — obs.: "${l.observacao}"` : ''}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                  <p className="text-[10px] text-slate-500 mt-1.5">
+                    Cada lançamento registra operador, data/hora e valores anteriores (histórico
+                    imutável na collection `lancamentos_fisicos`, hook lancamento_fisico.js).
+                  </p>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Rodapé do Documento: Assinaturas da Mesa Diretora e Declaração LGPD */}

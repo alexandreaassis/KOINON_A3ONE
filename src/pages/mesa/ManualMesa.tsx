@@ -7,6 +7,7 @@ import {
   ScrollText,
   FileText,
   Gavel,
+  MonitorSmartphone,
   ShieldCheck,
   Printer,
   ArrowRight,
@@ -136,7 +137,15 @@ const SECOES: SecaoManual[] = [
     rota: '/mesa/deliberacoes',
     icone: Gavel,
     resumo:
-      'Cadastro da assembleia, pauta item a item e condução de cada deliberação: abrir, acompanhar, encerrar e apurar.',
+      'Cadastro da assembleia, pauta item a item, modalidade do voto presencial (Estação ou Lançamento manual) e condução de cada deliberação: abrir, acompanhar, encerrar e apurar.',
+  },
+  {
+    id: 'voto-presencial',
+    titulo: 'Voto presencial — Estação e Lançamento manual',
+    rota: '/estacao e painel de lançamento físico',
+    icone: MonitorSmartphone,
+    resumo:
+      'Duas modalidades para o voto do salão: Estação de voto presencial (tablet com CPF + senha ou código de uso único) e Lançamento manual pela mesa, ambos consolidados na urna e no boletim.',
   },
   {
     id: 'relatorios',
@@ -657,8 +666,57 @@ const ManualMesaPage: React.FC = () => {
                         texto:
                           'Cada transição de etapa fica gravada com data e hora, sem apagar o anterior.',
                       },
+                      {
+                        n: 4,
+                        titulo: 'Modalidade do voto presencial',
+                        texto:
+                          'Em cada deliberação a mesa escolhe como o voto presencial entra na urna: pela Estação (tablet do salão) ou pelo Lançamento manual (cédulas de papel digitadas pela mesa).',
+                      },
                     ]}
                   />
+                  <CaixaImportante>
+                    Antes de abrir a votação, confira a modalidade presencial escolhida na
+                    deliberação: Estação ou Lançamento manual. A escolha define a rota que a mesa
+                    usa no salão e como cada voto entra na apuração.
+                  </CaixaImportante>
+                </>
+              )}
+              {s.id === 'voto-presencial' && (
+                <>
+                  <LegendaNumerada
+                    itens={[
+                      {
+                        n: 1,
+                        titulo: 'Escolha na deliberação',
+                        texto:
+                          'No formulário da deliberação, a mesa marca a modalidade: Estação de voto presencial ou Lançamento manual. A escolha fica gravada e define o fluxo do salão.',
+                      },
+                      {
+                        n: 2,
+                        titulo: 'Estação de voto presencial (rota /estacao)',
+                        texto:
+                          'A mesa abre /estacao em um tablet do salão e desbloqueia com a própria senha da conta da mesa. O morador se autentica com CPF + senha do Koinon — ou com CPF + código de uso único, quando não tem senha — escolhe Favorável, Contrário ou Abstenção em cada item e confirma. O voto entra na mesma urna eletrônica, com recibo de código e hash abreviado SHA-256.',
+                      },
+                      {
+                        n: 3,
+                        titulo: 'Códigos de uso único',
+                        texto:
+                          'Pela mesa, a geração de códigos cria um código temporário ligado à deliberação e ao CPF informado. O código vale por tempo limitado, é consumido no primeiro uso e pode ser revogado — nenhum morador precisa de senha para votar na estação.',
+                      },
+                      {
+                        n: 4,
+                        titulo: 'Lançamento manual',
+                        texto:
+                          'Com a modalidade "Lançamento manual", quem votou em papel entrega a cédula à mesa, que digita os totais por item (favoráveis, contrários e abstenções) no painel de lançamento físico. Cada lançamento registra operador, data e hora, e o boletim da urna consolida digital + físico com trilha de auditoria.',
+                      },
+                    ]}
+                  />
+                  <CaixaDica>
+                    Regra do "1 unidade = 1 voto": o servidor cruza os canais e bloqueia o segundo
+                    voto da mesma unidade — quem já votou pela estação não vota de novo no app, e
+                    vice-versa. Credencie presencialmente na lista de presença antes de liberar a
+                    votação do morador.
+                  </CaixaDica>
                 </>
               )}
               {s.id === 'auditoria' && (

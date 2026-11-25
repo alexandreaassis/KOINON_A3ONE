@@ -1,4 +1,5 @@
 /* Main App Component - Sistema de Votação Eletrônica Residencial Lago Azul */
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
@@ -55,6 +56,11 @@ import CadastroMoradorPublicoPage from '@/pages/public/CadastroMoradorPublico'
 import AssinaturaMobilePublicaPage from '@/pages/public/AssinaturaMobilePublica'
 import ApresentacaoVideoCadastroPage from '@/pages/video/ApresentacaoVideoCadastro'
 
+// Estação de Voto Presencial (tablet do salão) — rota pública com login próprio da mesa
+const EstacaoPresencialPage = lazy(() =>
+  import('@/pages/mesa/EstacaoPresencial').then((m) => ({ default: m.EstacaoPresencialPage })),
+)
+
 import NotFound from '@/pages/NotFound'
 
 // Rota raiz inteligente: redireciona para a home de acordo com o perfil
@@ -103,6 +109,23 @@ const App = () => (
           <Routes>
             {/* Rota Raiz Inteligente */}
             <Route path="/" element={<RootRoute />} />
+
+            {/* Estação de Voto Presencial — FORA do ProtectedRoute: tem login próprio da mesa
+                para desbloquear o tablet antes de autenticar o morador */}
+            <Route
+              path="/estacao"
+              element={
+                <Suspense
+                  fallback={
+                    <div className="flex min-h-dvh items-center justify-center bg-slate-50">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#0066FF] border-t-transparent" />
+                    </div>
+                  }
+                >
+                  <EstacaoPresencialPage />
+                </Suspense>
+              }
+            />
 
             {/* Rotas Públicas de Autenticação */}
             <Route path="/login" element={<LoginPage />} />

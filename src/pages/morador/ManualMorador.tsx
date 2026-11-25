@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
+  MonitorSmartphone,
   UserCheck,
   Vote,
   Receipt,
@@ -85,6 +86,14 @@ const SECOES: SecaoManual[] = [
     rota: '/recibo',
     icone: Receipt,
     resumo: 'O código de conferência e a impressão digital do voto que você emitiu.',
+  },
+  {
+    id: 'voto-presencial',
+    titulo: 'Voto presencial — no salão, pela estação ou em papel',
+    rota: 'estação da assembleia',
+    icone: MonitorSmartphone,
+    resumo:
+      'Quando você participa da assembleia no salão, seu voto presencial entra na mesma urna: pelo tablet da estação (CPF + senha, ou CPF + código de uso único) ou em cédula de papel lançada pela mesa.',
   },
   {
     id: 'documentos',
@@ -472,6 +481,60 @@ const MockupSecao: React.FC<{ id: string; onIrPara: (rota: string) => void }> = 
           vocês quem vai votar — o sistema aceita somente o primeiro voto confirmado da unidade em
           cada item.
         </CaixaImportante>
+      </div>
+    )
+  }
+  if (id === 'voto-presencial') {
+    return (
+      <div className="space-y-4">
+        <MockupTela
+          titulo="koinon · Estação de Voto Presencial"
+          marcadores={[
+            { n: 1, x: 50, y: 10 },
+            { n: 2, x: 30, y: 36 },
+            { n: 3, x: 70, y: 36 },
+            { n: 4, x: 50, y: 88 },
+          ]}
+        >
+          <MockupVotacao />
+        </MockupTela>
+        <LegendaNumerada
+          itens={[
+            {
+              n: 1,
+              titulo: 'Dois caminhos, uma urna',
+              texto:
+                'Se você está no salão, a mesa escolheu uma das duas modalidades para a assembleia: a Estação de voto presencial (tablet) ou o Lançamento manual (cédula de papel). Nos dois casos o voto presencial entra na mesma urna criptográfica da assembleia.',
+            },
+            {
+              n: 2,
+              titulo: 'Pela Estação: CPF + senha',
+              texto:
+                'A mesa desbloqueia o tablet. Você digita seu CPF e a senha que já usa no Koinon, escolhe Favorável, Contrário ou Abstenção em cada item e confirma. Na hora aparece o recibo com código e hash, igual ao voto pela internet.',
+            },
+            {
+              n: 3,
+              titulo: 'Pela Estação: CPF + código de uso único',
+              texto:
+                'Não tem senha ou esqueceu? A mesa gera um código temporário ligado ao seu CPF e à assembleia. Ele vale por pouco tempo, é consumido no primeiro uso e funciona uma única vez — depois a mesa pode gerar outro, se precisar.',
+            },
+            {
+              n: 4,
+              titulo: 'Pelo Lançamento manual (papel)',
+              texto:
+                'Em algumas assembleias a mesa prefere cédulas de papel: você marca o voto no papel e entrega à mesa, que digita os totais de cada item no sistema. O resultado entra junto com os votos da internet, e o boletim final consolida tudo.',
+            },
+          ]}
+        />
+        <CaixaImportante>
+          A regra de um voto por unidade vale também no salão: se você (ou um familiar) já votou
+          pela internet, a unidade não pode votar de novo na estação — e vice-versa. Em caso de
+          procuração, quem representa a unidade é o procurador credenciado.
+        </CaixaImportante>
+        <CaixaDica>
+          Guarde o recibo da estação igual ao do voto remoto: fotografe ou anote o código. É ele que
+          permite conferir que o seu voto entrou na apuração, sem revelar em que você votou.
+        </CaixaDica>
       </div>
     )
   }

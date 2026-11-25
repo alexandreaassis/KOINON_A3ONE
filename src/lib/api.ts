@@ -772,6 +772,7 @@ export interface ApuracaoResponse {
     data_fim?: string
     status: DeliberacaoStatus
     tipo_cedula: 'secreta' | 'nominal'
+    modalidade_presencial?: string
     quorum_instalacao?: number
     quorum_materia?: string
     inadimplente_pode_votar?: boolean
