@@ -32,6 +32,7 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from '@/hooks/use-toast'
 import { formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
 import { formatarIdentificadorUnidade, formatarUnidadeComBloco } from '@/lib/formatadorUnidade'
+import { resolverNomeTitular } from '@/lib/titularUnidade'
 import {
   UserCheck,
   UploadCloud,
@@ -128,8 +129,11 @@ export const CredenciamentoPage: React.FC = () => {
           setTitularNome(cred.titular_nome)
           setTipoVinculo(cred.tipo_vinculo)
         } else {
-          // Preencher sugestão a partir da unidade
-          setTitularNome(unidadeAtiva.responsavel_nome || user?.name || '')
+          // Preencher sugestão do titular: cadastro de vínculo (cadastros_unidade)
+          // mantido pela mesa; responsavel_nome só como fallback — sem placeholder.
+          const nomeTitular = await resolverNomeTitular(unidadeAtiva)
+          if (!ativo) return
+          setTitularNome(nomeTitular || user?.name || '')
         }
       } catch (err) {
         console.error('Erro ao buscar credenciamento:', err)

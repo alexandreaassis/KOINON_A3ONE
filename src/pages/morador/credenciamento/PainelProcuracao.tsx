@@ -38,6 +38,7 @@ import {
 import { toast } from '@/hooks/use-toast'
 import { formatarCpf, validarCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
 import { formatarIdentificadorUnidade, formatarUnidadeComBloco } from '@/lib/formatadorUnidade'
+import { resolverNomesTitularesEmLote } from '@/lib/titularUnidade'
 import {
   FileSignature,
   Plus,
@@ -109,6 +110,9 @@ export const PainelProcuracao: React.FC<PainelProcuracaoProps> = ({ deliberacaoA
   const [unidadeId, setUnidadeId] = useState<string>('')
   const [buscaUnidade, setBuscaUnidade] = useState('')
   const [listaUnidades, setListaUnidades] = useState<UnidadeRecord[]>([])
+  // Nome do titular por unidade: cadastros_unidade (vínculo ativo/aprovado mais
+  // recente) com fallback para unidades.responsavel_nome (nunca placeholder).
+  const [titulares, setTitulares] = useState<Record<string, string>>({})
   const [cpfProcurador, setCpfProcurador] = useState('')
   const [cpfErro, setCpfErro] = useState<string | null>(null)
   const [qualificacao, setQualificacao] = useState('Procurador com Poderes Específicos')
@@ -166,7 +170,12 @@ export const PainelProcuracao: React.FC<PainelProcuracaoProps> = ({ deliberacaoA
     const carregar = async () => {
       try {
         const todas = await api.getUnidades()
-        if (ativo) setListaUnidades(todas)
+        if (!ativo) return
+        setListaUnidades(todas)
+
+        // Nome do titular em lote: cadastros_unidade → fallback responsavel_nome
+        const mapa = await resolverNomesTitularesEmLote(todas)
+        if (ativo) setTitulares(mapa)
       } catch (err) {
         console.error('Erro ao carregar unidades para procuração:', err)
       }
@@ -184,12 +193,15 @@ export const PainelProcuracao: React.FC<PainelProcuracaoProps> = ({ deliberacaoA
     return base.filter((u) => {
       const ident = (u.identificador || '').toLowerCase()
       const bloco = (u.bloco || '').toLowerCase()
-      const resp = (u.responsavel_nome || '').toLowerCase()
+      const resp = (titulares[u.id] || u.responsavel_nome || '').toLowerCase()
       return ident.includes(t) || bloco.includes(t) || resp.includes(t)
     })
-  }, [buscaUnidade, listaUnidades])
+  }, [buscaUnidade, listaUnidades, titulares])
 
   const unidadeEscolhida = listaUnidades.find((u) => u.id === unidadeId) || null
+  // Titular exibido/submetido: cadastro de vínculo ativo/aprovado da unidade,
+  // nunca o placeholder "Condômino Apto NNNN" de unidades.responsavel_nome.
+  const nomeTitularEscolhida = (unidadeEscolhida && titulares[unidadeEscolhida.id]) || ''
 
   const escolherUnidade = (id: string) => {
     setUnidadeId(id)
@@ -231,7 +243,7 @@ export const PainelProcuracao: React.FC<PainelProcuracaoProps> = ({ deliberacaoA
       fd.append('solicitante', user.id)
       fd.append('deliberacao', assembleiaId)
       fd.append('unidade', unidadeId)
-      fd.append('titular_outorgante', unidadeEscolhida?.responsavel_nome || '')
+      fd.append('titular_outorgante', nomeTitularEscolhida)
       fd.append('cpf_procurador', cpfProcurador)
       fd.append('qualificacao', qualificacao)
       fd.append('status', 'em_analise')
@@ -397,9 +409,9 @@ export const PainelProcuracao: React.FC<PainelProcuracaoProps> = ({ deliberacaoA
                         <span className="font-semibold text-slate-800">
                           {formatarUnidadeComBloco(u, rotuloUnidade)}
                         </span>
-                        {u.responsavel_nome && (
+                        {titulares[u.id] && (
                           <span className="text-slate-500 truncate max-w-[45%]">
-                            {u.responsavel_nome}
+                            {titulares[u.id]}
                           </span>
                         )}
                       </button>
@@ -411,7 +423,7 @@ export const PainelProcuracao: React.FC<PainelProcuracaoProps> = ({ deliberacaoA
                 <>
                   <div className="flex items-center gap-2 h-10 px-3 rounded-md bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-800">
                     <Building className="h-4 w-4 text-cyan-700" />
-                    <span>Titular (outorgante): {unidadeEscolhida.responsavel_nome || '—'}</span>
+                    <span>Titular (outorgante): {nomeTitularEscolhida || '—'}</span>
                   </div>
                   <p className="text-[10px] text-slate-400">
                     Preenchido automaticamente a partir do cadastro da unidade — o CPF do outorgante

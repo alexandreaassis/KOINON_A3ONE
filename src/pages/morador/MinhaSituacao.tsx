@@ -9,6 +9,7 @@ import {
   type ComprovanteRecord,
 } from '@/lib/api'
 import { formatarIdentificadorUnidade, formatarUnidadeComBloco } from '@/lib/formatadorUnidade'
+import { resolverNomeTitular } from '@/lib/titularUnidade'
 import {
   Card,
   CardHeader,
@@ -49,6 +50,9 @@ export const MinhaSituacaoPage: React.FC = () => {
   const [jaVotou, setJaVotou] = useState(false)
   const [isPresencial, setIsPresencial] = useState(false)
   const [carregando, setCarregando] = useState(true)
+  // Titular: cadastro de vínculo (cadastros_unidade) da unidade; responsavel_nome
+  // só como fallback — sem placeholders "Condômino Apto NNNN".
+  const [nomeTitular, setNomeTitular] = useState<string | null>(null)
 
   useEffect(() => {
     let ativo = true
@@ -92,6 +96,23 @@ export const MinhaSituacaoPage: React.FC = () => {
     }
 
     carregar()
+    return () => {
+      ativo = false
+    }
+  }, [unidadeSelecionada])
+
+  // Nome do titular da unidade: cadastros_unidade → fallback responsavel_nome.
+  useEffect(() => {
+    let ativo = true
+    const resolver = async () => {
+      if (!unidadeSelecionada) {
+        setNomeTitular(null)
+        return
+      }
+      const nome = await resolverNomeTitular(unidadeSelecionada)
+      if (ativo) setNomeTitular(nome)
+    }
+    resolver()
     return () => {
       ativo = false
     }
@@ -284,9 +305,7 @@ export const MinhaSituacaoPage: React.FC = () => {
               <span className="text-slate-500 flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5" /> Responsável:
               </span>
-              <span className="font-semibold text-slate-900">
-                {unidadeSelecionada?.responsavel_nome || '—'}
-              </span>
+              <span className="font-semibold text-slate-900">{nomeTitular || '—'}</span>
             </div>
             <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
               <span className="text-slate-500 flex items-center gap-1.5">

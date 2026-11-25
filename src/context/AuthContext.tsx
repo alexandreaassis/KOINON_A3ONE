@@ -93,8 +93,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const authUser = pb.authStore.record as unknown as UserRecord
       setUser(authUser)
 
+      // Releitura da sessão: vínculos de unidade e outras alterações feitas pelo
+      // admin em /admin/usuarios aparecem sem novo logout/login. Fallback gracioso:
+      // se a releitura falhar (offline etc.), segue com a foto do authStore.
+      let authUserEfetivo = authUser
       try {
-        const unidades = await carregarUnidadesDoUsuario(authUser)
+        const rec = await pb.collection('users').getOne<UserRecord>(authUser.id)
+        if (rec) {
+          authUserEfetivo = { ...authUser, ...rec } as UserRecord
+          pb.authStore.save(pb.authStore.token, authUserEfetivo as unknown as RecordModel)
+          setUser(authUserEfetivo)
+        }
+      } catch (err) {
+        console.warn('Releitura do usuário autenticado falhou; seguindo com a foto local:', err)
+      }
+
+      try {
+        const unidades = await carregarUnidadesDoUsuario(authUserEfetivo)
         setUnidadesDisponiveis(unidades)
 
         if (unidades.length > 0) {

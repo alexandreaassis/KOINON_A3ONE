@@ -26,5 +26,6 @@ export function getErrorMessage(error: unknown, fallback?: string): string {
     return fallback ?? 'An unexpected error occurred.'
   }
   const msgs = Object.values(extractFieldErrors(error))
-  return msgs.join(' ') || error.message || fallback || 'An unexpected error occurred.'
+  if (msgs.length > 0) return msgs.join(' ')
+  return error.message || fallback || 'An unexpected error occurred.'
 }

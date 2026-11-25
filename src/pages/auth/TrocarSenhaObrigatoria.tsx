@@ -83,7 +83,10 @@ export const TrocarSenhaObrigatoriaPage: React.FC = () => {
       })
       if (!resp?.success) {
         setErro(
-          getErrorMessage(resp?.message || 'Não foi possível trocar a senha. Tente novamente.'),
+          getErrorMessage(
+            null,
+            resp?.message || 'Não foi possível trocar a senha. Tente novamente.',
+          ),
         )
         return
       }
