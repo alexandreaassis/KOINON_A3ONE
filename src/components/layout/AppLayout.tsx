@@ -203,6 +203,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
   // Menus de navegação
   const navMorador = [
     { label: 'Minha Situação', path: '/', icon: Home },
+    { label: 'Credenciamento', path: '/morador/credenciamento', icon: UserCheck },
     { label: 'Ata da Assembleia', path: '/ata-assembleia', icon: FileText },
     { label: 'Documentos da Pauta', path: '/documentos-assembleia', icon: FolderArchive },
     { label: 'Cabine de Votação', path: '/votacao', icon: Vote },
@@ -212,7 +213,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
 
   const navMesa = [
     { label: 'Painel da Mesa', path: '/mesa', icon: ShieldCheck },
-    { label: 'Credenciamento', path: '/mesa/credenciamento', icon: UserCheck },
+    { label: 'Credenciamento', path: '/morador/credenciamento', icon: UserCheck },
     { label: 'Ata da Assembleia (IA)', path: '/mesa/ata', icon: FileText },
     { label: 'Documentos & Edital', path: '/mesa/documentos', icon: FolderArchive },
     { label: 'Lista de Presença', path: '/mesa/presenca', icon: UserCheck },
@@ -236,8 +237,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
   const getBreadcrumbs = () => {
     const p = location.pathname
     if (p === '/') return ['Início', 'Minha Situação']
-    if (p === '/credenciamento' || p === '/mesa/credenciamento')
-      return ['Mesa Diretora', 'Credenciamento']
+    if (p === '/credenciamento' || p === '/mesa/credenciamento' || p === '/morador/credenciamento')
+      return ['Morador', 'Credenciamento']
     if (p === '/votacao') return ['Morador', 'Cabine de Votação']
     if (p === '/recibo') return ['Morador', 'Comprovante']
     if (p === '/mesa') return ['Mesa Diretora', 'Painel Geral']
@@ -822,7 +823,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-[#5A6B82]/20" />
                 <DropdownMenuItem
-                  onClick={() => navigate('/credenciamento')}
+                  onClick={() => navigate('/morador/credenciamento')}
                   className="text-xs text-[#002B5E] focus:bg-[#F3F7FC] focus:text-[#002B5E]"
                 >
                   <UserCheck className="mr-2 h-4 w-4 text-[#5A6B82]" /> Situação Cadastral

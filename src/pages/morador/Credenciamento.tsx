@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { PainelUnidades } from './credenciamento/PainelUnidades'
 import { useAuth } from '@/context/AuthContext'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import {
@@ -6,6 +7,7 @@ import {
   type CredenciamentoRecord,
   type DeliberacaoRecord,
   type EditalDeliberacaoRecord,
+  type UnidadeRecord,
 } from '@/lib/api'
 import { Link } from 'react-router-dom'
 import {
@@ -44,7 +46,7 @@ import {
 } from 'lucide-react'
 
 export const CredenciamentoPage: React.FC = () => {
-  const { user, unidadeSelecionada } = useAuth()
+  const { user, unidadeSelecionada, unidadesDisponiveis } = useAuth()
   const { rotuloUnidade } = useCondoConfig()
 
   const [credExistente, setCredExistente] = useState<CredenciamentoRecord | null>(null)
@@ -56,9 +58,15 @@ export const CredenciamentoPage: React.FC = () => {
   const [enviando, setEnviando] = useState(false)
   const [carregando, setCarregando] = useState(true)
 
+  // Unidade escolhida no painel de múltiplas unidades (null = usar a unidade ativa do menu lateral)
+  const [unidadeEscolhida, setUnidadeEscolhida] = useState<UnidadeRecord | null>(null)
+  const unidadeAtiva = unidadeEscolhida || unidadeSelecionada
+  // Versão do painel: incrementada após submissão para recarregar os status das unidades
+  const [versaoPainel, setVersaoPainel] = useState(0)
+
   // Estado da Convocação / Edital publicado da deliberação ativa
   const [deliberacaoAtiva, setDeliberacaoAtiva] = useState<DeliberacaoRecord | null>(null)
-  const [editalAtivo, setEditalAtivo] = useState<EditalDeliberacaoRecord | null>(null)
+  const [, setEditalAtivo] = useState<EditalDeliberacaoRecord | null>(null)
   const [convocacaoPublicada, setConvocacaoPublicada] = useState<boolean>(false)
   const [verificandoEdital, setVerificandoEdital] = useState<boolean>(true)
 
@@ -103,17 +111,19 @@ export const CredenciamentoPage: React.FC = () => {
     }
   }, [])
 
-  // Carrega credenciamento existente para a unidade selecionada
+  // Carrega credenciamento existente para a unidade ativa no formulário
+  // (a escolhida no painel de unidades ou a ativa no menu lateral)
   useEffect(() => {
     let ativo = true
     const carregar = async () => {
-      if (!unidadeSelecionada) {
+      if (!unidadeAtiva) {
+        setCredExistente(null)
         setCarregando(false)
         return
       }
       setCarregando(true)
       try {
-        const cred = await api.getCredenciamentoPorUnidade(unidadeSelecionada.id)
+        const cred = await api.getCredenciamentoPorUnidade(unidadeAtiva.id)
         if (!ativo) return
         setCredExistente(cred)
         if (cred) {
@@ -123,7 +133,7 @@ export const CredenciamentoPage: React.FC = () => {
           setTipoVinculo(cred.tipo_vinculo)
         } else {
           // Preencher sugestão a partir da unidade
-          setTitularNome(unidadeSelecionada.responsavel_nome || user?.name || '')
+          setTitularNome(unidadeAtiva.responsavel_nome || user?.name || '')
         }
       } catch (err) {
         console.error('Erro ao buscar credenciamento:', err)
@@ -136,7 +146,7 @@ export const CredenciamentoPage: React.FC = () => {
     return () => {
       ativo = false
     }
-  }, [unidadeSelecionada, user])
+  }, [unidadeAtiva, user])
 
   // Formatar CPF ao digitar
   const handleCpfChange = (val: string) => {
@@ -172,10 +182,10 @@ export const CredenciamentoPage: React.FC = () => {
       return
     }
 
-    if (!unidadeSelecionada) {
+    if (!unidadeAtiva) {
       toast({
         title: 'Unidade não selecionada',
-        description: 'Por favor selecione a unidade ativa no menu lateral.',
+        description: 'Por favor selecione a unidade no painel ou no menu lateral.',
         variant: 'destructive',
       })
       return
@@ -206,7 +216,7 @@ export const CredenciamentoPage: React.FC = () => {
     setEnviando(true)
     try {
       const formData = new FormData()
-      formData.append('unidade', unidadeSelecionada.id)
+      formData.append('unidade', unidadeAtiva.id)
       formData.append('cpf', cpf)
       formData.append('titular_nome', titularNome)
       formData.append('tipo_vinculo', tipoVinculo)
@@ -220,6 +230,7 @@ export const CredenciamentoPage: React.FC = () => {
 
       const novo = await api.submeterCredenciamento(formData)
       setCredExistente(novo)
+      setVersaoPainel((v) => v + 1) // recarrega os status do painel de unidades
       toast({
         title: 'Documentação enviada',
         description: 'Seu credenciamento foi registrado e será analisado pela Mesa Diretora.',
@@ -248,6 +259,19 @@ export const CredenciamentoPage: React.FC = () => {
           promitente ou procurador).
         </p>
       </div>
+
+      {/* Painel de múltiplas unidades: escolhe qual unidade credenciar */}
+      {unidadesDisponiveis.length > 0 && unidadeAtiva && (
+        <PainelUnidades
+          deliberacao={deliberacaoAtiva}
+          unidades={unidadesDisponiveis}
+          versao={versaoPainel}
+          onCredenciar={(linha) => {
+            setUnidadeEscolhida(linha.unidade)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }}
+        />
+      )}
 
       {/* Alerta de Bloqueio: Convocação Não Publicada */}
       {!verificandoEdital && !convocacaoPublicada && (
@@ -282,7 +306,7 @@ export const CredenciamentoPage: React.FC = () => {
       )}
 
       {/* Status Atual do Credenciamento */}
-      {credExistente && (
+      {credExistente && unidadeAtiva && (
         <Card
           className={`border ${
             credExistente.status === 'aprovado'
@@ -342,8 +366,8 @@ export const CredenciamentoPage: React.FC = () => {
                     : credExistente.tipo_vinculo.toUpperCase()}{' '}
               • <strong>Unidade:</strong>{' '}
               {formatarIdentificadorUnidade(
-                unidadeSelecionada?.identificador,
-                unidadeSelecionada?.tipo_unidade,
+                unidadeAtiva?.identificador,
+                unidadeAtiva?.tipo_unidade,
                 rotuloUnidade,
               )}
             </p>
@@ -367,6 +391,12 @@ export const CredenciamentoPage: React.FC = () => {
           <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
             <UserCheck className="h-4 w-4 text-cyan-700" /> Formulário de Vínculo Cadastral
           </CardTitle>
+          {unidadeEscolhida && unidadeEscolhida.id !== unidadeSelecionada?.id && (
+            <CardDescription className="text-xs font-medium text-blue-700">
+              Credenciando a unidade {formatarUnidadeComBloco(unidadeEscolhida, rotuloUnidade)} —
+              escolhida no painel de unidades acima.
+            </CardDescription>
+          )}
           <CardDescription className="text-xs text-slate-500">
             Preencha os dados do titular ou procurador e anexe os documentos comprobatórios (RG/CNH,
             Certidão de Ônus, Contrato ou Procuração).
@@ -381,7 +411,7 @@ export const CredenciamentoPage: React.FC = () => {
                 <Label className="text-xs font-semibold text-slate-700">Unidade Habitacional</Label>
                 <div className="flex items-center gap-2 h-10 px-3 rounded-md bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-800">
                   <Building className="h-4 w-4 text-cyan-700" />
-                  <span>{formatarUnidadeComBloco(unidadeSelecionada, rotuloUnidade)}</span>
+                  <span>{formatarUnidadeComBloco(unidadeAtiva, rotuloUnidade)}</span>
                 </div>
               </div>
 

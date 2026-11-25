@@ -156,7 +156,22 @@ const App = () => (
             />
             <Route
               path="/credenciamento"
-              element={<Navigate to="/mesa/credenciamento" replace />}
+              element={<Navigate to="/morador/credenciamento" replace />}
+            />
+            {/* Credenciamento no Módulo do Morador: mesma tela usada pela Mesa, unidade explícita */}
+            <Route
+              path="/morador/credenciamento"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <CredenciamentoPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mesa/credenciamento"
+              element={<Navigate to="/morador/credenciamento" replace />}
             />
             <Route
               path="/votacao"
