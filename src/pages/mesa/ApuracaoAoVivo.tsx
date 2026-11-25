@@ -7,7 +7,6 @@ import {
   type ApuracaoResponse,
   type LancamentoFisicoRecord,
 } from '@/lib/api'
-import { AppLayout } from '@/components/layout/AppLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -299,10 +298,20 @@ const ApuracaoAoVivoPage: React.FC = () => {
   }
 
   return (
-    <AppLayout
-      title="Apuração ao Vivo"
-      subtitle="Contagem em tempo real por pauta da deliberação ativa"
-    >
+    // AppLayout já é aplicado pela rota /mesa/apuracao em App.tsx — aqui fica
+    // apenas o container de conteúdo (cabeçalho próprio + faixa + cards), sem
+    // duplicar menu lateral e barra superior dentro da página.
+    <div className="space-y-6">
+      {/* Cabeçalho da página (equivalente ao title/subtitle do AppLayout) */}
+      <div>
+        <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-[#002B5E]">
+          <Activity className="h-5 w-5 text-[#0066FF]" /> Apuração ao Vivo
+        </h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Contagem em tempo real por pauta da deliberação ativa
+        </p>
+      </div>
+
       <div className="space-y-4">
         {/* Cabeçalho: deliberação monitorada + status do tempo real */}
         <Card className="border-[#002B5E]/15">
@@ -430,7 +439,7 @@ const ApuracaoAoVivoPage: React.FC = () => {
           </div>
         )}
       </div>
-    </AppLayout>
+    </div>
   )
 }
 

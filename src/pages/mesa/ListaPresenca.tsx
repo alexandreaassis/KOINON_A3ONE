@@ -77,6 +77,7 @@ import { bytesToBase64 } from '@/lib/pdf/gerarPdfListaPresencaBytes'
 import { ModalZapsignLinks } from '@/components/assinatura/ModalZapsignLinks'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { gerarPdfListaPresencaComHash } from '@/lib/pdfListaPresenca'
+import { resolverNomesTitularesEmLote } from '@/lib/titularUnidade'
 import type { ZapSignSignatarioUrl } from '@/lib/api'
 
 export const ListaPresencaPage: React.FC = () => {
@@ -90,6 +91,10 @@ export const ListaPresencaPage: React.FC = () => {
   const [presencasAssinadas, setPresencasAssinadas] = useState<PresencaAssinaturaRecord[]>([])
   const [presencasAntigas, setPresencasAntigas] = useState<PresencaRecord[]>([])
   const [credenciamentos, setCredenciamentos] = useState<CredenciamentoRecord[]>([])
+  // v0.0.227: nome do titular resolvido como na v0.0.218 — cadastros_unidade
+  // (vínculo aprovado/ativo) primeiro; unidades.responsavel_nome só como
+  // fallback. Unidades sem nome confiável NÃO entram no mapa.
+  const [nomesTitulares, setNomesTitulares] = useState<Record<string, string>>({})
   const [carregando, setCarregando] = useState(true)
 
   // Filtro
@@ -148,6 +153,12 @@ export const ListaPresencaPage: React.FC = () => {
       setDeliberacoes(delibs)
       setUnidades(unids)
       setCredenciamentos(creds)
+
+      // Nome de titular por unidade (cadastros_unidade com fallback) —
+      // alimenta unidades ausentes na tabela e na impressão limpa.
+      resolverNomesTitularesEmLote(unids)
+        .then(setNomesTitulares)
+        .catch(() => setNomesTitulares({}))
 
       const delib = delibId
         ? delibs.find((d) => d.id === delibId) || delibs[0]
@@ -230,7 +241,9 @@ export const ListaPresencaPage: React.FC = () => {
       }
     } else {
       const u = unidades.find((item) => item.id === uId)
-      if (u && u.responsavel_nome) {
+      if (u && nomesTitulares[u.id]) {
+        setParticipanteNome(nomesTitulares[u.id])
+      } else if (u && u.responsavel_nome) {
         setParticipanteNome(u.responsavel_nome)
       }
     }
@@ -614,12 +627,14 @@ export const ListaPresencaPage: React.FC = () => {
   const larguraIdealTitular = useMemo(() => {
     const candidatos = [
       ...presencasAssinadas.map((p) => p.nome || ''),
-      ...unidades.map((u) => u.responsavel_nome || ''),
+      ...unidades.map((u) => nomesTitulares[u.id] || u.responsavel_nome || ''),
     ]
     const maior = candidatos.reduce((m, n) => (n.length > m.length ? n : m), '')
     const ideal = Math.ceil(medirTextoPx(maior)) + 26 // padding das células + folga mínima
     return Math.min(320, Math.max(LARGURAS_MINIMAS.titular, ideal))
-  }, [presencasAssinadas, unidades])
+    // nomesTitulares participa da medição (nome resolvido pode ser maior)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presencasAssinadas, unidades, nomesTitulares])
 
   const larguraIdealProcuracao = useMemo(() => {
     const candidatos = presencasAssinadas
@@ -686,7 +701,7 @@ export const ListaPresencaPage: React.FC = () => {
     const ident = (u.identificador || '').toLowerCase()
     const num = formatarApenasNumeroUnidade(u.identificador).toLowerCase()
     const bloco = (u.bloco || '').toLowerCase()
-    const resp = (u.responsavel_nome || '').toLowerCase()
+    const resp = (nomesTitulares[u.id] || u.responsavel_nome || '').toLowerCase()
     const pres = mapaPresencas.get(u.id)
     const proc = (pres?.nome_procurador || '').toLowerCase()
     return (
@@ -727,7 +742,7 @@ export const ListaPresencaPage: React.FC = () => {
               : pres
                 ? 'Presencial'
                 : presencasAntigas.find((p) => p.unidade === u.id)?.tipo || 'Ausente'
-        const nome = pres?.nome || u.responsavel_nome || ''
+        const nome = pres?.nome || nomesTitulares[u.id] || u.responsavel_nome || ''
         const proc = pres?.nome_procurador || ''
         return `<tr>
         <td style="padding:6px 8px;border:1px solid #D5DCE5;text-align:center;font-weight:bold;">${esc(formatarApenasNumeroUnidade(u.identificador))}${u.bloco ? `<div style="font-size:8px;font-weight:normal;color:#5C6B7A;">${esc(u.bloco.replace(/^Bloco\s+/i, 'Bl. '))}</div>` : ''}</td>
@@ -1323,13 +1338,13 @@ export const ListaPresencaPage: React.FC = () => {
                                 </span>
                               )}
                             </div>
-                          ) : u.responsavel_nome ? (
+                          ) : nomesTitulares[u.id] || u.responsavel_nome ? (
                             <div className="truncate">
                               <span
                                 className="text-[#12314F] block truncate"
-                                title={u.responsavel_nome}
+                                title={nomesTitulares[u.id] || u.responsavel_nome}
                               >
-                                {u.responsavel_nome}
+                                {nomesTitulares[u.id] || u.responsavel_nome}
                               </span>
                               <span className="text-[10px] text-[#5C6B7A] italic block">
                                 Cadastrado

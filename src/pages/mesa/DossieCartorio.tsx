@@ -13,6 +13,7 @@ import {
   type FormatoAssinatura,
 } from '@/lib/api'
 import { formatarIdentificadorUnidade } from '@/lib/formatadorUnidade'
+import { resolverNomesTitularesEmLote } from '@/lib/titularUnidade'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { useAuth } from '@/context/AuthContext'
 import { formatarCpf } from '@/lib/cpf'
@@ -41,6 +42,9 @@ export const DossieCartorioPage: React.FC = () => {
   const [deliberacao, setDeliberacao] = useState<DeliberacaoRecord | null>(null)
   const [itensPauta, setItensPauta] = useState<ItemPautaRecord[]>([])
   const [unidades, setUnidades] = useState<UnidadeRecord[]>([])
+  // v0.0.227: nome do titular pela v0.0.218 — cadastros_unidade (vínculo
+  // aprovado/ativo) primeiro; unidades.responsavel_nome só como fallback.
+  const [nomesTitulares, setNomesTitulares] = useState<Record<string, string>>({})
   const [presencas, setPresencas] = useState<PresencaAssinaturaRecord[]>([])
   const [apuracao, setApuracao] = useState<ApuracaoResponse['apuracao'] | null>(null)
   const [assinaturas, setAssinaturas] = useState<AssinaturaDocumentoRecord[]>([])
@@ -83,6 +87,9 @@ export const DossieCartorioPage: React.FC = () => {
         setDeliberacao(delib)
         setItensPauta(itens)
         setUnidades(unids)
+        resolverNomesTitularesEmLote(unids)
+          .then(setNomesTitulares)
+          .catch(() => setNomesTitulares({}))
         setPresencas(presList)
         setApuracao(apResp.apuracao)
         setAssinaturas(assList)
@@ -534,6 +541,7 @@ export const DossieCartorioPage: React.FC = () => {
                           )}
                         </>
                       ) : (
+                        nomesTitulares[u.id] ||
                         u.responsavel_nome || <span className="italic">Ausente</span>
                       )}
                     </td>
