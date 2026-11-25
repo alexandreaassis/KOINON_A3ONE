@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { PainelUnidades } from './credenciamento/PainelUnidades'
 import { PainelProcuracao } from './credenciamento/PainelProcuracao'
 import { useAuth } from '@/context/AuthContext'
 import { useCondoConfig } from '@/context/CondoConfigContext'
@@ -8,7 +7,6 @@ import {
   type CredenciamentoRecord,
   type DeliberacaoRecord,
   type EditalDeliberacaoRecord,
-  type UnidadeRecord,
 } from '@/lib/api'
 import { Link } from 'react-router-dom'
 import {
@@ -47,7 +45,7 @@ import {
 } from 'lucide-react'
 
 export const CredenciamentoPage: React.FC = () => {
-  const { user, unidadeSelecionada, unidadesDisponiveis } = useAuth()
+  const { user, unidadeSelecionada } = useAuth()
   const { rotuloUnidade } = useCondoConfig()
 
   const [credExistente, setCredExistente] = useState<CredenciamentoRecord | null>(null)
@@ -59,11 +57,8 @@ export const CredenciamentoPage: React.FC = () => {
   const [enviando, setEnviando] = useState(false)
   const [carregando, setCarregando] = useState(true)
 
-  // Unidade escolhida no painel de múltiplas unidades (null = usar a unidade ativa do menu lateral)
-  const [unidadeEscolhida, setUnidadeEscolhida] = useState<UnidadeRecord | null>(null)
-  const unidadeAtiva = unidadeEscolhida || unidadeSelecionada
-  // Versão do painel: incrementada após submissão para recarregar os status das unidades
-  const [versaoPainel, setVersaoPainel] = useState(0)
+  // Unidade ativa do morador (selecionada no menu lateral)
+  const unidadeAtiva = unidadeSelecionada
 
   // Estado da Convocação / Edital publicado da deliberação ativa
   const [deliberacaoAtiva, setDeliberacaoAtiva] = useState<DeliberacaoRecord | null>(null)
@@ -113,7 +108,6 @@ export const CredenciamentoPage: React.FC = () => {
   }, [])
 
   // Carrega credenciamento existente para a unidade ativa no formulário
-  // (a escolhida no painel de unidades ou a ativa no menu lateral)
   useEffect(() => {
     let ativo = true
     const carregar = async () => {
@@ -186,7 +180,7 @@ export const CredenciamentoPage: React.FC = () => {
     if (!unidadeAtiva) {
       toast({
         title: 'Unidade não selecionada',
-        description: 'Por favor selecione a unidade no painel ou no menu lateral.',
+        description: 'Por favor selecione a unidade no menu lateral.',
         variant: 'destructive',
       })
       return
@@ -231,7 +225,6 @@ export const CredenciamentoPage: React.FC = () => {
 
       const novo = await api.submeterCredenciamento(formData)
       setCredExistente(novo)
-      setVersaoPainel((v) => v + 1) // recarrega os status do painel de unidades
       toast({
         title: 'Documentação enviada',
         description: 'Seu credenciamento foi registrado e será analisado pela Mesa Diretora.',
@@ -260,19 +253,6 @@ export const CredenciamentoPage: React.FC = () => {
           promitente ou procurador).
         </p>
       </div>
-
-      {/* Painel de múltiplas unidades: escolhe qual unidade credenciar */}
-      {unidadesDisponiveis.length > 0 && unidadeAtiva && (
-        <PainelUnidades
-          deliberacao={deliberacaoAtiva}
-          unidades={unidadesDisponiveis}
-          versao={versaoPainel}
-          onCredenciar={(linha) => {
-            setUnidadeEscolhida(linha.unidade)
-            window.scrollTo({ top: 0, behavior: 'smooth' })
-          }}
-        />
-      )}
 
       {/* Alerta de Bloqueio: Convocação Não Publicada */}
       {!verificandoEdital && !convocacaoPublicada && (
@@ -392,12 +372,6 @@ export const CredenciamentoPage: React.FC = () => {
           <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
             <UserCheck className="h-4 w-4 text-cyan-700" /> Formulário de Vínculo Cadastral
           </CardTitle>
-          {unidadeEscolhida && unidadeEscolhida.id !== unidadeSelecionada?.id && (
-            <CardDescription className="text-xs font-medium text-blue-700">
-              Credenciando a unidade {formatarUnidadeComBloco(unidadeEscolhida, rotuloUnidade)} —
-              escolhida no painel de unidades acima.
-            </CardDescription>
-          )}
           <CardDescription className="text-xs text-slate-500">
             Preencha os dados do titular ou procurador e anexe os documentos comprobatórios (RG/CNH,
             Certidão de Ônus, Contrato ou Procuração).
