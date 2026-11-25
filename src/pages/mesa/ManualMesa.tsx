@@ -376,6 +376,12 @@ const ManualMesaPage: React.FC = () => {
                     ]}
                   />
                   <CaixaImportante>
+                    O cadastro exige e-mail: é por ele que o morador recebe a conta de acesso com
+                    senha temporária — e a troca dessa senha é obrigatória no primeiro login. Após
+                    aprovar, a mesa também pode avisar o morador pelo WhatsApp, com mensagem pronta
+                    (a mensagem nunca contém a senha).
+                  </CaixaImportante>
+                  <CaixaImportante>
                     A mesa deve atentar para o tipo de vínculo: inquilinos e procuradores necessitam
                     de documentação de representação legal de acordo com a convenção do condomínio.
                   </CaixaImportante>
@@ -407,8 +413,14 @@ const ManualMesaPage: React.FC = () => {
                   />
                   <CaixaDica>
                     O disparo de links de cadastro pode ser feito diretamente via WhatsApp com um
-                    clique no botão wa.me ou por e-mail em massa.
+                    clique no botão wa.me ou por e-mail em massa. A lista de cadastros pode ser
+                    classificada por unidade, por nome ou por data de nascimento — use o seletor
+                    "Classificar por" ao lado do filtro de unidade.
                   </CaixaDica>
+                  <CaixaImportante>
+                    Esta tela é exclusiva do Módulo da Mesa: não existe mais atalho duplicado no
+                    menu de Administração.
+                  </CaixaImportante>
                 </>
               )}
               {s.id === 'relatorios' && (
