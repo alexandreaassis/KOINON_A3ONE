@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-25T02:18:52.467Z",
+  "generatedAt": "2026-11-25T03:33:14.132Z",
   "collections": [
     {
       "name": "users",
@@ -1255,6 +1255,30 @@
         {
           "name": "segunda_organizacao_bloqueada",
           "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "modelo_wa_cadastro_aprovado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "modelo_wa_ata_publicada",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "modelo_email_cadastro_aprovado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "modelo_email_ata_publicada",
+          "type": "text",
           "required": false,
           "system": false
         }

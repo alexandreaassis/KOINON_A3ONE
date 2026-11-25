@@ -72,6 +72,13 @@ export interface SalvarCanaisEnvioPayload {
   limpar_senha_smtp?: boolean
 }
 
+export interface ModelosMensagemPayload {
+  modelo_wa_cadastro_aprovado?: string
+  modelo_wa_ata_publicada?: string
+  modelo_email_cadastro_aprovado?: string
+  modelo_email_ata_publicada?: string
+}
+
 export interface CondoConfigRecord extends RecordModel {
   nome_condominio: string
   logo?: string
@@ -98,6 +105,11 @@ export interface CondoConfigRecord extends RecordModel {
   smtp_ativo?: boolean
   // Fase 2 - Selo honesto (migration 0040)
   instrucoes_acesso?: Record<string, unknown> | string
+  // Modelos de mensagem editáveis pela mesa (migration 0051)
+  modelo_wa_cadastro_aprovado?: string
+  modelo_wa_ata_publicada?: string
+  modelo_email_cadastro_aprovado?: string
+  modelo_email_ata_publicada?: string
   clausula_aceite_versao?: string
   clausula_aceite_status?: string
   clausula_aceite_texto?: string
@@ -1260,6 +1272,27 @@ export const api = {
         tem_senha_smtp: false,
       }
     }
+  },
+
+  // 5.2 Modelos de mensagem (WhatsApp/e-mail) editáveis pela mesa — campos
+  // modelo_* da collection `configuracoes` (migration 0051). Texto vazio
+  // limpa o campo (volta ao default histórico). `undefined` não é tocado.
+  async salvarModelosMensagem(modelos: ModelosMensagemPayload): Promise<CondoConfigRecord> {
+    const cfg = await this.getConfiguracao()
+    if (!cfg?.id) {
+      throw new Error('Configuração do condomínio não encontrada.')
+    }
+    const payload: Record<string, string> = {}
+    for (const [chave, valor] of Object.entries(modelos)) {
+      if (valor === undefined) continue
+      const texto = valor.trim()
+      if (texto === '') {
+        payload[chave] = ''
+      } else {
+        payload[chave] = texto
+      }
+    }
+    return this.updateConfiguracao(cfg.id, payload)
   },
 
   async salvarCanaisEnvio(payload: SalvarCanaisEnvioPayload): Promise<{
