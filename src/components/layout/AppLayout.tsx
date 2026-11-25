@@ -202,7 +202,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
 
   // Menus de navegação
   const navMorador = [
-    { label: 'Minha Situação', path: '/', icon: Home },
+    { label: 'Minha Situação', path: '/situacao', icon: Home },
     { label: 'Credenciamento', path: '/morador/credenciamento', icon: UserCheck },
     { label: 'Ata da Assembleia', path: '/ata-assembleia', icon: FileText },
     { label: 'Documentos da Pauta', path: '/documentos-assembleia', icon: FolderArchive },
@@ -237,6 +237,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
   const getBreadcrumbs = () => {
     const p = location.pathname
     if (p === '/') return ['Início', 'Minha Situação']
+    if (p === '/situacao') return ['Morador', 'Minha Situação']
     if (p === '/credenciamento' || p === '/mesa/credenciamento' || p === '/morador/credenciamento')
       return ['Morador', 'Credenciamento']
     if (p === '/votacao') return ['Morador', 'Cabine de Votação']
@@ -431,8 +432,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
             </Tooltip>
           </div>
 
-          {/* Seletor de Unidade Ativa */}
-          {unidadesDisponiveis.length > 0 && !isCollapsed && (
+          {/* Seletor de Unidade Ativa: apenas para o perfil morador */}
+          {role === 'morador' && unidadesDisponiveis.length > 0 && !isCollapsed && (
             <div className="p-3 border-b border-white/10 bg-black/15">
               <div className="text-[11px] uppercase tracking-[0.06em] font-medium text-[#8EC0FF] mb-1 px-1">
                 Unidade Ativa
