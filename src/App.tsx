@@ -61,6 +61,11 @@ const EstacaoPresencialPage = lazy(() =>
   import('@/pages/mesa/EstacaoPresencial').then((m) => ({ default: m.EstacaoPresencialPage })),
 )
 
+// Painel de Apuração ao Vivo (contagem em tempo real por pauta)
+const ApuracaoAoVivoPage = lazy(() =>
+  import('@/pages/mesa/ApuracaoAoVivo').then((m) => ({ default: m.ApuracaoAoVivoPage })),
+)
+
 import NotFound from '@/pages/NotFound'
 
 // Rota raiz inteligente: redireciona para a home de acordo com o perfil
@@ -357,6 +362,25 @@ const App = () => (
                 <ProtectedRoute requireMesa>
                   <AppLayout>
                     <RelatoriosMesaPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Painel de Apuração ao Vivo — contagem em tempo real por pauta */}
+            <Route
+              path="/mesa/apuracao"
+              element={
+                <ProtectedRoute requireMesa>
+                  <AppLayout>
+                    <Suspense
+                      fallback={
+                        <div className="flex min-h-dvh items-center justify-center">
+                          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#0066FF] border-t-transparent" />
+                        </div>
+                      }
+                    >
+                      <ApuracaoAoVivoPage />
+                    </Suspense>
                   </AppLayout>
                 </ProtectedRoute>
               }

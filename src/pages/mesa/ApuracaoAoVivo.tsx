@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { pb } from '@/lib/pocketbase/client'
-import { api, type DeliberacaoRecord, type ItemPautaRecord } from '@/lib/api'
+import { useParams } from 'react-router-dom'
+import {
+  api,
+  type DeliberacaoRecord,
+  type ApuracaoItemResult,
+  type ApuracaoResponse,
+} from '@/lib/api'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +22,13 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
-import { decidirResultadoItemPauta, type ResultadoItemPauta } from '@/lib/tituloItemPauta'
+import {
+  decidirResultadoItemPauta,
+  rotularItemPauta,
+  type ResultadoItemPauta,
+} from '@/lib/tituloItemPauta'
+import { useRealtime } from '@/hooks/use-realtime'
+import type { LancamentoFisicoRecord } from '@/lib/api'
 import {
   Activity,
   ThumbsUp,
@@ -31,13 +42,8 @@ import {
   XCircle,
   HelpCircle,
   Clock,
+  WifiOff,
 } from 'lucide-react'
-
-/** Voto unitário já consolidado (digital + físico) vindo da apuração oficial da urna. */
-interface VotoUnidadeApurado {
-  unidade: string
-  voto: 'favoravel' | 'desfavoravel' | 'nulo' | 'abstencao' | string
-}
 
 /** Quórum regimental da pauta, normalizado em % e rótulo legível. */
 interface QuorumItem {
@@ -97,34 +103,46 @@ function percentualDe(chave: string): number {
   }
 }
 
-interface LinhaPautaApurada {
-  item: ItemPautaRecord
-  quorum: QuorumItem
+/** Votos consolidados (urna digital + lançamento físico) de um item de pauta. */
+interface VotosConsolidados {
   favoravel: number
   desfavoravel: number
   nulo: number
   abstencao: number
-  totalVotos: number
+  total: number
+}
+
+interface LinhaPautaApurada {
+  item: ApuracaoItemResult
+  quorum: QuorumItem
+  votos: VotosConsolidados
+  temFisico: boolean
   totalParticipantes: number
   resultado: ResultadoItemPauta
   decisaoTexto: string
 }
 
+const DEBOUNCE_MS = 400
+
 /**
  * Painel de apuração em tempo real por item de pauta da deliberação ativa.
- * Usa subscriptions do PocketBase (mesmo mecanismo do quórum ao vivo do
- * Painel da Mesa) para atualizar sem recarregar a página.
+ * Dados: APENAS a apuração oficial (api.getApuracao → apuracao.itens, já
+ * agregada por item) + lançamentos físicos (api.getLancamentosFisicos).
+ * Tempo real: hook useRealtime em presencas, lancamentos_fisicos e
+ * deliberacoes, com re-fetch com debounce — a urna agrega votos no backend,
+ * então qualquer evento dispara um re-fetch da apuração consolidada.
  */
 const ApuracaoAoVivoPage: React.FC = () => {
   const { toast } = useToast()
+  const params = useParams<{ deliberacaoId?: string }>()
   const [deliberacao, setDeliberacao] = useState<DeliberacaoRecord | null>(null)
   const [deliberacoes, setDeliberacoes] = useState<DeliberacaoRecord[]>([])
-  const [itensPauta, setItensPauta] = useState<ItemPautaRecord[]>([])
-  const [votosPorItem, setVotosPorItem] = useState<Record<string, VotoUnidadeApurado[]>>({})
-  const [totalAptos, setTotalAptos] = useState(0)
+  const [apuracao, setApuracao] = useState<ApuracaoResponse['apuracao'] | null>(null)
+  const [lancamentosFisicos, setLancamentosFisicos] = useState<LancamentoFisicoRecord[]>([])
   const [carregando, setCarregando] = useState(true)
   const [atualizando, setAtualizando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const deliberacaoIdRef = useRef<string | null>(null)
   const montadoRef = useRef(true)
 
   useEffect(() => {
@@ -134,29 +152,25 @@ const ApuracaoAoVivoPage: React.FC = () => {
     }
   }, [])
 
-  /** Recarrega tudo que compõe a apuração da deliberação selecionada. */
+  /** Recarrega a apuração oficial + lançamentos físicos da deliberação. */
   const recarregar = useCallback(async (idDeliberacao: string, silencioso = false) => {
     if (!silencioso) setAtualizando(true)
     try {
-      const [itens, apuracao, aptos] = await Promise.all([
-        api.getItensPauta(idDeliberacao),
+      const [resp, fisicos] = await Promise.all([
         api.getApuracao(idDeliberacao),
-        api.getUnidadesAptas(idDeliberacao).catch(() => 0),
+        api.getLancamentosFisicos(idDeliberacao).catch(() => [] as LancamentoFisicoRecord[]),
       ])
-
       if (!montadoRef.current) return
 
-      setItensPauta(itens || [])
-      setTotalAptos(typeof aptos === 'number' ? aptos : 0)
-
-      const mapa: Record<string, VotoUnidadeApurado[]> = {}
-      const listaVotos = (apuracao?.votos_unidades || []) as VotoUnidadeApurado[]
-      for (const v of listaVotos) {
-        const chave = String(v.item || '')
-        if (!mapa[chave]) mapa[chave] = []
-        mapa[chave].push(v)
+      setApuracao(resp?.apuracao || null)
+      const delibResp = resp?.deliberacao
+      if (delibResp) {
+        // Mantém o record local sincronizado com a resposta da apuração
+        setDeliberacao((atual) =>
+          atual && atual.id === delibResp.id ? { ...atual, ...delibResp } : atual,
+        )
       }
-      setVotosPorItem(mapa)
+      setLancamentosFisicos(fisicos || [])
       setErro(null)
     } catch (e) {
       if (montadoRef.current) {
@@ -167,7 +181,7 @@ const ApuracaoAoVivoPage: React.FC = () => {
     }
   }, [])
 
-  // Carga inicial: deliberações + seleção da ativa
+  // Carga inicial: deliberações + seleção da ativa (EM_VOTACAO) ou da URL
   useEffect(() => {
     let cancelado = false
     ;(async () => {
@@ -178,9 +192,19 @@ const ApuracaoAoVivoPage: React.FC = () => {
           (b.created || '').localeCompare(a.created || ''),
         )
         setDeliberacoes(ordenadas)
-        const ativa = ordenadas.find((d) => d.status === 'EM_VOTACAO') || ordenadas[0] || null
+        const daUrl = params.deliberacaoId
+          ? ordenadas.find((d) => d.id === params.deliberacaoId) || null
+          : null
+        const ativa =
+          daUrl ||
+          ordenadas.find((d) => d.status === 'EM_VOTACAO') ||
+          ordenadas[0] ||
+          null
         setDeliberacao(ativa)
-        if (ativa) await recarregar(ativa.id)
+        if (ativa) {
+          deliberacaoIdRef.current = ativa.id
+          await recarregar(ativa.id)
+        }
       } catch (e) {
         if (!cancelado) setErro(getErrorMessage(e, 'Erro ao carregar as deliberações.'))
       } finally {
@@ -190,94 +214,78 @@ const ApuracaoAoVivoPage: React.FC = () => {
     return () => {
       cancelado = true
     }
+  }, [recarregar, params.deliberacaoId])
+
+  // Tempo real: qualquer evento em presencas, lancamentos_fisicos ou
+  // deliberacoes dispara um re-fetch com debounce da apuração consolidada
+  // (a urna agrega os votos no backend; não existe collection 'votos').
+  const agendarRefetch = useCallback(() => {
+    const id = deliberacaoIdRef.current
+    if (!id) return
+    window.setTimeout(() => {
+      if (montadoRef.current) recarregar(id, true)
+    }, DEBOUNCE_MS)
   }, [recarregar])
 
-  // Tempo real: assina votos, itens de pauta, presenças e a própria deliberação
-  useEffect(() => {
-    if (!deliberacao) return
-    const unsubs: Array<() => void> = []
-
-    const agendar = (() => {
-      let timer: ReturnType<typeof setTimeout> | null = null
-      return () => {
-        if (timer) clearTimeout(timer)
-        timer = setTimeout(() => {
-          if (deliberacao && montadoRef.current) recarregar(deliberacao.id, true)
-        }, 250)
-      }
-    })()
-
-    try {
-      unsubs.push(pb.collection('votos').subscribe('*', agendar))
-      unsubs.push(pb.collection('itens_pauta').subscribe('*', agendar))
-      unsubs.push(pb.collection('presencas').subscribe('*', agendar))
-      unsubs.push(pb.collection('deliberacoes').subscribe('*', agendar))
-    } catch (e) {
-      console.warn('Falha ao assinar tempo real da apuração', e)
-    }
-
+  const agendarRefetchDebounced = useMemo(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null
     return () => {
-      unsubs.forEach((u) => {
-        try {
-          u()
-        } catch {
-          /* ignore */
-        }
-      })
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(agendarRefetch, DEBOUNCE_MS)
     }
-  }, [deliberacao, recarregar])
+  }, [agendarRefetch])
+
+  useRealtime('presencas', agendarRefetchDebounced, !!deliberacao)
+  useRealtime('lancamentos_fisicos', agendarRefetchDebounced, !!deliberacao)
+  useRealtime('deliberacoes', agendarRefetchDebounced, !!deliberacao)
 
   const linhas: LinhaPautaApurada[] = useMemo(() => {
-    if (!deliberacao) return []
-    const votosAtivos = votosPorItem[''] || [] // votos sem item (urna legada)
-    return itensPauta.map((item) => {
+    if (!apuracao) return []
+    const porItemFisico = new Map<string, LancamentoFisicoRecord>()
+    for (const l of lancamentosFisicos) porItemFisico.set(l.item, l)
+
+    return (apuracao.itens || []).map((item) => {
       const quorum = normalizarQuorumItem(item.quorum_aplicavel)
-      const votosItem = votosPorItem[item.id] || votosAtivos
+      const fisico = porItemFisico.get(item.id)
+      const favoravel = (item.votos.favoravel || 0) + (fisico?.favoraveis || 0)
+      const desfavoravel = (item.votos.contrario || 0) + (fisico?.contrarios || 0)
+      const abstencao = (item.votos.abstencao || 0) + (fisico?.abstencoes || 0)
+      const nulo = item.votos.nulo || 0
+      const totalVotos = favoravel + desfavoravel + abstencao + nulo
 
-      let favoravel = 0
-      let desfavoravel = 0
-      let nulo = 0
-      let abstencao = 0
-      for (const v of votosItem) {
-        const val = String(v.voto || '').toLowerCase()
-        if (val.includes('fav') || val === 'sim' || val === 'yes') favoravel++
-        else if (val.includes('desfav') || val === 'nao' || val === 'não' || val === 'no')
-          desfavoravel++
-        else if (val.includes('nulo') || val.includes('null')) nulo++
-        else if (val.includes('absten')) abstencao++
-        else nulo++
-      }
-
-      const totalVotos = favoravel + desfavoravel + nulo + abstencao
+      // Resultado regimental sobre os votos CONSOLIDADOS (digital + físico)
       const resultado = decidirResultadoItemPauta({
-        favoravel,
-        desfavoravel,
-        nulo,
-        abstencao,
-        totalAptos,
-        percentualExigido: quorum.percentual,
+        votos: {
+          favoravel,
+          contrario: desfavoravel,
+          abstencao,
+          nulo,
+          branco: item.votos.branco || 0,
+          total: totalVotos,
+        },
       })
 
       return {
         item,
         quorum,
-        favoravel,
-        desfavoravel,
-        nulo,
-        abstencao,
-        totalVotos,
-        totalParticipantes: totalAptos,
+        votos: { favoravel, desfavoravel, nulo, abstencao, total: totalVotos },
+        temFisico: !!fisico,
+        totalParticipantes: apuracao.totalComparecimentos || 0,
         resultado,
         decisaoTexto: textoDecisao(resultado, quorum),
       }
     })
-  }, [itensPauta, votosPorItem, totalAptos, deliberacao])
+  }, [apuracao, lancamentosFisicos])
 
-  const totalGeralVotos = linhas.reduce((acc, l) => acc + l.totalVotos, 0)
+  const totalGeralVotos = linhas.reduce((acc, l) => acc + l.votos.total, 0)
+  const totalElegiveis = apuracao?.totalUnidadesElegiveis || 0
+  const totalComparecimentos = apuracao?.totalComparecimentos || 0
+  const presencas = apuracao?.presencas || { presencial: 0, remoto: 0, total: 0 }
 
   const trocarDeliberacao = async (id: string) => {
     const d = deliberacoes.find((x) => x.id === id) || null
     setDeliberacao(d)
+    deliberacaoIdRef.current = d ? d.id : null
     if (d) await recarregar(d.id)
   }
 
@@ -339,6 +347,34 @@ const ApuracaoAoVivoPage: React.FC = () => {
           </CardContent>
         </Card>
 
+        {/* Total de participantes (elegíveis, comparecimento e canais) */}
+        {deliberacao && (
+          <Card className="border-[#002B5E]/15">
+            <CardContent className="py-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <MiniDado
+                rotulo="Unidades elegíveis"
+                valor={totalElegiveis}
+                icone={<Users className="h-4 w-4 text-[#0066FF]" />}
+              />
+              <MiniDado
+                rotulo="Comparecimentos"
+                valor={totalComparecimentos}
+                icone={<BarChart3 className="h-4 w-4 text-[#0066FF]" />}
+              />
+              <MiniDado
+                rotulo="Presencial"
+                valor={presencas.presencial}
+                icone={<Gavel className="h-4 w-4 text-[#0066FF]" />}
+              />
+              <MiniDado
+                rotulo="Remoto"
+                valor={presencas.remoto}
+                icone={<Activity className="h-4 w-4 text-[#0066FF]" />}
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {erro && (
           <Alert variant="destructive">
             <AlertTitle>Erro na apuração</AlertTitle>
@@ -367,9 +403,12 @@ const ApuracaoAoVivoPage: React.FC = () => {
             {linhas.map((l) => (
               <CardLinhaPauta key={l.item.id} linha={l} />
             ))}
-            <p className="text-xs text-slate-500 text-center">
-              {totalGeralVotos} voto(s) registrados nesta deliberação • atualização automática a
-              cada voto
+            <p className="text-xs text-slate-500 text-center flex items-center justify-center gap-1.5">
+              <WifiOff className="h-3 w-3 hidden" />
+              <span>
+                {totalGeralVotos} voto(s) consolidados nesta deliberação • atualização automática
+                a cada voto
+              </span>
             </p>
           </div>
         )}
@@ -383,17 +422,32 @@ function textoDecisao(r: ResultadoItemPauta, q: QuorumItem): string {
   switch (r) {
     case 'aprovado':
       return 'Aprovado'
-    case 'reprovado':
+    case 'rejeitado':
       return 'Reprovado'
     default:
       return q.percentual >= 100 ? 'Aguardando unanimidade' : 'Aguardando quórum'
   }
 }
 
+/** Mini indicador numérico (elegíveis, comparecimento, presencial, remoto). */
+const MiniDado: React.FC<{ rotulo: string; valor: number; icone: React.ReactNode }> = ({
+  rotulo,
+  valor,
+  icone,
+}) => (
+  <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 flex items-center gap-1.5">
+      {icone}
+      {rotulo}
+    </p>
+    <p className="text-xl font-bold text-[#002B5E] leading-tight mt-0.5">{valor}</p>
+  </div>
+)
+
 /** Card de uma linha de pauta com contagens e selo de resultado. */
 const CardLinhaPauta: React.FC<{ linha: LinhaPautaApurada }> = ({ linha }) => {
-  const { item, quorum, favoravel, desfavoravel, nulo, abstencao, totalVotos, totalParticipantes } =
-    linha
+  const { item, quorum, votos, temFisico, totalParticipantes } = linha
+  const { favoravel, desfavoravel, nulo, abstencao, total: totalVotos } = votos
 
   const percFavor = totalVotos > 0 ? (favoravel / Math.max(1, totalVotos)) * 100 : 0
   const percDesfavor = totalVotos > 0 ? (desfavoravel / Math.max(1, totalVotos)) * 100 : 0
@@ -405,8 +459,8 @@ const CardLinhaPauta: React.FC<{ linha: LinhaPautaApurada }> = ({ linha }) => {
       text: 'text-green-700',
       icon: CheckCircle2,
     },
-    reprovado: { bg: 'bg-red-50', border: 'border-red-300', text: 'text-red-700', icon: XCircle },
-    em_disputa: {
+    rejeitado: { bg: 'bg-red-50', border: 'border-red-300', text: 'text-red-700', icon: XCircle },
+    sem_votos: {
       bg: 'bg-amber-50',
       border: 'border-amber-300',
       text: 'text-amber-700',
@@ -422,12 +476,14 @@ const CardLinhaPauta: React.FC<{ linha: LinhaPautaApurada }> = ({ linha }) => {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-sm font-bold text-[#002B5E] flex items-center gap-2">
             <Gavel className="h-4 w-4 text-[#0066FF] shrink-0" />
-            <span className="truncate">
-              {item.ordem ? `${item.ordem}. ` : ''}
-              {item.titulo}
-            </span>
+            <span className="truncate">{rotularItemPauta(item, 0)}</span>
           </CardTitle>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {temFisico && (
+              <Badge variant="outline" className="text-[10px] border-slate-300 text-slate-600">
+                + lançamento físico
+              </Badge>
+            )}
             <Badge variant="outline" className="text-[10px] border-[#002B5E]/25 text-[#002B5E]">
               <Users className="h-3 w-3 mr-1" />
               {totalParticipantes} participante(s)
@@ -467,9 +523,10 @@ const CardLinhaPauta: React.FC<{ linha: LinhaPautaApurada }> = ({ linha }) => {
           />
         </div>
 
-        {abstencao > 0 && (
+        {(abstencao > 0 || item.votos.branco > 0) && (
           <p className="text-[11px] text-slate-500 flex items-center gap-1">
-            <HelpCircle className="h-3 w-3" /> {abstencao} abstenção(ões) registrada(s) — não
+            <HelpCircle className="h-3 w-3" /> {abstencao} abstenção(ões)
+            {item.votos.branco > 0 ? ` • ${item.votos.branco} voto(s) em branco` : ''} — não
             computa para o resultado.
           </p>
         )}

@@ -44,6 +44,7 @@ import {
   FolderArchive,
   BookOpen,
   BarChart3,
+  Activity,
 } from 'lucide-react'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import {
@@ -220,6 +221,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     { label: 'Aprovação de Cadastros', path: '/mesa/credenciamentos', icon: Users },
     { label: 'Cadastros da Unidade', path: '/admin/cadastros', icon: Contact }, // exclusivo do Módulo da Mesa — não repetir em Administração
     { label: 'Deliberações e Pautas', path: '/mesa/deliberacoes', icon: FileSpreadsheet },
+    { label: 'Apuração ao Vivo', path: '/mesa/apuracao', icon: Activity },
     { label: 'Auditoria e Urna', path: '/mesa/auditoria', icon: History },
     { label: 'Relatórios de Assembleia', path: '/mesa/relatorios', icon: BarChart3 },
     { label: 'Manual da Mesa', path: '/mesa/manual', icon: BookOpen },
@@ -251,6 +253,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     if (p === '/mesa/presenca') return ['Mesa Diretora', 'Lista de Presença']
     if (p === '/mesa/credenciamentos') return ['Mesa Diretora', 'Aprovação de Cadastros']
     if (p === '/mesa/deliberacoes') return ['Mesa Diretora', 'Deliberações']
+    if (p === '/mesa/apuracao') return ['Mesa Diretora', 'Apuração ao Vivo']
     if (p === '/mesa/auditoria') return ['Mesa Diretora', 'Auditoria & Boletim']
     if (p === '/mesa/relatorios') return ['Mesa Diretora', 'Relatórios de Assembleia']
     if (p === '/mesa/manual') return ['Mesa Diretora', 'Manual da Mesa']
