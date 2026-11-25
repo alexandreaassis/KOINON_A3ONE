@@ -23,6 +23,7 @@ import {
   LegendaNumerada,
   CaixaImportante,
   CaixaDica,
+  BlocoInfo,
   type SecaoManual,
 } from '@/pages/morador/manual/BlocosManual'
 import { PainelIaManualMesa } from './manual/PainelIaManualMesa'
@@ -52,7 +53,7 @@ const NARRACOES: Record<string, string> = {
   painel:
     'O Painel da Mesa é a sua central de comando. Ele mostra, de relance, as pendências de aprovação de cadastros e credenciamentos, o quórum de instalação da assembleia ao vivo, e a deliberação ativa, com a etapa em que ela está, do aguardo ao resultado publicado. Cada botão importante pede confirmação antes de agir: nada acontece de uma vez.',
   credenciamentos:
-    'Em Credenciamentos, a mesa analisa o cadastro público enviado por link e decide quem participa da assembleia. A tela tem três abas: cadastros de moradores, credenciais de assembleia e solicitações de procuração. No topo, cartões de resumo mostram pendentes, aprovados, rejeitados e pendências antigas. Pendentes aparecem destacados em âmbar, e a busca aceita nome, unidade, C P F ou e-mail, com ou sem pontos. A lista de cadastros pode ser classificada por unidade, por nome ou por data de nascimento. Ao aprovar, o morador recebe conta de acesso com senha temporária por e-mail — obrigatória a troca no primeiro login — e a mesa pode avisar o morador pelo WhatsApp, com mensagem pronta; ao rejeitar, informe o motivo, que é registrado no histórico. Na aba de solicitações de procuração, a mesa visualiza os anexos enviados pelo morador, aprova, rejeita com motivo obrigatório, vê quando o próprio solicitante cancelou e é alertada quando um mesmo procurador acumula mais de cinco unidades. Toda aprovação alimenta o quórum e a lista de presença da assembleia.',
+    'Em Credenciamentos, a mesa analisa o cadastro público enviado por link e decide quem participa da assembleia. A tela tem três abas: cadastros de moradores, credenciais de assembleia e solicitações de procuração. No topo, cartões de resumo mostram pendentes, aprovados, rejeitados e pendências antigas. Pendentes aparecem destacados em âmbar, e a busca aceita nome, unidade, C P F ou e-mail, com ou sem pontos. A lista de cadastros pode ser classificada por unidade, por nome ou por data de nascimento. Ao aprovar, o morador recebe conta de acesso com senha temporária por e-mail — obrigatória a troca no primeiro login; ao rejeitar, informe o motivo, que é registrado no histórico. Em cada cadastro, o botão Enviar mensagem abre o diálogo de mensagem direta: nome, telefone, e-mail e unidade já preenchidos, escolha do canal — WhatsApp ou e-mail — e do modelo de Configurações, com o texto chegando pronto para revisar e editar. Na aba de solicitações de procuração, a mesa visualiza os anexos enviados pelo morador, aprova, rejeita com motivo obrigatório, vê quando o próprio solicitante cancelou e é alertada quando um mesmo procurador acumula mais de cinco unidades. Toda aprovação alimenta o quórum e a lista de presença da assembleia.',
   presenca:
     'A Lista de Presença é o retrato oficial de quem está na assembleia. Cada pessoa aprovada entra com nome, unidade, vínculo e um selo: verde para presencial, azul para remoto e âmbar para procuração. O quórum de instalação é calculado ao vivo. Atingido o quórum, o botão de instalar a assembleia é liberado. Cada linha também recebe assinatura eletrônica com carimbo de hash.',
   documentos:
@@ -61,9 +62,9 @@ const NARRACOES: Record<string, string> = {
   deliberacoes:
     'Em Deliberações e Pautas, a mesa cadastra a assembleia, monta a pauta item a item e conduz cada deliberação: abre a votação, acompanha em tempo real, encerra e apura. É também daqui que sai a botoeira que o Painel espelha. Cada transição de etapa fica registrada com data e hora para a auditoria.',
   aprovacao_cadastros:
-    'Em Aprovação de Cadastros, a mesa analisa as solicitações enviadas pelos moradores através do link público da unidade. A mesa confere o nome, CPF, e-mail — obrigatório, é por ele que o morador recebe o acesso —, telefone e o vínculo declarado: proprietário, condômino, inquilino ou procurador. Se os dados estiverem corretos, aprova: o sistema cria a conta com senha temporária enviada por e-mail, e a troca é obrigatória no primeiro login; a mesa também pode avisar o morador pelo WhatsApp com mensagem pronta. Se houver divergência, rejeita com motivo formal registrado.',
+    'Em Aprovação de Cadastros, a mesa analisa as solicitações enviadas pelos moradores através do link público da unidade. A mesa confere o nome, CPF, e-mail — obrigatório, é por ele que o morador recebe o acesso —, telefone e o vínculo declarado: proprietário, condômino, inquilino ou procurador. Se os dados estiverem corretos, aprova: o sistema cria a conta com senha temporária enviada por e-mail, e a troca é obrigatória no primeiro login. Se houver divergência, rejeita com motivo formal registrado. Em cada cadastro, o botão Enviar mensagem abre o diálogo de mensagem direta: os dados do morador já vêm preenchidos, a mesa escolhe o canal — WhatsApp e/ou e-mail — e o modelo de Configurações, e o texto chega com as variáveis substituídas, com prévia e edição livre. No WhatsApp, o envio é manual pelo WhatsApp Oficial do condomínio; o e-mail sai pelo SMTP da plataforma e fica registrado no Histórico.',
   cadastro_unidade:
-    'O Cadastro da Unidade reúne o mapa predial do condomínio: números das unidades, blocos opcionais, frações ideais e os moradores ativos. Daqui a mesa gera o link exclusivo de autoatendimento com token para envio via WhatsApp ou e-mail, além de importar planilhas em massa. Para organizar a lista, clique no cabeçalho de Unidade, Nome ou Nascimento: o primeiro clique ordena pela coluna e o segundo inverte a direção. Esta tela pertence ao Módulo da Mesa — não aparece mais no menu de Administração.',
+    'O Cadastro da Unidade reúne o mapa predial do condomínio: números das unidades, blocos opcionais, frações ideais e os moradores ativos. Daqui a mesa gera o link exclusivo de autoatendimento com token para envio via WhatsApp ou e-mail, além de importar planilhas em massa. Em cada cadastro, o botão Enviar mensagem abre o diálogo de mensagem direta, com escolha de canal e de modelo, prévia e registro no Histórico. Para organizar a lista, clique no cabeçalho de Unidade, Nome ou Nascimento: o primeiro clique ordena pela coluna e o segundo inverte a direção. Esta tela pertence ao Módulo da Mesa — não aparece mais no menu de Administração.',
   relatorios:
     'Os Relatórios de Assembleia consolidam todo o evento em números e gráficos oficiais. Eles mostram o índice de comparecimento, taxa de quórum atingida, apuração percentual e nominal de cada item da pauta e o hash raiz da urna, permitindo impressão e download de PDF oficial para cartório e condôminos.',
   auditoria:
@@ -89,7 +90,7 @@ const SECOES: SecaoManual[] = [
     rota: '/mesa/credenciamentos',
     icone: UserCheck,
     resumo:
-      'Análise criteriosa dos cadastros públicos enviados por link de autoatendimento: conferência de vínculo, aprovação com conta de acesso e senha temporária, aviso por WhatsApp ou rejeição motivada.',
+      'Análise criteriosa dos cadastros públicos enviados por link de autoatendimento: conferência de vínculo, aprovação com conta de acesso e senha temporária, envio individual de mensagem por WhatsApp ou e-mail com escolha de modelo, e rejeição motivada.',
   },
   {
     id: 'cadastro_unidade',
@@ -97,7 +98,7 @@ const SECOES: SecaoManual[] = [
     rota: '/admin/cadastros',
     icone: Building,
     resumo:
-      'Gestão de unidades, blocos e vínculos, geração e envio de links de cadastro com token via WhatsApp e e-mail, importação de planilhas e ordenação da lista por clique nos cabeçalhos de Unidade, Nome ou Nascimento — exclusivo do Módulo da Mesa.',
+      'Gestão de unidades, blocos e vínculos, geração e envio de links de cadastro com token via WhatsApp e e-mail, envio individual de mensagem com escolha de modelo, importação de planilhas e ordenação da lista por clique nos cabeçalhos de Unidade, Nome ou Nascimento — exclusivo do Módulo da Mesa.',
   },
   {
     id: 'credenciamentos',
@@ -380,20 +381,21 @@ const ManualMesaPage: React.FC = () => {
                         n: 4,
                         titulo: 'Ação Individual',
                         texto:
-                          'Botões de ação rápida com confirmação de segurança para evitar aprovações ou recusas acidentais.',
+                          'Botões de ação rápida com confirmação de segurança para evitar aprovações ou recusas acidentais — incluindo o botão Enviar mensagem, que abre o diálogo de mensagem direta deste cadastro.',
                       },
                     ]}
                   />
                   <CaixaImportante>
                     O cadastro exige e-mail: é por ele que o morador recebe a conta de acesso com
                     senha temporária — e a troca dessa senha é obrigatória no primeiro login. Após
-                    aprovar, a mesa também pode avisar o morador pelo WhatsApp, com mensagem pronta
-                    (a mensagem nunca contém a senha).
+                    aprovar, a mesa pode avisar o morador pelo botão Enviar mensagem — a mensagem
+                    nunca contém a senha.
                   </CaixaImportante>
                   <CaixaImportante>
                     A mesa deve atentar para o tipo de vínculo: inquilinos e procuradores necessitam
                     de documentação de representação legal de acordo com a convenção do condomínio.
                   </CaixaImportante>
+                  <BlocoEnviarMensagem />
                 </>
               )}
               {s.id === 'cadastro_unidade' && (
@@ -421,12 +423,15 @@ const ManualMesaPage: React.FC = () => {
                     ]}
                   />
                   <CaixaDica>
-                    O disparo de links de cadastro pode ser feito diretamente via WhatsApp com um
-                    clique no botão wa.me ou por e-mail em massa. Para organizar a lista, clique no
-                    cabeçalho de Unidade, Nome Completo ou Nascimento: o primeiro clique ordena pela
-                    coluna, o segundo inverte a direção (crescente ou decrescente) — a coluna ativa
-                    fica destacada com a seta indicando o sentido.
+                    O disparo do link de cadastro pode ser feito diretamente via WhatsApp com um
+                    clique no botão wa.me ou por e-mail em massa. Para uma mensagem individual já
+                    com os dados do morador, use o botão Enviar mensagem ao lado de cada cadastro.
+                    Para organizar a lista, clique no cabeçalho de Unidade, Nome Completo ou
+                    Nascimento: o primeiro clique ordena pela coluna, o segundo inverte a direção
+                    (crescente ou decrescente) — a coluna ativa fica destacada com a seta indicando
+                    o sentido.
                   </CaixaDica>
+                  <BlocoEnviarMensagem />
                   <CaixaImportante>
                     Esta tela é exclusiva do Módulo da Mesa: não existe mais atalho duplicado no
                     menu de Administração.
@@ -536,6 +541,7 @@ const ManualMesaPage: React.FC = () => {
                     legitimidade dessas procurações. Aprovada, a procuração entra na lista de
                     presença e soma no quórum.
                   </CaixaDica>
+                  <BlocoEnviarMensagem />
                 </>
               )}
               {s.id === 'presenca' && (
@@ -831,6 +837,22 @@ const ManualMesaPage: React.FC = () => {
   )
 }
 
+/* ---------- Bloco comum: diálogo Enviar mensagem (v0.0.226) ---------- */
+const BlocoEnviarMensagem: React.FC = () => (
+  <BlocoInfo
+    titulo="Botão “Enviar mensagem” — disponível em Aprovação de Cadastros, Cadastros da Unidade e Gestão de Usuários"
+    itens={[
+      'O diálogo abre com nome, telefone, e-mail e unidade do cadastro já preenchidos — nada é digitado de novo.',
+      'A mesa escolhe o canal: WhatsApp (abre o wa.me do morador para envio manual) e/ou e-mail (enviado pelo SMTP da plataforma).',
+      'Em seguida escolhe o modelo dentre os cadastrados em Configurações › Modelos de mensagem; se não houver modelo para o canal, o diálogo avisa e usa o texto padrão.',
+      'As variáveis [NOME], [UNIDADE] e [LINK] aparecem já substituídas, com prévia do envio e edição livre antes de mandar.',
+      'No WhatsApp, o sistema abre o wa.me com o contato localizado (número +55 validado — botão desabilitado se inválido) e a mensagem pré-preenchida, para o envio manual pelo WhatsApp Oficial do condomínio.',
+      'No e-mail, a mensagem sai pelo SMTP da plataforma e fica registrada no Histórico de envios; o disparo manual do WhatsApp também é registrado.',
+      'Em Gestão de Usuários (/admin/usuarios), o mesmo botão fica ao lado de cada pessoa cadastrada e funciona de forma idêntica — mesmo diálogo, mesmos modelos e mesmo registro no Histórico.',
+    ]}
+  />
+)
+
 /* ---------- Fluxo de conexão (seção final) ---------- */
 const FluxoConexao: React.FC = () => {
   const passos = [
@@ -930,8 +952,12 @@ const FaqCurto: React.FC = () => {
       r: 'O morador envia a solicitação pela página de Credenciamento dele (em /morador/credenciamento), escolhendo a assembleia e a unidade representada, anexando a procuração e um documento com foto e informando os dados do procurador. A mesa homologa na aba Solicitações de Procuração, em /mesa/credenciamentos: pode aprovar ou rejeitar com motivo obrigatório, e o solicitante pode cancelar enquanto estiver em análise. Quando o mesmo procurador acumula mais de 5 unidades, um alerta âmbar pede conferência especial. Aprovada, a procuração entra na lista de presença e soma no quórum.',
     },
     {
+      p: 'Como funciona o botão “Enviar mensagem” que aparece junto de cada cadastro?',
+      r: 'Ele abre o diálogo de mensagem direta, com nome, telefone, e-mail e unidade já preenchidos. A mesa escolhe o canal — WhatsApp e/ou e-mail — e o modelo dentre os cadastrados em Configurações › Modelos de mensagem (sem modelo para o canal, o diálogo avisa e usa o padrão). O texto chega com [NOME], [UNIDADE] e [LINK] já substituídos, com prévia e edição livre. No WhatsApp, o sistema abre o wa.me com o contato localizado e a mensagem pré-preenchida para o envio manual pelo WhatsApp Oficial do condomínio — o botão fica desabilitado se o número for inválido. No e-mail, a mensagem sai pelo SMTP da plataforma e fica registrada no Histórico de envios.',
+    },
+    {
       p: 'Onde edito as mensagens que a mesa envia por WhatsApp e e-mail?',
-      r: 'Em Configurações (/admin/configuracoes), na seção de Modelos de Mensagem. Os textos aceitam as variáveis [NOME], [UNIDADE] e [LINK], que o sistema substitui na hora do envio — por exemplo, pelo nome do morador, pela unidade dele e pelo link de acesso. Esses modelos servem de texto inicial nos envios manuais de aprovação de cadastro, de cadastros da unidade e de notificação de ata publicada. A senha de acesso nunca é enviada em mensagem.',
+      r: 'Em Configurações (/admin/configuracoes), na seção de Modelos de Mensagem. Os textos aceitam as variáveis [NOME], [UNIDADE] e [LINK], que o sistema substitui na hora do envio — por exemplo, pelo nome do morador, pela unidade dele e pelo link de acesso. No botão Enviar mensagem (em Aprovação de Cadastros, Cadastros da Unidade e Gestão de Usuários), a mesa escolhe o modelo dentre os cadastrados; se não houver modelo para o canal, o diálogo avisa e usa o texto padrão. A senha de acesso nunca é enviada em mensagem.',
     },
   ]
   const [aberta, setAberta] = React.useState<number | null>(0)
