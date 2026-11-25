@@ -7,6 +7,12 @@ import { BlocoAssinaturaCompacto } from '@/components/assinatura/BlocoAssinatura
 import { SafeHtml } from '@/components/editor/SafeHtml'
 import { sanitizeHtml } from '@/lib/sanitizeHtml'
 import { imprimirOuBaixarPdfAta } from '@/lib/pdfAta'
+import {
+  resolverNomeCabecalhoAta,
+  resolverSubtituloCabecalhoAta,
+  resolverSubtituloDocumentoAta,
+  resolverTagCabecalhoAta,
+} from '@/lib/cabecalhoAta'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -78,13 +84,24 @@ export const AtaMoradorPage: React.FC = () => {
     ata?.secretario_nome || deliberacaoAtiva?.mesa_secretario_nome || 'Secretário(a) da Mesa'
   const secCpf = formatarCpf(ata?.secretario_cpf || deliberacaoAtiva?.mesa_secretario_cpf || '')
 
+  // Cabeçalho da ata: MESMA configuração da Mesa (/mesa/ata), migrations 0044/0045.
+  // '' gravado = linha omitida; campo ausente = default histórico.
+  const tagCabecalho = resolverTagCabecalhoAta(ata || {})
+  const nomeCabecalho = resolverNomeCabecalhoAta(ata || {}, nomeCondominio)
+  const subtituloCabecalho = resolverSubtituloCabecalhoAta(ata || {})
+  const subtituloDocumento = resolverSubtituloDocumentoAta(ata || {})
+  const tituloAta = ata?.titulo || `ATA DA ASSEMBLEIA GERAL — ${deliberacaoAtiva?.titulo || ''}`
+
   const dispararImpressao = () => {
     if (!deliberacaoAtiva) return
     imprimirOuBaixarPdfAta({
       nomeCondominio,
       logoUrl,
-      titulo: ata?.titulo || `ATA DA ASSEMBLEIA GERAL — ${deliberacaoAtiva.titulo}`,
-      subtitulo: 'Assembleia Geral de Condôminos • Documento Oficial',
+      titulo: tituloAta,
+      cabecalhoTag: tagCabecalho,
+      cabecalhoCondominio: nomeCabecalho,
+      cabecalhoSubtitulo: subtituloCabecalho,
+      subtitulo: subtituloDocumento,
       conteudoHtml: sanitizeHtml(ata?.conteudo_html || ''),
       status: ata?.status || 'rascunho',
       hashAta: ata?.hash_ata,
@@ -202,13 +219,21 @@ export const AtaMoradorPage: React.FC = () => {
                     <img src={logoUrl} alt={nomeCondominio} className="h-12 w-12 object-contain" />
                   )}
                   <div className="flex-1 text-center">
-                    <span className="text-[10px] uppercase tracking-widest font-bold text-cyan-800 block">
-                      Ata de Assembleia e Deliberativa
-                    </span>
-                    <h1 className="text-lg font-bold text-slate-950 uppercase">{nomeCondominio}</h1>
-                    <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
-                      Assembleia Geral de Condôminos
-                    </p>
+                    {tagCabecalho && (
+                      <span className="text-[10px] uppercase tracking-widest font-bold text-cyan-800 block">
+                        {tagCabecalho}
+                      </span>
+                    )}
+                    {nomeCabecalho && (
+                      <h1 className="text-lg font-bold text-slate-950 uppercase">
+                        {nomeCabecalho}
+                      </h1>
+                    )}
+                    {subtituloCabecalho && (
+                      <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                        {subtituloCabecalho}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right text-[11px] font-mono text-slate-600">
                     <span>Emissão:</span>
@@ -221,8 +246,13 @@ export const AtaMoradorPage: React.FC = () => {
               {/* Título da Ata */}
               <div className="text-center my-6 p-2 bg-slate-50 border border-slate-200 rounded font-sans">
                 <h2 className="text-sm font-bold uppercase tracking-wide text-slate-950">
-                  {ata.titulo || `ATA DA ASSEMBLEIA — ${deliberacaoAtiva.titulo}`}
+                  {tituloAta}
                 </h2>
+                {subtituloDocumento && (
+                  <p className="mt-1 text-[11px] font-medium text-slate-700">
+                    {subtituloDocumento}
+                  </p>
+                )}
               </div>
 
               {/* Conteúdo HTML */}

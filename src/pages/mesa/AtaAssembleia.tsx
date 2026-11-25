@@ -10,6 +10,12 @@ import {
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import { useAuth } from '@/context/AuthContext'
 import { formatarCpf } from '@/lib/cpf'
+import {
+  resolverNomeCabecalhoAta,
+  resolverSubtituloCabecalhoAta,
+  resolverSubtituloDocumentoAta,
+  resolverTagCabecalhoAta,
+} from '@/lib/cabecalhoAta'
 import pb from '@/lib/pocketbase/client'
 import { toast } from '@/hooks/use-toast'
 import { imprimirOuBaixarPdfAta, type DadosAtaPdf } from '@/lib/pdfAta'
@@ -119,6 +125,17 @@ export const AtaAssembleiaPage: React.FC = () => {
   const [subtituloDocumento, setSubtituloDocumento] = useState(
     'Assembleia Geral de Condôminos • Convocação Editalícia',
   )
+
+  // Linhas resolvidas do cabeçalho (mesma resolução aplicada à via do morador):
+  // '' gravado = linha omitida; campo ausente = default histórico.
+  const tagCabecalho = resolverTagCabecalhoAta({ cabecalho_tag: cabecalhoTag })
+  const nomeCabecalho = resolverNomeCabecalhoAta(
+    { cabecalho_condominio: cabecalhoCondominio },
+    nomeCondominio,
+  )
+  const subtituloCabecalho = resolverSubtituloCabecalhoAta({
+    cabecalho_subtitulo: cabecalhoSubtitulo,
+  })
 
   // Configuração de impressão do corpo, POR ATA (migration 0046).
   // Campo ausente/vazio no banco = comportamento histórico (justificado + recuo).
@@ -2502,15 +2519,21 @@ export const AtaAssembleiaPage: React.FC = () => {
                       />
                     )}
                     <div className="flex-1 text-center">
-                      <span className="text-[10px] uppercase tracking-widest font-bold text-cyan-800 block">
-                        Ata de Assembleia e Deliberativa
-                      </span>
-                      <h1 className="text-lg font-bold text-slate-950 uppercase">
-                        {nomeCondominio}
-                      </h1>
-                      <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
-                        Assembleia Geral de Condôminos
-                      </p>
+                      {tagCabecalho && (
+                        <span className="text-[10px] uppercase tracking-widest font-bold text-cyan-800 block">
+                          {tagCabecalho}
+                        </span>
+                      )}
+                      {nomeCabecalho && (
+                        <h1 className="text-lg font-bold text-slate-950 uppercase">
+                          {nomeCabecalho}
+                        </h1>
+                      )}
+                      {subtituloCabecalho && (
+                        <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                          {subtituloCabecalho}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right text-[11px] font-mono text-slate-600">
                       <span>Emissão:</span>
@@ -2525,6 +2548,11 @@ export const AtaAssembleiaPage: React.FC = () => {
                   <h2 className="text-sm font-bold uppercase tracking-wide text-slate-950">
                     {tituloAta || 'ATA DA ASSEMBLEIA GERAL'}
                   </h2>
+                  {subtituloDocumento && (
+                    <p className="mt-1 text-[11px] font-medium text-slate-700">
+                      {subtituloDocumento}
+                    </p>
+                  )}
                 </div>
 
                 {/* Conteúdo HTML Sanitizado */}
