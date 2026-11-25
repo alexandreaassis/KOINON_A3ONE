@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { PainelUnidades } from './credenciamento/PainelUnidades'
+import { PainelProcuracao } from './credenciamento/PainelProcuracao'
 import { useAuth } from '@/context/AuthContext'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import {
@@ -565,6 +566,12 @@ export const CredenciamentoPage: React.FC = () => {
           </CardFooter>
         </form>
       </Card>
+
+      {/* Solicitações de credenciamento como PROCURADOR (representando outra unidade) */}
+      <PainelProcuracao
+        deliberacaoAtiva={deliberacaoAtiva}
+        convocacaoPublicada={convocacaoPublicada}
+      />
     </div>
   )
 }

@@ -26,7 +26,8 @@ import DialogWhatsapp from '@/components/whatsapp/DialogWhatsapp'
 import { normalizarNumeroWhatsapp } from '@/lib/whatsapp'
 import { montarTextoInicial } from '@/lib/modelosMensagem'
 import { MessageCircle } from 'lucide-react'
-import type { CadastroUnidadeRecord } from '@/lib/api'
+import type { CadastroUnidadeRecord, SolicitacaoProcuracaoRecord } from '@/lib/api'
+import PainelSolicitacoesProcuracao from './credenciais/PainelSolicitacoesProcuracao'
 import {
   Dialog,
   DialogContent,
@@ -71,8 +72,12 @@ export const CredenciaisPendentesPage: React.FC = () => {
 
   const [credenciamentos, setCredenciamentos] = useState<CredenciamentoRecord[]>([])
   const [cadastrosPublicos, setCadastrosPublicos] = useState<CadastroUnidadeRecord[]>([])
+  const [solicitacoesProcuracao, setSolicitacoesProcuracao] = useState<
+    SolicitacaoProcuracaoRecord[]
+  >([])
   const [unidades, setUnidades] = useState<UnidadeRecord[]>([])
-  const [abaAtiva, setAbaAtiva] = useState<'cadastros' | 'credenciais'>('cadastros')
+  const [abaAtiva, setAbaAtiva] = useState<'cadastros' | 'credenciais' | 'procuracao'>('cadastros')
+  const [recarregarProcuracao, setRecarregarProcuracao] = useState(0)
   const [filtroStatus, setFiltroStatus] = useState<string>('pendente')
   const [filtroUnidade, setFiltroUnidade] = useState<string>('todas')
   const [ordemCadastros, setOrdemCadastros] = useState<'unidade' | 'nome' | 'nascimento'>('unidade')
@@ -113,14 +118,20 @@ export const CredenciaisPendentesPage: React.FC = () => {
   const carregarDados = async () => {
     setCarregando(true)
     try {
-      const [creds, cads, unids] = await Promise.all([
+      const [creds, cads, unids, procs] = await Promise.all([
         api.getCredenciamentos(),
         api.getCadastrosUnidades(),
         api.getUnidades(),
+        // Falha isolada: a aba de procuração não deve derrubar credenciais/cadastros
+        api.getSolicitacoesProcuracao().catch((e) => {
+          console.error('Erro ao carregar solicitações de procuração:', e)
+          return [] as SolicitacaoProcuracaoRecord[]
+        }),
       ])
       setCredenciamentos(creds)
       setCadastrosPublicos(cads)
       setUnidades(unids)
+      setSolicitacoesProcuracao(procs)
     } catch (err) {
       console.error('Erro ao carregar dados de credenciamentos/cadastros:', err)
     } finally {
@@ -328,6 +339,9 @@ export const CredenciaisPendentesPage: React.FC = () => {
     (c) => (c.status_aprovacao || 'aprovado') === 'pendente',
   ).length
   const totalCredsPendentes = credenciamentos.filter((c) => c.status === 'pendente').length
+  const totalProcuracoesPendentes = solicitacoesProcuracao.filter(
+    (s) => s.status === 'em_analise',
+  ).length
 
   // Pendências antigas: aguardando análise há 7 dias ou mais
   const DIAS_ALERTA_PENDENCIA = 7
@@ -418,6 +432,27 @@ export const CredenciaisPendentesPage: React.FC = () => {
             {totalCredsPendentes > 0 && (
               <span className="ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-bold">
                 {totalCredsPendentes}
+              </span>
+            )}
+          </Button>
+
+          <Button
+            variant={abaAtiva === 'procuracao' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => {
+              setAbaAtiva('procuracao')
+              setRecarregarProcuracao((n) => n + 1)
+            }}
+            className={`text-xs h-8 ${
+              abaAtiva === 'procuracao'
+                ? 'bg-[#002B5E] text-white hover:bg-[#001D40]'
+                : 'text-slate-700 hover:text-slate-900'
+            }`}
+          >
+            Solicitações de Procuração
+            {totalProcuracoesPendentes > 0 && (
+              <span className="ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-bold">
+                {totalProcuracoesPendentes}
               </span>
             )}
           </Button>
@@ -749,7 +784,15 @@ export const CredenciaisPendentesPage: React.FC = () => {
 
       {/* Lista de Registros Conforme a Aba Ativa */}
       <div className="space-y-3">
-        {abaAtiva === 'cadastros' ? (
+        {abaAtiva === 'procuracao' ? (
+          /* ABA 3: Solicitações de Procuração */
+          <PainelSolicitacoesProcuracao
+            filtroStatus={filtroStatus}
+            busca={busca}
+            termoBuscaNumeros={termoBuscaNumeros}
+            recarregar={recarregarProcuracao}
+          />
+        ) : abaAtiva === 'cadastros' ? (
           /* ABA 1: Cadastros Públicos de Moradores */
           cadastrosFiltrados.length === 0 ? (
             <Card className="p-8 text-center border-slate-200">
@@ -1197,7 +1240,6 @@ export const CredenciaisPendentesPage: React.FC = () => {
           })
         )}
       </div>
-
       {/* Modal de Análise Completa do Cadastro */}
       <ModalAnaliseCadastro
         cad={cadEmAnalise}
