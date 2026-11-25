@@ -459,7 +459,11 @@ export function gerarHtmlDocumentoAta(dados: DadosAtaPdf): string {
         <div class="emission-badge">
           <div><strong>Emissão:</strong> ${dataHoje}</div>
           <div>${horaHoje}</div>
-          <div style="margin-top: 3px; color: ${statusCor}; font-weight: bold;">${statusLabel}</div>
+          ${
+            limpa
+              ? ''
+              : `<div style="margin-top: 3px; color: ${statusCor}; font-weight: bold;">${statusLabel}</div>`
+          }
         </div>
       </div>
     </header>
