@@ -6,6 +6,7 @@ import type {
   AssinaturaDocumentoRecord,
 } from '@/lib/api'
 import { formatarCpf } from '@/lib/cpf'
+import { decidirResultadoItemPauta, rotularItemPauta } from '@/lib/tituloItemPauta'
 
 export interface DadosRelatorioConsolidadoPdf {
   nomeCondominio: string
@@ -90,10 +91,13 @@ export function gerarHtmlRelatorioConsolidado(dados: DadosRelatorioConsolidadoPd
       const pctAbst = totalItem > 0 ? Math.round((abst / totalItem) * 100) : 0
 
       // Regra simples regimental: mais favoráveis que contrários aprova, salvo quórum qualificado
-      const aprovado = fav > cont
-      const badgeResultado = aprovado
-        ? `<span style="background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 8pt; text-transform: uppercase;">Aprovado</span>`
-        : `<span style="background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 8pt; text-transform: uppercase;">Rejeitado</span>`
+      const resultado = decidirResultadoItemPauta(item)
+      const badgeResultado =
+        resultado === 'aprovado'
+          ? `<span style="background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 8pt; text-transform: uppercase;">Aprovado</span>`
+          : resultado === 'rejeitado'
+            ? `<span style="background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 8pt; text-transform: uppercase;">Rejeitado</span>`
+            : `<span style="background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 8pt; text-transform: uppercase;">Sem votos registrados</span>`
 
       return `
       <div style="border: 1px solid #CBD5E1; border-radius: 4px; margin-bottom: 12px; padding: 10px; background: #FFFFFF; page-break-inside: avoid;">
@@ -103,7 +107,7 @@ export function gerarHtmlRelatorioConsolidado(dados: DadosRelatorioConsolidadoPd
               Item ${item.ordem || idx + 1}
             </span>
             <div style="font-size: 10pt; font-weight: 700; color: #0F172A; margin-top: 3px;">
-              ${escapeHtml(item.titulo)}
+              ${escapeHtml(rotularItemPauta(item, idx))}
             </div>
             ${item.texto ? `<div style="font-size: 8.5pt; color: #475569; margin-top: 2px;">${escapeHtml(item.texto)}</div>` : ''}
           </div>

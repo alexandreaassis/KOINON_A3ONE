@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select'
 import { toast } from '@/hooks/use-toast'
 import { imprimirOuBaixarPdfConsolidado } from '@/lib/pdfRelatorioConsolidado'
+import { decidirResultadoItemPauta, rotularItemPauta } from '@/lib/tituloItemPauta'
 import {
   FileText,
   Printer,
@@ -337,12 +338,12 @@ export const RelatoriosMesaPage: React.FC = () => {
                       const total = item.votos.total || 0
                       const fav = item.votos.favoravel || 0
                       const cont = item.votos.contrario || 0
-                      const aprovado = fav > cont
+                      const resultado = decidirResultadoItemPauta(item)
                       return (
                         <div key={item.id} className="py-2 flex items-center justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <span className="font-semibold text-slate-900 block truncate">
-                              Item {item.ordem || idx + 1}: {item.titulo}
+                              {rotularItemPauta(item, idx)}
                             </span>
                             <span className="text-[11px] text-slate-500">
                               Quórum:{' '}
@@ -364,12 +365,18 @@ export const RelatoriosMesaPage: React.FC = () => {
                             <Badge
                               variant="outline"
                               className={
-                                aprovado
+                                resultado === 'aprovado'
                                   ? 'border-emerald-300 bg-emerald-50 text-emerald-700 font-bold text-[10px]'
-                                  : 'border-red-300 bg-red-50 text-red-700 font-bold text-[10px]'
+                                  : resultado === 'rejeitado'
+                                    ? 'border-red-300 bg-red-50 text-red-700 font-bold text-[10px]'
+                                    : 'border-slate-300 bg-slate-50 text-slate-600 font-bold text-[10px]'
                               }
                             >
-                              {aprovado ? 'Aprovado' : 'Rejeitado'}
+                              {resultado === 'aprovado'
+                                ? 'Aprovado'
+                                : resultado === 'rejeitado'
+                                  ? 'Rejeitado'
+                                  : 'Sem votos registrados'}
                             </Badge>
                           </div>
                         </div>
