@@ -2543,7 +2543,13 @@ export const api = {
     deliberacaoId: string
     unidadeId: string
     expiraEmHoras?: number
-  }): Promise<{ success: boolean; message: string; codigo?: string; codigoId?: string; expiraEm?: string }> {
+  }): Promise<{
+    success: boolean
+    message: string
+    codigo?: string
+    codigoId?: string
+    expiraEm?: string
+  }> {
     return pb.send('/backend/v1/estacao/codigo-gerar', {
       method: 'POST',
       body: payload,
@@ -2610,4 +2616,4 @@ export const api = {
       body: payload,
     })
   },
-} 
+}
