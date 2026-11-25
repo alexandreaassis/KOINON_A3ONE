@@ -83,18 +83,14 @@ import {
   MessageCircle,
   Phone,
 } from 'lucide-react'
-import {
-  montarMensagemAtaPublicada,
-  normalizarNumeroWhatsapp,
-  copiarTexto,
-  montarLinkWhatsapp,
-} from '@/lib/whatsapp'
+import { normalizarNumeroWhatsapp, copiarTexto, montarLinkWhatsapp } from '@/lib/whatsapp'
+import { montarTextoInicial } from '@/lib/modelosMensagem'
 import type { CadastroUnidadeRecord } from '@/lib/api'
 import { formatarUnidadeComBloco } from '@/lib/formatadorUnidade'
 
 export const AtaAssembleiaPage: React.FC = () => {
   const navigate = useNavigate()
-  const { nomeCondominio, logoUrl } = useCondoConfig()
+  const { nomeCondominio, logoUrl, modelosMensagem } = useCondoConfig()
   const { user } = useAuth()
 
   // Lista de deliberações e deliberação ativa
@@ -1287,7 +1283,11 @@ export const AtaAssembleiaPage: React.FC = () => {
 
   const abrirPainelWhatsapp = async () => {
     setPainelWhatsAberto(true)
-    setMensagemWhatsAta(montarMensagemAtaPublicada(dataAssembleiaWhats))
+    setMensagemWhatsAta(
+      montarTextoInicial(modelosMensagem, 'whatsapp', 'ata_publicada', {
+        dataAssembleia: dataAssembleiaWhats,
+      }),
+    )
     setCarregandoWhats(true)
     try {
       const lista = await api.getCadastrosUnidades({ ativo: true, statusAprovacao: 'aprovado' })

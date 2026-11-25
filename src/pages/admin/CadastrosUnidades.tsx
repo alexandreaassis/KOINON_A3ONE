@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 import * as XLSX from 'xlsx'
 import { api, CadastroUnidadeRecord, UnidadeRecord, VinculoCadastro } from '@/lib/api'
 import { useCondoConfig } from '@/context/CondoConfigContext'
+import { montarTextoInicial } from '@/lib/modelosMensagem'
 import { useAuth } from '@/context/AuthContext'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { formatarCpf, validarCpf, limparCpf, MSG_CPF_INVALIDO } from '@/lib/cpf'
@@ -94,7 +95,7 @@ const normalizarIdentificador = (valor?: string | null): string =>
     .toLowerCase()
 
 export const CadastrosUnidadesPage: React.FC = () => {
-  const { rotuloUnidade, nomeCondominio } = useCondoConfig()
+  const { rotuloUnidade, nomeCondominio, modelosMensagem } = useCondoConfig()
   const { user } = useAuth()
 
   // Definição e Larguras padrão das Colunas da Tabela (mesmo padrão da Lista de Presença)
@@ -665,7 +666,10 @@ export const CadastrosUnidadesPage: React.FC = () => {
 
     const descUnidade = formatarUnidadeComBloco(unidadeSelecionadaLink, rotuloUnidade)
     const texto = encodeURIComponent(
-      `Olá! Segue o link oficial para realizar o cadastro de moradores da ${descUnidade} no Condomínio Lago Azul pela Plataforma Virtual Koinon:\n\n${linkGerado}\n\nPreencha seus dados para homologação da mesa diretora da assembleia.`,
+      montarTextoInicial(modelosMensagem, 'whatsapp', 'cadastro_aprovado', {
+        unidade: descUnidade,
+        link: linkGerado,
+      }),
     )
 
     const urlWa = `https://wa.me/${conversao.numeroInternacional}?text=${texto}`

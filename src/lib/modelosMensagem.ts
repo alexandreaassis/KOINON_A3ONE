@@ -37,8 +37,12 @@ export const CAMPOS_MODELO: Record<CanalModelo, Record<TipoModelo, string>> = {
   },
 }
 
+/** Nomes dos campos modelo_* na collection `configuracoes`. */
 export type ChavesModelosMensagem = {
-  [K in keyof typeof CAMPOS_MODELO.whatsapp | keyof typeof CAMPOS_MODELO.email]: string
+  modelo_wa_cadastro_aprovado: string
+  modelo_wa_ata_publicada: string
+  modelo_email_cadastro_aprovado: string
+  modelo_email_ata_publicada: string
 }
 
 /** Textos prontos atuais — default quando não há modelo salvo ainda. */

@@ -9,6 +9,7 @@ interface CondoConfigContextType {
   somVotoUrl: string | null
   rotuloUnidade: string
   tipoCondominio: string
+  modelosMensagem: CondoConfigRecord | null
   isLoading: boolean
   recarregarConfig: () => Promise<void>
 }
@@ -59,6 +60,7 @@ export const CondoConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const nomeCondominio = config?.nome_condominio?.trim() || DEFAULT_NOME
   const rotuloUnidade = config?.rotulo_unidade?.trim() || DEFAULT_ROTULO
   const tipoCondominio = config?.tipo_condominio || 'vertical'
+  const modelosMensagem = config ?? null
 
   const logoUrl = config && config.logo ? pb.files.getURL(config, config.logo) : null
   const somVotoUrl = config && config.som_voto ? pb.files.getURL(config, config.som_voto) : null
@@ -72,6 +74,7 @@ export const CondoConfigProvider: React.FC<{ children: React.ReactNode }> = ({ c
         somVotoUrl,
         rotuloUnidade,
         tipoCondominio,
+        modelosMensagem,
         isLoading,
         recarregarConfig: carregar,
       }}

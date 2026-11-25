@@ -23,7 +23,8 @@ import { formatarCpf } from '@/lib/cpf'
 import { formatarTelefone } from '@/lib/telefone'
 import ModalAnaliseCadastro from './ModalAnaliseCadastro'
 import DialogWhatsapp from '@/components/whatsapp/DialogWhatsapp'
-import { montarMensagemCadastroAprovado, normalizarNumeroWhatsapp } from '@/lib/whatsapp'
+import { normalizarNumeroWhatsapp } from '@/lib/whatsapp'
+import { montarTextoInicial } from '@/lib/modelosMensagem'
 import { MessageCircle } from 'lucide-react'
 import type { CadastroUnidadeRecord } from '@/lib/api'
 import {
@@ -66,7 +67,7 @@ const normalizarIdentificador = (valor?: string | null): string =>
 
 export const CredenciaisPendentesPage: React.FC = () => {
   const { user } = useAuth()
-  const { rotuloUnidade } = useCondoConfig()
+  const { rotuloUnidade, modelosMensagem } = useCondoConfig()
 
   const [credenciamentos, setCredenciamentos] = useState<CredenciamentoRecord[]>([])
   const [cadastrosPublicos, setCadastrosPublicos] = useState<CadastroUnidadeRecord[]>([])
@@ -105,7 +106,7 @@ export const CredenciaisPendentesPage: React.FC = () => {
   const abrirWhatsappCadastro = (nome: string, telefone?: string) => {
     setNomeWhats(nome)
     setTelefoneWhats(telefone || null)
-    setMensagemWhats(montarMensagemCadastroAprovado(nome))
+    setMensagemWhats(montarTextoInicial(modelosMensagem, 'whatsapp', 'cadastro_aprovado', { nome }))
     setDialogWhatsAberto(true)
   }
 

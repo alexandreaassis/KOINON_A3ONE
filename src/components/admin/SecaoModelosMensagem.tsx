@@ -75,26 +75,35 @@ export const SecaoModelosMensagem: React.FC = () => {
   const { config, recarregarConfig } = useCondoConfig()
   const { user } = useAuth()
 
-  const estadoInicial = (): Record<ChaveFormulario, string> => ({
+  const padroes = (): Record<ChaveFormulario, string> => ({
     modelo_wa_cadastro_aprovado: modeloPadrao('whatsapp', 'cadastro_aprovado'),
     modelo_wa_ata_publicada: modeloPadrao('whatsapp', 'ata_publicada'),
     modelo_email_cadastro_aprovado: modeloPadrao('email', 'cadastro_aprovado'),
     modelo_email_ata_publicada: modeloPadrao('email', 'ata_publicada'),
   })
 
-  const [valores, setValores] = useState<Record<ChaveFormulario, string>>(estadoInicial)
+  const doConfig = (): Record<ChaveFormulario, string> => {
+    const base = padroes()
+    for (const item of ITENS) {
+      const salvo = (config as unknown as Record<string, unknown> | undefined)?.[item.chave]
+      if (typeof salvo === 'string' && salvo !== '') {
+        base[item.chave] = salvo
+      }
+    }
+    return base
+  }
+
+  const [valores, setValores] = useState<Record<ChaveFormulario, string>>(padroes)
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
 
   useEffect(() => {
     if (!config) return
-    setValores({
-      modelo_wa_cadastro_aprovado: modeloPadrao('whatsapp', 'cadastro_aprovado'),
-      modelo_wa_ata_publicada: modeloPadrao('whatsapp', 'ata_publicada'),
-      modelo_email_cadastro_aprovado: modeloPadrao('email', 'cadastro_aprovado'),
-      modelo_email_ata_publicada: modeloPadrao('email', 'ata_publicada'),
-    })
+    // Texto salvo prevalece; campo vazio/ausente no banco = default (mesma
+    // regra de resolução dos pontos de envio, em modelosMensagem.ts).
+    setValores(doConfig())
     setCarregando(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config])
 
   const alterou = carregando
@@ -109,7 +118,7 @@ export const SecaoModelosMensagem: React.FC = () => {
     if (!config) return
     setSalvando(true)
     try {
-      await api.updateConfiguracao(config.id, { ...valores })
+      await api.salvarModelosMensagem({ ...valores })
       await api.registrarEventoAuditoria({
         evento: 'configuracao_atualizada',
         fator: `Admin ${user?.name || user?.email} atualizou os modelos de mensagem (WhatsApp/e-mail)`,
@@ -133,7 +142,7 @@ export const SecaoModelosMensagem: React.FC = () => {
   }
 
   return (
-    <Card>
+    <Card id="card-modelos-mensagem">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <MessageSquareText className="h-5 w-5 text-emerald-700" /> Modelos de mensagem (WhatsApp e
@@ -145,7 +154,7 @@ export const SecaoModelosMensagem: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSalvar} className="space-y-6">
+        <form id="form-modelos-mensagem" onSubmit={handleSalvar} className="space-y-6">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1 text-xs text-slate-500">
               <Variable className="h-3.5 w-3.5" /> Variáveis disponíveis:
@@ -189,7 +198,7 @@ export const SecaoModelosMensagem: React.FC = () => {
           type="button"
           variant="outline"
           disabled={salvando || carregando || !alterou}
-          onClick={() => setValores(estadoInicial())}
+          onClick={() => setValores(padroes())}
         >
           Restaurar padrões
         </Button>

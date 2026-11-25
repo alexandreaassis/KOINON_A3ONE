@@ -74,6 +74,7 @@ import {
 import { urnaAudio } from '@/lib/urnaAudio'
 import { KoinonSymbol } from '@/components/brand/KoinonSymbol'
 import { SecaoCanaisEnvio } from '@/components/admin/SecaoCanaisEnvio'
+import { SecaoModelosMensagem } from '@/components/admin/SecaoModelosMensagem'
 
 const ROTULOS_SUGERIDOS = [
   'Apartamento',
@@ -715,6 +716,9 @@ export const ConfiguracoesPage: React.FC = () => {
         <SecaoCanaisEnvio
           nomeCondominioPadrao={nomeCondominio || 'Condomínio Residencial Lago Azul'}
         />
+
+        {/* CARD 0.1: MODELOS DE MENSAGEM (WHATSAPP/E-MAIL) — texto inicial dos envios manuais */}
+        <SecaoModelosMensagem />
 
         {/* CARD GROQ: TRANSCRIÇÃO DE ÁUDIO DA ASSEMBLEIA (WHISPER) */}
         <Card className="border-[#002B5E]/15 shadow-sm rounded-xl bg-white overflow-hidden">
