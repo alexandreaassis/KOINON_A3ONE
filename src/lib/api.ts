@@ -189,6 +189,31 @@ export interface CedulaRecord extends RecordModel {
   declaracao_representante_legal?: boolean
 }
 
+/** Status de solicitação de credenciamento como procurador (migration 0052) */
+export type StatusSolicitacaoProcuracao = 'em_analise' | 'aprovado' | 'cancelado' | 'rejeitado'
+
+export interface SolicitacaoProcuracaoRecord extends RecordModel {
+  solicitante: string
+  deliberacao: string
+  unidade: string
+  titular_outorgante?: string
+  nome_procurador?: string
+  cpf_procurador?: string
+  qualificacao?: string
+  anexos?: string[]
+  status: StatusSolicitacaoProcuracao
+  motivo_rejeicao?: string
+  cancelado_pelo_solicitante?: boolean
+  aprovado_em?: string
+  rejeitado_em?: string
+  cancelado_em?: string
+  expand?: {
+    deliberacao?: DeliberacaoRecord
+    unidade?: UnidadeRecord
+    solicitante?: UserRecord
+  }
+}
+
 export type TipoVinculo =
   | 'proprietario'
   | 'condomino'
@@ -1102,6 +1127,51 @@ export const api = {
       aprovado_por: mesaUserId,
       data_analise: new Date().toISOString(),
       motivo_rejeicao: motivo,
+    })
+  },
+
+  // Solicitações de credenciamento como procurador (migration 0052)
+  async getSolicitacoesProcuracao(filter?: string) {
+    return pb.collection('solicitacoes_procuracao').getFullList<SolicitacaoProcuracaoRecord>({
+      filter,
+      expand: 'deliberacao,unidade,solicitante',
+      sort: '-created',
+    })
+  },
+
+  async getMinhasSolicitacoesProcuracao(usuarioId: string) {
+    return pb.collection('solicitacoes_procuracao').getFullList<SolicitacaoProcuracaoRecord>({
+      filter: pb.filter('solicitante = {:uid}', { uid: usuarioId }),
+      expand: 'deliberacao,unidade',
+      sort: '-created',
+    })
+  },
+
+  async criarSolicitacaoProcuracao(formData: FormData) {
+    return pb.collection('solicitacoes_procuracao').create<SolicitacaoProcuracaoRecord>(formData)
+  },
+
+  async aprovarSolicitacaoProcuracao(id: string) {
+    return pb.collection('solicitacoes_procuracao').update<SolicitacaoProcuracaoRecord>(id, {
+      status: 'aprovado',
+      motivo_rejeicao: '',
+      aprovado_em: new Date().toISOString(),
+    })
+  },
+
+  async rejeitarSolicitacaoProcuracao(id: string, motivo: string) {
+    return pb.collection('solicitacoes_procuracao').update<SolicitacaoProcuracaoRecord>(id, {
+      status: 'rejeitado',
+      motivo_rejeicao: motivo,
+      rejeitado_em: new Date().toISOString(),
+    })
+  },
+
+  async cancelarSolicitacaoProcuracao(id: string) {
+    return pb.collection('solicitacoes_procuracao').update<SolicitacaoProcuracaoRecord>(id, {
+      status: 'cancelado',
+      cancelado_pelo_solicitante: true,
+      cancelado_em: new Date().toISOString(),
     })
   },
 

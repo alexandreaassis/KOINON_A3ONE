@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-25T04:14:25.993Z",
+  "generatedAt": "2026-11-25T15:07:38.355Z",
   "collections": [
     {
       "name": "users",
@@ -3011,6 +3011,124 @@
       ],
       "indexes": [
         "CREATE UNIQUE INDEX idx_listas_presenca_deliberacao ON listas_presenca (deliberacao)"
+      ]
+    },
+    {
+      "name": "solicitacoes_procuracao",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (solicitante = @request.auth.id || @request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "view": "@request.auth.id != '' && (solicitante = @request.auth.id || @request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "create": "@request.auth.id != '' && @request.body.solicitante = @request.auth.id && @request.body.status = 'em_analise'",
+        "update": "@request.auth.id != '' && ((@request.auth.role = 'mesa' || @request.auth.role = 'admin') || (solicitante = @request.auth.id && status = 'em_analise' && @request.body.status = 'cancelado'))",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "solicitante",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "unidade",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "unidades"
+        },
+        {
+          "name": "titular_outorgante",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "nome_procurador",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cpf_procurador",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "qualificacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "anexos",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["em_analise", "aprovado", "cancelado", "rejeitado"]
+        },
+        {
+          "name": "motivo_rejeicao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cancelado_pelo_solicitante",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "aprovado_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rejeitado_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cancelado_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_sol_proc_em_analise ON solicitacoes_procuracao (solicitante, deliberacao, unidade) WHERE status = 'em_analise'"
       ]
     }
   ]
