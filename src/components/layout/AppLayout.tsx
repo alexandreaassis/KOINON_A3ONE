@@ -217,7 +217,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     { label: 'Documentos & Edital', path: '/mesa/documentos', icon: FolderArchive },
     { label: 'Lista de Presença', path: '/mesa/presenca', icon: UserCheck },
     { label: 'Aprovação de Cadastros', path: '/mesa/credenciamentos', icon: Users },
-    { label: 'Cadastros da Unidade', path: '/admin/cadastros', icon: Contact },
+    { label: 'Cadastros da Unidade', path: '/admin/cadastros', icon: Contact }, // exclusivo do Módulo da Mesa — não repetir em Administração
     { label: 'Deliberações e Pautas', path: '/mesa/deliberacoes', icon: FileSpreadsheet },
     { label: 'Auditoria e Urna', path: '/mesa/auditoria', icon: History },
     { label: 'Relatórios de Assembleia', path: '/mesa/relatorios', icon: BarChart3 },
@@ -226,7 +226,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
 
   const navAdmin = [
     { label: 'Configurações do Condomínio', path: '/admin/configuracoes', icon: Settings },
-    { label: 'Cadastros da Unidade', path: '/admin/cadastros', icon: Contact },
+    // 'Cadastros da Unidade' fica somente no Módulo da Mesa (navMesa, /admin/cadastros)
     { label: 'Gestão de Usuários', path: '/admin/usuarios', icon: Users },
     { label: 'Histórico de Alterações', path: '/admin/historico', icon: History },
     { label: 'Parâmetros da Convenção', path: '/admin/parametros', icon: SlidersHorizontal },
@@ -253,7 +253,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, title, subtitle 
     if (p === '/mesa/relatorios') return ['Mesa Diretora', 'Relatórios de Assembleia']
     if (p === '/mesa/manual') return ['Mesa Diretora', 'Manual da Mesa']
     if (p === '/admin/configuracoes') return ['Administração', 'Configurações']
-    if (p === '/admin/cadastros') return ['Administração', 'Cadastros da Unidade']
+    if (p === '/admin/cadastros') return ['Mesa Diretora', 'Cadastros da Unidade']
     if (p === '/admin/usuarios') return ['Administração', 'Usuários']
     if (p === '/admin/historico') return ['Administração', 'Histórico de Alterações']
     if (p === '/admin/parametros') return ['Administração', 'Parâmetros Globais']

@@ -51,18 +51,18 @@ const NARRACOES: Record<string, string> = {
   painel:
     'O Painel da Mesa é a sua central de comando. Ele mostra, de relance, as pendências de aprovação de cadastros e credenciamentos, o quórum de instalação da assembleia ao vivo, e a deliberação ativa, com a etapa em que ela está, do aguardo ao resultado publicado. Cada botão importante pede confirmação antes de agir: nada acontece de uma vez.',
   credenciamentos:
-    'Em Credenciamentos, a mesa analisa o cadastro público enviado por link e decide quem participa da assembleia. A tela tem duas abas: cadastros públicos e credenciamento de votação. No topo, cartões de resumo mostram pendentes, aprovados, rejeitados, unidades ativas e o total. Pendentes aparecem destacados em âmbar, e a busca aceita nome, unidade ou C P F, com ou sem pontos. Ao aprovar, confirme no botão; ao rejeitar, informe o motivo, que é registrado no histórico.',
+    'Em Aprovação de Cadastros, a mesa analisa o cadastro público enviado por link e decide quem participa da assembleia. A tela tem duas abas: cadastros de moradores e credenciais de assembleia. No topo, cartões de resumo mostram pendentes, aprovados, rejeitados e pendências antigas. Pendentes aparecem destacados em âmbar, e a busca aceita nome, unidade, C P F ou e-mail, com ou sem pontos. A lista de cadastros pode ser classificada por unidade, por nome ou por data de nascimento. Ao aprovar, o morador recebe conta de acesso com senha temporária por e-mail — obrigatória a troca no primeiro login — e a mesa pode avisar o morador pelo WhatsApp, com mensagem pronta; ao rejeitar, informe o motivo, que é registrado no histórico.',
   presenca:
     'A Lista de Presença é o retrato oficial de quem está na assembleia. Cada pessoa aprovada entra com nome, unidade, vínculo e um selo: verde para presencial, azul para remoto e âmbar para procuração. O quórum de instalação é calculado ao vivo. Atingido o quórum, o botão de instalar a assembleia é liberado. Cada linha também recebe assinatura eletrônica com carimbo de hash.',
   documentos:
     'Em Documentos e Edital, a mesa prepara e distribui os papéis oficiais da assembleia. O edital de convocação é gerado com data, hora, local ou link e os itens da pauta, e depois publicado para os moradores. A pauta organiza as deliberações com seus anexos. Após a apuração, o informativo de deliberações resume o que foi decidido. A distribuição usa os canais de e-mail e WhatsApp configurados no sistema.',
-  ata: 'A Ata é o registro oficial da assembleia. Nela, a mesa escreve com o editor rico, que tem negrito, listas e citações, e pode pedir ajuda à inteligência artificial para redigir os resultados — sempre revisando antes de usar. Feito o texto, os membros da mesa assinam eletronicamente, desenhando, digitando ou carimando, e cada assinatura recebe um carimbo de hash. Publicada a ata, todos os moradores têm acesso ao documento completo.',
+  ata: 'A Ata é o registro oficial da assembleia. Nela, a mesa escreve com o editor rico, que tem negrito, listas e citações, e pode pedir ajuda à inteligência artificial para redigir os resultados — sempre revisando antes de usar. Feito o texto, a mesa escolhe o fechamento: impressão limpa do P D F, sem selo de rascunho, para assinatura em papel ou envio à ZapSign — e também a assinatura eletrônica na tela, desenhando, digitando ou carimando, sempre com carimbo de hash. Publicada a ata, todos os moradores têm acesso ao documento completo.',
   deliberacoes:
     'Em Deliberações e Pautas, a mesa cadastra a assembleia, monta a pauta item a item e conduz cada deliberação: abre a votação, acompanha em tempo real, encerra e apura. É também daqui que sai a botoeira que o Painel espelha. Cada transição de etapa fica registrada com data e hora para a auditoria.',
   aprovacao_cadastros:
-    'Em Aprovação de Cadastros, a mesa analisa as solicitações enviadas pelos moradores através do link público da unidade. A mesa confere o nome, CPF, e-mail, telefone e o vínculo declarado — seja proprietário, condômino, inquilino ou procurador. Se os dados estiverem corretos, aprova e o morador recebe acesso. Se houver divergência, rejeita com motivo formal registrado.',
+    'Em Aprovação de Cadastros, a mesa analisa as solicitações enviadas pelos moradores através do link público da unidade. A mesa confere o nome, CPF, e-mail — obrigatório, é por ele que o morador recebe o acesso —, telefone e o vínculo declarado: proprietário, condômino, inquilino ou procurador. Se os dados estiverem corretos, aprova: o sistema cria a conta com senha temporária enviada por e-mail, e a troca é obrigatória no primeiro login; a mesa também pode avisar o morador pelo WhatsApp com mensagem pronta. Se houver divergência, rejeita com motivo formal registrado.',
   cadastro_unidade:
-    'O Cadastro da Unidade reúne o mapa predial do condomínio: números das unidades, blocos opcionais, frações ideais e os moradores ativos. Daqui a mesa e a administração geram o link exclusivo de autoatendimento com token para envio via WhatsApp ou e-mail, além de importar planilhas em massa.',
+    'O Cadastro da Unidade reúne o mapa predial do condomínio: números das unidades, blocos opcionais, frações ideais e os moradores ativos. Daqui a mesa gera o link exclusivo de autoatendimento com token para envio via WhatsApp ou e-mail, além de importar planilhas em massa. Esta tela pertence ao Módulo da Mesa — não aparece mais no menu de Administração.',
   relatorios:
     'Os Relatórios de Assembleia consolidam todo o evento em números e gráficos oficiais. Eles mostram o índice de comparecimento, taxa de quórum atingida, apuração percentual e nominal de cada item da pauta e o hash raiz da urna, permitindo impressão e download de PDF oficial para cartório e condôminos.',
   auditoria:
@@ -88,7 +88,7 @@ const SECOES: SecaoManual[] = [
     rota: '/mesa/credenciamentos',
     icone: UserCheck,
     resumo:
-      'Análise criteriosa dos cadastros públicos enviados por link de autoatendimento: conferência de vínculo, aprovação ou rejeição motivada.',
+      'Análise criteriosa dos cadastros públicos enviados por link de autoatendimento: conferência de vínculo, aprovação com conta de acesso e senha temporária, aviso por WhatsApp ou rejeição motivada.',
   },
   {
     id: 'cadastro_unidade',
@@ -96,7 +96,7 @@ const SECOES: SecaoManual[] = [
     rota: '/admin/cadastros',
     icone: Building,
     resumo:
-      'Gestão de unidades, blocos e vínculos, geração e envio de links de cadastro com token via WhatsApp e e-mail, e importação de planilhas.',
+      'Gestão de unidades, blocos e vínculos, geração e envio de links de cadastro com token via WhatsApp e e-mail, importação de planilhas e classificação da lista por unidade, nome ou nascimento — exclusivo do Módulo da Mesa.',
   },
   {
     id: 'credenciamentos',

@@ -54,6 +54,14 @@ import {
   ClipboardList,
 } from 'lucide-react'
 
+// Ordem natural/numérica para identificadores de unidade ("9" < "101", "12A" após "12")
+const normalizarIdentificador = (valor?: string | null): string =>
+  (valor || '')
+    .trim()
+    .replace(/\s+/g, '')
+    .replace(/(\d+)/g, (m) => m.padStart(10, '0'))
+    .toLowerCase()
+
 export const CredenciaisPendentesPage: React.FC = () => {
   const { user } = useAuth()
   const { rotuloUnidade } = useCondoConfig()
@@ -64,6 +72,7 @@ export const CredenciaisPendentesPage: React.FC = () => {
   const [abaAtiva, setAbaAtiva] = useState<'cadastros' | 'credenciais'>('cadastros')
   const [filtroStatus, setFiltroStatus] = useState<string>('pendente')
   const [filtroUnidade, setFiltroUnidade] = useState<string>('todas')
+  const [ordemCadastros, setOrdemCadastros] = useState<'unidade' | 'nome' | 'nascimento'>('unidade')
   const [processandoCad, setProcessandoCad] = useState(false)
   const [busca, setBusca] = useState('')
   const [carregando, setCarregando] = useState(true)
@@ -276,7 +285,24 @@ export const CredenciaisPendentesPage: React.FC = () => {
       const rb = b.status_aprovacao || 'aprovado'
       if (ra === 'pendente' && rb !== 'pendente') return -1
       if (rb === 'pendente' && ra !== 'pendente') return 1
-      return (a.created || '').localeCompare(b.created || '')
+      if (ordemCadastros === 'nome') {
+        return (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' })
+      }
+      if (ordemCadastros === 'nascimento') {
+        // data_nascimento chega como 'YYYY-MM-DD 00:00:00.000Z' — a comparação
+        // lexicográfica do prefixo ISO equivale à comparação cronológica
+        return (a.data_nascimento || '9999-12-31')
+          .slice(0, 10)
+          .localeCompare((b.data_nascimento || '9999-12-31').slice(0, 10))
+      }
+      // 'unidade': ordem natural/numérica do identificador (101 < 910)
+      const ua = unidades.find((u) => u.id === a.unidade)
+      const ub = unidades.find((u) => u.id === b.unidade)
+      const da = normalizarIdentificador(ua?.identificador)
+      const db = normalizarIdentificador(ub?.identificador)
+      if (da && db && da !== db) return da < db ? -1 : 1
+      if (da !== db) return da ? -1 : 1
+      return (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' })
     })
 
   const totalCadastrosPendentes = cadastrosPublicos.filter(
@@ -601,6 +627,26 @@ export const CredenciaisPendentesPage: React.FC = () => {
             Todos
           </Button>
         </div>
+
+        {/* Classificação da aba de cadastros (unidade, nome ou nascimento) */}
+        {abaAtiva === 'cadastros' && (
+          <Select
+            value={ordemCadastros}
+            onValueChange={(v) => setOrdemCadastros(v as 'unidade' | 'nome' | 'nascimento')}
+          >
+            <SelectTrigger
+              className="w-full sm:w-48 h-9 text-xs"
+              aria-label="Classificar lista de cadastros por"
+            >
+              <SelectValue placeholder="Classificar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unidade">Classificar por: Unidade</SelectItem>
+              <SelectItem value="nome">Classificar por: Nome</SelectItem>
+              <SelectItem value="nascimento">Classificar por: Nascimento</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
 
         {/* Filtro por Unidade */}
         <Select value={filtroUnidade} onValueChange={setFiltroUnidade}>
