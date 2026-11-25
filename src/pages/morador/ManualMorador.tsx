@@ -11,6 +11,7 @@ import {
   ArrowRight,
   MessageCircleQuestion,
   HelpCircle,
+  FileSignature,
 } from 'lucide-react'
 import {
   CapaManual,
@@ -41,7 +42,7 @@ const NARRACOES: Record<string, string> = {
   situacao:
     'A página Minha Situação é o painel de controle do morador. Nela você vê se o seu cadastro já foi aprovado pela mesa, a sua situação financeira de forma informativa, e os avisos da assembleia, como o botão para ir ao credenciamento quando a votação começa. Se o seu cadastro acabou de ser aprovado, lembre-se: a sua conta já existe, e a senha temporária que chegou por e-mail deve ser trocada no primeiro acesso.',
   credenciamento:
-    'O credenciamento é a confirmação de que você, e somente você, vai participar da assembleia. Você confere seus dados, anexa um documento se a mesa pedir, e recebe por e-mail um código de seis números chamado O T P. Digite o código na tela e pronto: a mesa aprova o seu credenciamento, e você aparece na lista de presença, presencial ou remoto.',
+    'O credenciamento é a confirmação de que você, e somente você, vai participar da assembleia. Você confere seus dados, anexa um documento se a mesa pedir, e recebe por e-mail um código de seis números chamado O T P. Digite o código na tela e pronto: a mesa aprova o seu credenciamento, e você aparece na lista de presença, presencial ou remoto. Recebeu procuração de outro condômino? Na mesma página você pode solicitar o credenciamento como procurador: escolhe a assembleia, busca a unidade representada, anexa a procuração e o documento com foto e informa o seu C P F. A mesa homologa, e a unidade representada entra na presença da assembleia.',
   votacao:
     'A cabine de votação é o local mais protegido do sistema. Cada item da pauta aparece com as opções favorável, contrário e abstenção, e em algumas votações também nulo e branco. Cada unidade tem um voto. Seu voto é secreto: ninguém consegue ver o que você escolheu, nem a mesa. Depois de confirmar, o voto não pode ser alterado, e você recebe um recibo.',
   recibo:
@@ -66,9 +67,10 @@ const SECOES: SecaoManual[] = [
   {
     id: 'credenciamento',
     titulo: 'Credenciamento — confirme que é você',
-    rota: '/credenciamento',
+    rota: '/morador/credenciamento',
     icone: UserCheck,
-    resumo: 'A validação da sua participação, com documento e código de segurança por e-mail.',
+    resumo:
+      'A validação da sua participação, com documento e código de segurança por e-mail — e, quem recebeu procuração, pede o credenciamento como procurador na mesma página.',
   },
   {
     id: 'votacao',
@@ -361,7 +363,7 @@ const MockupSecao: React.FC<{ id: string; onIrPara: (rota: string) => void }> = 
               n: 4,
               titulo: 'Botões de atalho',
               texto:
-                'Com a votação aberta, os atalhos levam direto ao credenciamento e à cabine de votação.',
+                'Com a votação aberta, os atalhos levam direto ao credenciamento e à cabine de votação. O atalho de credenciamento abre a página /morador/credenciamento — o endereço antigo redireciona para ela automaticamente.',
             },
           ]}
         />
@@ -406,7 +408,7 @@ const MockupSecao: React.FC<{ id: string; onIrPara: (rota: string) => void }> = 
               n: 4,
               titulo: 'Aprovação da mesa',
               texto:
-                'Depois do código, a mesa diretora confirma seu credenciamento. Aí você entra na lista de presença da assembleia.',
+                'Depois do código, a mesa diretora confirma seu credenciamento. Aí você entra na lista de presença da assembleia. O credenciamento usa sempre a unidade ativa selecionada no menu lateral — troque a unidade no menu antes de credenciar.',
             },
           ]}
         />
@@ -420,6 +422,7 @@ const MockupSecao: React.FC<{ id: string; onIrPara: (rota: string) => void }> = 
           está correto. Ainda nada? Peça à mesa para reenviar — e mantenha a tela aberta enquanto
           espera.
         </CaixaDica>
+        <BlocoProcuracaoManual />
       </div>
     )
   }
@@ -601,6 +604,75 @@ const MockupSecao: React.FC<{ id: string; onIrPara: (rota: string) => void }> = 
   return null
 }
 
+/* ---------- Credenciamento por procuração (seção da página de credenciamento) ---------- */
+const BlocoProcuracaoManual: React.FC = () => {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-cyan-200 bg-cyan-50/50 p-5">
+        <h3 className="font-poppins text-sm font-bold text-cyan-900 flex items-center gap-2">
+          <FileSignature className="h-4 w-4" />
+          Credenciamento por procuração — para quem representa outra unidade
+        </h3>
+        <p className="mt-2 text-[13px] leading-relaxed text-cyan-950/90">
+          Recebeu procuração de outro condômino? Na mesma página de Credenciamento há o painel
+          “Solicitações de credenciamento como procurador”. Toque em{' '}
+          <strong>Nova solicitação</strong> e preencha:
+        </p>
+        <ol className="mt-3 space-y-2 text-[13px] leading-relaxed text-cyan-950/90">
+          <li>
+            <strong>1. Assembleia vigente</strong> — a procuração é sempre destinada a uma
+            assembleia específica; escolha na lista a que está em andamento.
+          </li>
+          <li>
+            <strong>2. Unidade representada</strong> — digite o número/bloco ou o nome do titular e
+            escolha na lista: o nome do titular (outorgante) é preenchido automaticamente. Por
+            privacidade, o CPF do titular <strong>não é exibido</strong> ao solicitante — a mesa é
+            quem confere contra a procuração.
+          </li>
+          <li>
+            <strong>3. Qualificação do votante e seu CPF</strong> — informe como você está
+            habilitado (ex.: “Procurador com Poderes Específicos”) e o seu próprio CPF, validado na
+            hora.
+          </li>
+          <li>
+            <strong>4. Anexos</strong> — a procuração assinada e um documento de identidade com foto
+            (PDF ou imagem, até 5 MB cada, até 3 arquivos).
+          </li>
+        </ol>
+      </div>
+      <div className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
+        <p className="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-[#002B5E]">
+          Acompanhe o status em “Minhas solicitações”
+        </p>
+        <div className="grid gap-2 p-4 sm:grid-cols-2">
+          <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">
+            Em análise — a mesa ainda vai conferir os documentos
+          </div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+            Aprovado — a unidade representada entrou na presença da assembleia
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">
+            Cancelado — você desistiu; o cancelamento só é possível enquanto a solicitação está “Em
+            análise”
+          </div>
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">
+            Rejeitado — aparece com o motivo informado pela mesa
+          </div>
+        </div>
+      </div>
+      <CaixaImportante>
+        O nome do titular da unidade é preenchido automaticamente, e o CPF dele nunca é exibido ao
+        solicitante: quem confere a procuração contra o cadastro é a Mesa Diretora.
+      </CaixaImportante>
+      <CaixaDica>
+        Uma solicitação por unidade e por assembleia. A aprovação da sua procuração credencia a
+        unidade representada na lista de presença — do lado da mesa, a homologação é feita na aba
+        “Solicitações de Procuração” da página Aprovação de Cadastros (/mesa/credenciamentos).
+      </CaixaDica>
+    </div>
+  )
+}
+
 /* ---------- Fluxo das informações (seção final) ---------- */
 const FluxoInformacoes: React.FC = () => {
   const passos = [
@@ -689,6 +761,14 @@ const FaqCurto: React.FC = () => {
     {
       p: 'Preciso estar em casa para votar?',
       r: 'Não. O módulo do morador funciona de qualquer lugar, pelo celular ou computador, com internet. No credenciamento você indica se está presencial (no salão) ou remoto.',
+    },
+    {
+      p: 'O que é a “unidade ativa” do menu lateral?',
+      r: 'É a unidade com a qual você está operando no momento, selecionada no menu lateral — e ela só aparece para quem tem perfil de morador. O credenciamento próprio usa sempre a unidade ativa: antes de credenciar, confira no menu se a unidade certa está selecionada.',
+    },
+    {
+      p: 'Recebi uma procuração e vou representar o vizinho. Como credencio?',
+      r: 'Na página de Credenciamento (/morador/credenciamento), use o painel “Solicitações de credenciamento como procurador”: escolha a assembleia, busque a unidade representada, anexe a procuração e o documento com foto e informe o seu CPF. A mesa homologa e a unidade representada entra na presença da assembleia. Você pode cancelar a solicitação apenas enquanto ela estiver “Em análise”.',
     },
   ]
   const [aberta, setAberta] = React.useState<number | null>(0)

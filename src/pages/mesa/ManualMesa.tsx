@@ -51,7 +51,7 @@ const NARRACOES: Record<string, string> = {
   painel:
     'O Painel da Mesa é a sua central de comando. Ele mostra, de relance, as pendências de aprovação de cadastros e credenciamentos, o quórum de instalação da assembleia ao vivo, e a deliberação ativa, com a etapa em que ela está, do aguardo ao resultado publicado. Cada botão importante pede confirmação antes de agir: nada acontece de uma vez.',
   credenciamentos:
-    'Em Aprovação de Cadastros, a mesa analisa o cadastro público enviado por link e decide quem participa da assembleia. A tela tem duas abas: cadastros de moradores e credenciais de assembleia. No topo, cartões de resumo mostram pendentes, aprovados, rejeitados e pendências antigas. Pendentes aparecem destacados em âmbar, e a busca aceita nome, unidade, C P F ou e-mail, com ou sem pontos. A lista de cadastros pode ser classificada por unidade, por nome ou por data de nascimento. Ao aprovar, o morador recebe conta de acesso com senha temporária por e-mail — obrigatória a troca no primeiro login — e a mesa pode avisar o morador pelo WhatsApp, com mensagem pronta; ao rejeitar, informe o motivo, que é registrado no histórico.',
+    'Em Credenciamentos, a mesa analisa o cadastro público enviado por link e decide quem participa da assembleia. A tela tem três abas: cadastros de moradores, credenciais de assembleia e solicitações de procuração. No topo, cartões de resumo mostram pendentes, aprovados, rejeitados e pendências antigas. Pendentes aparecem destacados em âmbar, e a busca aceita nome, unidade, C P F ou e-mail, com ou sem pontos. A lista de cadastros pode ser classificada por unidade, por nome ou por data de nascimento. Ao aprovar, o morador recebe conta de acesso com senha temporária por e-mail — obrigatória a troca no primeiro login — e a mesa pode avisar o morador pelo WhatsApp, com mensagem pronta; ao rejeitar, informe o motivo, que é registrado no histórico. Na aba de solicitações de procuração, a mesa visualiza os anexos enviados pelo morador, aprova, rejeita com motivo obrigatório, vê quando o próprio solicitante cancelou e é alertada quando um mesmo procurador acumula mais de cinco unidades. Toda aprovação alimenta o quórum e a lista de presença da assembleia.',
   presenca:
     'A Lista de Presença é o retrato oficial de quem está na assembleia. Cada pessoa aprovada entra com nome, unidade, vínculo e um selo: verde para presencial, azul para remoto e âmbar para procuração. O quórum de instalação é calculado ao vivo. Atingido o quórum, o botão de instalar a assembleia é liberado. Cada linha também recebe assinatura eletrônica com carimbo de hash.',
   documentos:
@@ -62,7 +62,7 @@ const NARRACOES: Record<string, string> = {
   aprovacao_cadastros:
     'Em Aprovação de Cadastros, a mesa analisa as solicitações enviadas pelos moradores através do link público da unidade. A mesa confere o nome, CPF, e-mail — obrigatório, é por ele que o morador recebe o acesso —, telefone e o vínculo declarado: proprietário, condômino, inquilino ou procurador. Se os dados estiverem corretos, aprova: o sistema cria a conta com senha temporária enviada por e-mail, e a troca é obrigatória no primeiro login; a mesa também pode avisar o morador pelo WhatsApp com mensagem pronta. Se houver divergência, rejeita com motivo formal registrado.',
   cadastro_unidade:
-    'O Cadastro da Unidade reúne o mapa predial do condomínio: números das unidades, blocos opcionais, frações ideais e os moradores ativos. Daqui a mesa gera o link exclusivo de autoatendimento com token para envio via WhatsApp ou e-mail, além de importar planilhas em massa. Esta tela pertence ao Módulo da Mesa — não aparece mais no menu de Administração.',
+    'O Cadastro da Unidade reúne o mapa predial do condomínio: números das unidades, blocos opcionais, frações ideais e os moradores ativos. Daqui a mesa gera o link exclusivo de autoatendimento com token para envio via WhatsApp ou e-mail, além de importar planilhas em massa. Para organizar a lista, clique no cabeçalho de Unidade, Nome ou Nascimento: o primeiro clique ordena pela coluna e o segundo inverte a direção. Esta tela pertence ao Módulo da Mesa — não aparece mais no menu de Administração.',
   relatorios:
     'Os Relatórios de Assembleia consolidam todo o evento em números e gráficos oficiais. Eles mostram o índice de comparecimento, taxa de quórum atingida, apuração percentual e nominal de cada item da pauta e o hash raiz da urna, permitindo impressão e download de PDF oficial para cartório e condôminos.',
   auditoria:
@@ -96,7 +96,7 @@ const SECOES: SecaoManual[] = [
     rota: '/admin/cadastros',
     icone: Building,
     resumo:
-      'Gestão de unidades, blocos e vínculos, geração e envio de links de cadastro com token via WhatsApp e e-mail, importação de planilhas e classificação da lista por unidade, nome ou nascimento — exclusivo do Módulo da Mesa.',
+      'Gestão de unidades, blocos e vínculos, geração e envio de links de cadastro com token via WhatsApp e e-mail, importação de planilhas e ordenação da lista por clique nos cabeçalhos de Unidade, Nome ou Nascimento — exclusivo do Módulo da Mesa.',
   },
   {
     id: 'credenciamentos',
@@ -104,7 +104,7 @@ const SECOES: SecaoManual[] = [
     rota: '/mesa/credenciamentos',
     icone: UserCheck,
     resumo:
-      'Análise de cadastros públicos e credenciamento para votação, com resumo de pendências e abas separadas.',
+      'Análise de cadastros públicos, credenciamento para votação e homologação das solicitações de procuração, com resumo de pendências e três abas separadas.',
   },
   {
     id: 'presenca',
@@ -290,7 +290,7 @@ const ManualMesaPage: React.FC = () => {
                 className="group flex items-center gap-2.5 rounded-xl border border-slate-100 px-3 py-2.5 text-sm text-slate-600 transition-colors hover:border-[#0066FF]/30 hover:bg-[#0066FF]/5 cursor-pointer"
               >
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0066FF] text-[11px] font-bold text-white">
-                  8
+                  12
                 </span>
                 <span className="flex-1">Pergunte à IA do Koinon</span>
                 <ArrowRight className="h-3.5 w-3.5 text-slate-300 transition-colors group-hover:text-[#0066FF]" />
@@ -413,9 +413,10 @@ const ManualMesaPage: React.FC = () => {
                   />
                   <CaixaDica>
                     O disparo de links de cadastro pode ser feito diretamente via WhatsApp com um
-                    clique no botão wa.me ou por e-mail em massa. A lista de cadastros pode ser
-                    classificada por unidade, por nome ou por data de nascimento — use o seletor
-                    "Classificar por" ao lado do filtro de unidade.
+                    clique no botão wa.me ou por e-mail em massa. Para organizar a lista, clique no
+                    cabeçalho de Unidade, Nome Completo ou Nascimento: o primeiro clique ordena pela
+                    coluna, o segundo inverte a direção (crescente ou decrescente) — a coluna ativa
+                    fica destacada com a seta indicando o sentido.
                   </CaixaDica>
                   <CaixaImportante>
                     Esta tela é exclusiva do Módulo da Mesa: não existe mais atalho duplicado no
@@ -489,9 +490,9 @@ const ManualMesaPage: React.FC = () => {
                     itens={[
                       {
                         n: 1,
-                        titulo: 'Duas abas',
+                        titulo: 'Três abas',
                         texto:
-                          'Cadastros públicos (análise do cadastro enviado por link) e credenciamento de votação (quem vai votar).',
+                          'Cadastros públicos (análise do cadastro enviado por link), credenciamento de votação (quem vai votar) e solicitações de procuração (homologação da representação enviada pelo morador).',
                       },
                       {
                         n: 2,
@@ -517,6 +518,15 @@ const ManualMesaPage: React.FC = () => {
                     Cadastro aprovado não é credenciamento aprovado: são etapas diferentes. O
                     credenciamento é o que garante o lugar na lista de presença e o voto.
                   </CaixaImportante>
+                  <CaixaDica>
+                    Na aba Solicitações de Procuração, abra os anexos enviados pelo morador (a
+                    procuração e o documento com foto) e confira o titular outorgante e a
+                    qualificação do votante. Ao rejeitar, o motivo é obrigatório e aparece para o
+                    solicitante em "Minhas solicitações". Um alerta âmbar avisa quando o mesmo
+                    procurador acumula mais de 5 unidades — confira com cuidado especial a
+                    legitimidade dessas procurações. Aprovada, a procuração entra na lista de
+                    presença e soma no quórum.
+                  </CaixaDica>
                 </>
               )}
               {s.id === 'presenca' && (
@@ -770,7 +780,7 @@ const FluxoConexao: React.FC = () => {
       de: 'A mesa aprova o credenciamento',
       para: 'Lista de presença',
       texto:
-        'Cada aprovação insere a pessoa na lista com o selo presencial, remoto ou procuração, e soma no quórum ao vivo.',
+        'Cada aprovação — credencial própria ou procuração homologada — insere a pessoa na lista com o selo presencial, remoto ou procuração, e soma no quórum ao vivo.',
     },
     {
       de: 'A mesa instala a assembleia',
@@ -856,6 +866,14 @@ const FaqCurto: React.FC = () => {
     {
       p: 'Regras de quórum e de inadimplência são fixas no sistema?',
       r: 'Não: são parâmetros decididos em deliberação e constam da Convenção do condomínio. Confira a regra vigente antes de instalar a assembleia ou validar um voto.',
+    },
+    {
+      p: 'Como funciona a solicitação de procuração no sistema?',
+      r: 'O morador envia a solicitação pela página de Credenciamento dele (em /morador/credenciamento), escolhendo a assembleia e a unidade representada, anexando a procuração e um documento com foto e informando os dados do procurador. A mesa homologa na aba Solicitações de Procuração, em /mesa/credenciamentos: pode aprovar ou rejeitar com motivo obrigatório, e o solicitante pode cancelar enquanto estiver em análise. Quando o mesmo procurador acumula mais de 5 unidades, um alerta âmbar pede conferência especial. Aprovada, a procuração entra na lista de presença e soma no quórum.',
+    },
+    {
+      p: 'Onde edito as mensagens que a mesa envia por WhatsApp e e-mail?',
+      r: 'Em Configurações (/admin/configuracoes), na seção de Modelos de Mensagem. Os textos aceitam as variáveis [NOME], [UNIDADE] e [LINK], que o sistema substitui na hora do envio — por exemplo, pelo nome do morador, pela unidade dele e pelo link de acesso. Esses modelos servem de texto inicial nos envios manuais de aprovação de cadastro, de cadastros da unidade e de notificação de ata publicada. A senha de acesso nunca é enviada em mensagem.',
     },
   ]
   const [aberta, setAberta] = React.useState<number | null>(0)
