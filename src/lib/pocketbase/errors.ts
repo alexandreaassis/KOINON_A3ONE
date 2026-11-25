@@ -20,11 +20,17 @@ export function extractFieldErrors(error: unknown): FieldErrors {
   return errors
 }
 
+/**
+ * Assinatura CONGELADA (error: unknown, fallback?: string) — não alterar.
+ * Já regrediu para 1 argumento nas v0.0.196 (10x/20x/22x/24ª/25ª/31ª/32ª) e
+ * v0.0.220 (39ª); restaurada novamente nesta rodada.
+ */
 export function getErrorMessage(error: unknown, fallback?: string): string {
-  const padrao = fallback || 'An unexpected error occurred.'
   if (!(error instanceof ClientResponseError)) {
-    return error instanceof Error ? error.message : padrao
+    return error instanceof Error
+      ? error.message || fallback || 'An unexpected error occurred.'
+      : fallback || 'An unexpected error occurred.'
   }
   const msgs = Object.values(extractFieldErrors(error))
-  return msgs.length > 0 ? msgs.join(' ') : error.message || padrao
+  return msgs.join(' ') || error.message || fallback || 'An unexpected error occurred.'
 }

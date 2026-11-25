@@ -300,24 +300,52 @@ export const CadastrosUnidadesPage: React.FC = () => {
   } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Carregar dados
+  // Carregar dados — cada chamada é tratada individualmente: uma falha de
+  // rede/rota não derruba o Promise.all inteiro nem a página (a tela segue
+  // renderizando o que conseguiu carregar, com aviso amigável).
   const carregarDados = async () => {
     setCarregando(true)
-    try {
-      const [cads, unids] = await Promise.all([api.getCadastrosUnidades(), api.getUnidades()])
-      setCadastros(cads)
-      setUnidades(unids)
-    } catch (err) {
-      console.error('Erro ao carregar cadastros:', err)
+    setErroCarregamento(null)
+
+    const resultado = await Promise.allSettled([api.getCadastrosUnidades(), api.getUnidades()])
+
+    let falhas = 0
+    if (resultado[0].status === 'fulfilled') {
+      setCadastros(resultado[0].value)
+    } else {
+      falhas++
+      console.error('Erro ao carregar cadastros:', resultado[0].reason)
+    }
+    if (resultado[1].status === 'fulfilled') {
+      setUnidades(resultado[1].value)
+    } else {
+      falhas++
+      console.error('Erro ao carregar unidades:', resultado[1].reason)
+    }
+
+    if (falhas > 0) {
+      const motivo = getErrorMessage(
+        (resultado.find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined)
+          ?.reason,
+        'Falha ao buscar registros de pessoas por unidade.',
+      )
+      setErroCarregamento(
+        falhas >= 2
+          ? 'Não foi possível carregar os dados da página. Verifique sua conexão e tente novamente.'
+          : 'Parte dos dados não pôde ser carregada. A lista pode estar incompleta.',
+      )
       toast({
         title: 'Erro ao carregar cadastros',
-        description: getErrorMessage(err, 'Falha ao buscar registros de pessoas por unidade.'),
+        description: motivo,
         variant: 'destructive',
       })
-    } finally {
-      setCarregando(false)
     }
+
+    setCarregando(false)
   }
+
+  // Banner de erro amigável quando algo falhou no carregamento
+  const [erroCarregamento, setErroCarregamento] = useState<string | null>(null)
 
   useEffect(() => {
     carregarDados()
@@ -1320,6 +1348,30 @@ export const CadastrosUnidadesPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Banner de aviso: parte dos dados não carregou (falha de rede/rota) —
+          a página segue renderizando o que conseguiu buscar */}
+      {erroCarregamento && !carregando && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs text-amber-900"
+        >
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold">Alguns dados não puderam ser carregados</p>
+            <p className="text-[11px] text-amber-800 mt-0.5">{erroCarregamento}</p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={carregarDados}
+            className="h-7 px-2 text-[11px] border-amber-300 text-amber-900 hover:bg-amber-100 shrink-0"
+          >
+            <RotateCcw className="mr-1 h-3 w-3" /> Tentar novamente
+          </Button>
+        </div>
+      )}
+
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
