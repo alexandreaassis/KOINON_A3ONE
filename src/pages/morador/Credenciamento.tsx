@@ -43,6 +43,7 @@ import {
   ShieldCheck,
   Building,
 } from 'lucide-react'
+import { AvisoSemUnidadeVinculada } from '@/pages/morador/AvisoSemUnidadeVinculada'
 
 export const CredenciamentoPage: React.FC = () => {
   const { user, unidadeSelecionada } = useAuth()
@@ -142,6 +143,12 @@ export const CredenciamentoPage: React.FC = () => {
       ativo = false
     }
   }, [unidadeAtiva, user])
+
+  // Gestor (admin/mesa) sem unidade vinculada: sem unidade fantasma —
+  // não exibe nem submete formulário para unidade inexistente.
+  if (!unidadeAtiva) {
+    return <AvisoSemUnidadeVinculada modulo="Credenciamento" />
+  }
 
   // Formatar CPF ao digitar
   const handleCpfChange = (val: string) => {

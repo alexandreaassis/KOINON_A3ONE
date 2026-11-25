@@ -48,6 +48,7 @@ import {
   VolumeX,
 } from 'lucide-react'
 import { urnaAudio } from '@/lib/urnaAudio'
+import { AvisoSemUnidadeVinculada } from '@/pages/morador/AvisoSemUnidadeVinculada'
 import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 
@@ -378,6 +379,12 @@ export const VotacaoPage: React.FC = () => {
     } finally {
       setEnviandoVoto(false)
     }
+  }
+
+  // Gestor (admin/mesa) sem unidade vinculada: sem unidade fantasma — a urna
+  // só opera sobre uma unidade real credenciada.
+  if (!unidadeSelecionada) {
+    return <AvisoSemUnidadeVinculada modulo="Votação" />
   }
 
   // Casos impeditivos de votação

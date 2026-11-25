@@ -27,6 +27,7 @@ import {
   Calendar,
   Hash,
 } from 'lucide-react'
+import { AvisoSemUnidadeVinculada } from '@/pages/morador/AvisoSemUnidadeVinculada'
 
 export const ReciboPage: React.FC = () => {
   const { unidadeSelecionada } = useAuth()
@@ -62,6 +63,11 @@ export const ReciboPage: React.FC = () => {
       ativo = false
     }
   }, [unidadeSelecionada])
+
+  // Gestor (admin/mesa) sem unidade vinculada: sem unidade fantasma.
+  if (!unidadeSelecionada) {
+    return <AvisoSemUnidadeVinculada modulo="Comprovantes de Voto" />
+  }
 
   const handleBuscarPorCodigo = async (e: React.FormEvent) => {
     e.preventDefault()

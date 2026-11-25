@@ -20,19 +20,11 @@ export function extractFieldErrors(error: unknown): FieldErrors {
   return errors
 }
 
-/**
- * ASSINATURA CONGELADA — NÃO REGREDIR PARA 1 ARGUMENTO (regressões 10x, 20x, 22x,
- * 24ª, 25ª, 31ª, 32ª e 38ª). Chamadores em todo o projeto usam
- * getErrorMessage(error, 'fallback opcional'); o fallback é devolvido quando o
- * erro não traz mensagem nem field-error utilizável.
- */
 export function getErrorMessage(error: unknown, fallback?: string): string {
   if (!(error instanceof ClientResponseError)) {
     if (error instanceof Error && error.message) return error.message
     return fallback ?? 'An unexpected error occurred.'
   }
   const msgs = Object.values(extractFieldErrors(error))
-  if (msgs.length > 0) return msgs.join(' ')
-  if (error.message) return error.message
-  return fallback ?? 'An unexpected error occurred.'
+  return msgs.join(' ') || error.message || fallback || 'An unexpected error occurred.'
 }

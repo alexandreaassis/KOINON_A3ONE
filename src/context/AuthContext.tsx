@@ -36,7 +36,8 @@ const UNIDADE_STORAGE_KEY = 'lagoazul_unidade_selecionada'
 /**
  * Carrega TODAS as unidades às quais o usuário responde:
  * campo multi-relação users.unidades (novo) unificado com o legado users.unidade.
- * Gestores (mesa/admin) sem vínculo recebem todas as unidades do condomínio.
+ * Sem vínculo real (morador OU gestor mesa/admin), nenhuma unidade é atribuída:
+ * não há unidade fantasma — as páginas exibem o aviso de conta sem unidade vinculada.
  */
 const carregarUnidadesDoUsuario = async (authUser: UserRecord): Promise<UnidadeRecord[]> => {
   const ids = new Set<string>()
@@ -48,34 +49,11 @@ const carregarUnidadesDoUsuario = async (authUser: UserRecord): Promise<UnidadeR
   const legado = authUser.unidade
   if (legado && legado !== 'none') ids.add(String(legado))
 
-  const isGestor = authUser.role === 'mesa' || authUser.role === 'admin'
+  // Sem vínculos (ou vínculos irrecuperáveis): nenhuma unidade ativa automática
+  if (ids.size === 0) return []
 
-  // Sem vínculos: gestor enxerga todas as unidades; morador sem vínculo não vê nenhuma
-  if (ids.size === 0) {
-    if (!isGestor) return []
-    try {
-      return await api.getUnidades()
-    } catch {
-      return []
-    }
-  }
-
-  try {
-    const lista = await Promise.all(
-      Array.from(ids).map((id) => api.getUnidade(id).catch(() => null)),
-    )
-    const encontradas = lista.filter((u): u is UnidadeRecord => !!u)
-    if (encontradas.length === 0 && isGestor) {
-      return await api.getUnidades()
-    }
-    return encontradas
-  } catch {
-    try {
-      return await api.getUnidades()
-    } catch {
-      return []
-    }
-  }
+  const lista = await Promise.all(Array.from(ids).map((id) => api.getUnidade(id).catch(() => null)))
+  return lista.filter((u): u is UnidadeRecord => !!u)
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -119,20 +97,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const unidades = await carregarUnidadesDoUsuario(authUser)
         setUnidadesDisponiveis(unidades)
 
-        // Restaurar unidade selecionada se houver no localStorage
-        const storedUnidadeId = localStorage.getItem(UNIDADE_STORAGE_KEY)
-        if (storedUnidadeId) {
-          const encontrada = unidades.find((u) => u.id === storedUnidadeId)
-          if (encontrada) {
-            setUnidadeSelecionada(encontrada)
-          } else if (unidades.length > 0) {
-            setUnidadeSelecionada(unidades[0])
-          }
-        } else if (unidades.length > 0) {
-          // Padrão: 101A se for morador ou primeira da lista
-          const padrao101 = unidades.find((u) => u.identificador === '101A') || unidades[0]
-          setUnidadeSelecionada(padrao101)
-          localStorage.setItem(UNIDADE_STORAGE_KEY, padrao101.id)
+        if (unidades.length > 0) {
+          // Restaurar unidade selecionada se houver no localStorage; senão, a primeira vinculada
+          const storedUnidadeId = localStorage.getItem(UNIDADE_STORAGE_KEY)
+          const encontrada = storedUnidadeId
+            ? unidades.find((u) => u.id === storedUnidadeId)
+            : undefined
+          const padrao = encontrada || unidades[0]
+          setUnidadeSelecionada(padrao)
+          localStorage.setItem(UNIDADE_STORAGE_KEY, padrao.id)
+        } else {
+          // Sem unidade vinculada: nenhuma unidade ativa padrão
+          setUnidadeSelecionada(null)
         }
       } catch (err) {
         console.error('Erro ao carregar unidades:', err)
@@ -251,10 +227,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           : undefined
         const atual = aindaValida || unidadeSelecionada
         const validaAtual = atual && unidades.some((u) => u.id === atual.id) ? atual : undefined
-        const padrao =
-          validaAtual || unidades.find((u) => u.identificador === '101A') || unidades[0]
+        const padrao = validaAtual || unidades[0]
         setUnidadeSelecionada(padrao)
         localStorage.setItem(UNIDADE_STORAGE_KEY, padrao.id)
+      } else {
+        // Sem unidade vinculada: nenhuma unidade ativa padrão
+        setUnidadeSelecionada(null)
       }
     } catch {
       /* intentionally ignored */

@@ -36,6 +36,7 @@ import {
   ArrowRight,
   AlertTriangle,
 } from 'lucide-react'
+import { AvisoSemUnidadeVinculada } from '@/pages/morador/AvisoSemUnidadeVinculada'
 
 export const MinhaSituacaoPage: React.FC = () => {
   const { user, unidadeSelecionada } = useAuth()
@@ -95,6 +96,12 @@ export const MinhaSituacaoPage: React.FC = () => {
       ativo = false
     }
   }, [unidadeSelecionada])
+
+  // Gestor (admin/mesa) sem unidade vinculada: sem unidade fantasma —
+  // exibe aviso em vez do painel operando sobre "unidade qualquer".
+  if (!unidadeSelecionada) {
+    return <AvisoSemUnidadeVinculada modulo="Minha Situação" />
+  }
 
   const renderStatusCredenciamento = () => {
     if (!credenciamento) {
