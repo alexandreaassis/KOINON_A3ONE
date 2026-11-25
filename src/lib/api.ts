@@ -156,6 +156,45 @@ export interface DeliberacaoRecord extends RecordModel {
   mesa_secretario_cpf?: string
   mesa_eleita_em?: string
   proprietario_nao_participa_unidades?: string[] | string
+  /**
+   * Modalidade do voto presencial desta deliberação (migration 0053):
+   * 'estacao' = urna criptográfica no salão (Estação de Voto Presencial);
+   * 'manual' = lançamento dos totais físicos pela mesa (comportamento padrão).
+   * Select single: o runtime pode entregar string ou array — normalizado na leitura.
+   */
+  modalidade_presencial?: ModalidadePresencial | ModalidadePresencial[]
+}
+
+export type ModalidadePresencial = 'estacao' | 'manual'
+
+/** Normaliza o select (pode chegar como array de 1) para string */
+export function normalizarModalidadePresencial(valor: unknown): ModalidadePresencial {
+  if (Array.isArray(valor)) return (valor[0] as ModalidadePresencial) || 'manual'
+  return (valor as ModalidadePresencial) || 'manual'
+}
+
+export interface LancamentoFisicoRecord extends RecordModel {
+  deliberacao: string
+  item: string
+  favoraveis: number
+  contrarios: number
+  abstencoes: number
+  lancado_por?: string
+  /** JSON: { favoraveis, contrarios, abstencoes, lancado_por, atualizado_em } */
+  valores_anteriores?: string
+  observacao?: string
+}
+
+export interface CodigoUsoUnicoRecord extends RecordModel {
+  deliberacao: string
+  unidade: string
+  /** Apenas hash — o código em claro nunca é armazenado nem logado */
+  codigo_hash: string
+  status: 'ativo' | 'usado' | 'expirado' | 'revogado'
+  expira_em?: string
+  gerado_por?: string
+  usado_em?: string
+  usado_por_cpf_mascara?: string
 }
 
 export type RegraLocatario =
@@ -2463,5 +2502,76 @@ export const api = {
     return pb
       .collection('listas_presenca')
       .create<ListaPresencaDocumentoRecord>(payload, { requestKey: null })
+  },
+
+  // ===== Voto presencial (migration 0053) =====
+
+  async salvarModalidadePresencial(deliberacaoId: string, modalidade: ModalidadePresencial) {
+    return pb.collection('deliberacoes').update<DeliberacaoRecord>(deliberacaoId, {
+      modalidade_presencial: modalidade,
+    })
+  },
+
+  async getLancamentosFisicos(deliberacaoId: string): Promise<LancamentoFisicoRecord[]> {
+    try {
+      const list = await pb.collection('lancamentos_fisicos').getFullList<LancamentoFisicoRecord>({
+        filter: pb.filter('deliberacao = {:d}', { d: deliberacaoId }),
+        sort: 'item,created',
+      })
+      return list
+    } catch (err) {
+      if ((err as { status?: number })?.status === 404) return []
+      throw new Error(getErrorMessage(err, 'Falha ao carregar lançamentos físicos.'))
+    }
+  },
+
+  async salvarLancamentoFisico(payload: {
+    deliberacaoId: string
+    itemId: string
+    favoraveis: number
+    contrarios: number
+    abstencoes: number
+    observacao?: string
+  }): Promise<{ success: boolean; message: string; lancamento?: LancamentoFisicoRecord }> {
+    return pb.send('/backend/v1/lancamento-fisico', {
+      method: 'POST',
+      body: payload,
+    })
+  },
+
+  async gerarCodigoUsoUnico(payload: {
+    deliberacaoId: string
+    unidadeId: string
+    expiraEmHoras?: number
+  }): Promise<{
+    success: boolean
+    message: string
+    codigo?: string
+    codigoId?: string
+    expiraEm?: string
+  }> {
+    return pb.send('/backend/v1/estacao/codigo-gerar', {
+      method: 'POST',
+      body: payload,
+    })
+  },
+
+  async revogarCodigoUsoUnico(codigoId: string): Promise<{ success: boolean; message: string }> {
+    return pb.send('/backend/v1/estacao/codigo-revogar', {
+      method: 'POST',
+      body: { codigoId },
+    })
+  },
+
+  async listarCodigosUsoUnico(deliberacaoId: string): Promise<CodigoUsoUnicoRecord[]> {
+    try {
+      const list = await pb.collection('codigos_uso_unico').getFullList<CodigoUsoUnicoRecord>({
+        filter: pb.filter('deliberacao = {:d}', { d: deliberacaoId }),
+        sort: '-created',
+      })
+      return list
+    } catch {
+      return []
+    }
   },
 }

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-25T18:28:28.441Z",
+  "generatedAt": "2026-11-25T19:08:41.397Z",
   "collections": [
     {
       "name": "users",
@@ -328,6 +328,13 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "modalidade_presencial",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["estacao", "manual"]
         }
       ],
       "indexes": ["CREATE INDEX idx_deliberacoes_status ON deliberacoes (status)"]
@@ -3129,6 +3136,170 @@
       ],
       "indexes": [
         "CREATE UNIQUE INDEX idx_sol_proc_em_analise ON solicitacoes_procuracao (solicitante, deliberacao, unidade) WHERE status = 'em_analise'"
+      ]
+    },
+    {
+      "name": "codigos_uso_unico",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "view": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "unidade",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "unidades"
+        },
+        {
+          "name": "codigo_hash",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ativo", "usado", "expirado", "revogado"]
+        },
+        {
+          "name": "expira_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "gerado_por",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "usado_em",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "usado_por_cpf_mascara",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_cuud_deliberacao ON codigos_uso_unico (deliberacao)",
+        "CREATE INDEX idx_cuud_unidade ON codigos_uso_unico (unidade)",
+        "CREATE INDEX idx_cuud_status ON codigos_uso_unico (status)"
+      ]
+    },
+    {
+      "name": "lancamentos_fisicos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "view": "@request.auth.id != '' && (@request.auth.role = 'mesa' || @request.auth.role = 'admin')",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "deliberacao",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "deliberacoes"
+        },
+        {
+          "name": "item",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "itens_pauta"
+        },
+        {
+          "name": "favoraveis",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "contrarios",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "abstencoes",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "lancado_por",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valores_anteriores",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_lf_deliberacao ON lancamentos_fisicos (deliberacao)",
+        "CREATE INDEX idx_lf_item ON lancamentos_fisicos (item)"
       ]
     }
   ]

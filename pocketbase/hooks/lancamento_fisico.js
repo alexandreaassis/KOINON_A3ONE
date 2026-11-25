@@ -1,0 +1,214 @@
+/// <reference path="../pb_data/types.d.ts" />
+/**
+ * Hook de lançamento manual pela mesa
+ *
+ * - GET  /backend/v1/votos/lancamento-fisico/:deliberacaoId → lista lançamentos
+ * - POST /backend/v1/votos/lancamento-fisico               → cria/atualiza lançamento
+ *
+ * Regras:
+ * - Só mesa/admin (via auth).
+ * - Deliberação deve estar EM_VOTACAO ou APURADA (permitido corrigir até publicar).
+ * - Trilha de auditoria: guarda valores anteriores em valores_anteriores (JSON)
+ *   e registra evento lancamento_fisico na auditoria_events (com hash encadeado).
+ * - A consolidação digital + físico é feita na leitura (boletim): soma das cédulas
+ *   da urna + lancamentos_fisicos do item.
+ */
+
+routerAdd('GET', '/backend/v1/votos/lancamento-fisico/{deliberacaoId}', (e) => {
+  const auth = e.auth
+  if (!auth || !['mesa', 'admin'].includes(auth.getString('role'))) {
+    return e.json(403, { success: false, message: 'Acesso restrito à mesa/admin.' })
+  }
+  const deliberacaoId = e.request.pathValue('deliberacaoId')
+  let lancamentos
+  try {
+    lancamentos = e.app.findRecordsByFilter(
+      'lancamentos_fisicos',
+      'deliberacao = {:delib}',
+      '-created',
+      500,
+      0,
+      { delib: deliberacaoId },
+    )
+  } catch (err) {
+    return e.json(500, {
+      success: false,
+      message: 'Erro ao buscar lançamentos: ' + (err?.message || ''),
+    })
+  }
+  const lista = lancamentos.map((l) => ({
+    id: l.id,
+    deliberacao: l.getString('deliberacao'),
+    item: l.getString('item'),
+    favoraveis: l.getInt('favoraveis'),
+    contrarios: l.getInt('contrarios'),
+    abstencoes: l.getInt('abstencoes'),
+    lancado_por: l.getString('lancado_por'),
+    valores_anteriores: l.getString('valores_anteriores') || '',
+    observacao: l.getString('observacao') || '',
+    created: l.getString('created'),
+    updated: l.getString('updated'),
+  }))
+  return e.json(200, { success: true, lancamentos: lista })
+})
+
+routerAdd('POST', '/backend/v1/votos/lancamento-fisico', (e) => {
+  function registrarAuditoriaLanc(app, dados) {
+    try {
+      const audCol = app.findCollectionByNameOrId('auditoria_events')
+      let ultimoHash = '0000000000000000000000000000000000000000000000000000000000000000'
+      let proximoSeq = 1
+      try {
+        const ultimos = app.findRecordsByFilter('auditoria_events', '', '-sequencial', 1, 0)
+        if (ultimos && ultimos.length > 0) {
+          const u = ultimos[0]
+          ultimoHash = u.getString('hash_evento') || ultimoHash
+          proximoSeq = (u.getInt('sequencial') || 0) + 1
+        }
+      } catch (_) {}
+      const payload = JSON.stringify({
+        evento: dados.evento,
+        data_hora: dados.data_hora || new Date().toISOString(),
+        unidade: dados.unidade || '',
+        fator: dados.fator || '',
+        dispositivo: dados.dispositivo || '',
+        sequencial: proximoSeq,
+        hash_anterior: ultimoHash,
+      })
+      const hashEvento = $security.sha256(ultimoHash + ':' + payload)
+      const rec = new Record(audCol)
+      rec.set('evento', dados.evento)
+      rec.set(
+        'data_hora',
+        dados.data_hora || new Date().toISOString().replace('T', ' ').substring(0, 19),
+      )
+      if (dados.unidade) rec.set('unidade', dados.unidade)
+      rec.set('fator', dados.fator || 'sistema')
+      rec.set('dispositivo', dados.dispositivo || 'servidor')
+      rec.set('sequencial', proximoSeq)
+      rec.set('hash_evento', hashEvento)
+      rec.set('hash_anterior', ultimoHash)
+      app.save(rec)
+    } catch (err) {
+      console.log('Erro ao registrar auditoria interna:', err)
+    }
+  }
+
+  const auth = e.auth
+  if (!auth || !['mesa', 'admin'].includes(auth.getString('role'))) {
+    return e.json(403, { success: false, message: 'Acesso restrito à mesa/admin.' })
+  }
+
+  const body = e.requestInfo().body || {}
+  const deliberacaoId = (body.deliberacaoId || '').trim()
+  const itemId = (body.itemId || '').trim()
+  const favoraveis = Number(body.favoraveis || 0)
+  const contrarios = Number(body.contrarios || 0)
+  const abstencoes = Number(body.abstencoes || 0)
+  const observacao = (body.observacao || '').trim()
+
+  if (!deliberacaoId || !itemId) {
+    return e.json(400, { success: false, message: 'deliberacaoId e itemId são obrigatórios.' })
+  }
+  if (
+    !Number.isInteger(favoraveis) ||
+    !Number.isInteger(contrarios) ||
+    !Number.isInteger(abstencoes) ||
+    favoraveis < 0 ||
+    contrarios < 0 ||
+    abstencoes < 0
+  ) {
+    return e.json(400, { success: false, message: 'Totais devem ser inteiros não negativos.' })
+  }
+
+  let delib
+  try {
+    delib = e.app.findRecordById('deliberacoes', deliberacaoId)
+  } catch (_) {
+    return e.json(404, { success: false, message: 'Deliberação não encontrada.' })
+  }
+  const status = delib.getString('status')
+  if (!['EM_VOTACAO', 'APURADA', 'ABERTA'].includes(status)) {
+    return e.json(400, {
+      success: false,
+      message:
+        'Lançamento só é permitido com deliberação aberta, em votação ou apurada (antes de publicar).',
+    })
+  }
+
+  let itemRec
+  try {
+    itemRec = e.app.findRecordById('itens_pauta', itemId)
+  } catch (_) {
+    return e.json(404, { success: false, message: 'Item de pauta não encontrado.' })
+  }
+  if (itemRec.getString('deliberacao') !== deliberacaoId) {
+    return e.json(400, { success: false, message: 'Item não pertence a esta deliberação.' })
+  }
+
+  let lancExistente = null
+  try {
+    const existentes = e.app.findRecordsByFilter(
+      'lancamentos_fisicos',
+      'deliberacao = {:delib} && item = {:item}',
+      '-created',
+      1,
+      0,
+      { delib: deliberacaoId, item: itemId },
+    )
+    if (existentes && existentes.length > 0) lancExistente = existentes[0]
+  } catch (_) {}
+
+  const valoresAnteriores = lancExistente
+    ? JSON.stringify({
+        favoraveis: lancExistente.getInt('favoraveis'),
+        contrarios: lancExistente.getInt('contrarios'),
+        abstencoes: lancExistente.getInt('abstencoes'),
+        lancado_por: lancExistente.getString('lancado_por'),
+        atualizado_em: new Date().toISOString(),
+      })
+    : ''
+
+  const dataHoraAgora = new Date().toISOString().replace('T', ' ').substring(0, 19)
+
+  e.app.runInTransaction((txApp) => {
+    let rec
+    if (lancExistente) {
+      rec = lancExistente
+    } else {
+      rec = new Record(txApp.findCollectionByNameOrId('lancamentos_fisicos'))
+      rec.set('deliberacao', deliberacaoId)
+      rec.set('item', itemId)
+    }
+    rec.set('favoraveis', favoraveis)
+    rec.set('contrarios', contrarios)
+    rec.set('abstencoes', abstencoes)
+    rec.set('lancado_por', auth.getString('name') || auth.email() || auth.id)
+    rec.set('valores_anteriores', valoresAnteriores)
+    rec.set('observacao', observacao)
+    txApp.save(rec)
+
+    registrarAuditoriaLanc(txApp, {
+      evento: lancExistente ? 'lancamento_fisico_alterado' : 'lancamento_fisico_registrado',
+      unidade: '',
+      fator:
+        'Lançamento manual pela mesa — item "' +
+        itemRec.getString('titulo') +
+        '" (F:' +
+        favoraveis +
+        ' C:' +
+        contrarios +
+        ' A:' +
+        abstencoes +
+        ')',
+      dispositivo: 'painel-mesa',
+    })
+  })
+
+  return e.json(200, {
+    success: true,
+    message: lancExistente
+      ? 'Lançamento atualizado (valores anteriores preservados na auditoria).'
+      : 'Lançamento registrado.',
+  })
+})
