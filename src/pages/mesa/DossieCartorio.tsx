@@ -532,14 +532,22 @@ export const DossieCartorioPage: React.FC = () => {
                     </td>
                     <td className="p-1.5 border-r border-slate-300">
                       {pres ? (
-                        <>
-                          <strong className="text-slate-900 block">{pres.nome}</strong>
+                        <span className="text-slate-900">
+                          {/* v0.0.235: nome e procurador NA MESMA LINHA (inline) */}
+                          <strong className="font-semibold">{pres.nome}</strong>
                           {pres.cpf && (
-                            <span className="text-[9px] text-slate-500 font-mono">
-                              CPF: {formatarCpf(pres.cpf)}
+                            <span className="text-[9px] text-slate-500 font-mono whitespace-nowrap">
+                              {' '}
+                              — CPF: {formatarCpf(pres.cpf)}
                             </span>
                           )}
-                        </>
+                          {pres.forma === 'procuracao' && pres.nome_procurador && (
+                            <span className="whitespace-nowrap">
+                              {' '}
+                              — Procurador: {pres.nome_procurador}
+                            </span>
+                          )}
+                        </span>
                       ) : (
                         nomesTitulares[u.id] || <span className="italic">Ausente</span>
                       )}
@@ -549,16 +557,17 @@ export const DossieCartorioPage: React.FC = () => {
                     </td>
                     <td className="p-1.5 border-r border-slate-300">
                       {pres?.forma === 'procuracao' ? (
-                        <div className="space-y-0.5">
-                          <span className="font-bold text-amber-900 block text-[10px]">
-                            Procurador: {pres.nome_procurador}
+                        <span className="whitespace-nowrap">
+                          <span className="font-bold text-amber-900 text-[10px]">
+                            {pres.nome_procurador}
                           </span>
                           {pres.cpf_procurador && (
-                            <span className="text-[9px] text-slate-500 font-mono block">
-                              CPF: {formatarCpf(pres.cpf_procurador)}
+                            <span className="text-[9px] text-slate-500 font-mono">
+                              {' '}
+                              — CPF: {formatarCpf(pres.cpf_procurador)}
                             </span>
                           )}
-                        </div>
+                        </span>
                       ) : (
                         '—'
                       )}

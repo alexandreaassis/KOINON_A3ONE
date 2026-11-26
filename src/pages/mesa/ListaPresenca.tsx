@@ -808,11 +808,19 @@ export const ListaPresencaPage: React.FC = () => {
         // Placeholder "Condômino Apto NNNN" não entra como nome na impressão limpa.
         const nome = pres?.nome || nomesTitulares[u.id] || ''
         const proc = pres?.nome_procurador || ''
+        // v0.0.235: nome do responsável e procurador NA MESMA LINHA —
+        // "Nome — Procurador: Fulano" inline (sem <div>/<br> entre eles);
+        // quebra só por word-break se o conjunto for longo demais, nunca
+        // uma quebra proposital antes do procurador.
+        const sufixoProcurador =
+          pres?.forma === 'procuracao' && proc
+            ? `<span style="white-space:nowrap;"> — Procurador: ${esc(proc)}</span>`
+            : ''
         return `<tr>
-        <td ${ESTILO_CELULA_UNIDADE}>${esc(formatarApenasNumeroUnidade(u.identificador))}${u.bloco ? `<div style="font-size:8px;font-weight:normal;color:#5C6B7A;">${esc(u.bloco.replace(/^Bloco\s+/i, 'Bl. '))}</div>` : ''}</td>
-        <td ${ESTILO_CELULA_TEXTO}>${esc(nome)}${pres?.cpf ? `<div style="font-size:9px;color:#5C6B7A;">CPF: ${esc(formatarCpf(pres.cpf))}</div>` : ''}</td>
+        <td ${ESTILO_CELULA_UNIDADE}>${esc(formatarApenasNumeroUnidade(u.identificador))}${u.bloco ? `<span style="font-size:8px;font-weight:normal;color:#5C6B7A;display:inline;"> ${esc(u.bloco.replace(/^Bloco\s+/i, 'Bl. '))}</span>` : ''}</td>
+        <td ${ESTILO_CELULA_TEXTO}>${esc(nome)}${pres?.cpf ? `<span style="font-size:9px;color:#5C6B7A;display:inline;"> — CPF: ${esc(formatarCpf(pres.cpf))}</span>` : ''}${sufixoProcurador}</td>
         <td ${ESTILO_CELULA_CENTRO}>${esc(forma)}</td>
-        <td ${ESTILO_CELULA_TEXTO}>${esc(proc)}${pres?.cpf_procurador ? `<div style="font-size:9px;color:#5C6B7A;">CPF: ${esc(formatarCpf(pres.cpf_procurador))}</div>` : ''}</td>
+        <td ${ESTILO_CELULA_TEXTO}>${esc(proc)}${pres?.cpf_procurador ? `<span style="font-size:9px;color:#5C6B7A;display:inline;"> — CPF: ${esc(formatarCpf(pres.cpf_procurador))}</span>` : ''}</td>
         <td ${ESTILO_CELULA_CENTRO}>&nbsp;</td>
       </tr>`
       })
@@ -925,7 +933,10 @@ export const ListaPresencaPage: React.FC = () => {
           identificadorUnidade: unid
             ? formatarIdentificadorUnidade(unid.identificador, unid.tipo_unidade, rotuloUnidade)
             : p.unidade,
-          nomeParticipante: p.nome || '—',
+          nomeParticipante:
+            p.forma === 'procuracao' && p.nome && p.nome_procurador
+              ? `${p.nome} — Procurador: ${p.nome_procurador}`
+              : p.nome || '—',
           forma: p.forma || 'presencial',
           nomeProcurador: p.nome_procurador || undefined,
           dataHora: p.data_hora_assinatura
@@ -1392,18 +1403,29 @@ export const ListaPresencaPage: React.FC = () => {
                           )}
                         </td>
 
-                        {/* 2. Nome do Titular / Representante */}
+                        {/* 2. Nome do Titular / Representante — v0.0.235: nome e
+                            procurador NA MESMA LINHA (inline, sem bloco próprio) */}
                         <td className="p-2 border-r border-[#D5DCE5] overflow-hidden">
                           {pres ? (
-                            <div className="truncate">
-                              <strong className="text-[#12314F] block truncate" title={pres.nome}>
-                                {pres.nome}
-                              </strong>
-                              {pres.cpf && (
-                                <span className="text-[10px] text-[#5C6B7A] font-mono block">
-                                  CPF: {formatarCpf(pres.cpf)}
-                                </span>
-                              )}
+                            <div className="min-w-0">
+                              <span className="text-[#12314F]" title={pres.nome}>
+                                <strong className="font-semibold">{pres.nome}</strong>
+                                {pres.cpf && (
+                                  <span className="text-[10px] text-[#5C6B7A] font-mono whitespace-nowrap">
+                                    {' '}
+                                    — CPF: {formatarCpf(pres.cpf)}
+                                  </span>
+                                )}
+                                {pres.forma === 'procuracao' && pres.nome_procurador && (
+                                  <span
+                                    className="whitespace-nowrap"
+                                    title={`Procurador: ${pres.nome_procurador}`}
+                                  >
+                                    {' '}
+                                    — Procurador: {pres.nome_procurador}
+                                  </span>
+                                )}
+                              </span>
                             </div>
                           ) : nomesTitulares[u.id] ? (
                             <div className="truncate">
@@ -1459,21 +1481,25 @@ export const ListaPresencaPage: React.FC = () => {
                           )}
                         </td>
 
-                        {/* 4. Procurador / Representante (Proc.) */}
+                        {/* 4. Procurador / Representante — v0.0.235: na MESMA LINHA
+                            do nome (inline), não mais empilhado em bloco próprio */}
                         <td className="p-2 border-r border-[#D5DCE5] overflow-hidden">
                           {pres?.forma === 'procuracao' ? (
-                            <div className="space-y-0.5 truncate">
+                            <div className="min-w-0">
                               <span
-                                className="font-semibold text-[#12314F] block truncate"
+                                className="whitespace-nowrap"
                                 title={`Procurador: ${pres.nome_procurador}`}
                               >
-                                {pres.nome_procurador}
-                              </span>
-                              {pres.cpf_procurador && (
-                                <span className="text-[10px] text-[#5C6B7A] font-mono block">
-                                  CPF: {formatarCpf(pres.cpf_procurador)}
+                                <span className="font-semibold text-[#12314F]">
+                                  {pres.nome_procurador}
                                 </span>
-                              )}
+                                {pres.cpf_procurador && (
+                                  <span className="text-[10px] text-[#5C6B7A] font-mono">
+                                    {' '}
+                                    — CPF: {formatarCpf(pres.cpf_procurador)}
+                                  </span>
+                                )}
+                              </span>
                               {pres.procuracao_arquivo && (
                                 <a
                                   href={pb.files.getURL(pres, pres.procuracao_arquivo)}
