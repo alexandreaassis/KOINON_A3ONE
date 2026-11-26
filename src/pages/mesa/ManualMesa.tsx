@@ -639,6 +639,15 @@ const ManualMesaPage: React.FC = () => {
                     Antes de instalar a assembleia, confira os selos: procurações vencidas ou sem
                     documento são a causa mais comum de questionamento depois.
                   </CaixaDica>
+                  <CaixaDica>
+                    Na impressão da Lista de Presença, a modalidade{' '}
+                    <strong>Impressão limpa (sem assinatura eletrônica)</strong> segue as larguras
+                    das colunas exatamente como a mesa as vê na tabela da tela — e nomes longos
+                    quebram em mais de uma linha dentro da própria célula, sem desalinhar o
+                    documento. Ajuste as larguras arrastando a divisória dos cabeçalhos, se quiser,
+                    e a impressão limpa respeita o ajuste. Se as colunas saírem estranhas, o botão
+                    "Restaurar larguras" volta tudo ao padrão.
+                  </CaixaDica>
                 </>
               )}
               {s.id === 'documentos' && (
