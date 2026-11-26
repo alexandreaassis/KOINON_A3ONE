@@ -506,17 +506,54 @@ export const ListaPresencaPage: React.FC = () => {
     assinatura: 140,
   }
 
+  // v0.0.233: larguras salvas no localStorage podem estar antigas, zeradas ou
+  // fora de escala (salvas antes de uma correção de layout) — todo valor é
+  // saneado com clamp entre mínimo e máximo antes de entrar no estado.
+  const LARGURAS_MAXIMAS: Record<string, number> = {
+    unidade: 200,
+    titular: 480,
+    situacao: 200,
+    procuracao: 480,
+    assinatura: 480,
+  }
+  const LARGURA_TOTAL_MAXIMA_A4 = 1000
+  const clampLargura = (colKey: string, valor: unknown): number => {
+    const n = typeof valor === 'number' && Number.isFinite(valor) ? Math.round(valor) : 0
+    const min = LARGURAS_MINIMAS[colKey] || 60
+    const max = LARGURAS_MAXIMAS[colKey] || 480
+    if (n <= 0) return LARGURAS_PADRAO[colKey] || 100
+    return Math.min(max, Math.max(min, n))
+  }
+  const sanearLarguras = (entrada: unknown): Record<string, number> => {
+    if (!entrada || typeof entrada !== 'object') return { ...LARGURAS_PADRAO }
+    const fonte = entrada as Record<string, unknown>
+    return Object.keys(LARGURAS_PADRAO).reduce<Record<string, number>>(
+      (acc, key) => ({ ...acc, [key]: clampLargura(key, fonte[key]) }),
+      {},
+    )
+  }
+  /** Ajusta a soma ao papel mantendo as proporções entre colunas. */
+  const escalarParaA4 = (l: Record<string, number>): Record<string, number> => {
+    const total = Object.values(l).reduce((s, v) => s + v, 0)
+    if (total <= LARGURA_TOTAL_MAXIMA_A4) return l
+    const fator = LARGURA_TOTAL_MAXIMA_A4 / total
+    return Object.keys(l).reduce<Record<string, number>>(
+      (acc, key) => ({ ...acc, [key]: Math.max(40, Math.round(l[key] * fator)) }),
+      {},
+    )
+  }
+
   const [largurasColunas, setLargurasColunas] = useState<Record<string, number>>(() => {
     try {
       const salvo = localStorage.getItem(STORAGE_KEY_LARGURAS)
       if (salvo) {
         const parsed = JSON.parse(salvo)
-        return { ...LARGURAS_PADRAO, ...parsed }
+        return sanearLarguras({ ...LARGURAS_PADRAO, ...parsed })
       }
     } catch {
       /* ignore */
     }
-    return LARGURAS_PADRAO
+    return { ...LARGURAS_PADRAO }
   })
 
   // Salvar larguras ao alterar
@@ -648,8 +685,9 @@ export const ListaPresencaPage: React.FC = () => {
     return Math.min(360, Math.max(LARGURAS_MINIMAS.procuracao, ideal))
   }, [presencasAssinadas])
 
-  const [largurasAplicadas, setLargurasAplicadas] =
-    useState<Record<string, number>>(largurasColunas)
+  const [largurasAplicadas, setLargurasAplicadas] = useState<Record<string, number>>(() =>
+    sanearLarguras(largurasColunas),
+  )
   const jaAjustado = useMemo(() => {
     try {
       return !!localStorage.getItem(STORAGE_KEY_LARGURAS)
@@ -667,7 +705,29 @@ export const ListaPresencaPage: React.FC = () => {
       procuracao: larguraIdealProcuracao,
     }))
   }, [jaAjustado, larguraIdealTitular, larguraIdealProcuracao])
-  const largurasFinais = jaAjustado ? largurasColunas : largurasAplicadas
+  // v0.0.233: raiz do defeito de impressão — a largura impressa deriva SEMPRE
+  // do estado real da tabela no momento da impressão, saneado e contido ao
+  // papel; o localStorage nunca é aplicado cru.
+  const largurasFinais = escalarParaA4(jaAjustado ? largurasColunas : largurasAplicadas)
+  const percentuais = useMemo(() => {
+    const total = Object.values(largurasFinais).reduce((s, v) => s + v, 0) || 1
+    return Object.keys(largurasFinais).reduce<Record<string, string>>((acc, key) => {
+      return { ...acc, [key]: `${((largurasFinais[key] / total) * 100).toFixed(2)}%` }
+    }, {})
+  }, [
+    largurasFinais.unidade,
+    largurasFinais.titular,
+    largurasFinais.situacao,
+    largurasFinais.procuracao,
+    largurasFinais.assinatura,
+  ])
+  // Toda célula que pode receber nome/cpf quebra em vez de estourar a coluna.
+  const ESTILO_CELULA_UNIDADE =
+    'style="padding:6px 8px;border:1px solid #D5DCE5;text-align:center;font-weight:bold;word-break:break-word;overflow-wrap:anywhere;"'
+  const ESTILO_CELULA_TEXTO =
+    'style="padding:6px 8px;border:1px solid #D5DCE5;word-break:break-word;overflow-wrap:anywhere;"'
+  const ESTILO_CELULA_CENTRO =
+    'style="padding:6px 8px;border:1px solid #D5DCE5;text-align:center;word-break:break-word;overflow-wrap:anywhere;"'
 
   // Utilitário para extrair apenas a numeração da unidade
   const formatarApenasNumeroUnidade = (identificador?: string): string => {
@@ -749,11 +809,11 @@ export const ListaPresencaPage: React.FC = () => {
         const nome = pres?.nome || nomesTitulares[u.id] || ''
         const proc = pres?.nome_procurador || ''
         return `<tr>
-        <td style="padding:6px 8px;border:1px solid #D5DCE5;text-align:center;font-weight:bold;">${esc(formatarApenasNumeroUnidade(u.identificador))}${u.bloco ? `<div style="font-size:8px;font-weight:normal;color:#5C6B7A;">${esc(u.bloco.replace(/^Bloco\s+/i, 'Bl. '))}</div>` : ''}</td>
-        <td style="padding:6px 8px;border:1px solid #D5DCE5;">${esc(nome)}${pres?.cpf ? `<div style="font-size:9px;color:#5C6B7A;">CPF: ${esc(formatarCpf(pres.cpf))}</div>` : ''}</td>
-        <td style="padding:6px 8px;border:1px solid #D5DCE5;text-align:center;">${esc(forma)}</td>
-        <td style="padding:6px 8px;border:1px solid #D5DCE5;">${esc(proc)}${pres?.cpf_procurador ? `<div style="font-size:9px;color:#5C6B7A;">CPF: ${esc(formatarCpf(pres.cpf_procurador))}</div>` : ''}</td>
-        <td style="padding:6px 8px;border:1px solid #D5DCE5;">&nbsp;</td>
+        <td ${ESTILO_CELULA_UNIDADE}>${esc(formatarApenasNumeroUnidade(u.identificador))}${u.bloco ? `<div style="font-size:8px;font-weight:normal;color:#5C6B7A;">${esc(u.bloco.replace(/^Bloco\s+/i, 'Bl. '))}</div>` : ''}</td>
+        <td ${ESTILO_CELULA_TEXTO}>${esc(nome)}${pres?.cpf ? `<div style="font-size:9px;color:#5C6B7A;">CPF: ${esc(formatarCpf(pres.cpf))}</div>` : ''}</td>
+        <td ${ESTILO_CELULA_CENTRO}>${esc(forma)}</td>
+        <td ${ESTILO_CELULA_TEXTO}>${esc(proc)}${pres?.cpf_procurador ? `<div style="font-size:9px;color:#5C6B7A;">CPF: ${esc(formatarCpf(pres.cpf_procurador))}</div>` : ''}</td>
+        <td ${ESTILO_CELULA_CENTRO}>&nbsp;</td>
       </tr>`
       })
       .join('')
@@ -766,10 +826,13 @@ export const ListaPresencaPage: React.FC = () => {
 <style>
   @page { size: A4; margin: 8.5mm 15mm 15mm 15mm; }
   body { font-family: Georgia, 'Times New Roman', serif; color: #12314F; margin: 0; }
-  table { width: 100%; border-collapse: collapse; font-family: Arial, Helvetica, sans-serif; font-size: 11px; }
-  th { background: #F1F4F8; border: 1px solid #D5DCE5; padding: 6px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  /* v0.0.233: layout fixo + larguras em % derivadas da tabela da tela —
+     localStorage nunca aplicado cru; texto quebra sem estourar a coluna. */
+  table { width: 100%; table-layout: fixed; border-collapse: collapse; font-family: Arial, Helvetica, sans-serif; font-size: 11px; }
+ th { background: #F1F4F8; border: 1px solid #D5DCE5; padding: 6px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; word-break: break-word; overflow-wrap: anywhere; }
   thead { display: table-header-group; }
   tr { page-break-inside: avoid; }
+  td { word-break: break-word; overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
@@ -792,11 +855,11 @@ export const ListaPresencaPage: React.FC = () => {
   <table>
     <thead>
       <tr>
-        <th style="width:7%;">Unidade</th>
-        <th style="width:24%;">Nome</th>
-        <th style="width:8.5%;">Situação</th>
-        <th style="width:24.5%;">Procurador(a)</th>
-        <th style="width:36%;">Assinatura</th>
+        <th style="width:${percentuais.unidade};">Unidade</th>
+        <th style="width:${percentuais.titular};">Nome</th>
+        <th style="width:${percentuais.situacao};">Situação</th>
+        <th style="width:${percentuais.procuracao};">Procurador(a)</th>
+        <th style="width:${percentuais.assinatura};">Assinatura</th>
       </tr>
     </thead>
     <tbody>
