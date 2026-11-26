@@ -130,11 +130,14 @@ export const gerarPdfListaPresencaBytes = async (
   // pela MEDIDA DE TEXTO real (doc.getTextWidth) do maior nome de procurador
   // (ex.: "Edilaine Pereira Lima Zanoni" em UMA linha), em vez do antigo
   // "Procurador: ..." dentro da coluna Registro. Margens oficiais e 180mm intactas.
-  const colUnidade = 22
-  const colForma = 20
-  const colData = 36
-  // Procurador(a): largura calibrada pela medida de texto real do maior nome de
-  // procurador (ex.: "Edilaine Pereira Lima Zanoni" em UMA linha); 0 quando
+  // v0.0.237: colunas fixas enxugadas (Unidade 18, Forma 18, Registro 30) para
+  // a coluna Procurador(a) acomodar "Nome — CPF: 000.000.000-00" em UMA linha
+  // sem cortar o CPF; 180mm oficiais preservados.
+  const colUnidade = 18
+  const colForma = 18
+  const colData = 30
+  // Procurador(a): largura calibrada pela medida de texto real do maior conteúdo
+  // da coluna ("Nome — CPF: 000.000.000-00" em UMA linha, v0.0.237); 0 quando
   // nenhuma presença for por procuração (a área volta para a coluna Nome).
   const larguraProcurador = ((): number => {
     const maior = dados.linhas.reduce(
@@ -145,7 +148,7 @@ export const gerarPdfListaPresencaBytes = async (
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8.5)
     const larguraTexto = doc.getTextWidth(maior)
-    return Math.min(55, Math.max(0, Math.ceil((larguraTexto + 5) * 10) / 10))
+    return Math.min(85, Math.max(0, Math.ceil((larguraTexto + 5) * 10) / 10))
   })()
   const colProcurador = larguraProcurador
   const colNome = LARGURA_UTIL - colUnidade - colForma - colData - colProcurador
@@ -206,8 +209,10 @@ export const gerarPdfListaPresencaBytes = async (
     doc.text(rotuloForma(linha.forma), MARGEM_LATERAL + colUnidade + colNome + 2, y + 5.5)
     if (linha.forma === 'procuracao' && linha.nomeProcurador) {
       doc.setTextColor(100, 116, 139)
+      // v0.0.237: UMA linha só — se a string não couber na coluna, trunca com
+      // reticências (nunca quebra em duas); colNome absorve o excedente.
       doc.text(
-        formatarLinha(linha.nomeProcurador, Math.max(colProcurador - 4, 10)),
+        formatarLinha(linha.nomeProcurador, Math.max(colProcurador - 2, 10)),
         MARGEM_LATERAL + colUnidade + colNome + colForma + 2,
         y + 5.5,
       )

@@ -490,12 +490,17 @@ export const ListaPresencaPage: React.FC = () => {
   }
 
   // Definição e Larguras padrão das Colunas da Tabela
-  const STORAGE_KEY_LARGURAS = 'koinon_lista_presenca_colunas_v1'
+  // v0.0.237: chave v2 — larguras salvas na v1 podiam estar congeladas estreitas
+  // para a coluna Procurador(a) (medidas antes do CPF entrar na mesma linha),
+  // o que reproduzia a quebra em duas linhas. A troca de chave descarta de uma
+  // vez o estado antigo e aplica as larguras calibradas atuais.
+  const STORAGE_KEY_LARGURAS = 'koinon_lista_presenca_colunas_v2'
   const LARGURAS_PADRAO: Record<string, number> = {
     unidade: 74, // largura da palavra "Unidade" (cabeçalho)
     titular: 280, // v0.0.193: maior nome de TITULAR em UMA linha, sem folga excessiva
     situacao: 92, // largura da maior palavra (ex.: "Presencial")
-    procuracao: 250, // v0.0.193: maior nome de PROCURADOR em UMA linha (ex.: Edilaine)
+    // v0.0.237: "Edilaine Pereira Lima Zanoni — CPF: 000.000.000-00" em UMA linha
+    procuracao: 340,
     assinatura: 216, // recebe o espaço restante
   }
   const LARGURAS_MINIMAS: Record<string, number> = {
@@ -506,6 +511,10 @@ export const ListaPresencaPage: React.FC = () => {
     assinatura: 140,
   }
 
+  // v0.0.237: chave v2 — larguras salvas na v1 podiam estar congeladas estreitas
+  // para a coluna Procurador(a) (medidas antes de incluir o CPF na mesma linha),
+  // o que reproduzia a quebra em duas linhas. A troca de chave descarta de uma
+  // vez o estado antigo e aplica as larguras calibradas atuais.
   // v0.0.233: larguras salvas no localStorage podem estar antigas, zeradas ou
   // fora de escala (salvas antes de uma correção de layout) — todo valor é
   // saneado com clamp entre mínimo e máximo antes de entrar no estado.
@@ -675,14 +684,22 @@ export const ListaPresencaPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presencasAssinadas, unidades, nomesTitulares])
 
+  // v0.0.237: a célula Procurador(a) renderiza "Nome — CPF: 000.000.000-00" em
+  // UMA linha só (whitespace-nowrap), então a largura tem de medir o CONTEÚDO
+  // completo da linha (nome + " — CPF: 000.000.000-00"), não só o nome — era
+  // essa diferença que quebrava a célula em duas linhas.
   const larguraIdealProcuracao = useMemo(() => {
     const candidatos = presencasAssinadas
       .filter((p) => p.forma === 'procuracao')
       .map((p) => p.nome_procurador || '')
     const maior = candidatos.reduce((m, n) => (n.length > m.length ? n : m), '')
     if (!maior) return LARGURAS_PADRAO.procuracao
-    const ideal = Math.ceil(medirTextoPx(maior)) + 26
-    return Math.min(360, Math.max(LARGURAS_MINIMAS.procuracao, ideal))
+    const temCpf = presencasAssinadas.some(
+      (p) => p.forma === 'procuracao' && p.nome_procurador === maior && !!p.cpf_procurador,
+    )
+    const linhaCompleta = temCpf ? `${maior} — CPF: 000.000.000-00` : maior
+    const ideal = Math.ceil(medirTextoPx(linhaCompleta)) + 26
+    return Math.min(480, Math.max(LARGURAS_MINIMAS.procuracao, ideal))
   }, [presencasAssinadas])
 
   const [largurasAplicadas, setLargurasAplicadas] = useState<Record<string, number>>(() =>
@@ -728,6 +745,11 @@ export const ListaPresencaPage: React.FC = () => {
     'style="padding:6px 8px;border:1px solid #D5DCE5;word-break:break-word;overflow-wrap:anywhere;"'
   const ESTILO_CELULA_CENTRO =
     'style="padding:6px 8px;border:1px solid #D5DCE5;text-align:center;word-break:break-word;overflow-wrap:anywhere;"'
+  // v0.0.237: célula Procurador(a) da impressão limpa — nome e CPF em UMA linha
+  // só (white-space:nowrap), sem a quebra global de td; overflow extremo some
+  // pela largura fixa da coluna (table-layout:fixed), nunca quebra por padrão.
+  const ESTILO_CELULA_PROCURADOR =
+    'style="padding:6px 8px;border:1px solid #D5DCE5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"'
 
   // Utilitário para extrair apenas a numeração da unidade
   const formatarApenasNumeroUnidade = (identificador?: string): string => {
@@ -815,7 +837,7 @@ export const ListaPresencaPage: React.FC = () => {
         <td ${ESTILO_CELULA_UNIDADE}>${esc(formatarApenasNumeroUnidade(u.identificador))}${u.bloco ? `<span style="font-size:8px;font-weight:normal;color:#5C6B7A;display:inline;"> ${esc(u.bloco.replace(/^Bloco\s+/i, 'Bl. '))}</span>` : ''}</td>
         <td ${ESTILO_CELULA_TEXTO}>${esc(nome)}${pres?.cpf ? `<span style="font-size:9px;color:#5C6B7A;display:inline;"> — CPF: ${esc(formatarCpf(pres.cpf))}</span>` : ''}</td>
         <td ${ESTILO_CELULA_CENTRO}>${esc(forma)}</td>
-        <td ${ESTILO_CELULA_TEXTO}>${esc(proc)}${pres?.cpf_procurador ? `<span style="font-size:9px;color:#5C6B7A;display:inline;"> — CPF: ${esc(formatarCpf(pres.cpf_procurador))}</span>` : ''}</td>
+        <td ${ESTILO_CELULA_PROCURADOR}>${esc(proc)}${pres?.cpf_procurador ? `<span style="font-size:9px;color:#5C6B7A;display:inline;"> — CPF: ${esc(formatarCpf(pres.cpf_procurador))}</span>` : ''}</td>
         <td ${ESTILO_CELULA_CENTRO}>&nbsp;</td>
       </tr>`
       })
@@ -833,9 +855,12 @@ export const ListaPresencaPage: React.FC = () => {
      localStorage nunca aplicado cru; texto quebra sem estourar a coluna. */
   table { width: 100%; table-layout: fixed; border-collapse: collapse; font-family: Arial, Helvetica, sans-serif; font-size: 11px; }
  th { background: #F1F4F8; border: 1px solid #D5DCE5; padding: 6px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; word-break: break-word; overflow-wrap: anywhere; }
-  thead { display: table-header-group; }
-  tr { page-break-inside: avoid; }
-  td { word-break: break-word; overflow-wrap: anywhere; }
+ thead { display: table-header-group; }
+ tr { page-break-inside: avoid; }
+ /* v0.0.237: td SEM quebra global — apenas a coluna Procurador(a) recebe
+    white-space:nowrap inline; colunas Nome/Unidade preservam a quebra por
+    overflow (break-word) via classes inline de cada célula. */
+ td { padding: 6px 8px; border: 1px solid #D5DCE5; }
 </style>
 </head>
 <body>
@@ -922,6 +947,9 @@ export const ListaPresencaPage: React.FC = () => {
       }
 
       // 2. Gerar PDF completo em bytes (margens oficiais Koinon)
+      // v0.0.237: nomeProcurador carrega "Nome — CPF: 000.000.000-00" completo —
+      // o PDF ZapSign calibra a largura da coluna Procurador(a) por essa string
+      // e a renderiza em uma linha só (getTextWidth/split), nunca quebrada.
       const linhas = presencasAssinadas.map((p) => {
         const unid = unidades.find((u) => u.id === p.unidade)
         return {
@@ -930,7 +958,11 @@ export const ListaPresencaPage: React.FC = () => {
             : p.unidade,
           nomeParticipante: p.nome || '—',
           forma: p.forma || 'presencial',
-          nomeProcurador: p.nome_procurador || undefined,
+          nomeProcurador: p.nome_procurador
+            ? p.cpf_procurador
+              ? `${p.nome_procurador} — CPF: ${formatarCpf(p.cpf_procurador)}`
+              : p.nome_procurador
+            : undefined,
           dataHora: p.data_hora_assinatura
             ? new Date(p.data_hora_assinatura).toLocaleString('pt-BR')
             : '',
@@ -1467,7 +1499,9 @@ export const ListaPresencaPage: React.FC = () => {
                         </td>
 
                         {/* 4. Procurador / Representante — v0.0.235: na MESMA LINHA
-                            do nome (inline), não mais empilhado em bloco próprio */}
+                            do nome (inline), não mais empilhado em bloco próprio.
+                            v0.0.237: nome+CPF em UMA linha só (whitespace-nowrap),
+                            sem quebra; overflow extremo corta, nunca quebra. */}
                         <td className="p-2 border-r border-[#D5DCE5] overflow-hidden">
                           {pres?.forma === 'procuracao' ? (
                             <div className="min-w-0">
