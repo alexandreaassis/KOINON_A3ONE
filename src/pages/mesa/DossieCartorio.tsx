@@ -533,18 +533,14 @@ export const DossieCartorioPage: React.FC = () => {
                     <td className="p-1.5 border-r border-slate-300">
                       {pres ? (
                         <span className="text-slate-900">
-                          {/* v0.0.235: nome e procurador NA MESMA LINHA (inline) */}
+                          {/* v0.0.236: SOMENTE o responsável/titular (nome + CPF) —
+                              o procurador tem coluna própria ("Procurador (se houver)")
+                              e nunca aparece duplicado como se fosse titular */}
                           <strong className="font-semibold">{pres.nome}</strong>
                           {pres.cpf && (
                             <span className="text-[9px] text-slate-500 font-mono whitespace-nowrap">
                               {' '}
                               — CPF: {formatarCpf(pres.cpf)}
-                            </span>
-                          )}
-                          {pres.forma === 'procuracao' && pres.nome_procurador && (
-                            <span className="whitespace-nowrap">
-                              {' '}
-                              — Procurador: {pres.nome_procurador}
                             </span>
                           )}
                         </span>

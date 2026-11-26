@@ -808,17 +808,12 @@ export const ListaPresencaPage: React.FC = () => {
         // Placeholder "Condômino Apto NNNN" não entra como nome na impressão limpa.
         const nome = pres?.nome || nomesTitulares[u.id] || ''
         const proc = pres?.nome_procurador || ''
-        // v0.0.235: nome do responsável e procurador NA MESMA LINHA —
-        // "Nome — Procurador: Fulano" inline (sem <div>/<br> entre eles);
-        // quebra só por word-break se o conjunto for longo demais, nunca
-        // uma quebra proposital antes do procurador.
-        const sufixoProcurador =
-          pres?.forma === 'procuracao' && proc
-            ? `<span style="white-space:nowrap;"> — Procurador: ${esc(proc)}</span>`
-            : ''
+        // v0.0.236: a célula Nome mostra SOMENTE o responsável/titular
+        // (nome + CPF). O procurador tem coluna própria ("Procurador(a)") —
+        // nunca duplicado com o sufixo "— Procurador: X" na célula de Nome.
         return `<tr>
         <td ${ESTILO_CELULA_UNIDADE}>${esc(formatarApenasNumeroUnidade(u.identificador))}${u.bloco ? `<span style="font-size:8px;font-weight:normal;color:#5C6B7A;display:inline;"> ${esc(u.bloco.replace(/^Bloco\s+/i, 'Bl. '))}</span>` : ''}</td>
-        <td ${ESTILO_CELULA_TEXTO}>${esc(nome)}${pres?.cpf ? `<span style="font-size:9px;color:#5C6B7A;display:inline;"> — CPF: ${esc(formatarCpf(pres.cpf))}</span>` : ''}${sufixoProcurador}</td>
+        <td ${ESTILO_CELULA_TEXTO}>${esc(nome)}${pres?.cpf ? `<span style="font-size:9px;color:#5C6B7A;display:inline;"> — CPF: ${esc(formatarCpf(pres.cpf))}</span>` : ''}</td>
         <td ${ESTILO_CELULA_CENTRO}>${esc(forma)}</td>
         <td ${ESTILO_CELULA_TEXTO}>${esc(proc)}${pres?.cpf_procurador ? `<span style="font-size:9px;color:#5C6B7A;display:inline;"> — CPF: ${esc(formatarCpf(pres.cpf_procurador))}</span>` : ''}</td>
         <td ${ESTILO_CELULA_CENTRO}>&nbsp;</td>
@@ -933,10 +928,7 @@ export const ListaPresencaPage: React.FC = () => {
           identificadorUnidade: unid
             ? formatarIdentificadorUnidade(unid.identificador, unid.tipo_unidade, rotuloUnidade)
             : p.unidade,
-          nomeParticipante:
-            p.forma === 'procuracao' && p.nome && p.nome_procurador
-              ? `${p.nome} — Procurador: ${p.nome_procurador}`
-              : p.nome || '—',
+          nomeParticipante: p.nome || '—',
           forma: p.forma || 'presencial',
           nomeProcurador: p.nome_procurador || undefined,
           dataHora: p.data_hora_assinatura
@@ -1403,8 +1395,10 @@ export const ListaPresencaPage: React.FC = () => {
                           )}
                         </td>
 
-                        {/* 2. Nome do Titular / Representante — v0.0.235: nome e
-                            procurador NA MESMA LINHA (inline, sem bloco próprio) */}
+                        {/* 2. Nome do Titular / Representante — v0.0.236: SOMENTE o
+                            responsável/titular da unidade (nome + CPF). O procurador
+                            aparece exclusivamente na coluna Procurador(a) (col. 4) —
+                            nunca duplicado na célula de Nome. */}
                         <td className="p-2 border-r border-[#D5DCE5] overflow-hidden">
                           {pres ? (
                             <div className="min-w-0">
@@ -1414,15 +1408,6 @@ export const ListaPresencaPage: React.FC = () => {
                                   <span className="text-[10px] text-[#5C6B7A] font-mono whitespace-nowrap">
                                     {' '}
                                     — CPF: {formatarCpf(pres.cpf)}
-                                  </span>
-                                )}
-                                {pres.forma === 'procuracao' && pres.nome_procurador && (
-                                  <span
-                                    className="whitespace-nowrap"
-                                    title={`Procurador: ${pres.nome_procurador}`}
-                                  >
-                                    {' '}
-                                    — Procurador: {pres.nome_procurador}
                                   </span>
                                 )}
                               </span>
