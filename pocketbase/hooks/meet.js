@@ -16,7 +16,9 @@
  *
  * Nota JSVM/Skip Cloud: $http.send não aceita rawText aqui — corpo JSON é passado
  * como objeto em "body" e lido em resp.json (com fallback resp.body). TODAS as
- * funções auxiliares são inline no callback routerAdd (top-level dá ReferenceError).
+ * funções auxiliares são INLINE no callback routerAdd (top-level dá ReferenceError).
+ * Assinatura RS256: usa $security.rs256 quando disponível; sem esse caminho o
+ * runtime responde 500 com código RUNTIME_SEM_RS256 (não crasha).
  */
 
 routerAdd('GET', '/backend/v1/meet/config', (e) => {
@@ -32,6 +34,23 @@ routerAdd('GET', '/backend/v1/meet/config', (e) => {
   }
   if (!operador) {
     return e.json(401, { success: false, message: 'Usuário não autenticado.' })
+  }
+
+  // Auxiliar INLINE (JSVM): decifra o valor da credencial — prefixo ENC: é
+  // base64 puro (fallback histórico), senão $security.decrypt com a ENCRYPTION_KEY.
+  const decifrarValorMeet = (texto) => {
+    if (!texto) return ''
+    const key = ($os.getenv('ENCRYPTION_KEY') || 'koinon-zapsign-sec-key-32chars!')
+      .padEnd(32, '0')
+      .slice(0, 32)
+    if (texto.startsWith('ENC:')) {
+      return $security.base64Decode(texto.substring(4))
+    }
+    try {
+      return $security.decrypt(texto, key)
+    } catch (_) {
+      return texto
+    }
   }
 
   let configurado = false
@@ -108,6 +127,39 @@ routerAdd('POST', '/backend/v1/meet/config', (e) => {
     })
   }
 
+  // Auxiliares INLINE (JSVM) — codificação base64 com feature-detect do
+  // $security.base64Encode e encoder manual UTF-8 como fallback.
+  const b64EncodeManual = (texto) => {
+    const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    const str = String(texto)
+    const bytes = []
+    for (let i = 0; i < str.length; i++) {
+      const c = str.charCodeAt(i)
+      if (c < 0x80) bytes.push(c)
+      else if (c < 0x800) bytes.push(0xc0 | (c >> 6), 0x80 | (c & 0x3f))
+      else bytes.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 0x3f), 0x80 | (c & 0x3f))
+    }
+    let out = ''
+    for (let i = 0; i < bytes.length; i += 3) {
+      const b1 = bytes[i]
+      const b2 = bytes[i + 1]
+      const b3 = bytes[i + 2]
+      out += CHARS[b1 >> 2]
+      out += CHARS[((b1 & 3) << 4) | ((b2 === undefined ? 0 : b2) >> 4)]
+      out += b2 === undefined ? '=' : CHARS[((b2 & 15) << 2) | ((b3 === undefined ? 0 : b3) >> 6)]
+      out += b3 === undefined ? '=' : CHARS[b3 & 63]
+    }
+    return out
+  }
+  const codificarB64 = (texto) => {
+    try {
+      if (typeof $security !== 'undefined' && typeof $security.base64Encode === 'function') {
+        return $security.base64Encode(texto)
+      }
+    } catch (_) {}
+    return b64EncodeManual(texto)
+  }
+
   const cifrarInline = (texto) => {
     if (!texto) return ''
     const key = ($os.getenv('ENCRYPTION_KEY') || 'koinon-zapsign-sec-key-32chars!')
@@ -116,7 +168,7 @@ routerAdd('POST', '/backend/v1/meet/config', (e) => {
     try {
       return $security.encrypt(texto, key)
     } catch (_) {
-      return 'ENC:' + $security.base64Encode(texto)
+      return 'ENC:' + codificarB64(texto)
     }
   }
 
@@ -222,6 +274,55 @@ routerAdd('POST', '/backend/v1/meet/criar-sala', (e) => {
     })
   }
 
+  // Auxiliares INLINE (JSVM)
+  const decifrarValorMeet = (texto) => {
+    if (!texto) return ''
+    const key = ($os.getenv('ENCRYPTION_KEY') || 'koinon-zapsign-sec-key-32chars!')
+      .padEnd(32, '0')
+      .slice(0, 32)
+    if (texto.startsWith('ENC:')) {
+      return $security.base64Decode(texto.substring(4))
+    }
+    try {
+      return $security.decrypt(texto, key)
+    } catch (_) {
+      return texto
+    }
+  }
+  const b64EncodeManual = (texto) => {
+    const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    const str = String(texto)
+    const bytes = []
+    for (let i = 0; i < str.length; i++) {
+      const c = str.charCodeAt(i)
+      if (c < 0x80) bytes.push(c)
+      else if (c < 0x800) bytes.push(0xc0 | (c >> 6), 0x80 | (c & 0x3f))
+      else bytes.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 0x3f), 0x80 | (c & 0x3f))
+    }
+    let out = ''
+    for (let i = 0; i < bytes.length; i += 3) {
+      const b1 = bytes[i]
+      const b2 = bytes[i + 1]
+      const b3 = bytes[i + 2]
+      out += CHARS[b1 >> 2]
+      out += CHARS[((b1 & 3) << 4) | ((b2 === undefined ? 0 : b2) >> 4)]
+      out += b2 === undefined ? '=' : CHARS[((b2 & 15) << 2) | ((b3 === undefined ? 0 : b3) >> 6)]
+      out += b3 === undefined ? '=' : CHARS[b3 & 63]
+    }
+    return out
+  }
+  const codificarB64 = (texto) => {
+    try {
+      if (typeof $security !== 'undefined' && typeof $security.base64Encode === 'function') {
+        return $security.base64Encode(texto)
+      }
+    } catch (_) {}
+    return b64EncodeManual(texto)
+  }
+  // base64url (JWT) sobre o codificador acima
+  const b64url = (input) =>
+    codificarB64(String(input)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+
   // Ler credencial cifrada
   let credJson = ''
   try {
@@ -262,9 +363,6 @@ routerAdd('POST', '/backend/v1/meet/criar-sala', (e) => {
   }
 
   // ---- Passo 1: JWT RS256 assinado com a private_key → access token ----
-  const b64url = (input) =>
-    $security.base64Encode(String(input)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-
   const agora = Math.floor(Date.now() / 1000)
   const header = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
   const claims = b64url(
@@ -276,6 +374,21 @@ routerAdd('POST', '/backend/v1/meet/criar-sala', (e) => {
       exp: agora + 3600,
     }),
   )
+
+  // Assinatura RS256 com feature-detect: caminho principal $security.rs256;
+  // sem ele, o JSVM síncrono não consegue consumir crypto.subtle (Promise) —
+  // responde 500 explícito em vez de crashar com ReferenceError.
+  if (
+    typeof $security === 'undefined' ||
+    typeof $security.rs256 !== 'function'
+  ) {
+    return e.json(500, {
+      success: false,
+      codigo: 'RUNTIME_SEM_RS256',
+      message:
+        'Este runtime do PocketBase não expõe $security.rs256 (e o JSVM síncrono não suporta crypto.subtle). Atualize o PocketBase do backend para assinar o JWT RS256.',
+    })
+  }
 
   let assinatura
   try {
