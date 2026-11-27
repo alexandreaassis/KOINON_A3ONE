@@ -163,6 +163,27 @@ export interface DeliberacaoRecord extends RecordModel {
    * Select single: o runtime pode entregar string ou array — normalizado na leitura.
    */
   modalidade_presencial?: ModalidadePresencial | ModalidadePresencial[]
+  /** Google Meet (Fase 1) — sala da assembleia criada pela mesa (migration 0056) */
+  meet_link?: string
+  meet_space_name?: string
+  meet_criado_em?: string
+}
+
+export interface MeetConfigResponse {
+  success: boolean
+  configurado: boolean
+  client_email: string
+  message?: string
+}
+
+export interface MeetCriarSalaResponse {
+  success: boolean
+  message: string
+  meet_link?: string
+  space_name?: string
+  criado_em?: string
+  ja_existe?: boolean
+  codigo?: string
 }
 
 export type ModalidadePresencial = 'estacao' | 'manual'
@@ -2699,6 +2720,33 @@ export const api = {
     return pb.send('/backend/v1/estacao/login', {
       method: 'POST',
       body: payload,
+    })
+  },
+
+  // ===== Google Meet (Fase 1) — sala da assembleia =====
+
+  async obterMeetConfig(): Promise<MeetConfigResponse> {
+    try {
+      return await pb.send<MeetConfigResponse>('/backend/v1/meet/config', { method: 'GET' })
+    } catch (err) {
+      if ((err as { status?: number })?.status === 404) {
+        return { success: false, configurado: false, client_email: '' }
+      }
+      throw new Error(getErrorMessage(err, 'Falha ao consultar a configuração do Google Meet.'))
+    }
+  },
+
+  async salvarMeetConfig(serviceAccountJson: string): Promise<MeetConfigResponse> {
+    return pb.send<MeetConfigResponse>('/backend/v1/meet/config', {
+      method: 'POST',
+      body: { service_account: serviceAccountJson },
+    })
+  },
+
+  async criarSalaMeet(deliberacaoId: string): Promise<MeetCriarSalaResponse> {
+    return pb.send<MeetCriarSalaResponse>('/backend/v1/meet/criar-sala', {
+      method: 'POST',
+      body: { deliberacaoId },
     })
   },
 

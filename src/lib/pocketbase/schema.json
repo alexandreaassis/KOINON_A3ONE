@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-27T16:42:56.331Z",
+  "generatedAt": "2026-11-27T17:44:38.560Z",
   "collections": [
     {
       "name": "users",
@@ -335,6 +335,24 @@
           "required": false,
           "system": false,
           "selectValues": ["estacao", "manual"]
+        },
+        {
+          "name": "meet_link",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "meet_space_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "meet_criado_em",
+          "type": "date",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_deliberacoes_status ON deliberacoes (status)"]

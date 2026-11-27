@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -70,6 +71,7 @@ import {
   FileSignature,
   KeyRound,
   ExternalLink,
+  Video,
 } from 'lucide-react'
 import { urnaAudio } from '@/lib/urnaAudio'
 import { KoinonSymbol } from '@/components/brand/KoinonSymbol'
@@ -160,6 +162,14 @@ export const ConfiguracoesPage: React.FC = () => {
   const [substituindoChaveGroq, setSubstituindoChaveGroq] = useState(false)
   const [carregandoGroq, setCarregandoGroq] = useState(true)
   const [salvandoGroq, setSalvandoGroq] = useState(false)
+
+  // Configuração Google Meet (sala da assembleia) — service account cifrada no servidor
+  const [meetConfigurado, setMeetConfigurado] = useState(false)
+  const [meetClientEmail, setMeetClientEmail] = useState('')
+  const [meetServiceAccount, setMeetServiceAccount] = useState('')
+  const [substituindoMeet, setSubstituindoMeet] = useState(false)
+  const [carregandoMeet, setCarregandoMeet] = useState(true)
+  const [salvandoMeet, setSalvandoMeet] = useState(false)
 
   // Limpeza de Dados do Ambiente (Dois Passos)
   const [modalLimpezaAberto, setModalLimpezaAberto] = useState(false)
@@ -288,6 +298,20 @@ export const ConfiguracoesPage: React.FC = () => {
     }
 
     carregarConfigGroq()
+
+    const carregarConfigMeet = async () => {
+      try {
+        const resp = await api.obterMeetConfig()
+        setMeetConfigurado(!!resp.configurado)
+        setMeetClientEmail(resp.client_email || '')
+      } catch (err) {
+        console.warn('Configuração Google Meet não disponível ou não configurada:', err)
+      } finally {
+        setCarregandoMeet(false)
+      }
+    }
+
+    carregarConfigMeet()
   }, [])
 
   const rotuloEfetivo = rotuloUnidade === 'outro' ? rotuloLivre.trim() || 'Unidade' : rotuloUnidade
@@ -557,6 +581,61 @@ export const ConfiguracoesPage: React.FC = () => {
       })
     } finally {
       setSalvandoZapsign(false)
+    }
+  }
+
+  // Salvar Credencial Google Meet (service account)
+  const handleSalvarMeet = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const jsonBruto = meetServiceAccount.trim()
+    if (!jsonBruto) {
+      toast({
+        title: 'Credencial obrigatória',
+        description: 'Cole o JSON completo da service account (client_email + private_key).',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    let parseOk = false
+    let clientEmailRecebido = ''
+    try {
+      const dados = JSON.parse(jsonBruto)
+      parseOk = !!(dados?.client_email && dados?.private_key)
+      clientEmailRecebido = String(dados?.client_email || '')
+    } catch {
+      parseOk = false
+    }
+    if (!parseOk) {
+      toast({
+        title: 'JSON inválido ou incompleto',
+        description:
+          'O texto colado deve ser um JSON válido contendo client_email e private_key. Baixe novamente em Google Cloud → IAM → Service Accounts.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setSalvandoMeet(true)
+    try {
+      const resp = await api.salvarMeetConfig(jsonBruto)
+      setMeetConfigurado(!!resp.configurado)
+      setMeetClientEmail(resp.client_email || clientEmailRecebido)
+      setMeetServiceAccount('')
+      setSubstituindoMeet(false)
+      toast({
+        title: 'Google Meet configurado',
+        description: 'A service account foi gravada cifrada no servidor e nunca é exibida.',
+      })
+    } catch (err: any) {
+      console.error('Erro ao salvar credencial Google Meet:', err)
+      toast({
+        title: 'Erro ao salvar credencial',
+        description: err?.message || 'Falha ao salvar a credencial do Google Meet.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSalvandoMeet(false)
     }
   }
 
@@ -841,6 +920,139 @@ export const ConfiguracoesPage: React.FC = () => {
                 ) : (
                   <>
                     <Save className="mr-2 h-3.5 w-3.5" /> Salvar Configuração Groq
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+
+        {/* CARD GOOGLE MEET: SALA DA ASSEMBLEIA (FASE 1) */}
+        <Card className="border-[#002B5E]/15 shadow-sm rounded-xl bg-white overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100 bg-[#F3F7FC]/70">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-base font-bold text-[#002B5E] flex items-center gap-2">
+                  <Video className="h-5 w-5 text-[#0066FF]" /> Google Meet — Sala da Assembleia
+                </CardTitle>
+                <CardDescription className="text-xs text-[#5A6B82] mt-0.5">
+                  Integração com a API oficial do Google Meet para a mesa criar a sala de reunião da
+                  assembleia dentro do sistema. Requer assinatura Google Workspace que inclua a API
+                  do Meet.
+                </CardDescription>
+              </div>
+              <Badge
+                className={`text-xs px-2.5 py-1 font-semibold shrink-0 self-start sm:self-auto ${
+                  meetConfigurado
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : 'bg-amber-100 text-amber-800 border-amber-300'
+                }`}
+              >
+                {meetConfigurado ? '✓ Conexão Ativa' : 'Não Configurado'}
+              </Badge>
+            </div>
+          </CardHeader>
+
+          <form onSubmit={handleSalvarMeet}>
+            <CardContent className="space-y-4 pt-4">
+              <div className="p-3.5 rounded-lg border border-blue-100 bg-blue-50/50 text-xs text-[#002B5E] space-y-1.5 leading-relaxed">
+                <p className="font-semibold flex items-center gap-1.5 text-blue-900">
+                  <ShieldCheck className="h-4 w-4 text-[#0066FF]" /> Segurança da Credencial
+                </p>
+                <p className="text-slate-600">
+                  A service account (JSON com <code>client_email</code> e <code>private_key</code>)
+                  é gravada <strong>cifrada no servidor</strong> (collection segura de backend,
+                  mesmo padrão da ZapSign) e{' '}
+                  <strong>nunca é devolvida ao navegador nem exibida</strong>.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="meet-service-account"
+                  className="text-xs font-semibold text-slate-700"
+                >
+                  Service Account (JSON completo)
+                </Label>
+                {meetConfigurado && !substituindoMeet ? (
+                  <div className="h-10 px-3 rounded-md border border-emerald-300 bg-emerald-50/70 flex items-center justify-between text-xs text-emerald-900">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <span className="font-medium truncate">
+                        {meetClientEmail || 'Credencial configurada e protegida no servidor'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSubstituindoMeet(true)
+                        setMeetServiceAccount('')
+                      }}
+                      className="text-[11px] text-[#0066FF] hover:underline font-normal shrink-0 ml-2"
+                    >
+                      Substituir credencial
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <Textarea
+                      id="meet-service-account"
+                      autoComplete="off"
+                      spellCheck={false}
+                      value={meetServiceAccount}
+                      onChange={(ev) => setMeetServiceAccount(ev.target.value)}
+                      placeholder={
+                        'Cole aqui o JSON completo da service account:\n{\n  "type": "service_account",\n  "client_email": "...",\n  "private_key": "-----BEGIN PRIVATE KEY-----\\n...",\n  ...\n}'
+                      }
+                      rows={8}
+                      className="text-[11px] border-slate-300 font-mono resize-y"
+                    />
+                    {substituindoMeet && (
+                      <div className="flex items-center justify-between pt-0.5">
+                        <span className="text-[11px] text-amber-700">
+                          Preencha a nova credencial ou cancele para manter a anterior.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSubstituindoMeet(false)
+                            setMeetServiceAccount('')
+                          }}
+                          className="text-[11px] text-slate-600 hover:underline"
+                        >
+                          Cancelar substituição
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <span className="text-[11px] text-slate-500 block">
+                  No Google Cloud Console, habilite a <em>Google Meet API</em> no projeto e crie a
+                  chave em <em>IAM e administrador → Contas de serviço → Chaves → JSON</em>.
+                </span>
+              </div>
+            </CardContent>
+
+            <CardFooter className="bg-[#F8FAFC] py-3 px-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                <span>Endpoint de criação de sala:</span>
+                <code className="px-1.5 py-0.5 bg-slate-200/70 rounded text-[10px] font-mono text-slate-700">
+                  /backend/v1/meet/criar-sala
+                </code>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={salvandoMeet || carregandoMeet}
+                className="bg-[#002B5E] hover:bg-[#002B5E]/90 text-white font-semibold text-xs h-9 px-4 rounded-[10px] shadow-xs"
+              >
+                {salvandoMeet ? (
+                  <>
+                    <RefreshCw className="mr-2 h-3.5 w-3.5 animate-spin" /> Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-3.5 w-3.5" /> Salvar Credencial do Meet
                   </>
                 )}
               </Button>
