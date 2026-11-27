@@ -12,6 +12,8 @@
  *   e registra evento lancamento_fisico na auditoria_events (com hash encadeado).
  * - A consolidação digital + físico é feita na leitura (boletim): soma das cédulas
  *   da urna + lancamentos_fisicos do item.
+ * - Migration 0055 (modo eleição 0054): item de eleição lança contagem por
+ *   candidato em votos_por_candidato (array de números, índice = candidato).
  */
 
 routerAdd('GET', '/backend/v1/votos/lancamento-fisico/{deliberacaoId}', (e) => {
@@ -36,6 +38,15 @@ routerAdd('GET', '/backend/v1/votos/lancamento-fisico/{deliberacaoId}', (e) => {
       message: 'Erro ao buscar lançamentos: ' + (err?.message || ''),
     })
   }
+  // Helper inline: lê votos_por_candidato (JSON array de números, 0055)
+  function lerPorCandidato(l) {
+    try {
+      const arr = JSON.parse(l.getString('votos_por_candidato') || '[]')
+      return Array.isArray(arr) ? arr : []
+    } catch (_) {
+      return []
+    }
+  }
   const lista = lancamentos.map((l) => ({
     id: l.id,
     deliberacao: l.getString('deliberacao'),
@@ -43,6 +54,7 @@ routerAdd('GET', '/backend/v1/votos/lancamento-fisico/{deliberacaoId}', (e) => {
     favoraveis: l.getInt('favoraveis'),
     contrarios: l.getInt('contrarios'),
     abstencoes: l.getInt('abstencoes'),
+    votos_por_candidato: lerPorCandidato(l),
     lancado_por: l.getString('lancado_por'),
     valores_anteriores: l.getString('valores_anteriores') || '',
     observacao: l.getString('observacao') || '',
@@ -107,6 +119,28 @@ routerAdd('POST', '/backend/v1/votos/lancamento-fisico', (e) => {
   const abstencoes = Number(body.abstencoes || 0)
   const observacao = (body.observacao || '').trim()
 
+  // Migration 0055: contagem por candidato (item do modo eleição, 0054)
+  let votosPorCandidato = []
+  if (body.votosPorCandidato !== undefined && body.votosPorCandidato !== null) {
+    if (!Array.isArray(body.votosPorCandidato)) {
+      return e.json(400, {
+        success: false,
+        message: 'votosPorCandidato deve ser um array de números inteiros não negativos.',
+      })
+    }
+    votosPorCandidato = body.votosPorCandidato
+    for (let vc of votosPorCandidato) {
+      const n = Number(vc || 0)
+      if (!Number.isInteger(n) || n < 0) {
+        return e.json(400, {
+          success: false,
+          message: 'votosPorCandidato deve conter apenas inteiros não negativos.',
+        })
+      }
+    }
+    votosPorCandidato = votosPorCandidato.map((vc) => Number(vc || 0))
+  }
+
   if (!deliberacaoId || !itemId) {
     return e.json(400, { success: false, message: 'deliberacaoId e itemId são obrigatórios.' })
   }
@@ -146,6 +180,31 @@ routerAdd('POST', '/backend/v1/votos/lancamento-fisico', (e) => {
     return e.json(400, { success: false, message: 'Item não pertence a esta deliberação.' })
   }
 
+  // Validação eleição: array deve ter um valor por candidato
+  let candidatosItem = []
+  if (itemRec.getString('tipo_eleicao') === 'eleicao') {
+    try {
+      candidatosItem = JSON.parse(itemRec.getString('candidatos_eleicao') || '[]') || []
+    } catch (_) {
+      candidatosItem = []
+    }
+    if (!Array.isArray(candidatosItem)) candidatosItem = []
+    if (votosPorCandidato.length > 0 && votosPorCandidato.length !== candidatosItem.length) {
+      return e.json(400, {
+        success: false,
+        message:
+          'votosPorCandidato deve ter exatamente ' +
+          candidatosItem.length +
+          ' valores (um por candidato).',
+      })
+    }
+  } else if (votosPorCandidato.length > 0) {
+    return e.json(400, {
+      success: false,
+      message: 'votosPorCandidato só é permitido em item do modo eleição.',
+    })
+  }
+
   let lancExistente = null
   try {
     const existentes = e.app.findRecordsByFilter(
@@ -159,17 +218,60 @@ routerAdd('POST', '/backend/v1/votos/lancamento-fisico', (e) => {
     if (existentes && existentes.length > 0) lancExistente = existentes[0]
   } catch (_) {}
 
+  // Helper inline: lê votos_por_candidato anteriores (auditoria, 0055)
+  function lerPorCandidatoAnterior(lanc) {
+    try {
+      const arr = JSON.parse(lanc.getString('votos_por_candidato') || '[]')
+      return Array.isArray(arr) ? arr : []
+    } catch (_) {
+      return []
+    }
+  }
+
   const valoresAnteriores = lancExistente
     ? JSON.stringify({
         favoraveis: lancExistente.getInt('favoraveis'),
         contrarios: lancExistente.getInt('contrarios'),
         abstencoes: lancExistente.getInt('abstencoes'),
+        votos_por_candidato: lerPorCandidatoAnterior(lancExistente),
         lancado_por: lancExistente.getString('lancado_por'),
         atualizado_em: new Date().toISOString(),
       })
     : ''
 
   const dataHoraAgora = new Date().toISOString().replace('T', ' ').substring(0, 19)
+
+  // Helper inline: rótulo do fator de auditoria
+  function rotuloFator() {
+    if (itemRec.getString('tipo_eleicao') === 'eleicao' && votosPorCandidato.length > 0) {
+      let det = ''
+      for (let i = 0; i < votosPorCandidato.length; i++) {
+        const nomeCand =
+          candidatosItem[i] && typeof candidatosItem[i] === 'object'
+            ? candidatosItem[i].nome || '?'
+            : '?'
+        det += (det ? '; ' : '') + nomeCand + '=' + votosPorCandidato[i]
+      }
+      return (
+        'Lançamento manual pela mesa — item "' +
+        itemRec.getString('titulo') +
+        '" (por candidato: ' +
+        det +
+        ')'
+      )
+    }
+    return (
+      'Lançamento manual pela mesa — item "' +
+      itemRec.getString('titulo') +
+      '" (F:' +
+      favoraveis +
+      ' C:' +
+      contrarios +
+      ' A:' +
+      abstencoes +
+      ')'
+    )
+  }
 
   e.app.runInTransaction((txApp) => {
     let rec
@@ -183,6 +285,9 @@ routerAdd('POST', '/backend/v1/votos/lancamento-fisico', (e) => {
     rec.set('favoraveis', favoraveis)
     rec.set('contrarios', contrarios)
     rec.set('abstencoes', abstencoes)
+    if (itemRec.getString('tipo_eleicao') === 'eleicao' && votosPorCandidato.length > 0) {
+      rec.set('votos_por_candidato', JSON.stringify(votosPorCandidato))
+    }
     rec.set('lancado_por', auth.getString('name') || auth.email() || auth.id)
     rec.set('valores_anteriores', valoresAnteriores)
     rec.set('observacao', observacao)
@@ -191,16 +296,7 @@ routerAdd('POST', '/backend/v1/votos/lancamento-fisico', (e) => {
     registrarAuditoriaLanc(txApp, {
       evento: lancExistente ? 'lancamento_fisico_alterado' : 'lancamento_fisico_registrado',
       unidade: '',
-      fator:
-        'Lançamento manual pela mesa — item "' +
-        itemRec.getString('titulo') +
-        '" (F:' +
-        favoraveis +
-        ' C:' +
-        contrarios +
-        ' A:' +
-        abstencoes +
-        ')',
+      fator: rotuloFator(),
       dispositivo: 'painel-mesa',
     })
   })

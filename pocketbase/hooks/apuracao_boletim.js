@@ -67,15 +67,31 @@ routerAdd('GET', '/backend/v1/deliberacoes/apuracao', (e) => {
     { delib: deliberacaoId },
   )
 
+  // Helper inline: candidatos do item (JSON [{nome, cargo}], migration 0054)
+  function lerCandidatosItem(item) {
+    if (item.getString('tipo_eleicao') !== 'eleicao') return []
+    try {
+      const arr = JSON.parse(item.getString('candidatos_eleicao') || '[]')
+      return Array.isArray(arr) ? arr : []
+    } catch (_) {
+      return []
+    }
+  }
+
   // Contagem por item
   const mapaItens = {}
   for (let item of itens) {
+    const candidatosItem = lerCandidatosItem(item)
     mapaItens[item.id] = {
       id: item.id,
       ordem: item.getInt('ordem'),
       titulo: item.getString('titulo'),
       texto: item.getString('texto'),
       quorum_aplicavel: item.getString('quorum_aplicavel'),
+      tipo_eleicao: item.getString('tipo_eleicao') || 'regular',
+      candidatos_eleicao: candidatosItem,
+      // Contagem por candidato — inclui lançamento físico por candidato (0055)
+      porCandidato: candidatosItem.map(() => 0),
       votos: {
         favoravel: 0,
         contrario: 0,
@@ -90,6 +106,41 @@ routerAdd('GET', '/backend/v1/deliberacoes/apuracao', (e) => {
   let cadeiaValida = true
   let ultimoHash = '0000000000000000000000000000000000000000000000000000000000000000'
 
+  // Helper inline: soma lançamento físico por candidato (0055) ao porCandidato do item
+  function somarLancamentoFisicoCandidatos() {
+    let lancs = []
+    try {
+      lancs = e.app.findRecordsByFilter(
+        'lancamentos_fisicos',
+        'deliberacao = {:delib}',
+        '-created',
+        500,
+        0,
+        { delib: deliberacaoId },
+      )
+    } catch (_) {
+      return
+    }
+    for (let l of lancs) {
+      const itemLanc = l.getString('item')
+      if (!mapaItens[itemLanc]) continue
+      let porCand = []
+      try {
+        porCand = JSON.parse(l.getString('votos_por_candidato') || '[]')
+      } catch (_) {
+        porCand = []
+      }
+      if (!Array.isArray(porCand)) continue
+      const alvo = mapaItens[itemLanc].porCandidato
+      for (let i = 0; i < porCand.length; i++) {
+        if (typeof porCand[i] !== 'number' || isNaN(porCand[i])) continue
+        // Se o lançamento é mais antigo que o array do item (candidatos mudaram), estende
+        if (i >= alvo.length) alvo.push(0)
+        alvo[i] += Math.max(0, Math.round(porCand[i]))
+      }
+    }
+  }
+
   for (let c of cedulas) {
     const itemId = c.getString('item')
     const opcao = (c.getString('opcao') || '').toLowerCase()
@@ -97,6 +148,19 @@ routerAdd('GET', '/backend/v1/deliberacoes/apuracao', (e) => {
     if (mapaItens[itemId] && mapaItens[itemId].votos[opcao] !== undefined) {
       mapaItens[itemId].votos[opcao] += 1
       mapaItens[itemId].votos.total += 1
+    }
+
+    // Voto em candidato — formato 'candidato:<índice>' (migration 0054)
+    if (mapaItens[itemId] && opcao.indexOf('candidato:') === 0) {
+      const idx = parseInt(opcao.substring('candidato:'.length), 10)
+      if (!isNaN(idx)) {
+        const alvo = mapaItens[itemId].porCandidato
+        if (idx >= alvo.length) {
+          for (let k = alvo.length; k <= idx; k++) alvo.push(0)
+        }
+        alvo[idx] += 1
+        mapaItens[itemId].votos.total += 1
+      }
     }
 
     // Conferência básica de encadeamento
@@ -131,6 +195,9 @@ routerAdd('GET', '/backend/v1/deliberacoes/apuracao', (e) => {
   } catch (_) {
     totalUnidadesElegiveis = 0
   }
+
+  // Lançamento físico por candidato (0055) entra na contagem porCandidato
+  somarLancamentoFisicoCandidatos()
 
   // Integridade: cédulas total deve ser igual a comparecimentos * quantidade de itens
   const totalCedulas = cedulas.length

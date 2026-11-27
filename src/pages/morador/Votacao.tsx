@@ -53,7 +53,7 @@ import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 
 type PassoVotacao = '2fa_cpf' | '2fa_otp' | 'cabine' | 'revisao' | 'concluido'
-type OpcaoVoto = 'favoravel' | 'contrario' | 'abstencao'
+type OpcaoVoto = 'favoravel' | 'contrario' | 'abstencao' | `candidato:${number}`
 
 export const VotacaoPage: React.FC = () => {
   const { user, unidadeSelecionada, isOnline } = useAuth()
@@ -851,61 +851,108 @@ export const VotacaoPage: React.FC = () => {
                   </CardHeader>
 
                   <CardContent className="pt-2">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                      {/* Opção Favorável */}
-                      <button
-                        type="button"
-                        onClick={() => selecionarOpcao(item.id, 'favoravel')}
-                        className={`p-3 rounded-lg border text-center transition-all flex flex-col items-center justify-center gap-1 ${
-                          votoAtual === 'favoravel'
-                            ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm font-bold'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50 hover:border-emerald-300'
-                        }`}
+                    {item.tipo_eleicao === 'eleicao' &&
+                    Array.isArray(item.candidatos_eleicao) &&
+                    item.candidatos_eleicao.length > 0 ? (
+                      <div
+                        role="radiogroup"
+                        aria-label={`Candidatos do item ${item.ordem}`}
+                        className="grid grid-cols-1 sm:grid-cols-2 gap-2.5"
                       >
-                        <span className="text-sm">Favorável (Sim)</span>
-                        <span
-                          className={`text-[10px] ${votoAtual === 'favoravel' ? 'text-emerald-100' : 'text-slate-400'}`}
+                        {item.candidatos_eleicao.map((candidato, idx) => {
+                          const selecionado = votoAtual === `candidato:${idx}`
+                          return (
+                            <button
+                              key={`${item.id}-candidato-${idx}`}
+                              type="button"
+                              role="radio"
+                              aria-checked={selecionado}
+                              onClick={() => selecionarOpcao(item.id, `candidato:${idx}`)}
+                              className={`p-3 rounded-lg border text-left transition-all flex items-center justify-between gap-2 ${
+                                selecionado
+                                  ? 'bg-violet-600 text-white border-violet-700 shadow-sm font-bold'
+                                  : 'bg-white text-slate-700 border-slate-200 hover:bg-violet-50 hover:border-violet-300'
+                              }`}
+                            >
+                              <span className="flex flex-col items-start gap-0.5">
+                                <span className="text-sm">{candidato.nome}</span>
+                                {candidato.cargo && (
+                                  <span
+                                    className={`text-[10px] ${selecionado ? 'text-violet-100' : 'text-slate-400'}`}
+                                  >
+                                    {candidato.cargo}
+                                  </span>
+                                )}
+                              </span>
+                              <span
+                                aria-hidden="true"
+                                className={`shrink-0 h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                                  selecionado ? 'border-white' : 'border-slate-300'
+                                }`}
+                              >
+                                {selecionado && <span className="h-2 w-2 rounded-full bg-white" />}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        {/* Opção Favorável */}
+                        <button
+                          type="button"
+                          onClick={() => selecionarOpcao(item.id, 'favoravel')}
+                          className={`p-3 rounded-lg border text-center transition-all flex flex-col items-center justify-center gap-1 ${
+                            votoAtual === 'favoravel'
+                              ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm font-bold'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50 hover:border-emerald-300'
+                          }`}
                         >
-                          Aprova a matéria
-                        </span>
-                      </button>
+                          <span className="text-sm">Favorável (Sim)</span>
+                          <span
+                            className={`text-[10px] ${votoAtual === 'favoravel' ? 'text-emerald-100' : 'text-slate-400'}`}
+                          >
+                            Aprova a matéria
+                          </span>
+                        </button>
 
-                      {/* Opção Contrário */}
-                      <button
-                        type="button"
-                        onClick={() => selecionarOpcao(item.id, 'contrario')}
-                        className={`p-3 rounded-lg border text-center transition-all flex flex-col items-center justify-center gap-1 ${
-                          votoAtual === 'contrario'
-                            ? 'bg-red-600 text-white border-red-700 shadow-sm font-bold'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-red-50 hover:border-red-300'
-                        }`}
-                      >
-                        <span className="text-sm">Contrário (Não)</span>
-                        <span
-                          className={`text-[10px] ${votoAtual === 'contrario' ? 'text-red-100' : 'text-slate-400'}`}
+                        {/* Opção Contrário */}
+                        <button
+                          type="button"
+                          onClick={() => selecionarOpcao(item.id, 'contrario')}
+                          className={`p-3 rounded-lg border text-center transition-all flex flex-col items-center justify-center gap-1 ${
+                            votoAtual === 'contrario'
+                              ? 'bg-red-600 text-white border-red-700 shadow-sm font-bold'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-red-50 hover:border-red-300'
+                          }`}
                         >
-                          Rejeita a matéria
-                        </span>
-                      </button>
+                          <span className="text-sm">Contrário (Não)</span>
+                          <span
+                            className={`text-[10px] ${votoAtual === 'contrario' ? 'text-red-100' : 'text-slate-400'}`}
+                          >
+                            Rejeita a matéria
+                          </span>
+                        </button>
 
-                      {/* Opção Abstenção */}
-                      <button
-                        type="button"
-                        onClick={() => selecionarOpcao(item.id, 'abstencao')}
-                        className={`p-3 rounded-lg border text-center transition-all flex flex-col items-center justify-center gap-1 ${
-                          votoAtual === 'abstencao'
-                            ? 'bg-amber-600 text-white border-amber-700 shadow-sm font-bold'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-amber-50 hover:border-amber-300'
-                        }`}
-                      >
-                        <span className="text-sm">Abstenção</span>
-                        <span
-                          className={`text-[10px] ${votoAtual === 'abstencao' ? 'text-amber-100' : 'text-slate-400'}`}
+                        {/* Opção Abstenção */}
+                        <button
+                          type="button"
+                          onClick={() => selecionarOpcao(item.id, 'abstencao')}
+                          className={`p-3 rounded-lg border text-center transition-all flex flex-col items-center justify-center gap-1 ${
+                            votoAtual === 'abstencao'
+                              ? 'bg-amber-600 text-white border-amber-700 shadow-sm font-bold'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-amber-50 hover:border-amber-300'
+                          }`}
                         >
-                          Não opinar
-                        </span>
-                      </button>
-                    </div>
+                          <span className="text-sm">Abstenção</span>
+                          <span
+                            className={`text-[10px] ${votoAtual === 'abstencao' ? 'text-amber-100' : 'text-slate-400'}`}
+                          >
+                            Não opinar
+                          </span>
+                        </button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )
@@ -1014,10 +1061,14 @@ export const VotacaoPage: React.FC = () => {
                         ? 'bg-emerald-600 text-white'
                         : opcao === 'contrario'
                           ? 'bg-red-600 text-white'
-                          : 'bg-amber-600 text-white'
+                          : opcao === 'abstencao'
+                            ? 'bg-amber-600 text-white'
+                            : 'bg-violet-600 text-white'
                     }`}
                   >
-                    {opcao}
+                    {opcao?.startsWith('candidato:')
+                      ? item.candidatos_eleicao?.[Number(opcao.split(':')[1])]?.nome || 'Candidato'
+                      : opcao}
                   </Badge>
                 </div>
               )

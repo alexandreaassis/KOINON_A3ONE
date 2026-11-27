@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   api,
+  itemEhEleicao,
+  normalizarCandidatosEleicao,
+  normalizarVotosPorCandidato,
   type DeliberacaoRecord,
   type ItemPautaRecord,
   type LancamentoFisicoRecord,
@@ -20,6 +23,10 @@ interface TotaisItem {
   contrarios: string
   abstencoes: string
 }
+
+/** Item é de eleição quando marcado e com candidatos cadastrados. */
+const ehItemEleicao = (item: ItemPautaRecord): boolean =>
+  itemEhEleicao(item) && normalizarCandidatosEleicao(item.candidatos_eleicao).length > 0
 
 interface Props {
   deliberacao: DeliberacaoRecord
@@ -42,6 +49,7 @@ export const PainelLancamentoFisico: React.FC<Props> = ({ deliberacao, itens, on
   const { user } = useAuth()
   const [lancamentos, setLancamentos] = useState<LancamentoFisicoRecord[]>([])
   const [totais, setTotais] = useState<Record<string, TotaisItem>>({})
+  const [votosCandidatos, setVotosCandidatos] = useState<Record<string, string[]>>({})
   const [observacao, setObservacao] = useState('')
   const [salvando, setSalvando] = useState<string | null>(null)
   const [carregando, setCarregando] = useState(true)
@@ -65,7 +73,16 @@ export const PainelLancamentoFisico: React.FC<Props> = ({ deliberacao, itens, on
               }
             : iniciaTotais()
         }
-        setTotais(mapa)
+        const mapaCand: Record<string, string[]> = {}
+        for (const item of itens) {
+          if (!ehItemEleicao(item)) continue
+          const l = lista.find((x) => x.item === item.id)
+          const arr = normalizarVotosPorCandidato(l?.votos_por_candidato)
+          mapaCand[item.id] = normalizarCandidatosEleicao(item.candidatos_eleicao).map((_, i) =>
+            String(arr[i] ?? ''),
+          )
+        }
+        setVotosCandidatos(mapaCand)
       } catch (err: unknown) {
         toast({
           title: 'Falha ao carregar lançamentos',
@@ -82,31 +99,38 @@ export const PainelLancamentoFisico: React.FC<Props> = ({ deliberacao, itens, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deliberacao.id, itens.map((i) => i.id).join('|')])
 
-  const totalDigitais = useMemo(() => {
-    return itens.map((i) => ({
-      itemId: i.id,
-      favoraveis: 0,
-      contrarios: 0,
-      abstencoes: 0,
-    }))
-  }, [itens])
-
+  /** Itens de eleição: guarda só a contagem por candidato. */
   const salvar = async (itemId: string) => {
-    const t = totais[itemId] || iniciaTotais()
+    const item = itens.find((i) => i.id === itemId)
+    if (!item) return
     setSalvando(itemId)
     try {
-      const resp = await api.salvarLancamentoFisico({
-        deliberacaoId: deliberacao.id,
-        itemId,
-        favoraveis: parseInt(t.favoraveis || '0', 10) || 0,
-        contrarios: parseInt(t.contrarios || '0', 10) || 0,
-        abstencoes: parseInt(t.abstencoes || '0', 10) || 0,
-        observacao: observacao.trim() || undefined,
-      })
-      if (!resp.success) throw new Error(resp.message || 'Falha ao salvar lançamento.')
+      if (ehItemEleicao(item)) {
+        const arr = (votosCandidatos[itemId] || []).map((v) => parseInt(v || '0', 10) || 0)
+        const resp = await api.salvarLancamentoFisico({
+          deliberacaoId: deliberacao.id,
+          itemId,
+          votosPorCandidato: arr,
+          observacao: observacao.trim() || undefined,
+        })
+        if (!resp.success) throw new Error(resp.message || 'Falha ao salvar lançamento.')
+      } else {
+        const t = totais[itemId] || iniciaTotais()
+        const resp = await api.salvarLancamentoFisico({
+          deliberacaoId: deliberacao.id,
+          itemId,
+          favoraveis: parseInt(t.favoraveis || '0', 10) || 0,
+          contrarios: parseInt(t.contrarios || '0', 10) || 0,
+          abstencoes: parseInt(t.abstencoes || '0', 10) || 0,
+          observacao: observacao.trim() || undefined,
+        })
+        if (!resp.success) throw new Error(resp.message || 'Falha ao salvar lançamento.')
+      }
       toast({
         title: 'Lançamento físico registrado',
-        description: 'Os totais entram na consolidação do boletim da urna.',
+        description: ehItemEleicao(item)
+          ? 'A contagem por candidato entra na apuração da eleição.'
+          : 'Os totais entram na consolidação do boletim da urna.',
       })
       const lista = await api.getLancamentosFisicos(deliberacao.id)
       setLancamentos(lista)
@@ -129,6 +153,16 @@ export const PainelLancamentoFisico: React.FC<Props> = ({ deliberacao, itens, on
       ...t,
       [itemId]: { ...(t[itemId] || iniciaTotais()), [campo]: apenasDigitos },
     }))
+  }
+
+  const setVotoCandidato = (itemId: string, indice: number, valor: string) => {
+    const apenasDigitos = valor.replace(/\D/g, '').slice(0, 4)
+    setVotosCandidatos((t) => {
+      const atual = t[itemId] || []
+      const novo = [...atual]
+      novo[indice] = apenasDigitos
+      return { ...t, [itemId]: novo }
+    })
   }
 
   const lancamentoDoItem = (itemId: string) => lancamentos.find((l) => l.item === itemId)
@@ -177,30 +211,58 @@ export const PainelLancamentoFisico: React.FC<Props> = ({ deliberacao, itens, on
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="grid grid-cols-3 gap-2">
-                  {(
-                    [
-                      ['favoraveis', 'Favoráveis'],
-                      ['contrarios', 'Contrários'],
-                      ['abstencoes', 'Abstenções'],
-                    ] as const
-                  ).map(([campo, rotulo]) => (
-                    <div key={campo} className="space-y-1">
-                      <Label htmlFor={`${campo}-${item.id}`} className="text-[11px]">
-                        {rotulo}
-                      </Label>
-                      <Input
-                        id={`${campo}-${item.id}`}
-                        inputMode="numeric"
-                        autoComplete="off"
-                        className="h-9"
-                        value={totais[item.id]?.[campo] ?? ''}
-                        onChange={(e) => setCampo(item.id, campo, e.target.value)}
-                        placeholder="0"
-                      />
+                {ehItemEleicao(item) ? (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {normalizarCandidatos(item.candidatos_eleicao).map((cand, i) => (
+                        <div key={`${item.id}-cand-${i}`} className="space-y-1">
+                          <Label htmlFor={`cand-${item.id}-${i}`} className="text-[11px]">
+                            {cand.nome}
+                            {cand.cargo ? ` — ${cand.cargo}` : ''}
+                          </Label>
+                          <Input
+                            id={`cand-${item.id}-${i}`}
+                            inputMode="numeric"
+                            autoComplete="off"
+                            className="h-9"
+                            value={votosCandidatos[item.id]?.[i] ?? ''}
+                            onChange={(e) => setVotoCandidato(item.id, i, e.target.value)}
+                            placeholder="0"
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                    <p className="text-[11px] text-slate-500">
+                      Eleição: lance a contagem de cédulas físicas por candidato. Ela entra na
+                      apuração junto com os votos digitais da urna.
+                    </p>
+                  </>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {(
+                      [
+                        ['favoraveis', 'Favoráveis'],
+                        ['contrarios', 'Contrários'],
+                        ['abstencoes', 'Abstenções'],
+                      ] as const
+                    ).map(([campo, rotulo]) => (
+                      <div key={campo} className="space-y-1">
+                        <Label htmlFor={`${campo}-${item.id}`} className="text-[11px]">
+                          {rotulo}
+                        </Label>
+                        <Input
+                          id={`${campo}-${item.id}`}
+                          inputMode="numeric"
+                          autoComplete="off"
+                          className="h-9"
+                          value={totais[item.id]?.[campo] ?? ''}
+                          onChange={(e) => setCampo(item.id, campo, e.target.value)}
+                          placeholder="0"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   {l ? (
                     <span className="text-[11px] text-slate-500 flex items-center gap-1">
@@ -216,18 +278,28 @@ export const PainelLancamentoFisico: React.FC<Props> = ({ deliberacao, itens, on
                       variant="ghost"
                       size="sm"
                       className="h-8 text-xs"
-                      onClick={() =>
-                        setTotais((t) => ({
-                          ...t,
-                          [item.id]: l
-                            ? {
-                                favoraveis: String(l.favoraveis ?? ''),
-                                contrarios: String(l.contrarios ?? ''),
-                                abstencoes: String(l.abstencoes ?? ''),
-                              }
-                            : iniciaTotais(),
-                        }))
-                      }
+                      onClick={() => {
+                        if (ehItemEleicao(item)) {
+                          const arr = l?.votos_por_candidato ?? []
+                          setVotosCandidatos((t) => ({
+                            ...t,
+                            [item.id]: normalizarCandidatos(item.candidatos_eleicao).map((_, i) =>
+                              String(arr[i] ?? ''),
+                            ),
+                          }))
+                        } else {
+                          setTotais((t) => ({
+                            ...t,
+                            [item.id]: l
+                              ? {
+                                  favoraveis: String(l.favoraveis ?? ''),
+                                  contrarios: String(l.contrarios ?? ''),
+                                  abstencoes: String(l.abstencoes ?? ''),
+                                }
+                              : iniciaTotais(),
+                          }))
+                        }
+                      }}
                     >
                       <RotateCcw className="mr-1 h-3 w-3" /> Reverter
                     </Button>

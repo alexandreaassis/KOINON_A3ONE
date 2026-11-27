@@ -6,6 +6,7 @@ import {
   type DeliberacaoRecord,
   type ItemPautaRecord,
   type DeliberacaoStatus,
+  type CandidatoEleicao,
   type RegraLocatario,
   type TipoPauta,
   type UnidadeRecord,
@@ -98,6 +99,8 @@ export const DeliberacoesPage: React.FC = () => {
   const [itemRegraLocatario, setItemRegraLocatario] =
     useState<RegraLocatario>('somente_proprietario')
   const [itemTipoPauta, setItemTipoPauta] = useState<TipoPauta>('despesas_manutencao')
+  const [itemEhEleicao, setItemEhEleicao] = useState(false)
+  const [itemCandidatos, setItemCandidatos] = useState<CandidatoEleicao[]>([])
   const [salvandoItem, setSalvandoItem] = useState(false)
 
   // Unidades e ausências de proprietários
@@ -331,8 +334,12 @@ export const DeliberacoesPage: React.FC = () => {
       : 'somente_proprietario'
     setItemRegraLocatario(defaultRegra)
     setItemTipoPauta('despesas_manutencao')
+    setItemEhEleicao(false)
+    setCandidatosPauta([{ nome: '', cargo: 'Síndico' }])
     setModalItemAberto(true)
   }
+
+  const setCandidatosPauta = (novos: CandidatoEleicao[]) => setItemCandidatos(novos)
 
   const abrirEditarItem = (item: ItemPautaRecord) => {
     setItemEditandoId(item.id)
@@ -345,12 +352,59 @@ export const DeliberacoesPage: React.FC = () => {
       : 'somente_proprietario'
     setItemRegraLocatario(item.regra_locatario || fallbackRegra)
     setItemTipoPauta(item.tipo_pauta || 'despesas_manutencao')
+    const ehEleicao = item.tipo_eleicao === 'eleicao'
+    setItemEhEleicao(ehEleicao)
+    setItemCandidatos(
+      ehEleicao && Array.isArray(item.candidatos_eleicao) && item.candidatos_eleicao.length > 0
+        ? item.candidatos_eleicao.map((c) => ({ nome: c.nome || '', cargo: c.cargo || '' }))
+        : [{ nome: '', cargo: 'Síndico' }],
+    )
     setModalItemAberto(true)
+  }
+
+  const atualizarCandidato = (idx: number, campo: 'nome' | 'cargo', valor: string) => {
+    setItemCandidatos((atual) => atual.map((c, i) => (i === idx ? { ...c, [campo]: valor } : c)))
+  }
+
+  const moverCandidato = (idx: number, direcao: -1 | 1) => {
+    setItemCandidatos((atual) => {
+      const novoIdx = idx + direcao
+      if (novoIdx < 0 || novoIdx >= atual.length) return atual
+      const copia = [...atual]
+      const [movido] = copia.splice(idx, 1)
+      copia.splice(novoIdx, 0, movido)
+      return copia
+    })
+  }
+
+  const validarCandidatosEleicao = (): string | null => {
+    if (!itemEhEleicao) return null
+    const validos = itemCandidatos.filter((c) => c.nome.trim().length > 0)
+    if (validos.length < 2) {
+      return 'Um item de eleição precisa de pelo menos 2 candidatos com nome preenchido.'
+    }
+    if (validos.some((c) => !c.cargo.trim())) {
+      return 'Informe o cargo disputado de cada candidato (ex.: Síndico, Conselheiro Fiscal).'
+    }
+    return null
   }
 
   const handleSalvarItem = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!deliberacaoSelecionada) return
+
+    const erroEleicao = validarCandidatosEleicao()
+    if (erroEleicao) {
+      toast({ title: 'Eleição incompleta', description: erroEleicao, variant: 'destructive' })
+      return
+    }
+
+    const tipoEleicao = itemEhEleicao ? ('eleicao' as const) : ('regular' as const)
+    const candidatosNormalizados = itemEhEleicao
+      ? itemCandidatos
+          .filter((c) => c.nome.trim().length > 0)
+          .map((c) => ({ nome: c.nome.trim(), cargo: c.cargo.trim() }))
+      : []
 
     setSalvandoItem(true)
     try {
@@ -362,6 +416,8 @@ export const DeliberacoesPage: React.FC = () => {
           quorum_aplicavel: itemQuorum,
           regra_locatario: itemRegraLocatario,
           tipo_pauta: itemTipoPauta,
+          tipo_eleicao: tipoEleicao,
+          candidatos_eleicao: candidatosNormalizados,
         })
         toast({ title: 'Item de Pauta Atualizado' })
       } else {
@@ -373,6 +429,8 @@ export const DeliberacoesPage: React.FC = () => {
           quorum_aplicavel: itemQuorum,
           regra_locatario: itemRegraLocatario,
           tipo_pauta: itemTipoPauta,
+          tipo_eleicao: tipoEleicao,
+          candidatos_eleicao: candidatosNormalizados,
         })
         toast({ title: 'Item de Pauta Adicionado' })
       }
@@ -885,6 +943,20 @@ export const DeliberacoesPage: React.FC = () => {
                               </Badge>
                             )}
 
+                            {item.tipo_eleicao === 'eleicao' && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] text-violet-700 border-violet-300 bg-violet-50"
+                              >
+                                <Vote className="h-3 w-3 mr-1" />
+                                Eleição
+                                {Array.isArray(item.candidatos_eleicao) &&
+                                item.candidatos_eleicao.length > 0
+                                  ? ` • ${item.candidatos_eleicao.length} candidatos`
+                                  : ''}
+                              </Badge>
+                            )}
+
                             {/* Badge da Regra do Locatário */}
                             {(!item.regra_locatario ||
                               item.regra_locatario === 'somente_proprietario') && (
@@ -1353,6 +1425,121 @@ export const DeliberacoesPage: React.FC = () => {
                   : 'Somente proprietário'}
                 ). A mesa pode flexibilizar por item.
               </p>
+            </div>
+
+            {/* Bloco: Modo Eleição (migration 0054) */}
+            <div className="p-2.5 rounded bg-violet-50/70 border border-violet-200 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <Label className="text-xs font-bold text-violet-950 flex items-center gap-1.5">
+                    <Vote className="h-3.5 w-3.5 text-violet-700" />
+                    Item de Eleição
+                  </Label>
+                  <p className="text-[10px] text-violet-800">
+                    Em vez de favorável/contrário, o eleitor escolhe um candidato.
+                  </p>
+                </div>
+                <Switch checked={itemEhEleicao} onCheckedChange={setItemEhEleicao} />
+              </div>
+
+              {itemEhEleicao && (
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-700">
+                      Candidatos ({itemCandidatos.length})
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-[11px] border-violet-300 text-violet-800 hover:bg-violet-100"
+                      onClick={() =>
+                        setItemCandidatos([...itemCandidatos, { nome: '', cargo: '' }])
+                      }
+                    >
+                      <Plus className="h-3 w-3 mr-1" /> Adicionar candidato
+                    </Button>
+                  </div>
+
+                  {itemCandidatos.map((candidato, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-end gap-1.5 p-2 rounded bg-white border border-violet-100"
+                    >
+                      <div className="flex-1 space-y-1">
+                        <Label className="text-[10px] font-semibold text-slate-600">
+                          {`Candidato ${idx + 1}`}
+                        </Label>
+                        <Input
+                          value={candidato.nome}
+                          onChange={(e) => atualizarCandidato(idx, 'nome', e.target.value)}
+                          placeholder="Nome completo"
+                          autoComplete="off"
+                          className="text-xs h-8"
+                        />
+                      </div>
+                      <div className="w-44 space-y-1">
+                        <Label className="text-[10px] font-semibold text-slate-600">Cargo</Label>
+                        <Input
+                          value={candidato.cargo}
+                          onChange={(e) => atualizarCandidato(idx, 'cargo', e.target.value)}
+                          placeholder="Ex: Síndico"
+                          autoComplete="off"
+                          list={`cargos-eleicao-${itemEditandoId ?? 'novo'}`}
+                          className="text-xs h-8"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-0.5 pb-0.5">
+                        <button
+                          type="button"
+                          aria-label={`Mover candidato ${idx + 1} para cima`}
+                          disabled={idx === 0}
+                          onClick={() => moverCandidato(idx, -1)}
+                          className="px-1 text-slate-400 hover:text-violet-700 disabled:opacity-30 text-[10px] leading-none"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Mover candidato ${idx + 1} para baixo`}
+                          disabled={idx === itemCandidatos.length - 1}
+                          onClick={() => moverCandidato(idx, 1)}
+                          className="px-1 text-slate-400 hover:text-violet-700 disabled:opacity-30 text-[10px] leading-none"
+                        >
+                          ▼
+                        </button>
+                      </div>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        aria-label={`Remover candidato ${idx + 1}`}
+                        disabled={itemCandidatos.length <= 2}
+                        onClick={() =>
+                          setItemCandidatos(itemCandidatos.filter((_, i) => i !== idx))
+                        }
+                        className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+
+                  <datalist id={`cargos-eleicao-${itemEditandoId ?? 'novo'}`}>
+                    <option value="Síndico" />
+                    <option value="Subsíndico" />
+                    <option value="Vice-Síndico" />
+                    <option value="Conselheiro Fiscal" />
+                    <option value="Conselheiro Consultivo" />
+                    <option value="Conselheiro Deliberativo" />
+                  </datalist>
+
+                  <p className="text-[10px] text-slate-500">
+                    A ordem definida aqui é a ordem exibida na urna e no boletim. Cada eleitor vota
+                    em um único candidato.
+                  </p>
+                </div>
+              )}
             </div>
 
             <DialogFooter className="pt-2">

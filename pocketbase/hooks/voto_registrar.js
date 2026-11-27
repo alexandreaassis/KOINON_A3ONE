@@ -351,11 +351,48 @@ routerAdd('POST', '/backend/v1/votos/registrar', (e) => {
       }
     } catch (_) {}
 
+    // Helper inline: valida voto em item do modo eleição (migration 0054)
+    function validarOpcaoEleicao(app, itemId, opcao) {
+      if (opcao.indexOf('candidato:') !== 0) return null
+      const idxStr = opcao.substring('candidato:'.length)
+      const idx = parseInt(idxStr, 10)
+      if (isNaN(idx) || idx < 0 || String(idx) !== idxStr.trim()) {
+        throw new BadRequestError('Índice de candidato inválido: ' + opcao)
+      }
+      let itemEleicao
+      try {
+        itemEleicao = app.findRecordById('itens_pauta', itemId)
+      } catch (_) {
+        throw new BadRequestError('Item de pauta não encontrado: ' + itemId)
+      }
+      if (itemEleicao.getString('tipo_eleicao') !== 'eleicao') {
+        throw new BadRequestError(
+          'Voto em candidato só é permitido em item do modo eleição (item: ' + itemId + ')',
+        )
+      }
+      let candidatos = []
+      try {
+        candidatos = JSON.parse(itemEleicao.getString('candidatos_eleicao') || '[]')
+      } catch (_) {
+        candidatos = []
+      }
+      if (!Array.isArray(candidatos) || idx >= candidatos.length) {
+        throw new BadRequestError('Candidato não encontrado para este item: ' + opcao)
+      }
+      return idx
+    }
+
     let hashesCedulas = []
 
     for (let v of votos) {
       const opcao = (v.opcao || '').toLowerCase()
-      if (!['favoravel', 'contrario', 'abstencao', 'nulo', 'branco'].includes(opcao)) {
+      const ehVotoCandidato =
+        opcao.indexOf('candidato:') === 0 &&
+        validarOpcaoEleicao(txApp, v.itemId, opcao) !== undefined
+      if (
+        !ehVotoCandidato &&
+        !['favoravel', 'contrario', 'abstencao', 'nulo', 'branco'].includes(opcao)
+      ) {
         throw new BadRequestError('Opção inválida: ' + opcao)
       }
 
@@ -383,7 +420,7 @@ routerAdd('POST', '/backend/v1/votos/registrar', (e) => {
       cedRec.set('deliberacao', deliberacaoId)
       cedRec.set('item', v.itemId)
       cedRec.set('unidade_hash', unidadeHash)
-      cedRec.set('opcao', opcao)
+      cedRec.set('opcao', opcao) // 'candidato:<índice>' é permitido em item do modo eleição (0054)
       cedRec.set('timestamp', dataHoraAgora)
       cedRec.set('hash_anterior', ultimoHashCedula)
       cedRec.set('hash_cedula', hashCedula)

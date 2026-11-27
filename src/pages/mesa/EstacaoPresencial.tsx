@@ -32,7 +32,7 @@ import {
 
 type Etapa = 'bloqueada' | 'aguardando' | 'votando' | 'concluido'
 
-type OpcaoVoto = 'favoravel' | 'contrario' | 'abstencao'
+type OpcaoVoto = 'favoravel' | 'contrario' | 'abstencao' | `candidato:${number}`
 
 interface ReciboEstacao {
   reciboCodigo: string
@@ -429,24 +429,65 @@ export const EstacaoPresencialPage: React.FC = () => {
                     {item.ordem ? `${item.ordem}. ` : ''}
                     {item.titulo}
                   </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['favoravel', 'contrario', 'abstencao'] as const).map((op) => (
-                      <Button
-                        key={op}
-                        type="button"
-                        variant={votos[item.id] === op ? 'default' : 'outline'}
-                        className={
-                          votos[item.id] === op
-                            ? 'bg-[#0066FF] hover:bg-[#0055d4] text-white'
-                            : 'text-slate-700'
-                        }
-                        onClick={() => setVotos((v) => ({ ...v, [item.id]: op }))}
-                        aria-pressed={votos[item.id] === op}
-                      >
-                        {ROTULO_OPCAO[op]}
-                      </Button>
-                    ))}
-                  </div>
+                  {item.tipo_eleicao === 'eleicao' &&
+                  Array.isArray(item.candidatos_eleicao) &&
+                  item.candidatos_eleicao.length > 0 ? (
+                    <div
+                      role="radiogroup"
+                      aria-label={`Candidatos do item ${item.ordem ?? ''}`}
+                      className="grid grid-cols-1 gap-2"
+                    >
+                      {item.candidatos_eleicao.map((candidato, idx) => {
+                        const opcaoCandidato = `candidato:${idx}` as OpcaoVoto
+                        const selecionado = votos[item.id] === opcaoCandidato
+                        return (
+                          <Button
+                            key={`${item.id}-candidato-${idx}`}
+                            type="button"
+                            role="radio"
+                            aria-checked={selecionado}
+                            variant={selecionado ? 'default' : 'outline'}
+                            className={
+                              selecionado
+                                ? 'bg-[#0066FF] hover:bg-[#0055d4] text-white justify-start'
+                                : 'text-slate-700 justify-start'
+                            }
+                            onClick={() => setVotos((v) => ({ ...v, [item.id]: opcaoCandidato }))}
+                          >
+                            <span className="flex flex-col items-start leading-tight">
+                              <span>{candidato.nome}</span>
+                              {candidato.cargo && (
+                                <span
+                                  className={`text-[10px] ${selecionado ? 'text-blue-100' : 'text-slate-400'}`}
+                                >
+                                  {candidato.cargo}
+                                </span>
+                              )}
+                            </span>
+                          </Button>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['favoravel', 'contrario', 'abstencao'] as const).map((op) => (
+                        <Button
+                          key={op}
+                          type="button"
+                          variant={votos[item.id] === op ? 'default' : 'outline'}
+                          className={
+                            votos[item.id] === op
+                              ? 'bg-[#0066FF] hover:bg-[#0055d4] text-white'
+                              : 'text-slate-700'
+                          }
+                          onClick={() => setVotos((v) => ({ ...v, [item.id]: op }))}
+                          aria-pressed={votos[item.id] === op}
+                        >
+                          {ROTULO_OPCAO[op]}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               <Button

@@ -475,6 +475,24 @@ const CardLinhaPauta: React.FC<{ linha: LinhaPautaApurada; idx: number }> = ({ l
   const { item, quorum, votos, temFisico, totalParticipantes } = linha
   const { favoravel, desfavoravel, nulo, abstencao, total: totalVotos } = votos
 
+  // Item de ELEIÇÃO: mostra contagem por candidato em vez de Favorável/Contrário.
+  const candidatos = Array.isArray(item.candidatos_eleicao) ? item.candidatos_eleicao : []
+  const ehEleicao = item.tipo_eleicao === 'eleicao' && candidatos.length > 0
+  const porCandidato = Array.isArray(item.porCandidato) ? item.porCandidato : []
+
+  const eleicaoInfo = (() => {
+    if (!ehEleicao) return null
+    const totais = porCandidato.map((p) => p.total || 0)
+    const maxVotos = Math.max(0, ...totais)
+    const totalEleicao = totais.reduce((s, v) => s + v, 0)
+    const lideres = totais
+      .map((v, i) => ({ v, i }))
+      .filter((x) => x.v === maxVotos && maxVotos > 0)
+      .map((x) => x.i)
+    const empate = lideres.length > 1
+    return { maxVotos, totalEleicao, lideres, empate }
+  })()
+
   const percFavor = totalVotos > 0 ? (favoravel / Math.max(1, totalVotos)) * 100 : 0
   const percDesfavor = totalVotos > 0 ? (desfavoravel / Math.max(1, totalVotos)) * 100 : 0
 
@@ -524,30 +542,85 @@ const CardLinhaPauta: React.FC<{ linha: LinhaPautaApurada; idx: number }> = ({ l
         </div>
       </CardHeader>
       <CardContent className="space-y-3 pb-4 pt-3">
-        {/* Contagem Favorável / Desfavorável / Nulo */}
-        <div className="grid grid-cols-3 gap-2">
-          <Contador
-            icone={<ThumbsUp className="h-4 w-4 text-green-600" />}
-            rotulo="Favorável"
-            valor={favoravel}
-            perc={percFavor}
-            corBarra="bg-green-500"
-          />
-          <Contador
-            icone={<ThumbsDown className="h-4 w-4 text-red-600" />}
-            rotulo="Desfavorável"
-            valor={desfavoravel}
-            perc={percDesfavor}
-            corBarra="bg-red-500"
-          />
-          <Contador
-            icone={<MinusCircle className="h-4 w-4 text-slate-500" />}
-            rotulo="Nulo"
-            valor={nulo}
-            perc={totalVotos > 0 ? (nulo / totalVotos) * 100 : 0}
-            corBarra="bg-slate-400"
-          />
-        </div>
+        {/* ELEIÇÃO: contagem por candidato + selo "Eleito" no mais votado */}
+        {ehEleicao && eleicaoInfo ? (
+          <div className="space-y-2">
+            {eleicaoInfo.empate && (
+              <Alert className="border-amber-300 bg-amber-50 text-amber-950">
+                <AlertTitle className="text-xs font-bold">Empate na apuração</AlertTitle>
+                <AlertDescription className="text-xs">
+                  Há mais de um candidato com {eleicaoInfo.maxVotos} voto(s). A mesa diretora deve
+                  decidir o desempate conforme o regimento.
+                </AlertDescription>
+              </Alert>
+            )}
+            <div className="grid grid-cols-1 gap-2">
+              {candidatos.map((candidato, i) => {
+                const qtd = porCandidato[i]?.total || 0
+                const perc =
+                  eleicaoInfo.totalEleicao > 0 ? (qtd / eleicaoInfo.totalEleicao) * 100 : 0
+                const eleito = !eleicaoInfo.empate && eleicaoInfo.lideres.includes(i)
+                return (
+                  <div
+                    key={`${item.id}-cand-${i}`}
+                    className={`flex items-center justify-between gap-2 rounded-xl border p-3 ${
+                      eleito ? 'border-green-300 bg-green-50/60' : 'border-slate-200 bg-white'
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-900">
+                        {candidato.nome}
+                      </p>
+                      {candidato.cargo && (
+                        <p className="truncate text-[11px] text-slate-500">{candidato.cargo}</p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {eleito && (
+                        <Badge className="bg-green-600 text-white gap-1">
+                          <CheckCircle2 className="h-3 w-3" /> Eleito
+                        </Badge>
+                      )}
+                      <div className="w-24 space-y-1">
+                        <p className="text-right text-sm font-bold text-[#002B5E]">{qtd}</p>
+                        <div className="h-1.5 rounded-full bg-slate-200 opacity-60" aria-hidden>
+                          <div
+                            className="h-1.5 rounded-full bg-[#0066FF]"
+                            style={{ width: `${Math.min(100, perc)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            <Contador
+              icone={<ThumbsUp className="h-4 w-4 text-green-600" />}
+              rotulo="Favorável"
+              valor={favoravel}
+              perc={percFavor}
+              corBarra="bg-green-500"
+            />
+            <Contador
+              icone={<ThumbsDown className="h-4 w-4 text-red-600" />}
+              rotulo="Desfavorável"
+              valor={desfavoravel}
+              perc={percDesfavor}
+              corBarra="bg-red-500"
+            />
+            <Contador
+              icone={<MinusCircle className="h-4 w-4 text-slate-500" />}
+              rotulo="Nulo"
+              valor={nulo}
+              perc={totalVotos > 0 ? (nulo / totalVotos) * 100 : 0}
+              corBarra="bg-slate-400"
+            />
+          </div>
+        )}
 
         {(abstencao > 0 || item.votos.branco > 0) && (
           <p className="flex items-center gap-1 text-[11px] text-slate-500">

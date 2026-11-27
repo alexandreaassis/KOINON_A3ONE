@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-27T16:26:24.498Z",
+  "generatedAt": "2026-11-27T16:28:45.573Z",
   "collections": [
     {
       "name": "users",
@@ -3306,6 +3306,12 @@
         {
           "name": "observacao",
           "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "votos_por_candidato",
+          "type": "json",
           "required": false,
           "system": false
         }

@@ -179,10 +179,26 @@ export interface LancamentoFisicoRecord extends RecordModel {
   favoraveis: number
   contrarios: number
   abstencoes: number
+  /** Migration 0055 — array de números (índice = candidato em candidatos_eleicao) */
+  votos_por_candidato?: number[] | string | null
   lancado_por?: string
   /** JSON: { favoraveis, contrarios, abstencoes, lancado_por, atualizado_em } */
   valores_anteriores?: string
   observacao?: string
+}
+
+/** Normaliza votos_por_candidato (JSON pode chegar como string/array/null) */
+export function normalizarVotosPorCandidato(valor: unknown): number[] {
+  let dados: unknown = valor
+  if (typeof dados === 'string') {
+    try {
+      dados = JSON.parse(dados)
+    } catch (_) {
+      return []
+    }
+  }
+  if (!Array.isArray(dados)) return []
+  return dados.map((n) => (typeof n === 'number' && !isNaN(n) ? Math.max(0, Math.round(n)) : 0))
 }
 
 export interface CodigoUsoUnicoRecord extends RecordModel {
@@ -204,6 +220,44 @@ export type RegraLocatario =
 
 export type TipoPauta = 'despesas_manutencao' | 'proprietarios' | 'geral'
 
+/**
+ * Migration 0054 — modo "eleição" em itens de pauta.
+ * tipo_eleicao = 'eleicao' transforma o item em votação de candidatos (escolha única);
+ * candidatos_eleicao é JSON array [{nome, cargo}].
+ */
+export type TipoEleicao = 'regular' | 'eleicao'
+
+export interface CandidatoEleicao {
+  nome: string
+  cargo?: string
+}
+
+/**
+ * Normaliza candidatos_eleicao (JSON pode chegar como string, array ou null)
+ * para um array tipado de candidatos.
+ */
+export function normalizarCandidatosEleicao(valor: unknown): CandidatoEleicao[] {
+  let dados: unknown = valor
+  if (typeof dados === 'string') {
+    try {
+      dados = JSON.parse(dados)
+    } catch (_) {
+      return []
+    }
+  }
+  if (!Array.isArray(dados)) return []
+  return dados
+    .filter(
+      (c): c is { nome?: unknown; cargo?: unknown } =>
+        !!c && typeof c === 'object' && 'nome' in (c as Record<string, unknown>),
+    )
+    .map((c) => ({
+      nome: typeof c.nome === 'string' ? c.nome : String(c.nome ?? ''),
+      cargo: typeof c.cargo === 'string' ? c.cargo : undefined,
+    }))
+    .filter((c) => c.nome.trim() !== '')
+}
+
 export interface ItemPautaRecord extends RecordModel {
   deliberacao: string
   ordem: number
@@ -212,13 +266,22 @@ export interface ItemPautaRecord extends RecordModel {
   quorum_aplicavel?: string
   regra_locatario?: RegraLocatario
   tipo_pauta?: TipoPauta
+  tipo_eleicao?: TipoEleicao
+  /** JSON array [{nome, cargo}] — normalizar com normalizarCandidatosEleicao */
+  candidatos_eleicao?: CandidatoEleicao[] | string | null
+}
+
+/** true quando o item é do modo eleição */
+export function itemEhEleicao(item?: ItemPautaRecord | null): boolean {
+  return item?.tipo_eleicao === 'eleicao'
 }
 
 export interface CedulaRecord extends RecordModel {
   deliberacao: string
   item: string
   unidade_hash: string
-  opcao: 'favoravel' | 'contrario' | 'abstencao'
+  /** Voto comum ('favoravel'|'contrario'|'abstencao'...) ou em candidato: 'candidato:<índice>' */
+  opcao: 'favoravel' | 'contrario' | 'abstencao' | `candidato:${number}` | (string & {})
   timestamp: string
   hash_anterior: string
   hash_cedula: string
@@ -686,6 +749,11 @@ export interface ApuracaoItemResult {
   titulo: string
   texto?: string
   quorum_aplicavel?: string
+  /** Migration 0054 — presente quando o item é do modo eleição */
+  tipo_eleicao?: TipoEleicao
+  candidatos_eleicao?: CandidatoEleicao[]
+  /** Contagem por candidato (índice do array candidatos_eleicao) */
+  porCandidato?: number[]
   votos: {
     favoravel: number
     contrario: number
@@ -2565,6 +2633,8 @@ export const api = {
     favoraveis: number
     contrarios: number
     abstencoes: number
+    /** Migration 0055 — contagem por candidato (item do modo eleição) */
+    votosPorCandidato?: number[]
     observacao?: string
   }): Promise<{ success: boolean; message: string }> {
     return pb.send('/backend/v1/votos/lancamento-fisico', {
@@ -2635,7 +2705,10 @@ export const api = {
   async estacaoRegistrarVoto(payload: {
     tokenVoto: string
     deliberacaoId: string
-    votos: { itemId: string; opcao: 'favoravel' | 'contrario' | 'abstencao' }[]
+    votos: {
+      itemId: string
+      opcao: 'favoravel' | 'contrario' | 'abstencao' | `candidato:${number}`
+    }[]
     dispositivoId?: string
   }): Promise<{
     success: boolean

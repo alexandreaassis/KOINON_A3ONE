@@ -128,12 +128,25 @@ routerAdd('POST', '/backend/v1/atas/gerar-ia', (e) => {
       const quorumItem =
         it.getString('quorum_aplicavel') || delib.getString('quorum_materia') || 'Maioria simples'
 
+      // Eleição: candidatos do item (JSON candidatos_eleicao)
+      let candidatosItem = []
+      try {
+        const raw = it.getString('candidatos_eleicao')
+        if (raw) candidatosItem = JSON.parse(raw) || []
+      } catch (_) {
+        candidatosItem = []
+      }
+      const ehEleicao = it.getString('tipo_eleicao') === 'eleicao' && candidatosItem.length > 0
+
       // Contar cédulas para este item
       let fav = 0
       let cont = 0
       let abs = 0
       let nulo = 0
       let branco = 0
+      let votosPorCandidato = candidatosItem.map(function () {
+        return 0
+      })
 
       try {
         const cedulas = e.app.findRecordsByFilter('cedulas', 'item = {:itId}', '', 1000, 0, {
@@ -146,17 +159,75 @@ routerAdd('POST', '/backend/v1/atas/gerar-ia', (e) => {
           else if (op === 'abstencao') abs++
           else if (op === 'nulo') nulo++
           else if (op === 'branco') branco++
+          else if (op && op.indexOf('candidato:') === 0) {
+            const idx = parseInt(op.substring(9), 10)
+            if (idx >= 0 && idx < votosPorCandidato.length) votosPorCandidato[idx]++
+          }
+        }
+      } catch (_) {}
+
+      // Lançamentos físicos da mesa (contagem por candidato, migration 0055)
+      try {
+        const lans = e.app.findRecordsByFilter('lancamentos_fisicos', 'item = {:itId}', '', 10, 0, {
+          itId: itemId,
+        })
+        for (let l of lans) {
+          const rawVpc = l.getString('votos_por_candidato')
+          if (rawVpc) {
+            const arr = JSON.parse(rawVpc) || []
+            for (let i = 0; i < arr.length && i < votosPorCandidato.length; i++) {
+              votosPorCandidato[i] += parseInt(arr[i], 10) || 0
+            }
+          }
         }
       } catch (_) {}
 
       const totalItemVotos = fav + cont + abs + nulo + branco
-      const situacao = fav > cont ? 'APROVADO' : cont > fav ? 'REPROVADO' : 'EMPATE'
 
-      itensPautaTexto +=
-        `\n--- Item ${ordem}: "${tituloItem}" ---\n` +
-        (textoItem ? `Descrição: ${textoItem}\n` : '') +
-        `Quórum Exigido: ${quorumItem}\n` +
-        `Resultado da Votação: ${situacao} (Favoráveis: ${fav}, Contrários: ${cont}, Abstenções: ${abs}, Nulos: ${nulo}, Brancos: ${branco} | Total de votos: ${totalItemVotos})\n`
+      if (ehEleicao) {
+        const totalCand = votosPorCandidato.reduce(function (s, v) {
+          return s + v
+        }, 0)
+        const maxVotos = Math.max.apply(null, votosPorCandidato.concat([0]))
+        const lideresIdx = []
+        for (let i = 0; i < votosPorCandidato.length; i++) {
+          if (maxVotos > 0 && votosPorCandidato[i] === maxVotos) lideresIdx.push(i)
+        }
+        const empate = lideresIdx.length > 1
+        let textoEleicao =
+          `\n--- Item ${ordem}: "${tituloItem}" (ELEIÇÃO) ---\n` +
+          (textoItem ? `Descrição: ${textoItem}\n` : '') +
+          `Resultado da Eleição:\n`
+        for (let i = 0; i < candidatosItem.length; i++) {
+          const cand = candidatosItem[i]
+          const qtd = votosPorCandidato[i] || 0
+          const situacaoCand =
+            empate && lideresIdx.indexOf(i) !== -1
+              ? 'EMPATE — decisão da mesa'
+              : !empate && lideresIdx.indexOf(i) !== -1
+                ? 'ELEITO'
+                : 'Não eleito'
+          textoEleicao += `- ${cand.nome || 'Candidato ' + (i + 1)}${cand.cargo ? ' (cargo: ' + cand.cargo + ')' : ''}: ${qtd} voto(s) — ${situacaoCand}\n`
+        }
+        textoEleicao +=
+          `Total de votos na eleição: ${totalCand}` +
+          (nulo > 0 ? ` | Nulos: ${nulo}` : '') +
+          (branco > 0 ? ` | Brancos: ${branco}` : '') +
+          '\n'
+        textoEleicao += empate
+          ? `ATENÇÃO: HÁ EMPATE entre candidatos — a ata deve registrar que a mesa diretora decidirá o desempate conforme o regimento.\n`
+          : maxVotos > 0
+            ? `Registrar na ata o candidato ELEITO com seu cargo.\n`
+            : 'Nenhum voto registrado para esta eleição.\n'
+        itensPautaTexto += textoEleicao
+      } else {
+        const situacao = fav > cont ? 'APROVADO' : cont > fav ? 'REPROVADO' : 'EMPATE'
+        itensPautaTexto +=
+          `\n--- Item ${ordem}: "${tituloItem}" ---\n` +
+          (textoItem ? `Descrição: ${textoItem}\n` : '') +
+          `Quórum Exigido: ${quorumItem}\n` +
+          `Resultado da Votação: ${situacao} (Favoráveis: ${fav}, Contrários: ${cont}, Abstenções: ${abs}, Nulos: ${nulo}, Brancos: ${branco} | Total de votos: ${totalItemVotos})\n`
+      }
     }
   } catch (_) {}
 

@@ -660,79 +660,174 @@ export const BoletimUrnaDocumentoPage: React.FC = () => {
                     </div>
 
                     {/* Tabela de Votação do Item */}
-                    <table className="w-full text-xs border-collapse">
-                      <thead>
-                        <tr className="bg-slate-100 text-slate-800 text-left text-[11px]">
-                          <th className="p-1.5 border border-slate-200">Opção de Voto</th>
-                          <th className="p-1.5 border border-slate-200 text-center">
-                            Quantidade de Votos
-                          </th>
-                          <th className="p-1.5 border border-slate-200 text-center">Percentual</th>
-                          <th className="p-1.5 border border-slate-200 text-left">
-                            Representação Visual
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td className="p-1.5 border border-slate-200 font-semibold text-slate-900">
-                            Favorável (Sim)
-                          </td>
-                          <td className="p-1.5 border border-slate-200 text-center font-bold text-slate-900">
-                            {item.votos.favoravel}
-                          </td>
-                          <td className="p-1.5 border border-slate-200 text-center font-bold">
-                            {pctFav}%
-                          </td>
-                          <td className="p-1.5 border border-slate-200">
-                            <div className="w-full bg-slate-200 h-2 rounded-xs overflow-hidden">
-                              <div
-                                className="bg-slate-800 h-full"
-                                style={{ width: `${pctFav}%` }}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="p-1.5 border border-slate-200 font-semibold text-slate-900">
-                            Contrário (Não)
-                          </td>
-                          <td className="p-1.5 border border-slate-200 text-center font-bold text-slate-900">
-                            {item.votos.contrario}
-                          </td>
-                          <td className="p-1.5 border border-slate-200 text-center font-bold">
-                            {pctCont}%
-                          </td>
-                          <td className="p-1.5 border border-slate-200">
-                            <div className="w-full bg-slate-200 h-2 rounded-xs overflow-hidden">
-                              <div
-                                className="bg-slate-600 h-full"
-                                style={{ width: `${pctCont}%` }}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="p-1.5 border border-slate-200 font-semibold text-slate-900">
-                            Abstenção
-                          </td>
-                          <td className="p-1.5 border border-slate-200 text-center font-bold text-slate-900">
-                            {item.votos.abstencao}
-                          </td>
-                          <td className="p-1.5 border border-slate-200 text-center font-bold">
-                            {pctAbs}%
-                          </td>
-                          <td className="p-1.5 border border-slate-200">
-                            <div className="w-full bg-slate-200 h-2 rounded-xs overflow-hidden">
-                              <div
-                                className="bg-slate-400 h-full"
-                                style={{ width: `${pctAbs}%` }}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                    {item.tipo_eleicao === 'eleicao' &&
+                    Array.isArray(item.candidatos_eleicao) &&
+                    item.candidatos_eleicao.length > 0 ? (
+                      (() => {
+                        const cand = item.candidatos_eleicao
+                        const pc = Array.isArray(item.porCandidato) ? item.porCandidato : []
+                        const totCand = pc.map((p) => p.total || 0)
+                        const totalEleicao = totCand.reduce((s, v) => s + v, 0)
+                        const maxVotos = Math.max(0, ...totCand)
+                        const lideres = totCand
+                          .map((v, i) => ({ v, i }))
+                          .filter((x) => x.v === maxVotos && maxVotos > 0)
+                          .map((x) => x.i)
+                        const empate = lideres.length > 1
+                        return (
+                          <table className="w-full text-xs border-collapse">
+                            <thead>
+                              <tr className="bg-slate-100 text-slate-800 text-left text-[11px]">
+                                <th className="p-1.5 border border-slate-200">Candidato</th>
+                                <th className="p-1.5 border border-slate-200">Cargo</th>
+                                <th className="p-1.5 border border-slate-200 text-center">Votos</th>
+                                <th className="p-1.5 border border-slate-200 text-center">
+                                  Percentual
+                                </th>
+                                <th className="p-1.5 border border-slate-200 text-center">
+                                  Resultado
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {cand.map((c, i) => {
+                                const qtd = totCand[i] || 0
+                                const pct =
+                                  totalEleicao > 0 ? Math.round((qtd / totalEleicao) * 100) : 0
+                                const eleito = !empate && lideres.includes(i)
+                                return (
+                                  <tr key={`${item.id}-cand-${i}`}>
+                                    <td className="p-1.5 border border-slate-200 font-semibold text-slate-900">
+                                      {c.nome}
+                                    </td>
+                                    <td className="p-1.5 border border-slate-200 text-slate-700">
+                                      {c.cargo || '—'}
+                                    </td>
+                                    <td className="p-1.5 border border-slate-200 text-center font-bold text-slate-900">
+                                      {qtd}
+                                    </td>
+                                    <td className="p-1.5 border border-slate-200 text-center font-bold">
+                                      {pct}%
+                                    </td>
+                                    <td className="p-1.5 border border-slate-200 text-center">
+                                      {empate && lideres.includes(i) ? (
+                                        <span className="font-bold text-amber-700">
+                                          Empate — decidir na mesa
+                                        </span>
+                                      ) : eleito ? (
+                                        <span className="font-bold text-slate-950">
+                                          Eleito {c.cargo ? `— ${c.cargo}` : ''}
+                                        </span>
+                                      ) : (
+                                        <span className="text-slate-500">Não eleito</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                              {item.votos.nulo > 0 && (
+                                <tr>
+                                  <td
+                                    className="p-1.5 border border-slate-200 text-slate-500"
+                                    colSpan={2}
+                                  >
+                                    Votos nulos
+                                  </td>
+                                  <td className="p-1.5 border border-slate-200 text-center font-bold text-slate-500">
+                                    {item.votos.nulo}
+                                  </td>
+                                  <td
+                                    className="p-1.5 border border-slate-200 text-center font-bold text-slate-500"
+                                    colSpan={2}
+                                  >
+                                    {totalItem > 0
+                                      ? Math.round((item.votos.nulo / totalItem) * 100)
+                                      : 0}
+                                    %
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        )
+                      })()
+                    ) : (
+                      <table className="w-full text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100 text-slate-800 text-left text-[11px]">
+                            <th className="p-1.5 border border-slate-200">Opção de Voto</th>
+                            <th className="p-1.5 border border-slate-200 text-center">
+                              Quantidade de Votos
+                            </th>
+                            <th className="p-1.5 border border-slate-200 text-center">
+                              Percentual
+                            </th>
+                            <th className="p-1.5 border border-slate-200 text-left">
+                              Representação Visual
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="p-1.5 border border-slate-200 font-semibold text-slate-900">
+                              Favorável (Sim)
+                            </td>
+                            <td className="p-1.5 border border-slate-200 text-center font-bold text-slate-900">
+                              {item.votos.favoravel}
+                            </td>
+                            <td className="p-1.5 border border-slate-200 text-center font-bold">
+                              {pctFav}%
+                            </td>
+                            <td className="p-1.5 border border-slate-200">
+                              <div className="w-full bg-slate-200 h-2 rounded-xs overflow-hidden">
+                                <div
+                                  className="bg-slate-800 h-full"
+                                  style={{ width: `${pctFav}%` }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="p-1.5 border border-slate-200 font-semibold text-slate-900">
+                              Contrário (Não)
+                            </td>
+                            <td className="p-1.5 border border-slate-200 text-center font-bold text-slate-900">
+                              {item.votos.contrario}
+                            </td>
+                            <td className="p-1.5 border border-slate-200 text-center font-bold">
+                              {pctCont}%
+                            </td>
+                            <td className="p-1.5 border border-slate-200">
+                              <div className="w-full bg-slate-200 h-2 rounded-xs overflow-hidden">
+                                <div
+                                  className="bg-slate-600 h-full"
+                                  style={{ width: `${pctCont}%` }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="p-1.5 border border-slate-200 font-semibold text-slate-900">
+                              Abstenção
+                            </td>
+                            <td className="p-1.5 border border-slate-200 text-center font-bold text-slate-900">
+                              {item.votos.abstencao}
+                            </td>
+                            <td className="p-1.5 border border-slate-200 text-center font-bold">
+                              {pctAbs}%
+                            </td>
+                            <td className="p-1.5 border border-slate-200">
+                              <div className="w-full bg-slate-200 h-2 rounded-xs overflow-hidden">
+                                <div
+                                  className="bg-slate-400 h-full"
+                                  style={{ width: `${pctAbs}%` }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    )}
                   </div>
                 )
               })}
