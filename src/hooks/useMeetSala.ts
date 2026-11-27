@@ -47,8 +47,8 @@ export const useMeetSala = (): MeetSalaEstado => {
       try {
         const resp = await api.criarSalaMeet(String(deliberacaoId))
         return { meet_link: resp.meet_link || '' }
-      } catch (err: any) {
-        const mensagem = typeof err?.message === 'string' ? err.message : ''
+      } catch (err: unknown) {
+        const mensagem = typeof (err as Error)?.message === 'string' ? (err as Error).message : ''
         const amigavel = mensagem.includes('Configure as credenciais')
           ? 'Configure as credenciais do Google Meet em Administração antes de criar a sala.'
           : mensagem || 'Não foi possível criar a sala do Google Meet. Tente novamente.'

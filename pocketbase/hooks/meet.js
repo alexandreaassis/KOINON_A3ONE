@@ -36,15 +36,61 @@ routerAdd('GET', '/backend/v1/meet/config', (e) => {
     return e.json(401, { success: false, message: 'Usuário não autenticado.' })
   }
 
-  // Auxiliar INLINE (JSVM): decifra o valor da credencial — prefixo ENC: é
-  // base64 puro (fallback histórico), senão $security.decrypt com a ENCRYPTION_KEY.
+  // Auxiliares INLINE (JSVM): $security.base64Decode NÃO existe neste runtime —
+  // decoder base64 manual + decifra: prefixo ENC: é base64 (fallback histórico),
+  // senão $security.decrypt com a ENCRYPTION_KEY (padrão zapsign.js).
+  const decodificarBase64Utf8 = (b64) => {
+    const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    const limpo = String(b64).replace(/[^A-Za-z0-9+/=]/g, '')
+    let bytesBrutos = ''
+    let buffer = 0
+    let bits = 0
+    for (let i = 0; i < limpo.length; i++) {
+      const c = limpo.charAt(i)
+      if (c === '=') break
+      const v = CHARS.indexOf(c)
+      if (v < 0) continue
+      buffer = (buffer << 6) | v
+      bits += 6
+      if (bits >= 8) {
+        bits -= 8
+        bytesBrutos += String.fromCharCode((buffer >> bits) & 0xff)
+      }
+    }
+    let texto = ''
+    for (let i = 0; i < bytesBrutos.length; i++) {
+      const c = bytesBrutos.charCodeAt(i)
+      if (c < 0x80) texto += String.fromCharCode(c)
+      else if (c < 0xe0) {
+        i++
+        texto += String.fromCharCode(((c & 0x1f) << 6) | (bytesBrutos.charCodeAt(i) & 0x3f))
+      } else if (c < 0xf0) {
+        i += 2
+        texto += String.fromCharCode(
+          ((c & 0x0f) << 12) |
+            ((bytesBrutos.charCodeAt(i - 1) & 0x3f) << 6) |
+            (bytesBrutos.charCodeAt(i) & 0x3f),
+        )
+      } else {
+        i += 3
+        const cp =
+          ((c & 0x07) << 18) |
+          ((bytesBrutos.charCodeAt(i - 2) & 0x3f) << 12) |
+          ((bytesBrutos.charCodeAt(i - 1) & 0x3f) << 6) |
+          (bytesBrutos.charCodeAt(i) & 0x3f)
+        const off = cp - 0x10000
+        texto += String.fromCharCode(0xd800 + (off >> 10), 0xdc00 + (off & 0x3ff))
+      }
+    }
+    return texto
+  }
   const decifrarValorMeet = (texto) => {
     if (!texto) return ''
     const key = ($os.getenv('ENCRYPTION_KEY') || 'koinon-zapsign-sec-key-32chars!')
       .padEnd(32, '0')
       .slice(0, 32)
     if (texto.startsWith('ENC:')) {
-      return $security.base64Decode(texto.substring(4))
+      return decodificarBase64Utf8(texto.substring(4))
     }
     try {
       return $security.decrypt(texto, key)
@@ -274,14 +320,59 @@ routerAdd('POST', '/backend/v1/meet/criar-sala', (e) => {
     })
   }
 
-  // Auxiliares INLINE (JSVM)
+  // Auxiliares INLINE (JSVM) — mesmos do GET config (nada em top-level)
+  const decodificarBase64Utf8 = (b64) => {
+    const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    const limpo = String(b64).replace(/[^A-Za-z0-9+/=]/g, '')
+    let bytesBrutos = ''
+    let buffer = 0
+    let bits = 0
+    for (let i = 0; i < limpo.length; i++) {
+      const c = limpo.charAt(i)
+      if (c === '=') break
+      const v = CHARS.indexOf(c)
+      if (v < 0) continue
+      buffer = (buffer << 6) | v
+      bits += 6
+      if (bits >= 8) {
+        bits -= 8
+        bytesBrutos += String.fromCharCode((buffer >> bits) & 0xff)
+      }
+    }
+    let texto = ''
+    for (let i = 0; i < bytesBrutos.length; i++) {
+      const c = bytesBrutos.charCodeAt(i)
+      if (c < 0x80) texto += String.fromCharCode(c)
+      else if (c < 0xe0) {
+        i++
+        texto += String.fromCharCode(((c & 0x1f) << 6) | (bytesBrutos.charCodeAt(i) & 0x3f))
+      } else if (c < 0xf0) {
+        i += 2
+        texto += String.fromCharCode(
+          ((c & 0x0f) << 12) |
+            ((bytesBrutos.charCodeAt(i - 1) & 0x3f) << 6) |
+            (bytesBrutos.charCodeAt(i) & 0x3f),
+        )
+      } else {
+        i += 3
+        const cp =
+          ((c & 0x07) << 18) |
+          ((bytesBrutos.charCodeAt(i - 2) & 0x3f) << 12) |
+          ((bytesBrutos.charCodeAt(i - 1) & 0x3f) << 6) |
+          (bytesBrutos.charCodeAt(i) & 0x3f)
+        const off = cp - 0x10000
+        texto += String.fromCharCode(0xd800 + (off >> 10), 0xdc00 + (off & 0x3ff))
+      }
+    }
+    return texto
+  }
   const decifrarValorMeet = (texto) => {
     if (!texto) return ''
     const key = ($os.getenv('ENCRYPTION_KEY') || 'koinon-zapsign-sec-key-32chars!')
       .padEnd(32, '0')
       .slice(0, 32)
     if (texto.startsWith('ENC:')) {
-      return $security.base64Decode(texto.substring(4))
+      return decodificarBase64Utf8(texto.substring(4))
     }
     try {
       return $security.decrypt(texto, key)
@@ -375,34 +466,161 @@ routerAdd('POST', '/backend/v1/meet/criar-sala', (e) => {
     }),
   )
 
-  // Assinatura RS256 com feature-detect: caminho principal $security.rs256;
-  // sem ele, o JSVM síncrono não consegue consumir crypto.subtle (Promise) —
-  // responde 500 explícito em vez de crashar com ReferenceError.
-  if (
-    typeof $security === 'undefined' ||
-    typeof $security.rs256 !== 'function'
-  ) {
-    return e.json(500, {
-      success: false,
-      codigo: 'RUNTIME_SEM_RS256',
-      message:
-        'Este runtime do PocketBase não expõe $security.rs256 (e o JSVM síncrono não suporta crypto.subtle). Atualize o PocketBase do backend para assinar o JWT RS256.',
-    })
+  // Parser da private_key: o JSON da service account pode trazer "\n" literais
+  const privatePem = String(cred.private_key || '').replace(/\\n/g, '\n')
+
+  // Auxiliares INLINE — assinatura RS256 (RSA PKCS#1 v1.5 + SHA-256) em JS puro
+  // com BigInt: o JSVM do PocketBase não expõe $security.rs256 nem crypto.subtle
+  // síncrono. Requer apenas $security.sha256 (hex) para o digest.
+  const CHARS_B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+  const hexParaBytes = (hex) => {
+    let out = ''
+    for (let i = 0; i < hex.length; i += 2) {
+      out += String.fromCharCode(parseInt(hex.substring(i, i + 2), 16))
+    }
+    return out
+  }
+  const b64EncodeBytes = (bytesStr) => {
+    let out = ''
+    for (let i = 0; i < bytesStr.length; i += 3) {
+      const b1 = bytesStr.charCodeAt(i)
+      const b2 = bytesStr.charCodeAt(i + 1)
+      const b3 = bytesStr.charCodeAt(i + 2)
+      const tem2 = i + 1 < bytesStr.length
+      const tem3 = i + 2 < bytesStr.length
+      out += CHARS_B64[b1 >> 2]
+      out += CHARS_B64[((b1 & 3) << 4) | ((tem2 ? b2 : 0) >> 4)]
+      out += tem2 ? CHARS_B64[((b2 & 15) << 2) | ((tem3 ? b3 : 0) >> 6)] : '='
+      out += tem3 ? CHARS_B64[b3 & 63] : '='
+    }
+    return out
+  }
+  const b64urlBytes = (bytesStr) =>
+    b64EncodeBytes(bytesStr).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  const bytesParaBigInt = (bytes) => {
+    let r = 0n
+    for (let i = 0; i < bytes.length; i++) r = (r << 8n) | BigInt(bytes.charCodeAt(i))
+    return r
+  }
+  const bigIntParaBytes = (valor, tamanho) => {
+    let v = valor
+    const pile = []
+    for (let i = 0; i < tamanho; i++) {
+      pile.push(Number(v & 0xffn))
+      v >>= 8n
+    }
+    let out = ''
+    for (let i = tamanho - 1; i >= 0; i--) out += String.fromCharCode(pile[i])
+    return out
+  }
+  const modPow = (base, exp, mod) => {
+    let resultado = 1n
+    let b = base % mod
+    let e = exp
+    while (e > 0n) {
+      if (e & 1n) resultado = (resultado * b) % mod
+      b = (b * b) % mod
+      e >>= 1n
+    }
+    return resultado
+  }
+  const lerTlvDer = (bytes, pos) => {
+    const tag = bytes.charCodeAt(pos)
+    let len = bytes.charCodeAt(pos + 1)
+    let next = pos + 2
+    if (len & 0x80) {
+      const qtde = len & 0x7f
+      len = 0
+      for (let i = 0; i < qtde; i++) {
+        len = len * 256 + bytes.charCodeAt(next)
+        next++
+      }
+    }
+    return { tag: tag, valor: bytes.substring(next, next + len), fim: next + len }
+  }
+  // PKCS#8 PEM → { n, d } BigInt (service accounts usam "BEGIN PRIVATE KEY")
+  const extrairChaveRsa = (pem) => {
+    const limpo = String(pem)
+      .replace(/-----BEGIN[^-]*-----/g, '')
+      .replace(/-----END[^-]*-----/g, '')
+      .replace(/[^A-Za-z0-9+/=]/g, '')
+    let der = ''
+    let buffer = 0
+    let bits = 0
+    for (let i = 0; i < limpo.length; i++) {
+      const c = limpo.charAt(i)
+      if (c === '=') break
+      const v = CHARS_B64.indexOf(c)
+      if (v < 0) continue
+      buffer = (buffer << 6) | v
+      bits += 6
+      if (bits >= 8) {
+        bits -= 8
+        der += String.fromCharCode((buffer >> bits) & 0xff)
+      }
+    }
+    const raiz = lerTlvDer(der, 0)
+    let pos = 0
+    const versao = lerTlvDer(raiz.valor, pos)
+    pos = versao.fim
+    const alg = lerTlvDer(raiz.valor, pos)
+    pos = alg.fim
+    const octet = lerTlvDer(raiz.valor, pos)
+    const pkcs1 = octet.valor
+    let p2 = 0
+    const cab = lerTlvDer(pkcs1, p2)
+    p2 = cab.fim
+    const nT = lerTlvDer(pkcs1, p2)
+    p2 = nT.fim
+    const eT = lerTlvDer(pkcs1, p2)
+    p2 = eT.fim
+    const dT = lerTlvDer(pkcs1, p2)
+    p2 = dT.fim
+    return { n: bytesParaBigInt(nT.valor), d: bytesParaBigInt(dT.valor) }
+  }
+  const assinarRs256 = (mensagem, pem) => {
+    const chave = extrairChaveRsa(pem)
+    let bitsModulo = 0
+    let x = chave.n
+    while (x > 0n) {
+      bitsModulo++
+      x >>= 1n
+    }
+    const tamModulo = Math.ceil(bitsModulo / 8)
+    const hashHex = $security.sha256(mensagem)
+    const digestInfo =
+      '\x30\x31\x30\x0d\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x01\x05\x00\x04\x20'
+    const t = digestInfo + hexParaBytes(hashHex)
+    const tamPadding = tamModulo - t.length - 3
+    if (tamPadding < 8) {
+      throw new Error('chave RSA muito curta para PKCS#1 v1.5')
+    }
+    const em = '\x00\x01' + new Array(tamPadding + 1).join('\xff') + '\x00' + t
+    return bigIntParaBytes(modPow(bytesParaBigInt(em), chave.d, chave.n), tamModulo)
   }
 
-  let assinatura
+  let assinaturaBytes = null
   try {
-    assinatura = $security.rs256(header + '.' + claims, cred.private_key)
-  } catch (err) {
+    assinaturaBytes = assinarRs256(header + '.' + claims, privatePem)
+  } catch (errAssina) {
     return e.json(500, {
       success: false,
       codigo: 'CREDENCIAL_INVALIDA',
       message:
-        'A private_key da service account é inválida. Verifique se o JSON colado contém a chave completa em "-----BEGIN PRIVATE KEY-----".',
+        'A private_key da service account é inválida (' +
+        (errAssina && errAssina.message ? errAssina.message : 'erro ao assinar') +
+        '). Verifique se o JSON contém a chave completa em "-----BEGIN PRIVATE KEY-----".',
+    })
+  }
+  if (!assinaturaBytes) {
+    return e.json(500, {
+      success: false,
+      codigo: 'FALHA_ASSINAR',
+      message: 'Não foi possível assinar o JWT com a private_key informada.',
     })
   }
 
-  const assersaoJwt = header + '.' + claims + '.' + b64url(assinatura)
+  const assersaoJwt = header + '.' + claims + '.' + b64urlBytes(assinaturaBytes)
 
   let respToken
   try {

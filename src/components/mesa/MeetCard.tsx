@@ -2,7 +2,15 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CalendarX2, Copy, ExternalLink, MessageSquarePlus, Video, VideoOff } from 'lucide-react'
+import {
+  CalendarX2,
+  Copy,
+  ExternalLink,
+  KeyRound,
+  MessageSquarePlus,
+  Video,
+  VideoOff,
+} from 'lucide-react'
 import { useState } from 'react'
 import { useMeetSala } from '@/hooks/useMeetSala'
 import { useToast } from '@/hooks/use-toast'
@@ -23,7 +31,7 @@ export const MeetCard = ({
 }: MeetCardProps) => {
   const { toast } = useToast()
   const [copiando, setCopiando] = useState(false)
-  const { criarSala, carregando } = useMeetSala()
+  const { criarSala, carregando, credenciaisConfiguradas } = useMeetSala()
 
   const temSala = !!meetLink
 
@@ -115,14 +123,51 @@ export const MeetCard = ({
     )
   }
 
+  // Sem credencial Meet configurada: botão desabilitado + aviso de configuração
+  if (!credenciaisConfiguradas) {
+    return (
+      <Card className="border-slate-200 shadow-xs rounded-xl bg-white">
+        <CardContent className="py-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Video className="h-4 w-4 text-slate-400 shrink-0" />
+            <span className="text-xs font-semibold text-slate-600">
+              Sala de reunião da assembleia
+            </span>
+            <Badge
+              variant="outline"
+              className="ml-auto border-slate-300 text-slate-500 text-[10px] px-2 py-0 shrink-0"
+            >
+              Credencial ausente
+            </Badge>
+          </div>
+          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+            <KeyRound className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-amber-900 leading-relaxed">
+              Configure as credenciais do Google Meet em Administração para habilitar a criação da
+              sala.
+            </p>
+          </div>
+          <Button type="button" size="sm" className="h-8 text-[11px] gap-1.5" disabled>
+            <VideoOff className="h-3 w-3" /> Criar sala Meet
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className="border-[#002B5E]/15 shadow-xs rounded-xl bg-white">
       <CardContent className="py-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <Video className="h-4 w-4 text-[#0066FF] shrink-0" />
-          <span className="text-xs font-semibold text-[#002B5E]">
-            Sala de reunião da assembleia
-          </span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Video className="h-4 w-4 text-[#0066FF] shrink-0" />
+            <span className="text-xs font-semibold text-[#002B5E]">
+              Sala de reunião da assembleia
+            </span>
+          </div>
+          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] px-2 py-0 shrink-0">
+            Conexão Ativa
+          </Badge>
         </div>
         <p className="text-[11px] text-slate-500 leading-relaxed">
           Crie a sala no Google Meet pela API oficial. O link fica salvo nesta assembleia e pode ser
