@@ -110,6 +110,9 @@ export const PainelLancamentoFisico: React.FC<Props> = ({ deliberacao, itens, on
         const resp = await api.salvarLancamentoFisico({
           deliberacaoId: deliberacao.id,
           itemId,
+          favoraveis: 0,
+          contrarios: 0,
+          abstencoes: 0,
           votosPorCandidato: arr,
           observacao: observacao.trim() || undefined,
         })
@@ -214,7 +217,7 @@ export const PainelLancamentoFisico: React.FC<Props> = ({ deliberacao, itens, on
                 {ehItemEleicao(item) ? (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {normalizarCandidatos(item.candidatos_eleicao).map((cand, i) => (
+                      {normalizarCandidatosEleicao(item.candidatos_eleicao).map((cand, i) => (
                         <div key={`${item.id}-cand-${i}`} className="space-y-1">
                           <Label htmlFor={`cand-${item.id}-${i}`} className="text-[11px]">
                             {cand.nome}
@@ -283,8 +286,8 @@ export const PainelLancamentoFisico: React.FC<Props> = ({ deliberacao, itens, on
                           const arr = l?.votos_por_candidato ?? []
                           setVotosCandidatos((t) => ({
                             ...t,
-                            [item.id]: normalizarCandidatos(item.candidatos_eleicao).map((_, i) =>
-                              String(arr[i] ?? ''),
+                            [item.id]: normalizarCandidatosEleicao(item.candidatos_eleicao).map(
+                              (_, i) => String(arr[i] ?? ''),
                             ),
                           }))
                         } else {

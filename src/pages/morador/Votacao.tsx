@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useCondoConfig } from '@/context/CondoConfigContext'
 import {
   api,
+  normalizarCandidatosEleicao,
   type DeliberacaoRecord,
   type ItemPautaRecord,
   type ComparecimentoRecord,
@@ -852,49 +853,52 @@ export const VotacaoPage: React.FC = () => {
 
                   <CardContent className="pt-2">
                     {item.tipo_eleicao === 'eleicao' &&
-                    Array.isArray(item.candidatos_eleicao) &&
-                    item.candidatos_eleicao.length > 0 ? (
+                    normalizarCandidatosEleicao(item.candidatos_eleicao).length > 0 ? (
                       <div
                         role="radiogroup"
                         aria-label={`Candidatos do item ${item.ordem}`}
                         className="grid grid-cols-1 sm:grid-cols-2 gap-2.5"
                       >
-                        {item.candidatos_eleicao.map((candidato, idx) => {
-                          const selecionado = votoAtual === `candidato:${idx}`
-                          return (
-                            <button
-                              key={`${item.id}-candidato-${idx}`}
-                              type="button"
-                              role="radio"
-                              aria-checked={selecionado}
-                              onClick={() => selecionarOpcao(item.id, `candidato:${idx}`)}
-                              className={`p-3 rounded-lg border text-left transition-all flex items-center justify-between gap-2 ${
-                                selecionado
-                                  ? 'bg-violet-600 text-white border-violet-700 shadow-sm font-bold'
-                                  : 'bg-white text-slate-700 border-slate-200 hover:bg-violet-50 hover:border-violet-300'
-                              }`}
-                            >
-                              <span className="flex flex-col items-start gap-0.5">
-                                <span className="text-sm">{candidato.nome}</span>
-                                {candidato.cargo && (
-                                  <span
-                                    className={`text-[10px] ${selecionado ? 'text-violet-100' : 'text-slate-400'}`}
-                                  >
-                                    {candidato.cargo}
-                                  </span>
-                                )}
-                              </span>
-                              <span
-                                aria-hidden="true"
-                                className={`shrink-0 h-4 w-4 rounded-full border-2 flex items-center justify-center ${
-                                  selecionado ? 'border-white' : 'border-slate-300'
+                        {normalizarCandidatosEleicao(item.candidatos_eleicao).map(
+                          (candidato, idx) => {
+                            const selecionado = votoAtual === `candidato:${idx}`
+                            return (
+                              <button
+                                key={`${item.id}-candidato-${idx}`}
+                                type="button"
+                                role="radio"
+                                aria-checked={selecionado}
+                                onClick={() => selecionarOpcao(item.id, `candidato:${idx}`)}
+                                className={`p-3 rounded-lg border text-left transition-all flex items-center justify-between gap-2 ${
+                                  selecionado
+                                    ? 'bg-violet-600 text-white border-violet-700 shadow-sm font-bold'
+                                    : 'bg-white text-slate-700 border-slate-200 hover:bg-violet-50 hover:border-violet-300'
                                 }`}
                               >
-                                {selecionado && <span className="h-2 w-2 rounded-full bg-white" />}
-                              </span>
-                            </button>
-                          )
-                        })}
+                                <span className="flex flex-col items-start gap-0.5">
+                                  <span className="text-sm">{candidato.nome}</span>
+                                  {candidato.cargo && (
+                                    <span
+                                      className={`text-[10px] ${selecionado ? 'text-violet-100' : 'text-slate-400'}`}
+                                    >
+                                      {candidato.cargo}
+                                    </span>
+                                  )}
+                                </span>
+                                <span
+                                  aria-hidden="true"
+                                  className={`shrink-0 h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                                    selecionado ? 'border-white' : 'border-slate-300'
+                                  }`}
+                                >
+                                  {selecionado && (
+                                    <span className="h-2 w-2 rounded-full bg-white" />
+                                  )}
+                                </span>
+                              </button>
+                            )
+                          },
+                        )}
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -1067,7 +1071,9 @@ export const VotacaoPage: React.FC = () => {
                     }`}
                   >
                     {opcao?.startsWith('candidato:')
-                      ? item.candidatos_eleicao?.[Number(opcao.split(':')[1])]?.nome || 'Candidato'
+                      ? normalizarCandidatosEleicao(item.candidatos_eleicao)[
+                          Number(opcao.split(':')[1])
+                        ]?.nome || 'Candidato'
                       : opcao}
                   </Badge>
                 </div>

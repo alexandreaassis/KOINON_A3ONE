@@ -753,7 +753,7 @@ export interface ApuracaoItemResult {
   tipo_eleicao?: TipoEleicao
   candidatos_eleicao?: CandidatoEleicao[]
   /** Contagem por candidato (índice do array candidatos_eleicao) */
-  porCandidato?: number[]
+  porCandidato?: { total: number }[]
   votos: {
     favoravel: number
     contrario: number

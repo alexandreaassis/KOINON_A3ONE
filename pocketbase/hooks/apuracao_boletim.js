@@ -91,7 +91,7 @@ routerAdd('GET', '/backend/v1/deliberacoes/apuracao', (e) => {
       tipo_eleicao: item.getString('tipo_eleicao') || 'regular',
       candidatos_eleicao: candidatosItem,
       // Contagem por candidato — inclui lançamento físico por candidato (0055)
-      porCandidato: candidatosItem.map(() => 0),
+      porCandidato: candidatosItem.map(() => ({ total: 0 })),
       votos: {
         favoravel: 0,
         contrario: 0,
@@ -135,8 +135,8 @@ routerAdd('GET', '/backend/v1/deliberacoes/apuracao', (e) => {
       for (let i = 0; i < porCand.length; i++) {
         if (typeof porCand[i] !== 'number' || isNaN(porCand[i])) continue
         // Se o lançamento é mais antigo que o array do item (candidatos mudaram), estende
-        if (i >= alvo.length) alvo.push(0)
-        alvo[i] += Math.max(0, Math.round(porCand[i]))
+        if (i >= alvo.length) alvo.push({ total: 0 })
+        alvo[i].total += Math.max(0, Math.round(porCand[i]))
       }
     }
   }
@@ -156,9 +156,9 @@ routerAdd('GET', '/backend/v1/deliberacoes/apuracao', (e) => {
       if (!isNaN(idx)) {
         const alvo = mapaItens[itemId].porCandidato
         if (idx >= alvo.length) {
-          for (let k = alvo.length; k <= idx; k++) alvo.push(0)
+          for (let k = alvo.length; k <= idx; k++) alvo.push({ total: 0 })
         }
-        alvo[idx] += 1
+        alvo[idx].total += 1
         mapaItens[itemId].votos.total += 1
       }
     }
