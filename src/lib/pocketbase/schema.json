@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-26T03:47:46.148Z",
+  "generatedAt": "2026-11-27T16:26:24.498Z",
   "collections": [
     {
       "name": "users",
@@ -508,6 +508,19 @@
           "required": false,
           "system": false,
           "selectValues": ["despesas_manutencao", "proprietarios", "geral"]
+        },
+        {
+          "name": "tipo_eleicao",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["regular", "eleicao"]
+        },
+        {
+          "name": "candidatos_eleicao",
+          "type": "json",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_itens_pauta_deliberacao ON itens_pauta (deliberacao, ordem)"]
