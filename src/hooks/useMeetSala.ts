@@ -9,7 +9,7 @@ export interface MeetSalaEstado {
   carregando: boolean
   /** true enquanto o hook está criando a sala */
   criando: boolean
-  criarSala: (deliberacaoId: number) => Promise<{ meet_link: string } | null>
+  criarSala: (deliberacaoId: string) => Promise<{ meet_link: string } | null>
   recarregarStatus: () => void
 }
 
@@ -41,11 +41,11 @@ export const useMeetSala = (): MeetSalaEstado => {
   }, [])
 
   const criarSala = useCallback(
-    async (deliberacaoId: number) => {
+    async (deliberacaoId: string) => {
       if (criando) return null
       setCriando(true)
       try {
-        const resp = await api.criarSalaMeet(deliberacaoId)
+        const resp = await api.criarSalaMeet(String(deliberacaoId))
         return { meet_link: resp.meet_link || '' }
       } catch (err: any) {
         const mensagem = typeof err?.message === 'string' ? err.message : ''
