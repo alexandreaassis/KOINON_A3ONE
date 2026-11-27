@@ -58,6 +58,8 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { SecaoAreaSindico } from '@/components/mesa/SecaoAreaSindico'
+import { MeetCard } from '@/components/mesa/MeetCard'
+import ModalEnviarMensagem from '@/components/mensagem/ModalEnviarMensagem'
 
 export const PainelMesaPage: React.FC = () => {
   const navigate = useNavigate()
@@ -94,6 +96,16 @@ export const PainelMesaPage: React.FC = () => {
   const [executandoTransicao, setExecutandoTransicao] = useState(false)
 
   const [carregando, setCarregando] = useState(true)
+
+  // Google Meet (Fase 1): envio do link da sala no convite individual
+  const [modalConvocacaoAberto, setModalConvocacaoAberto] = useState(false)
+  const [linkConvocacao, setLinkConvocacao] = useState('')
+  const [destinatarioConvocacao, setDestinatarioConvocacao] = useState<{
+    nome: string
+    telefone?: string | null
+    email?: string | null
+    unidade?: string
+  } | null>(null)
 
   // Pendências da mesa: credenciamentos + cadastros públicos aguardando análise
   const [totalCredPendentes, setTotalCredPendentes] = useState(0)
@@ -652,6 +664,23 @@ export const PainelMesaPage: React.FC = () => {
                 <Share2 className="mr-1 h-3.5 w-3.5" /> 6. Publicar
               </Button>
             </div>
+
+            {/* Card Google Meet (Fase 1) — criação da sala da assembleia */}
+            <MeetCard
+              deliberacaoId={deliberacaoAtiva.id}
+              meetLink={deliberacaoAtiva.meet_link || undefined}
+              onLinkAtualizado={(link) => {
+                setDeliberacaoAtiva((prev) => (prev ? { ...prev, meet_link: link } : prev))
+                setDeliberacoes((prev) =>
+                  prev.map((d) => (d.id === deliberacaoAtiva.id ? { ...d, meet_link: link } : d)),
+                )
+              }}
+              onAbrirConvocacao={(link) => {
+                setLinkConvocacao(link)
+                setDestinatarioConvocacao(null)
+                setModalConvocacaoAberto(true)
+              }}
+            />
           </CardContent>
         </Card>
       )}
@@ -1097,6 +1126,18 @@ export const PainelMesaPage: React.FC = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Convocação com link da sala Meet */}
+      <ModalEnviarMensagem
+        aberto={modalConvocacaoAberto}
+        onOpenChange={setModalConvocacaoAberto}
+        nome={destinatarioConvocacao?.nome || ''}
+        telefone={destinatarioConvocacao?.telefone}
+        email={destinatarioConvocacao?.email}
+        unidade={destinatarioConvocacao?.unidade}
+        link={linkConvocacao}
+        tela="Painel da Mesa — Convocação com sala Meet"
+      />
 
       {/* Modal de Confirmação de Transição */}
       <Dialog open={dialogTransicaoAberto} onOpenChange={setDialogTransicaoAberto}>

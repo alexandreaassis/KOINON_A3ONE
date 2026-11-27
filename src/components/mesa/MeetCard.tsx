@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast'
 import { api } from '@/lib/api'
 
 interface MeetCardProps {
-  deliberacaoId: number | null
+  deliberacaoId: string | number | null
   meetLink?: string
   onLinkAtualizado: (link: string) => void
   onAbrirConvocacao: (link: string) => void
@@ -53,7 +53,7 @@ export const MeetCard = ({
 
   const handleCriarSala = async () => {
     if (!deliberacaoId) return
-    const resp = await criarSala(deliberacaoId)
+    const resp = await criarSala(String(deliberacaoId))
     if (resp) onLinkAtualizado(resp.meet_link || '')
   }
 
