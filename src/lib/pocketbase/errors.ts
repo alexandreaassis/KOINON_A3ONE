@@ -20,10 +20,12 @@ export function extractFieldErrors(error: unknown): FieldErrors {
   return errors
 }
 
-export function getErrorMessage(error: unknown): string {
+// ASSINATURA CONGELADA — nunca alterar (regressão já ocorreu 11x no projeto).
+export function getErrorMessage(error: unknown, fallback?: string): string {
   if (!(error instanceof ClientResponseError)) {
-    return error instanceof Error ? error.message : 'An unexpected error occurred.'
+    return error instanceof Error ? error.message : (fallback ?? 'An unexpected error occurred.')
   }
   const msgs = Object.values(extractFieldErrors(error))
-  return msgs.length > 0 ? msgs.join(' ') : error.message || 'An unexpected error occurred.'
+  if (msgs.length > 0) return msgs.join(' ')
+  return error.message || fallback || 'An unexpected error occurred.'
 }
